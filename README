@@ -1,0 +1,6 @@
+tabd is an acronym derived from "Trusted Access Broker" with the 'd' appended
+to denote it is a daemon program.
+
+See:
+http://www.trustedcomputinggroup.org/files/static_page_files/5029F40E-1A4B-B294-D020357ED57D3D99/TSS%20TAB%20and%20Resource%20Manager%2000%2091-PublicReview.pdf
+http://www.trustedcomputinggroup.org/files/static_page_files/28CE28FA-1A4B-B294-D0A965038809FE9B/TSS%20system%20API%2001.pdf
