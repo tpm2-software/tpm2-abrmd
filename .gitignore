@@ -1,7 +1,9 @@
 .deps/
 .dirstamp
+*.log
 *.o
 *.swp
+*.trs
 Makefile
 Makefile.in
 aclocal.m4
@@ -18,5 +20,7 @@ libtool
 ltmain.sh
 m4/
 missing
-
+test-driver
+test-suite.log
 src/tabd
+test/connection-manager_unit

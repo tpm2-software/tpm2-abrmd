@@ -8,6 +8,9 @@ AC_PROG_CC
 LT_INIT()
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_FILES([Makefile])
+AX_PTHREAD([], [AC_MSG_ERROR([requires pthread])])
+PKG_CHECK_MODULES([CMOCKA], [cmocka])
 PKG_CHECK_MODULES([DBUS], [dbus-1])
 PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
+PKG_CHECK_MODULES([GLIB], [glib-2.0])
 AC_OUTPUT

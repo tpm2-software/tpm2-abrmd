@@ -37,13 +37,13 @@ handle_method_call (GDBusConnection       *connection,
 #ifdef G_OS_UNIX
       if (g_dbus_connection_get_capabilities (connection) & G_DBUS_CAPABILITY_FLAGS_UNIX_FD_PASSING)
         {
-          GDBusMessage *reply;
-          GUnixFDList *fd_list;
+          GDBusMessage *reply = NULL;
+          GUnixFDList *fd_list = NULL;
           GError *error = NULL;
 
-          fd_list = g_unix_fd_list_new ();
-          error = NULL;
-          g_unix_fd_list_append (fd_list, STDOUT_FILENO, &error);
+          int fds[2] = { 0, 0 }, ret = 0;
+          ret = CreateConnection (user_data, &fds);
+          fd_list = g_unix_fd_list_new_from_array (fds, 2);
           g_assert_no_error (error);
 
           reply = g_dbus_message_new_method_reply (g_dbus_method_invocation_get_message (invocation));
