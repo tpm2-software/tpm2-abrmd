@@ -1,5 +1,7 @@
 .deps/
 .dirstamp
+.libs/
+*.lo
 *.log
 *.o
 *.swp
@@ -22,5 +24,6 @@ m4/
 missing
 test-driver
 test-suite.log
+src/libtss2tctitabd.la
 src/tabd
 test/connection-manager_unit
