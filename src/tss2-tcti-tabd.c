@@ -11,14 +11,23 @@ tss2_tcti_tabd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
                          uint8_t *command)
 {
     int ret = 0;
-    
+    TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
+
+    g_debug ("tss2_tcti_tabd_transmit");
+    ret = pthread_mutex_lock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    if (ret != 0)
+        g_error ("Error acquiring TCTI lock: %s", strerror (errno));
     /* should loop till all bytes written */
     ret = write (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context), command, size);
     /* should switch on possible errors to translate to TSS2 error codes */
     if (ret == size)
-        return TSS2_RC_SUCCESS;
+        tss2_ret = TSS2_RC_SUCCESS;
     else
-        return TSS2_TCTI_RC_GENERAL_FAILURE;
+        tss2_ret = TSS2_TCTI_RC_GENERAL_FAILURE;
+    ret = pthread_mutex_unlock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    if (ret != 0)
+        g_error ("Error unlocking TCTI mutex: %s", strerror (errno));
+    return tss2_ret;
 }
 
 static TSS2_RC
@@ -28,11 +37,22 @@ tss2_tcti_tabd_receive (TSS2_TCTI_CONTEXT *tcti_context,
                         int32_t timeout)
 {
     ssize_t ret = 0;
+    TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
+
+    g_debug ("tss2_tcti_tabd_receive");
+    ret = pthread_mutex_lock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    if (ret != 0)
+        g_error ("Error acquiring TCTI lock: %s", strerror (errno));
     ret = read (TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context), response, *size);
-    if (ret == -1)
-        return TSS2_TCTI_RC_GENERAL_FAILURE;
-    *size = ret;
-    return TSS2_RC_SUCCESS;
+    if (ret != -1) {
+        *size = ret;
+        tss2_ret = TSS2_RC_SUCCESS;
+    } else
+        tss2_ret = TSS2_TCTI_RC_GENERAL_FAILURE;
+    ret = pthread_mutex_unlock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    if (ret != 0)
+        g_error ("Error unlocking TCTI mutex: %s", strerror (errno));
+    return tss2_ret;
 }
 
 static void
@@ -41,7 +61,7 @@ tss2_tcti_tabd_finalize (TSS2_TCTI_CONTEXT *tcti_context)
     GMainLoop *gmain_loop = TSS2_TCTI_TABD_GMAIN_LOOP (tcti_context);
     int ret = 0;
 
-    g_info ("tss2_tcti_tabd_finalize");
+    g_debug ("tss2_tcti_tabd_finalize");
     if (gmain_loop && g_main_loop_is_running (gmain_loop))
         g_main_loop_quit (gmain_loop);
     TSS2_TCTI_TABD_GMAIN_LOOP (tcti_context) = NULL;
@@ -80,6 +100,7 @@ on_name_appeared (GDBusConnection *connection,
     GError *error = NULL;
     GUnixFDList *fd_list = NULL;
     TSS2_TCTI_TABD_CONTEXT *tcti_context = (TSS2_TCTI_TABD_CONTEXT*)user_data;
+    int ret;
 
     g_debug("on_name_appeared");
     /* get sockets for transmit / receive */
@@ -121,6 +142,9 @@ on_name_appeared (GDBusConnection *connection,
         g_unix_fd_list_get (fd_list, 1, &error);
     g_debug ("receive fd: %d", TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context));
     g_debug ("transmit fd: %d", TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context));
+    ret = pthread_mutex_unlock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    if (ret != 0)
+        g_error ("Failed to unlock init mutex: %s", strerror (errno));
 out:
     if (error)
         g_error_free (error);
@@ -137,6 +161,10 @@ on_name_vanished (GDBusConnection *connection,
     int ret = 0;
 
     g_warning ("No owner for name: %s", name);
+    ret = pthread_mutex_trylock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    if (ret != 0)
+        g_error ("Unable to acquire init lock through trylock: %s",
+                 strerror (errno));
     if (TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) != 0) {
         ret = close (TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context));
         TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) = 0;
@@ -183,6 +211,13 @@ init_function_pointers (TSS2_TCTI_CONTEXT *tcti_context)
     tss2_tcti_context_set_locality (tcti_context) = tss2_tcti_tabd_set_locality;
 }
 
+/* Initialize the TCTI. We lock the TCTI mutex here and kick off the thread
+ * that will become the gmain loop. This is the thread that handles all of the
+ * dbus events. The TCTI mutex remains locked until the TCTI becomes usable.
+ * "Usable" means that a client can call the standard TCTI functions. This
+ * requires that we have a connection to tss2-tabd. The typical flow will
+ * unlock the mutex in the 'on_name_appeared' function.
+ */
 TSS2_RC
 tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
 {
@@ -195,7 +230,15 @@ tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
         return TSS2_RC_SUCCESS;
     }
     init_function_pointers (tcti_context);
-    ret = pthread_create(&TSS2_TCTI_TABD_THREAD_ID(tcti_context),
+    ret = pthread_mutex_init (&TSS2_TCTI_TABD_MUTEX (tcti_context), NULL);
+    if (ret != 0)
+        g_error ("Failed to initialize initialization mutex: %s",
+                 strerror (errno));
+    ret = pthread_mutex_lock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    if (ret != 0)
+        g_error ("Failed to acquire init mutex in init function: %s",
+                 strerror (errno));
+    ret = pthread_create(&TSS2_TCTI_TABD_THREAD_ID (tcti_context),
                          NULL,
                          tss2_tcti_tabd_gmain_thread,
                          tcti_context);

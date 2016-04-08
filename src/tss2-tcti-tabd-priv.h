@@ -12,6 +12,8 @@
     ((TSS2_TCTI_TABD_CONTEXT*)context)->watcher_id
 #define TSS2_TCTI_TABD_THREAD_ID(context) \
     ((TSS2_TCTI_TABD_CONTEXT*)context)->thread_id
+#define TSS2_TCTI_TABD_MUTEX(context) \
+    ((TSS2_TCTI_TABD_CONTEXT*)context)->mutex
 #define TSS2_TCTI_TABD_PIPE_FDS(context) \
     ((TSS2_TCTI_TABD_CONTEXT*)context)->pipe_fds
 #define TSS2_TCTI_TABD_PIPE_RECEIVE(context) \
@@ -30,6 +32,7 @@ typedef struct {
     GMainLoop *gmain_loop;
     guint watcher_id;
     pthread_t thread_id;
+    pthread_mutex_t mutex;
     int pipe_fds[2];
 } TSS2_TCTI_TABD_CONTEXT;
 

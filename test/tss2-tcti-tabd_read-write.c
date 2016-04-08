@@ -25,7 +25,6 @@ main (void)
      * tabd. The right thing to do is for the TCTI to cause callers to block
      * on a mutex till the setup thread is done.
      */
-    sleep (5);
     g_debug ("transmitting ...");
     /* send / receive */
     char *xmit_str = "test";
