@@ -7,6 +7,11 @@ check_PROGRAMS  = test/connection-manager_unit
 lib_LTLIBRARIES = src/libtss2-tcti-tabd.la
 TESTS = $(check_PROGRAMS)
 
+tss2_tabddir      = $(includedir)/tss2
+tss2_tabd_HEADERS = $(srcdir)/src/include/tss2-tabd.h
+libtss2_tcti_tabddir      = $(includedir)/tss2
+libtss2_tcti_tabd_HEADERS = $(srcdir)/src/include/tss2-tcti-tabd.h
+
 src_libtss2_tcti_tabd_la_CFLAGS  = $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 src_libtss2_tcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
 src_libtss2_tcti_tabd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tss2-tcti-tabd.map
