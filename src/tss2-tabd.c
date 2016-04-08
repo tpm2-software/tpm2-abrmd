@@ -2,7 +2,7 @@
 #include <glib.h>
 #include <stdlib.h>
 
-#include "tss2-tabd-priv.h"
+#include <tss2-tabd.h>
 
 #ifdef G_OS_UNIX
 #include <gio/gunixfdlist.h>
