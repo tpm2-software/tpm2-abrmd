@@ -3,6 +3,7 @@ ACLOCAL_AMFLAGS = -I m4
 AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
 
 sbin_PROGRAMS   = src/tss2-tabd
+noinst_PROGRAMS = test/tss2-tcti-tabd_read-write
 check_PROGRAMS  = test/connection-manager_unit
 lib_LTLIBRARIES = src/libtss2-tcti-tabd.la
 TESTS = $(check_PROGRAMS)
@@ -24,3 +25,7 @@ src_tss2_tabd_SOURCES = src/tss2-tabd.c src/connection-manager.c
 test_connection_manager_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 test_connection_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
 test_connection_manager_unit_SOURCES = src/connection-manager.c test/connection-manager_unit.c
+
+test_tss2_tcti_tabd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)
+test_tss2_tcti_tabd_read_write_LDADD   = $(GLIB_LIBS) src/libtss2-tcti-tabd.la
+test_tss2_tcti_tabd_read_write_SOURCES = test/tss2-tcti-tabd_read-write.c
