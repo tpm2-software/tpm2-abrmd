@@ -24,6 +24,7 @@ m4/
 missing
 test-driver
 test-suite.log
-src/libtss2tctitabd.la
-src/tabd
+src/libtss2-tcti-tabd.la
+src/tss2-tabd
 test/connection-manager_unit
+test/tss2tcti_init

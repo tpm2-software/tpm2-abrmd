@@ -1,9 +1,9 @@
 #include <errno.h>
 #include <gio/gio.h>
 #include <glib.h>
-#include <tcti-tabd.h>
-#include "tcti-tabd_priv.h"
-#include "tabd_priv.h"
+#include <tss2-tcti-tabd.h>
+#include "tss2-tcti-tabd-priv.h"
+#include "tss2-tabd-priv.h"
 
 static TSS2_RC
 tss2_tcti_tabd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
