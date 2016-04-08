@@ -2,20 +2,21 @@
 #include <glib.h>
 #include <stdlib.h>
 
+#include "tabd_priv.h"
+
 #ifdef G_OS_UNIX
 #include <gio/gunixfdlist.h>
 #endif
 
-#define TAB_DBUS_NAME "us.twobit.tss2.Tab"
-#define TAB_DBUS_PATH "/us/twobit/tss2/Tab"
 static GDBusNodeInfo *introspection_data = NULL;
+/* This must be global so that our signal handlers can interact with it. */
 static GMainLoop *loop = NULL;
 
 static const gchar introspection_xml[] =
   "<node>"
-  "  <interface name='us.twobit.tss2.TabInterface'>"
+  "  <interface name='us.twobit.tss2.TabdInterface'>"
   "    <method name='CreateConnection'>"
-  "      <arg type='h' name='fd' direction='out'/>"
+  "      <arg type='ah' name='fds' direction='out'/>"
   "    </method>"
   "  </interface>"
   "</node>";
@@ -43,6 +44,7 @@ handle_method_call (GDBusConnection       *connection,
 
           int fds[2] = { 0, 0 }, ret = 0;
           ret = CreateConnection (user_data, &fds);
+          g_debug ("Returning two fds: %d, %d", fds[0], fds[1]);
           fd_list = g_unix_fd_list_new_from_array (fds, 2);
           g_assert_no_error (error);
 
