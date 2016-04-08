@@ -72,15 +72,20 @@ echo_start (void *arg)
   buf = calloc (1, 4096);
   if (buf == NULL)
     g_error ("echo_start failed to calloc data buffer: %s", strerror (errno));
-  ret = read (data->fds [0], buf, 4096);
-  if (ret == -1) {
-    g_warning ("read from fd: %d failed: %s", strerror (errno));
-    goto echo_start_out;
+  while ((ret = read (data->fds [0], buf, 4096)) > 0) {
+    if (ret == -1) {
+      g_warning ("read from fd: %d failed: %s", strerror (errno));
+      break;
+    }
+    g_debug ("received string: %s", buf);
+    ret = write (data->fds [1], buf, ret);
+    if (ret == -1) {
+      g_warning ("write to fd: %d failed: %s", strerror (errno));
+      break;
+    }
+    memset (buf, '\0', 4096);
   }
-  ret = write (data->fds [1], buf, ret);
-  if (ret == -1)
-    g_warning ("write to fd: %d failed: %s", strerror (errno));
-echo_start_out:
+  g_debug ("connection died");
   if (buf)
     free (buf);
   pthread_cleanup_pop (1);
