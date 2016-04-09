@@ -14,7 +14,6 @@
 static echo_data_t echo_data = {
   .fds = { 0, 0 },
   .thread_id = 0,
-  .running = false,
 };
 
 static void
@@ -23,7 +22,6 @@ echo_cleanup (void *arg)
   echo_data_t *data = (echo_data_t*)arg;
   close (data->fds[0]);
   close (data->fds[1]);
-  data->running = false;
 }
 
 /* Create a pipe and return the recv and send fds. */
@@ -110,7 +108,6 @@ CreateConnection (gpointer user_data, int client_fds[])
     g_error ("CreateConnection failed to make pipe pair %s", strerror (errno));
 
   /* Create thread to do something with the pipe / peer */
-  echo_data.running = true;
   pthread_create (&echo_data.thread_id, NULL, &echo_start, &echo_data);
 
   return 0;

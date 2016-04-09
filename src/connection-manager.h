@@ -3,7 +3,6 @@
 typedef struct echo_data {
   int fds[2];
   pthread_t thread_id;
-  bool running;
 } echo_data_t;
 
 /* These two functions should have file scope but we must expose them so the
