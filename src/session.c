@@ -81,7 +81,7 @@ session_free (session_t *session)
     free (session);
 }
 
-gconstpointer
+gpointer
 session_key (session_t *session)
 {
     return &session->receive_fd;
