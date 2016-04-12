@@ -32,11 +32,7 @@ session_watcher_thread_cleanup (void *data)
 {
     session_watcher_t *watcher = (session_watcher_t*)data;
 
-    if (data == NULL)
-        return;
     watcher->running = FALSE;
-    if (watcher->buf)
-        free (watcher->buf);
 }
 
 /* This function is run as a separate thread dedicated to monitoring the
@@ -52,15 +48,8 @@ session_watcher_thread (void *data)
     session_watcher_t *watcher;
     fd_set session_set;
 
-    if (data == NULL)
-        g_error ("session_watcher thread started without any watcher_data");
-
     watcher = (session_watcher_t*)data;
     pthread_cleanup_push (session_watcher_thread_cleanup, watcher);
-    watcher->buf = calloc (1, BUF_SIZE);
-    if (watcher->buf == NULL)
-        g_error ("failed to allocate buffer for session_watcher: %s",
-                 strerror (errno));
     FD_ZERO (&session_set);
     session_manager_set_fds (watcher->session_manager,
                                 &session_set);
@@ -114,6 +103,10 @@ session_watcher_new (session_manager_t *session_manager,
     watcher->session_manager = session_manager;
     watcher->wakeup_receive_fd = wakeup_receive_fd;
     watcher->running = FALSE;
+    watcher->buf = calloc (1, BUF_SIZE);
+    if (watcher->buf == NULL)
+        g_error ("failed to allocate data buffer for watcher: %s",
+                 strerror (errno));
 
     return watcher;
 }
@@ -155,6 +148,10 @@ session_watcher_join (session_watcher_t *watcher)
 void
 session_watcher_free (session_watcher_t *watcher)
 {
+    if (watcher == NULL)
+        return;
+    if (watcher->buf != NULL)
+        free (watcher->buf);
     if (watcher)
         free (watcher);
 }
