@@ -16,6 +16,9 @@
 #include "session-manager.h"
 #include "session-watcher.h"
 
+/* session_watcher_allocate_test begin
+ * Test to allcoate and destroy a session_watcher_t.
+ */
 static void
 session_watcher_allocate_test (void **state)
 {
@@ -43,21 +46,28 @@ session_watcher_allocate_teardown (void **state)
 
     session_manager_free (manager);
 }
+/* session_watcher_allocate end */
 
-struct watcher_start_data {
+/* session_watcher_start_test
+ * This is a basic usage flow test. Can it be started, canceled and joined.
+ * We're testing the underlying pthread usage ... mostly.
+ */
+struct watcher_test_data {
     session_manager_t *manager;
     session_watcher_t *watcher;
     gint wakeup_send_fd;
+    gboolean wokeup;
 };
 
 void
 session_watcher_start_test (void **state)
 {
-    struct watcher_start_data *data;
+    struct watcher_test_data *data;
     gint ret;
 
-    data = (struct watcher_start_data*)*state;
+    data = (struct watcher_test_data*)*state;
     session_watcher_start(data->watcher);
+    sleep (1);
     assert_true (data->watcher->running);
     ret = session_watcher_cancel (data->watcher);
     assert_int_equal (ret, 0);
@@ -68,10 +78,10 @@ session_watcher_start_test (void **state)
 static void
 session_watcher_start_setup (void **state)
 {
-    struct watcher_start_data *data;
+    struct watcher_test_data *data;
     gint fds[2] = { 0 }, ret;
 
-    data = calloc (1, sizeof (struct watcher_start_data));
+    data = calloc (1, sizeof (struct watcher_test_data));
     data->manager = session_manager_new ();
     if (data->manager == NULL)
         g_error ("failed to allocate new session_manager");
@@ -89,14 +99,86 @@ session_watcher_start_setup (void **state)
 static void
 session_watcher_start_teardown (void **state)
 {
-    struct watcher_start_data *data;
+    struct watcher_test_data *data;
 
-    data = (struct watcher_start_data*)*state;
+    data = (struct watcher_test_data*)*state;
     close (data->watcher->wakeup_receive_fd);
     session_watcher_free (data->watcher);
     session_manager_free (data->manager);
     close (data->wakeup_send_fd);
 }
+/* session_watcher_start_test end */
+
+/* session_watcher_wakeup_test
+ * Here we test the session_watcher wakeup mechanism. We do all of the
+ * necessary setup to get the session watcher thread running and then write
+ * a bit of data to it. This causes it to run the wakeup callback that we
+ * provided. We get an indication that this callback was run through the
+ * user_data provided, namely the wokeup gboolean from the watcher_test_data
+ * structure.
+ */
+int
+session_watcher_wakeup_callback (session_watcher_t *watcher,
+                                 gpointer user_data)
+{
+    gint ret;
+
+    ret = read (watcher->wakeup_receive_fd, watcher->buf, BUF_SIZE);
+    assert_true (ret != -1);
+    *(gboolean*)user_data = TRUE;
+
+    return ret;
+}
+
+static void
+session_watcher_wakeup_setup (void **state)
+{
+    struct watcher_test_data *data;
+    int fds[2] = { 0 }, ret;
+
+    data = calloc (1, sizeof (struct watcher_test_data));
+    data->manager = session_manager_new ();
+    if (data->manager == NULL)
+        g_error ("failed to allocate new session_manager");
+    ret = pipe2 (fds, O_CLOEXEC);
+    if (ret != 0)
+        g_error ("failed to get pipe2s");
+    data->wokeup = FALSE;
+    data->watcher = session_watcher_new_full (data->manager,
+                                              fds[0],
+                                              NULL,
+                                              session_watcher_wakeup_callback,
+                                              &data->wokeup);
+    data->wakeup_send_fd = fds[1];
+    if (data->watcher == NULL)
+        g_error ("failed to allocate new session_watcher");
+
+    *state = data;
+}
+
+static void
+session_watcher_wakeup_test (void **state)
+{
+    struct watcher_test_data *data;
+    gint ret;
+
+    data = (struct watcher_test_data*)*state;
+    /* This string is arbitrary. */
+    ret = write (data->wakeup_send_fd, "hi", strlen ("hi"));
+    assert_true (ret != -1);
+    ret = session_watcher_start (data->watcher);
+    assert_int_equal (ret, 0);
+    /* sleep here to give the watcher thread time to react to the data we've
+     * sent over the wakeup_send_fd.
+     */
+    sleep (1);
+    assert_true (data->wokeup);
+    ret = session_watcher_cancel (data->watcher);
+    assert_int_equal (ret, 0);
+    ret = session_watcher_join (data->watcher);
+    assert_int_equal (ret, 0);
+}
+/* session_watcher_wakeup_test end */
 
 int
 main (int argc,
@@ -108,6 +190,9 @@ main (int argc,
                                   session_watcher_allocate_teardown),
         unit_test_setup_teardown (session_watcher_start_test,
                                   session_watcher_start_setup,
+                                  session_watcher_start_teardown),
+        unit_test_setup_teardown (session_watcher_wakeup_test,
+                                  session_watcher_wakeup_setup,
                                   session_watcher_start_teardown),
     };
     return run_tests (tests);
