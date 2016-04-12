@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <pthread.h>
+#include <sys/select.h>
 
 #include "session-manager.h"
 
@@ -9,6 +10,7 @@ typedef struct session_watcher {
     gint wakeup_receive_fd;
     gboolean running;
     char *buf;
+    fd_set session_fdset;
 } session_watcher_t;
 
 session_watcher_t*

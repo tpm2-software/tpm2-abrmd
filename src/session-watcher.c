@@ -2,7 +2,6 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/select.h>
 #include <unistd.h>
 
 #include "session-watcher.h"
@@ -46,21 +45,19 @@ void*
 session_watcher_thread (void *data)
 {
     session_watcher_t *watcher;
-    fd_set session_set;
 
     watcher = (session_watcher_t*)data;
     pthread_cleanup_push (session_watcher_thread_cleanup, watcher);
-    FD_ZERO (&session_set);
-    session_manager_set_fds (watcher->session_manager,
-                                &session_set);
-    FD_SET (watcher->wakeup_receive_fd, &session_set);
-    while (select (FD_SETSIZE, &session_set, NULL, NULL, NULL) != -1) {
+    FD_ZERO (&watcher->session_fdset);
+    session_manager_set_fds (watcher->session_manager, &watcher->session_fdset);
+    FD_SET (watcher->wakeup_receive_fd, &watcher->session_fdset);
+    while (select (FD_SETSIZE, &watcher->session_fdset, NULL, NULL, NULL) != -1) {
         ssize_t ret;
         session_t *session;
         int i;
         for (i = 0; i < FD_SETSIZE; ++i) {
             g_debug ("data ready on fd: %d", i);
-            if (FD_ISSET (i, &session_set) &&
+            if (FD_ISSET (i, &watcher->session_fdset) &&
                 i == watcher->wakeup_receive_fd)
             {
                 g_debug ("data read on wakeup_receive_fd");
@@ -75,14 +72,14 @@ session_watcher_thread (void *data)
                                         watcher->buf);
             if (ret == -1) {
                 session_manager_remove (watcher->session_manager,
-                                   session);
+                                        session);
                 session_free (session);
             }
         }
-        if (FD_ISSET (watcher->wakeup_receive_fd, &session_set)) {
+        if (FD_ISSET (watcher->wakeup_receive_fd, &watcher->session_fdset)) {
             g_debug ("Got new session, updating fd_set");
             session_manager_set_fds (watcher->session_manager,
-                                        &session_set);
+                                     &watcher->session_fdset);
         }
     }
     g_info ("session_watcher function exiting");
