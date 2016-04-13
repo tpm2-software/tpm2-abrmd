@@ -116,7 +116,7 @@ session_equal_test (void **state)
     assert_true (session_equal (key, session_key (data->session)));
 }
 
-/* session_round_trip_test
+/* session_client_to_server_test begin
  * This test creates a session and communicates with it as though the pipes
  * that are created as part of session setup.
  */
@@ -132,6 +132,23 @@ session_client_to_server_test (void ** state)
     ret = read (data->receive_fd, buf, 256);
     assert_true (strcmp ("test", buf) == 0);
 }
+/* session_client_to_server_test end */
+/* session_server_to_client_test begin
+ * Do the same in the reverse direction.
+ */
+static void
+session_server_to_client_test (void **state)
+{
+    session_test_data_t *data = (session_test_data_t*)*state;
+    gchar buf[256];
+    gint ret;
+
+    ret = write (data->send_fd, "test", strlen ("test"));
+    assert_true (ret > 0);
+    ret = read (data->session->receive_fd, buf, 256);
+    assert_true (strcmp ("test", buf) == 0);
+}
+/* session_server_to_client_test end */
 
 int
 main(int argc, char* argv[])
@@ -147,6 +164,9 @@ main(int argc, char* argv[])
                                   session_setup,
                                   session_teardown),
         unit_test_setup_teardown (session_client_to_server_test,
+                                  session_setup,
+                                  session_teardown),
+        unit_test_setup_teardown (session_server_to_client_test,
                                   session_setup,
                                   session_teardown),
     };
