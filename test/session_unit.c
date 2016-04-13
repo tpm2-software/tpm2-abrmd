@@ -14,6 +14,12 @@
 
 #include "session.h"
 
+typedef struct session_test_data {
+    session_t *session;
+    gint receive_fd;
+    gint send_fd;
+} session_test_data_t;
+
 static int
 write_read (int write_fd, int read_fd, const char* buf, size_t length)
 {
@@ -61,27 +67,35 @@ static void
 session_allocate_test (void **state)
 {
     session_t *session = NULL;
+    gint receive_fd, send_fd;
 
-    session = session_new ();
+    session = session_new (&receive_fd, &send_fd);
     assert_non_null (session);
+    assert_true (receive_fd >= 0);
+    assert_true (send_fd >= 0);
     session_free (session);
 }
 
 static void
 session_setup (void **state)
 {
-    session_t *session = NULL;
+    session_test_data_t *data = NULL;
 
-    session = session_new ();
-    *state = session;
+    data = calloc (1, sizeof (session_test_data_t));
+    assert_non_null (data);
+    data->session = session_new (&data->receive_fd, &data->send_fd);
+    *state = data;
 }
 
 static void
 session_teardown (void **state)
 {
-    session_t *session = (session_t*)*state;
+    session_test_data_t *data = (session_test_data_t*)*state;
 
-    session_free (session);
+    session_free (data->session);
+    close (data->receive_fd);
+    close (data->send_fd);
+    free (data);
 }
 
 static void
@@ -97,9 +111,26 @@ session_key_test (void **state)
 static void
 session_equal_test (void **state)
 {
-    session_t *session = (session_t*)*state;
-    const gint *key = session_key (session);
-    assert_true (session_equal (key, session_key (session)));
+    session_test_data_t *data = (session_test_data_t*)*state;
+    const gint *key = session_key (data->session);
+    assert_true (session_equal (key, session_key (data->session)));
+}
+
+/* session_round_trip_test
+ * This test creates a session and communicates with it as though the pipes
+ * that are created as part of session setup.
+ */
+static void
+session_client_to_server_test (void ** state)
+{
+    session_test_data_t *data = (session_test_data_t*)*state;
+    gchar buf[256];
+    gint ret;
+
+    ret = write (data->session->send_fd, "test", strlen ("test"));
+    assert_true (ret > 0);
+    ret = read (data->receive_fd, buf, 256);
+    assert_true (strcmp ("test", buf) == 0);
 }
 
 int
@@ -113,6 +144,9 @@ main(int argc, char* argv[])
                                   session_setup,
                                   session_teardown),
         unit_test_setup_teardown (session_equal_test,
+                                  session_setup,
+                                  session_teardown),
+        unit_test_setup_teardown (session_client_to_server_test,
                                   session_setup,
                                   session_teardown),
     };

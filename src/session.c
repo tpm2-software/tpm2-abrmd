@@ -53,7 +53,8 @@ create_pipe_pairs (int pipe_fds_a[],
  * respectively.
  */
 session_t*
-session_new (void)
+session_new (gint *receive_fd,
+             gint *send_fd)
 {
     g_info ("CreateConnection");
     int ret, session_fds[2], client_fds[2];
@@ -66,7 +67,9 @@ session_new (void)
     if (ret == -1)
         g_error ("CreateConnection failed to make pipe pair %s", strerror (errno));
     session->receive_fd = session_fds[0];
+    *receive_fd = client_fds[0];
     session->send_fd = session_fds[1];
+    *send_fd = client_fds[1];
 
     return session;
 }
