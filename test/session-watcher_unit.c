@@ -180,6 +180,64 @@ session_watcher_wakeup_test (void **state)
 }
 /* session_watcher_wakeup_test end */
 
+/* session_watcher_session_insert_test begin
+ * In this test we create a session watcher and all that that entails. We then
+ * create a new session and insert it into the session manager. We then signal
+ * to the watcher that there's a new session in the manager by sending data to
+ * it over the send end of the wakeup pipe "wakeup_send_fd". We then check the
+ * session_fdset in the watcher structure to be sure the receive end of the
+ * session pipe is set. This is how we know that the watcher is now watching
+ * for data from the new session.
+ */
+static void
+session_watcher_session_insert_setup (void **state)
+{
+    struct watcher_test_data *data;
+    int fds[2] = { 0 }, ret;
+
+    data = calloc (1, sizeof (struct watcher_test_data));
+    data->manager = session_manager_new ();
+    if (data->manager == NULL)
+        g_error ("failed to allocate new session_manager");
+    ret = pipe2 (fds, O_CLOEXEC);
+    if (ret != 0)
+        g_error ("failed to get pipe2s");
+    data->wokeup = FALSE;
+    data->watcher = session_watcher_new_full (data->manager,
+                                              fds[0],
+                                              NULL,
+                                              NULL,
+                                              NULL);
+    data->wakeup_send_fd = fds[1];
+    if (data->watcher == NULL)
+        g_error ("failed to allocate new session_watcher");
+
+    *state = data;
+}
+
+static void
+session_watcher_session_insert_test (void **state)
+{
+    struct watcher_test_data *data = (struct watcher_test_data*)*state;
+    session_watcher_t *watcher = data->watcher;
+    session_manager_t *manager = data->manager;
+    session_t *session;
+    gint ret, receive_fd, send_fd;
+    gchar buf[256] = { 0 };
+
+    /* */
+    session = session_new (&receive_fd, &send_fd);
+    assert_false (FD_ISSET (session->receive_fd, &watcher->session_fdset));
+    ret = session_watcher_start(watcher);
+    assert_int_equal (ret, 0);
+    session_manager_insert (data->manager, session);
+    ret = write (data->wakeup_send_fd, "wakeup", strlen ("wakeup"));
+    assert_true (ret > 0);
+    sleep (1);
+    assert_true (FD_ISSET (session->receive_fd, &watcher->session_fdset));
+}
+/* session_watcher_sesion_insert_test end */
+
 int
 main (int argc,
       char* argv[])
@@ -193,6 +251,9 @@ main (int argc,
                                   session_watcher_start_teardown),
         unit_test_setup_teardown (session_watcher_wakeup_test,
                                   session_watcher_wakeup_setup,
+                                  session_watcher_start_teardown),
+        unit_test_setup_teardown (session_watcher_session_insert_test,
+                                  session_watcher_session_insert_setup,
                                   session_watcher_start_teardown),
     };
     return run_tests (tests);
