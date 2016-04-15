@@ -13,14 +13,28 @@ session_watcher_echo (gint in_fd,
 {
     ssize_t ret;
 
+    memset (buf, 0, BUF_SIZE);
     ret = read (in_fd, buf, BUF_SIZE);
-    if (ret == -1) {
+    switch (ret) {
+    case 0:
+        g_info ("read EOF, client connection is closed");
+        goto out;
+    case -1:
         g_warning ("read on fd %d failed: %s", strerror (errno));
-        return ret;
+        goto out;
+    default: break;
     }
     ret = write (out_fd, buf, ret);
-    if (ret == -1)
+    switch (ret) {
+    case 0:
+        g_info ("wrote 0 bytes, client connection is closed");
+        goto out;
+    case -1:
         g_warning ("write on fd %d failed: %s", strerror (errno));
+        goto out;
+    default: break;
+    }
+out:
     return ret;
 }
 
@@ -46,11 +60,15 @@ session_watcher_session_responder (session_watcher_t *watcher,
     ret = session_watcher_echo (session->receive_fd,
                                 session->send_fd,
                                 watcher->buf);
-    if (ret == -1) {
+    if (ret <= 0) {
+        /* read / write returns -1 on error
+         * read / write returns 0 when pipe is closed (EOF)
+         */
         session_manager_remove (watcher->session_manager,
                                 session);
         session_free (session);
     }
+    return ret;
 }
 
 int
@@ -58,8 +76,11 @@ session_watcher_wakeup_responder (session_watcher_t *watcher,
                                   gpointer user_data)
 {
     g_debug ("Got new session, updating fd_set");
-    session_manager_set_fds (watcher->session_manager,
-                             &watcher->session_fdset);
+    char buf[3] = { 0 };
+    gint ret = read (watcher->wakeup_receive_fd, buf, WAKEUP_SIZE);
+    if (ret != WAKEUP_SIZE)
+        g_error ("read on wakeup_receive_fd returned %d, was expecting %d",
+                 ret, WAKEUP_SIZE);
 }
 
 /* This function is run as a separate thread dedicated to monitoring the
@@ -73,16 +94,20 @@ void*
 session_watcher_thread (void *data)
 {
     session_watcher_t *watcher;
+    gint ret, i;
 
     watcher = (session_watcher_t*)data;
     pthread_cleanup_push (session_watcher_thread_cleanup, watcher);
-    FD_ZERO (&watcher->session_fdset);
-    session_manager_set_fds (watcher->session_manager, &watcher->session_fdset);
-    FD_SET (watcher->wakeup_receive_fd, &watcher->session_fdset);
-    g_debug ("session_watcher_thread selecting");
-    while (select (FD_SETSIZE, &watcher->session_fdset, NULL, NULL, NULL) != -1) {
-        int i;
-        g_debug ("session_watcher_thread wokeup");
+    do {
+        FD_ZERO (&watcher->session_fdset);
+        session_manager_set_fds (watcher->session_manager,
+                                 &watcher->session_fdset);
+        FD_SET (watcher->wakeup_receive_fd, &watcher->session_fdset);
+        ret = select (FD_SETSIZE, &watcher->session_fdset, NULL, NULL, NULL);
+        if (ret == -1) {
+            g_debug ("Error selecting on pipes: %s", strerror (errno));
+            break;
+        }
         for (i = 0; i < FD_SETSIZE; ++i) {
             if (FD_ISSET (i, &watcher->session_fdset) &&
                 i != watcher->wakeup_receive_fd)
@@ -97,7 +122,7 @@ session_watcher_thread (void *data)
                 watcher->wakeup_callback (watcher, watcher->user_data);
             }
         }
-    }
+    } while (TRUE);
     g_info ("session_watcher function exiting");
     pthread_cleanup_pop (1);
 }

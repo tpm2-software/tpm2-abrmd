@@ -5,6 +5,8 @@
 #include "session-manager.h"
 
 #define BUF_SIZE 4096
+#define WAKEUP_DATA "hi"
+#define WAKEUP_SIZE 2
 
 typedef struct session_watcher session_watcher_t;
 
