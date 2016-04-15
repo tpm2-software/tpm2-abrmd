@@ -48,9 +48,9 @@ session_manager_insert_test (void **state)
 {
     session_manager_t *manager = (session_manager_t*)*state;
     session_t *session = NULL;
-    gint ret;
+    gint ret, receive_fd, send_fd;
 
-    session = session_new ();
+    session = session_new (&receive_fd, &send_fd);
     ret = session_manager_insert (manager, session);
     assert_int_equal (ret, 0);
 }
@@ -60,9 +60,9 @@ session_manager_lookup_test (void **state)
 {
     session_manager_t *manager = (session_manager_t*)*state;
     session_t *session = NULL, *session_lookup = NULL;
-    gint ret;
+    gint ret, receive_fd, send_fd;
 
-    session = session_new ();
+    session = session_new (&receive_fd, &send_fd);
     ret = session_manager_insert (manager, session);
     session_lookup = session_manager_lookup (manager, *(int*)session_key (session));
     assert_int_equal (session, session_lookup);
@@ -73,10 +73,10 @@ session_manager_remove_test (void **state)
 {
     session_manager_t *manager = (session_manager_t*)*state;
     session_t *session = NULL;
-    gint ret_int;
+    gint ret_int, receive_fd, send_fd;
     gboolean ret_bool;
 
-    session = session_new ();
+    session = session_new (&receive_fd, &send_fd);
     ret_int = session_manager_insert (manager, session);
     assert_int_equal (ret_int, 0);
     ret_bool = session_manager_remove (manager, session);
@@ -88,13 +88,13 @@ session_manager_set_fds_test (void **state)
 {
     session_manager_t *manager = (session_manager_t*)*state;
     session_t *first_session = NULL, *second_session = NULL;
-    gint ret_int;
+    gint ret_int, receive_fd0, send_fd0, receive_fd1, send_fd1;
     fd_set manager_fds = { 0 };
 
-    first_session = session_new ();
+    first_session = session_new (&receive_fd0, &send_fd0);
     ret_int = session_manager_insert (manager, first_session);
     assert_int_equal (ret_int, 0);
-    second_session = session_new ();
+    second_session = session_new (&receive_fd1, &send_fd1);
     ret_int = session_manager_insert (manager, second_session);
     assert_int_equal (ret_int, 0);
     session_manager_set_fds (manager, &manager_fds);
