@@ -37,4 +37,5 @@ main (void)
     if (ret != TSS2_RC_SUCCESS)
         g_debug ("tss2_tcti_receive failed");
     g_debug ("received string: %s", recv_str);
+    tss2_tcti_finalize (tcti_context);
 }

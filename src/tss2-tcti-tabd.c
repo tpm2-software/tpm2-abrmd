@@ -62,12 +62,28 @@ tss2_tcti_tabd_finalize (TSS2_TCTI_CONTEXT *tcti_context)
     int ret = 0;
 
     g_debug ("tss2_tcti_tabd_finalize");
+    if (tcti_context == NULL)
+        g_warning ("tss2_tcti_tabd_finalize: NULL context");
     if (gmain_loop && g_main_loop_is_running (gmain_loop))
         g_main_loop_quit (gmain_loop);
     TSS2_TCTI_TABD_GMAIN_LOOP (tcti_context) = NULL;
+    if (TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) != 0) {
+        ret = close (TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context));
+        TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) = 0;
+    }
+    if (ret != 0 && ret != EBADF)
+        g_warning ("Failed to close receive pipe: %s", strerror (errno));
+    if (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context) != 0) {
+        ret = close (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context));
+        TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context) = 0;
+    }
+    if (ret != 0 && ret != EBADF)
+        g_warning ("Failed to close send pipe: %s", strerror (errno));
+
     ret = pthread_join (TSS2_TCTI_TABD_THREAD_ID (tcti_context), NULL);
     if (ret != 0)
         g_warning ("pthread_join: %s", strerror (ret));
+    free (tcti_context);
 }
 
 static TSS2_RC
