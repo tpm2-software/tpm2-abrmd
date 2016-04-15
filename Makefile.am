@@ -5,7 +5,6 @@ AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
 sbin_PROGRAMS   = src/tss2-tabd
 noinst_PROGRAMS = test/tss2-tcti-tabd_read-write
 check_PROGRAMS  = \
-    test/connection-manager_unit \
     test/session_unit \
     test/session-manager_unit \
     test/session-watcher_unit
@@ -29,10 +28,6 @@ src_tss2_tabd_SOURCES = \
     src/session-watcher.c \
     src/session-manager.c \
     src/session.c
-
-test_connection_manager_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
-test_connection_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
-test_connection_manager_unit_SOURCES = src/connection-manager.c test/connection-manager_unit.c
 
 test_session_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_session_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
