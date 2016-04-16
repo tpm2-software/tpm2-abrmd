@@ -1,5 +1,12 @@
-tabd is an acronym derived from "Trusted Access Broker" with the 'd' appended
-to denote it is a daemon program.
+The specifications that define the TPM2 Software Stack (TSS2) described the
+TPM Access Broker (TAB) as a mechanism to synchronize multi-process access to
+the TPM. The TPM Command Transmission Interface (TCTI) is the API client
+applications use to send commands to the TAB.
+
+This repository contains an implementation of the TAB as a Linux daemon. We
+call it 'tabd' per the Unix daemon convention. A TCTI for communicating with
+the tabd is also provided. Clients should use this TCTI along with a SAPI
+implementation when writing TPM2 Linux applications.
 
 See:
 http://www.trustedcomputinggroup.org/files/static_page_files/5029F40E-1A4B-B294-D020357ED57D3D99/TSS%20TAB%20and%20Resource%20Manager%2000%2091-PublicReview.pdf
