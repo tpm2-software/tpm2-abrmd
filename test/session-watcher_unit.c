@@ -267,11 +267,13 @@ session_watcher_session_callback_test (void **state)
 
     data->session = session_new (&receive_fd, &send_fd);
     assert_non_null (data->session);
-    ret = session_watcher_start (watcher);
-    assert_return_code (ret, 0);
     ret = session_manager_insert (manager, data->session);
     assert_return_code (ret, 0);
-    ret = write (data->wakeup_send_fd, "wakeup", strlen ("wakeup"));
+    ret = session_watcher_start (watcher);
+    assert_return_code (ret, 0);
+    ret = write (data->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
+    assert_true (ret > 0);
+    ret = write (send_fd, "test", strlen ("test"));
     assert_true (ret > 0);
     sleep (1);
     assert_true (data->match);
