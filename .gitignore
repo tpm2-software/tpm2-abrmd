@@ -26,5 +26,7 @@ test-driver
 test-suite.log
 src/libtss2-tcti-tabd.la
 src/tss2-tabd
+src/tss2-tabd-generated.c
+src/tss2-tabd-generated.h
 test/*_unit
 test/tss2-tcti-tabd_read-write

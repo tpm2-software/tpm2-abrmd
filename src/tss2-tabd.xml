@@ -1,0 +1,9 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+  "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name='/us/twobit/tss2/Tab'>
+    <interface name='us.twobit.tss2.Tab'>
+        <method name='CreateConnection'>
+            <arg type='ah' name='fds' direction='out'/>
+        </method>
+    </interface>
+</node>
