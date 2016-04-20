@@ -12,7 +12,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include "session.h"
+#include "session-data.h"
 
 typedef struct session_test_data {
     session_t *session;

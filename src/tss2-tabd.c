@@ -8,7 +8,7 @@
 #include <tss2-tabd.h>
 #include "session-manager.h"
 #include "session-watcher.h"
-#include "session.h"
+#include "session-data.h"
 
 #ifdef G_OS_UNIX
 #include <gio/gunixfdlist.h>

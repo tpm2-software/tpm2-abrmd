@@ -7,7 +7,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "session.h"
+#include "session-data.h"
 
 /* Create a pipe and return the recv and send fds. */
 int

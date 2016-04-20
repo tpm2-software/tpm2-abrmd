@@ -5,7 +5,7 @@ AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
 sbin_PROGRAMS   = src/tss2-tabd
 noinst_PROGRAMS = test/tss2-tcti-tabd_read-write
 check_PROGRAMS  = \
-    test/session_unit \
+    test/session-data_unit \
     test/session-manager_unit \
     test/session-watcher_unit
 lib_LTLIBRARIES = src/libtss2-tcti-tabd.la
@@ -27,22 +27,22 @@ src_tss2_tabd_SOURCES = \
     src/tss2-tabd.c \
     src/session-watcher.c \
     src/session-manager.c \
-    src/session.c
+    src/session-data.c
 
-test_session_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
-test_session_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
-test_session_unit_SOURCES = src/session.c test/session_unit.c
+test_session_data_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
+test_session_data_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
+test_session_data_unit_SOURCES = src/session-data.c test/session-data_unit.c
 
 test_session_manager_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
-test_session_manager_unit_SOURCES = src/session-manager.c src/session.c test/session-manager_unit.c
+test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c test/session-manager_unit.c
 
 test_session_watcher_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 test_session_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
 test_session_watcher_unit_SOURCES = \
     src/session-watcher.c \
     src/session-manager.c \
-    src/session.c \
+    src/session-data.c \
     test/session-watcher_unit.c
 
 test_tss2_tcti_tabd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)

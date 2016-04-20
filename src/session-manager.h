@@ -3,7 +3,7 @@
 
 #include <glib.h>
 
-#include "session.h"
+#include "session-data.h"
 
 typedef struct session_manager {
     pthread_mutex_t mutex;

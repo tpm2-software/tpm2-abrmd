@@ -13,7 +13,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include "session.h"
+#include "session-data.h"
 #include "session-manager.h"
 
 static void
