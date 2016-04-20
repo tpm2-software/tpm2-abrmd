@@ -65,7 +65,7 @@ handle_method_call (GDBusConnection       *connection,
           GError *error = NULL;
 
           gint client_fds[2] = { 0, 0 }, ret = 0;
-          session_t *session = session_new (&client_fds[0], &client_fds[1]);
+          session_data_t *session = session_data_new (&client_fds[0], &client_fds[1]);
           if (session == NULL)
               g_error ("Failed to allocate new session.");
           g_debug ("Returning two fds: %d, %d", client_fds[0], client_fds[1]);

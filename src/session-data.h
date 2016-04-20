@@ -3,15 +3,15 @@
 
 #include <glib.h>
 
-typedef struct session {
+typedef struct session_data {
     gint receive_fd;
     gint send_fd;
-} session_t;
+} session_data_t;
 
-session_t*    session_new      (gint *receive_fd,
-                                gint *send_fd);
-gboolean      session_equal    (gconstpointer a, gconstpointer b);
-gpointer      session_key      (session_t *session);
-void          session_free     (session_t *session);
+session_data_t*  session_data_new    (gint *receive_fd,
+                                      gint *send_fd);
+gboolean         session_data_equal  (gconstpointer a, gconstpointer b);
+gpointer         session_data_key    (session_data_t *session);
+void             session_data_free   (session_data_t *session);
 
 #endif /* SESSION_H */

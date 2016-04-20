@@ -55,7 +55,7 @@ session_watcher_allocate_teardown (void **state)
 typedef struct watcher_test_data {
     session_manager_t *manager;
     session_watcher_t *watcher;
-    session_t *session;
+    session_data_t *session;
     gint wakeup_send_fd;
     gboolean wokeup;
     gboolean match;
@@ -193,7 +193,7 @@ session_watcher_session_callback_callback (session_watcher_t *watcher,
                                            gint fd,
                                            gpointer user_data)
 {
-    session_t *watcher_session, *my_session;
+    session_data_t *watcher_session, *my_session;
     gchar buf[256] = { 0 };
     gint ret = 0;
 
@@ -262,10 +262,10 @@ session_watcher_session_callback_test (void **state)
     watcher_test_data_t *data = (watcher_test_data_t*)*state;
     session_watcher_t *watcher = data->watcher;
     session_manager_t *manager = data->manager;
-    session_t *session;
+    session_data_t *session;
     gint ret, receive_fd, send_fd;
 
-    data->session = session_new (&receive_fd, &send_fd);
+    data->session = session_data_new (&receive_fd, &send_fd);
     assert_non_null (data->session);
     ret = session_manager_insert (manager, data->session);
     assert_return_code (ret, 0);
@@ -321,12 +321,12 @@ session_watcher_session_insert_test (void **state)
     struct watcher_test_data *data = (struct watcher_test_data*)*state;
     session_watcher_t *watcher = data->watcher;
     session_manager_t *manager = data->manager;
-    session_t *session;
+    session_data_t *session;
     gint ret, receive_fd, send_fd;
     gchar buf[256] = { 0 };
 
     /* */
-    session = session_new (&receive_fd, &send_fd);
+    session = session_data_new (&receive_fd, &send_fd);
     assert_false (FD_ISSET (session->receive_fd, &watcher->session_fdset));
     ret = session_watcher_start(watcher);
     assert_int_equal (ret, 0);

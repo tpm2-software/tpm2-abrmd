@@ -51,7 +51,7 @@ session_watcher_session_responder (session_watcher_t *watcher,
                                    gint fd,
                                    gpointer user_data)
 {
-    session_t *session;
+    session_data_t *session;
     gint ret;
 
     session = session_manager_lookup (watcher->session_manager, fd);
@@ -66,7 +66,7 @@ session_watcher_session_responder (session_watcher_t *watcher,
          */
         session_manager_remove (watcher->session_manager,
                                 session);
-        session_free (session);
+        session_data_free (session);
     }
     return ret;
 }

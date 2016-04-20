@@ -15,7 +15,7 @@
 #include "session-data.h"
 
 typedef struct session_test_data {
-    session_t *session;
+    session_data_t *session;
     gint receive_fd;
     gint send_fd;
 } session_test_data_t;
@@ -66,14 +66,14 @@ session_create_pipe_pairs_test (void **state)
 static void
 session_allocate_test (void **state)
 {
-    session_t *session = NULL;
+    session_data_t *session = NULL;
     gint receive_fd, send_fd;
 
-    session = session_new (&receive_fd, &send_fd);
+    session = session_data_new (&receive_fd, &send_fd);
     assert_non_null (session);
     assert_true (receive_fd >= 0);
     assert_true (send_fd >= 0);
-    session_free (session);
+    session_data_free (session);
 }
 
 static void
@@ -83,7 +83,7 @@ session_setup (void **state)
 
     data = calloc (1, sizeof (session_test_data_t));
     assert_non_null (data);
-    data->session = session_new (&data->receive_fd, &data->send_fd);
+    data->session = session_data_new (&data->receive_fd, &data->send_fd);
     *state = data;
 }
 
@@ -92,7 +92,7 @@ session_teardown (void **state)
 {
     session_test_data_t *data = (session_test_data_t*)*state;
 
-    session_free (data->session);
+    session_data_free (data->session);
     close (data->receive_fd);
     close (data->send_fd);
     free (data);
@@ -101,10 +101,10 @@ session_teardown (void **state)
 static void
 session_key_test (void **state)
 {
-    session_t *session = (session_t*)*state;
+    session_data_t *session = (session_data_t*)*state;
     int *key = NULL;
 
-    key = (int*)session_key (session);
+    key = (int*)session_data_key (session);
     assert_int_equal (session->receive_fd, *key);
 }
 
@@ -112,8 +112,8 @@ static void
 session_equal_test (void **state)
 {
     session_test_data_t *data = (session_test_data_t*)*state;
-    const gint *key = session_key (data->session);
-    assert_true (session_equal (key, session_key (data->session)));
+    const gint *key = session_data_key (data->session);
+    assert_true (session_data_equal (key, session_data_key (data->session)));
 }
 
 /* session_client_to_server_test begin

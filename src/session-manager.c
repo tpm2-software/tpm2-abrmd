@@ -20,7 +20,7 @@ session_manager_new (void)
         g_error ("Failed to initialize session _manager mutex: %s",
                  strerror (errno));
     session_manager->session_table = g_hash_table_new (g_int_hash,
-                                                       session_equal);
+                                                       session_data_equal);
     return session_manager;
 }
 
@@ -49,7 +49,7 @@ session_manager_free (session_manager_t *manager)
 
 gint
 session_manager_insert (session_manager_t *manager,
-                        session_t *session)
+                        session_data_t *session)
 {
     gint ret;
 
@@ -58,7 +58,7 @@ session_manager_insert (session_manager_t *manager,
         g_error ("Error locking session_manager mutex: %s",
                  strerror (errno));
     g_hash_table_insert (manager->session_table,
-                         session_key (session),
+                         session_data_key (session),
                          session);
     ret = pthread_mutex_unlock (&manager->mutex);
     if (ret != 0)
@@ -67,11 +67,11 @@ session_manager_insert (session_manager_t *manager,
     return ret;
 }
 
-session_t*
+session_data_t*
 session_manager_lookup (session_manager_t *manager,
                         gint fd_in)
 {
-    session_t *session;
+    session_data_t *session;
 
     pthread_mutex_lock (&manager->mutex);
     session = g_hash_table_lookup (manager->session_table,
@@ -83,13 +83,13 @@ session_manager_lookup (session_manager_t *manager,
 
 gboolean
 session_manager_remove (session_manager_t *manager,
-                        session_t *session)
+                        session_data_t *session)
 {
     gboolean ret;
 
     pthread_mutex_lock (&manager->mutex);
     ret = g_hash_table_remove (manager->session_table,
-                               session_key (session));
+                               session_data_key (session));
     pthread_mutex_unlock (&manager->mutex);
 
     return ret;
@@ -101,7 +101,7 @@ set_fd (gpointer key,
         gpointer user_data)
 {
     fd_set *fds = (fd_set*)user_data;
-    session_t *session = (session_t*)value;
+    session_data_t *session = (session_data_t*)value;
 
     FD_SET (session->receive_fd, fds);
 }

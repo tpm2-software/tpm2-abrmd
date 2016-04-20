@@ -14,10 +14,10 @@ typedef struct session_manager {
 session_manager_t* session_manager_new     (void);
 void               session_manager_free    (session_manager_t *manager);
 gint               session_manager_insert  (session_manager_t *manager,
-                                            session_t *session);
+                                            session_data_t *session);
 gint               session_manager_remove  (session_manager_t *manager,
-                                            session_t *session);
-session_t*         session_manager_lookup  (session_manager_t *manager,
+                                            session_data_t *session);
+session_data_t*    session_manager_lookup  (session_manager_t *manager,
                                             gint fd_in);
 void               session_manager_set_fds (session_manager_t *manager,
                                             fd_set *fds);

@@ -52,17 +52,17 @@ create_pipe_pairs (int pipe_fds_a[],
  * and it returns this array populated with the receiving and sending pipe fds
  * respectively.
  */
-session_t*
-session_new (gint *receive_fd,
-             gint *send_fd)
+session_data_t*
+session_data_new (gint *receive_fd,
+                  gint *send_fd)
 {
     g_info ("CreateConnection");
     int ret, session_fds[2], client_fds[2];
-    session_t *session;
+    session_data_t *session;
 
-    session = calloc (1, sizeof (session_t));
+    session = calloc (1, sizeof (session_data_t));
     if (session == NULL)
-        g_error ("Failed to allocate memory for session_t: %s", strerror (errno));
+        g_error ("Failed to allocate memory for session_data_t: %s", strerror (errno));
     ret = create_pipe_pairs (session_fds, client_fds, O_CLOEXEC);
     if (ret == -1)
         g_error ("CreateConnection failed to make pipe pair %s", strerror (errno));
@@ -75,7 +75,7 @@ session_new (gint *receive_fd,
 }
 
 void
-session_free (session_t *session)
+session_data_free (session_data_t *session)
 {
     if (session == NULL)
         return;
@@ -85,14 +85,14 @@ session_free (session_t *session)
 }
 
 gpointer
-session_key (session_t *session)
+session_data_key (session_data_t *session)
 {
     return &session->receive_fd;
 }
 
 gboolean
-session_equal (gconstpointer a,
-               gconstpointer b)
+session_data_equal (gconstpointer a,
+                    gconstpointer b)
 {
     return g_int_equal (a, b);
 }
