@@ -9,6 +9,7 @@
 #include "session-manager.h"
 #include "session-watcher.h"
 #include "session-data.h"
+#include "tss2-tabd-generated.h"
 
 #ifdef G_OS_UNIX
 #include <gio/gunixfdlist.h>
@@ -20,7 +21,7 @@
  */
 typedef struct gmain_data {
     GMainLoop *loop;
-    GDBusNodeInfo *introspection_data;
+    Tab *skeleton;
     session_manager_t *manager;
     gint wakeup_send_fd;
 } gmain_data_t;
@@ -30,97 +31,80 @@ typedef struct gmain_data {
  */
 static GMainLoop *g_loop;
 
-/* This must be global so that our signal handlers can interact with it. */
-static const gchar introspection_xml[] =
-  "<node>"
-  "  <interface name='us.twobit.tss2.TabdInterface'>"
-  "    <method name='CreateConnection'>"
-  "      <arg type='ah' name='fds' direction='out'/>"
-  "    </method>"
-  "  </interface>"
-  "</node>";
-
+// recursively iterate a container
 static void
-handle_method_call (GDBusConnection       *connection,
-                    const gchar           *sender,
-                    const gchar           *object_path,
-                    const gchar           *interface_name,
-                    const gchar           *method_name,
-                    GVariant              *parameters,
-                    GDBusMethodInvocation *invocation,
-                    gpointer               user_data)
+iterate_container_recursive (GVariant *container)
 {
-  g_info ("handle_method_call");
-  gmain_data_t *data = (gmain_data_t*)user_data;
-  if (data == NULL)
-      g_error ("handle_method_call: user_data is NULL");
-  if (g_strcmp0 (method_name, "CreateConnection") == 0)
-    {
-      /* create connection method*/
-#ifdef G_OS_UNIX
-      if (g_dbus_connection_get_capabilities (connection) & G_DBUS_CAPABILITY_FLAGS_UNIX_FD_PASSING)
-        {
-          GDBusMessage *reply = NULL;
-          GUnixFDList *fd_list = NULL;
-          GError *error = NULL;
+    GVariantIter iter;
+    GVariant *child;
+    gint fd = 0;
 
-          gint client_fds[2] = { 0, 0 }, ret = 0;
-          session_data_t *session = session_data_new (&client_fds[0], &client_fds[1]);
-          if (session == NULL)
-              g_error ("Failed to allocate new session.");
-          g_debug ("Returning two fds: %d, %d", client_fds[0], client_fds[1]);
-          fd_list = g_unix_fd_list_new_from_array (client_fds, 2);
-          g_assert_no_error (error);
+    g_variant_iter_init (&iter, container);
+    while ((child = g_variant_iter_next_value (&iter))) {
+        g_print ("type '%s'\n", g_variant_get_type_string (child));
+        g_variant_get (child, "h", &fd);
+        g_print ("value '%d'\n", fd);
 
-          reply = g_dbus_message_new_method_reply (g_dbus_method_invocation_get_message (invocation));
-          g_dbus_message_set_unix_fd_list (reply, fd_list);
+        if (g_variant_is_container (child))
+            iterate_container_recursive (child);
 
-          error = NULL;
-          g_dbus_connection_send_message (connection,
-                                          reply,
-                                          G_DBUS_SEND_MESSAGE_FLAGS_NONE,
-                                          NULL, /* out_serial */
-                                          &error);
-          g_assert_no_error (error);
-
-          ret = session_manager_insert (data->manager, session);
-          if (ret != 0)
-              g_error ("Failed to add new session to session_manager.");
-          ret = write (data->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
-          if (ret < 1)
-              g_error ("failed to wakeup watcher");
-
-          g_object_unref (invocation);
-          g_object_unref (fd_list);
-          g_object_unref (reply);
-        }
-      else
-        {
-          g_dbus_method_invocation_return_dbus_error (invocation,
-                                                      "org.gtk.GDBus.Failed",
-                                                      "Your message bus daemon does not support file descriptor passing (need D-Bus >= 1.3.0)");
-        }
-#else
-      g_dbus_method_invocation_return_dbus_error (invocation,
-                                                  "org.gtk.GDBus.NotOnUnix",
-                                                  "Your OS does not support file descriptor passing");
-#endif
-    }
-  else
-    {
-      g_dbus_method_invocation_return_error (invocation,
-                                             G_DBUS_ERROR,
-                                             G_DBUS_ERROR_UNKNOWN_METHOD,
-                                             "Unknown method.");
+        g_variant_unref (child);
     }
 }
 
-static const GDBusInterfaceVTable interface_vtable =
+/* This funcion creates a GVariant with type 'tuple'. In this tuple we place
+ * another GVAriant with type 'array'. In this array we store GVariants with
+ * type 'handle'. There will be nfd number of handle GVariants in this array.
+ * Each handle corresponds to an FD in a GUnixFDList that is to be sent across
+ * the DBus via g_dbus_method_invocation_return_value_with_unix_fd_list.
+ */
+static GVariant*
+get_tuple_of_array_of_handles (gint nfd)
 {
-  handle_method_call,
-  NULL,
-  NULL
-};
+    GVariant *fd_tuple = NULL, *fd_array = NULL, **fds;
+    gint i = 0;
+
+    fds = calloc (nfd, sizeof (GVariant*));
+    for (i = 0; i < nfd; ++i) {
+        *(fds + i) = g_variant_new_handle (i);
+    }
+    fd_array = g_variant_new_array (NULL, fds, nfd);
+    fd_tuple = g_variant_new_tuple (&fd_array, 1);
+    return fd_tuple;
+}
+
+static gboolean
+on_handle_create_connection (Tab                   *skeleton,
+                             GDBusMethodInvocation *invocation,
+                             gpointer               user_data)
+{
+    gmain_data_t *data = (gmain_data_t*)user_data;
+    session_data_t *session = NULL;
+    gint client_fds[2] = { 0, 0 }, ret = 0;
+    GVariant *fd_tuple = NULL;
+    GUnixFDList *fd_list = NULL;
+
+    session = session_data_new (&client_fds[0], &client_fds[1]);
+    if (session == NULL)
+        g_error ("Failed to allocate new session.");
+    g_debug ("Returning two fds: %d, %d", client_fds[0], client_fds[1]);
+    fd_list = g_unix_fd_list_new_from_array (client_fds, 2);
+    fd_tuple =
+        get_tuple_of_array_of_handles (g_unix_fd_list_get_length (fd_list));
+    g_dbus_method_invocation_return_value_with_unix_fd_list (
+        invocation,
+        fd_tuple,
+        fd_list);
+    /* add session to manager and signal manager to wakeup! */
+    ret = session_manager_insert (data->manager, session);
+    if (ret != 0)
+        g_error ("Failed to add new session to session_manager.");
+    ret = write (data->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
+    if (ret < 1)
+        g_error ("failed to wakeup watcher");
+
+    return TRUE;
+}
 
 static void
 on_bus_acquired (GDBusConnection *connection,
@@ -128,23 +112,6 @@ on_bus_acquired (GDBusConnection *connection,
                  gpointer         user_data)
 {
     g_info ("on_bus_acquired: %s", name);
-    guint registration_id;
-    gmain_data_t *gmain_data;
-
-    if (user_data == NULL)
-        g_error ("bus_acquired but user_data is NULL");
-    gmain_data = (gmain_data_t*)user_data;
-
-    registration_id =
-        g_dbus_connection_register_object (
-            connection,
-            TAB_DBUS_PATH,
-            gmain_data->introspection_data->interfaces[0],
-            &interface_vtable,
-            user_data,  /* user_data */
-            NULL,  /* user_data_free_func */
-            NULL); /* GError** */
-    g_assert (registration_id > 0);
 }
 
 static void
@@ -152,7 +119,28 @@ on_name_acquired (GDBusConnection *connection,
                   const gchar     *name,
                   gpointer         user_data)
 {
-  g_info ("on_name_acquired: %s", name);
+    g_info ("on_name_acquired: %s", name);
+    guint registration_id;
+    gmain_data_t *gmain_data;
+    GError *error = NULL;
+    gboolean ret;
+
+    if (user_data == NULL)
+        g_error ("bus_acquired but user_data is NULL");
+    gmain_data = (gmain_data_t*)user_data;
+    if (gmain_data->skeleton == NULL)
+        gmain_data->skeleton = tab_skeleton_new ();
+    g_signal_connect (gmain_data->skeleton,
+                      "handle-create-connection",
+                      G_CALLBACK (on_handle_create_connection),
+                      user_data);
+    ret = g_dbus_interface_skeleton_export (
+        G_DBUS_INTERFACE_SKELETON (gmain_data->skeleton),
+        connection,
+        TAB_DBUS_PATH,
+        &error);
+    if (ret == FALSE)
+        g_warning ("failed to export interface: %s", error->message);
 }
 
 static void
@@ -209,10 +197,6 @@ main (int argc, char *argv[])
   session_watcher_t *watcher =
       session_watcher_new (gmain_data.manager, wakeup_fds [0]);
 
-  gmain_data.introspection_data =
-      g_dbus_node_info_new_for_xml (introspection_xml, NULL);
-  g_assert (gmain_data.introspection_data != NULL);
-
   g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);
   owner_id = g_bus_own_name (G_BUS_TYPE_SESSION,
                              TAB_DBUS_NAME,
@@ -231,11 +215,13 @@ main (int argc, char *argv[])
   signal (SIGINT, signal_handler);
   signal (SIGTERM, signal_handler);
 
+  g_info ("entering g_main_loop");
   g_main_loop_run (gmain_data.loop);
   g_info ("g_main_loop_run done, cleaning up");
   /* cleanup glib stuff first so we stop getting events */
   g_bus_unown_name (owner_id);
-  g_dbus_node_info_unref (gmain_data.introspection_data);
+  if (gmain_data.skeleton != NULL)
+      g_object_unref (gmain_data.skeleton);
   /* stop the connection watcher thread */
   session_watcher_cancel (watcher);
   session_watcher_join (watcher);
