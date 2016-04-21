@@ -17,6 +17,7 @@ tss2_tcti_tabd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
     ret = pthread_mutex_lock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error acquiring TCTI lock: %s", strerror (errno));
+    g_debug ("blocking on PIPE_TRANSMIT: %d", TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context));
     /* should loop till all bytes written */
     ret = write (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context), command, size);
     /* should switch on possible errors to translate to TSS2 error codes */
@@ -79,10 +80,10 @@ tss2_tcti_tabd_finalize (TSS2_TCTI_CONTEXT *tcti_context)
     }
     if (ret != 0 && ret != EBADF)
         g_warning ("Failed to close send pipe: %s", strerror (errno));
-
     ret = pthread_join (TSS2_TCTI_TABD_THREAD_ID (tcti_context), NULL);
     if (ret != 0)
         g_warning ("pthread_join: %s", strerror (ret));
+    g_object_unref (TSS2_TCTI_TABD_PROXY (tcti_context));
     free (tcti_context);
 }
 
@@ -200,17 +201,8 @@ tss2_tcti_tabd_gmain_thread(void *arg)
 {
     TSS2_TCTI_TABD_CONTEXT *tcti_context = (TSS2_TCTI_TABD_CONTEXT*)arg;
 
-    TSS2_TCTI_TABD_WATCHER_ID (tcti_context) = \
-        g_bus_watch_name (G_BUS_TYPE_SESSION,
-                          TAB_DBUS_NAME,
-                          G_BUS_NAME_WATCHER_FLAGS_NONE,
-                          on_name_appeared,
-                          on_name_vanished,
-                          tcti_context,
-                          NULL);
     TSS2_TCTI_TABD_GMAIN_LOOP (tcti_context) = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (TSS2_TCTI_TABD_GMAIN_LOOP (tcti_context));
-    g_bus_unwatch_name (TSS2_TCTI_TABD_WATCHER_ID (tcti_context));
     TSS2_TCTI_TABD_WATCHER_ID (tcti_context) = 0;
 }
 
@@ -227,6 +219,31 @@ init_function_pointers (TSS2_TCTI_CONTEXT *tcti_context)
     tss2_tcti_context_set_locality (tcti_context) = tss2_tcti_tabd_set_locality;
 }
 
+static gboolean
+tab_call_create_connection_sync_fdlist (Tab           *proxy,
+                                        GVariant     **out_fds,
+                                        GUnixFDList  **out_fd_list,
+                                        GCancellable  *cancellable,
+                                        GError       **error)
+{
+    GVariant *_ret;
+    _ret = g_dbus_proxy_call_with_unix_fd_list_sync (G_DBUS_PROXY (proxy),
+        "CreateConnection",
+        g_variant_new ("()"),
+        G_DBUS_CALL_FLAGS_NONE,
+        -1,
+        NULL,
+        out_fd_list,
+        cancellable,
+        error);
+    if (_ret == NULL)
+        goto _out;
+    g_variant_get (_ret, "(@ah)", out_fds);
+    g_variant_unref (_ret);
+_out:
+    return _ret != NULL;
+}
+
 /* Initialize the TCTI. We lock the TCTI mutex here and kick off the thread
  * that will become the gmain loop. This is the thread that handles all of the
  * dbus events. The TCTI mutex remains locked until the TCTI becomes usable.
@@ -237,6 +254,10 @@ init_function_pointers (TSS2_TCTI_CONTEXT *tcti_context)
 TSS2_RC
 tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
 {
+    GError *error = NULL;
+    GVariant *variant;
+    GUnixFDList *fd_list;
+    gboolean call_ret;
     int ret;
 
     if (tcti_context == NULL && size == NULL)
@@ -250,6 +271,7 @@ tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
     if (ret != 0)
         g_error ("Failed to initialize initialization mutex: %s",
                  strerror (errno));
+
     ret = pthread_mutex_lock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Failed to acquire init mutex in init function: %s",
@@ -262,5 +284,43 @@ tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
         g_error ("Failed to create thread for TABD TCTI: %s", strerror (ret));
         return TSS2_TCTI_RC_GENERAL_FAILURE;
     }
+    TSS2_TCTI_TABD_PROXY (tcti_context) = tab_proxy_new_for_bus_sync (
+        G_BUS_TYPE_SESSION,
+        G_DBUS_PROXY_FLAGS_NONE,
+        TAB_DBUS_NAME,              /* bus name */
+        TAB_DBUS_PATH, /* object */
+        NULL,                          /* GCancellable* */
+        &error);
+    if (TSS2_TCTI_TABD_PROXY (tcti_context) == NULL)
+        g_error ("failed to allocate dbus proxy object: %s", error->message);
+    call_ret = tab_call_create_connection_sync_fdlist (
+        TSS2_TCTI_TABD_PROXY (tcti_context),
+        &variant,
+        &fd_list,
+        NULL,
+        &error);
+    if (call_ret == FALSE)
+        g_error ("Failed to create connection with service: %s",
+                 error->message);
+    if (fd_list == NULL)
+        g_error ("call to CreateConnection returned a NULL GUnixFDList");
+    gint num_handles = g_unix_fd_list_get_length (fd_list);
+    if (num_handles != 2)
+        g_error ("CreateConnection expected to return 2 handles, received %d",
+                 num_handles);
+    gint fd = g_unix_fd_list_get (fd_list, 0, &error);
+    if (fd == -1)
+        g_error ("unable to get receive handle from GUnixFDList: %s",
+                 error->message);
+    TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) = fd;
+    fd = g_unix_fd_list_get (fd_list, 1, &error);
+    if (fd == -1)
+        g_error ("failed to get transmit handle from GUnixFDList: %s",
+                 error->message);
+    TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context) = fd;
+    ret = pthread_mutex_unlock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    if (ret != 0)
+                g_error ("Failed to unlock init mutex: %s", strerror (errno));
+
     return TSS2_RC_SUCCESS;
 }

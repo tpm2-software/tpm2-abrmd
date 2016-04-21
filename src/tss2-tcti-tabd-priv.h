@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <pthread.h>
+#include "tss2-tabd-generated.h"
 
 #define TSS2_TCTI_TABD_MAGIC 0x1c8e03ff00db0f92
 
@@ -20,6 +21,8 @@
     TSS2_TCTI_TABD_PIPE_FDS(context)[0]
 #define TSS2_TCTI_TABD_PIPE_TRANSMIT(context) \
     TSS2_TCTI_TABD_PIPE_FDS(context)[1]
+#define TSS2_TCTI_TABD_PROXY(context) \
+    ((TSS2_TCTI_TABD_CONTEXT*)context)->proxy
 
 /* This is our private TCTI structure. We're required by the spec to have
  * the same structure as the non-opaque area defined by the
@@ -34,6 +37,7 @@ typedef struct {
     pthread_t thread_id;
     pthread_mutex_t mutex;
     int pipe_fds[2];
+    Tab *proxy;
 } TSS2_TCTI_TABD_CONTEXT;
 
 #endif /* TSS2TCTI_TABD_PRIV_H */
