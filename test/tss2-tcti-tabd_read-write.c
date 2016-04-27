@@ -33,7 +33,7 @@ main (void)
         g_debug ("tss2_tcti_transmit failed");
     char recv_str[10] = {0};
     size_t recv_size = 10;
-    ret = tss2_tcti_receive (tcti_context, &recv_size, recv_str, 0);
+    ret = tss2_tcti_receive (tcti_context, &recv_size, recv_str, TSS2_TCTI_TIMEOUT_BLOCK);
     if (ret != TSS2_RC_SUCCESS)
         g_debug ("tss2_tcti_receive failed");
     g_debug ("received string: %s", recv_str);

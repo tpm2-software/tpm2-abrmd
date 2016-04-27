@@ -41,6 +41,8 @@ tss2_tcti_tabd_receive (TSS2_TCTI_CONTEXT *tcti_context,
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
 
     g_debug ("tss2_tcti_tabd_receive");
+    if (timeout != TSS2_TCTI_TIMEOUT_BLOCK)
+        return TSS2_TCTI_RC_BAD_VALUE;
     ret = pthread_mutex_lock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error acquiring TCTI lock: %s", strerror (errno));
