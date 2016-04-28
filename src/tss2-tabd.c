@@ -3,6 +3,7 @@
 #include <gio/gio.h>
 #include <glib.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <tss2-tabd.h>
@@ -26,6 +27,7 @@ typedef struct gmain_data {
     session_manager_t *manager;
     session_watcher_t *watcher;
     gint wakeup_send_fd;
+    struct drand48_data rand_data;
     GMutex init_mutex;
 } gmain_data_t;
 
@@ -157,6 +159,36 @@ signal_handler (int signum)
   main_loop_quit (g_loop);
 }
 
+static int
+seed_rand_data (const char *fname, struct drand48_data *rand_data)
+{
+    gint rand_fd;
+    long int rand_seed;
+    ssize_t read_ret;
+
+    /* seed rand with some entropy from TABD_RAND_FILE */
+    g_debug ("opening entropy source: %s", fname);
+    rand_fd = open (fname, O_RDONLY);
+    if (rand_fd == -1) {
+        g_warning ("failed to open entropy source %s: %s",
+                   fname,
+                   strerror (errno));
+        return 1;
+    }
+    g_debug ("reading from entropy source: %s", fname);
+    read_ret = read (rand_fd, &rand_seed, sizeof (rand_seed));
+    if (read_ret == -1) {
+        g_warning ("failed to read from entropy source %s, %s",
+                   fname,
+                   strerror (errno));
+        return 1;
+    }
+    g_debug ("seeding rand with %ld", rand_seed);
+    srand48_r (rand_seed, rand_data);
+
+    return 0;
+}
+
 static gpointer
 init_thread_func (gpointer user_data)
 {
@@ -168,6 +200,9 @@ init_thread_func (gpointer user_data)
     /* Setup program signals */
     signal (SIGINT, signal_handler);
     signal (SIGTERM, signal_handler);
+
+    if (seed_rand_data (TABD_RAND_FILE, &data->rand_data) != 0)
+        g_error ("failed to seed random number generator");
 
     data->manager = session_manager_new();
     if (data->manager == NULL)
