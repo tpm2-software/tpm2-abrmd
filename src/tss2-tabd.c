@@ -36,25 +36,22 @@ typedef struct gmain_data {
  */
 static GMainLoop *g_loop;
 
-/* This funcion creates a GVariant with type 'tuple'. In this tuple we place
- * another GVAriant with type 'array'. In this array we store GVariants with
- * type 'handle'. There will be nfd number of handle GVariants in this array.
- * Each handle corresponds to an FD in a GUnixFDList that is to be sent across
- * the DBus via g_dbus_method_invocation_return_value_with_unix_fd_list.
- */
 static GVariant*
-get_tuple_of_array_of_handles (gint nfd)
+create_connection_response_tuple (GUnixFDList *fdlist)
 {
-    GVariant *fd_tuple = NULL, *fd_array = NULL, **fds;
+    GVariant *tuple;
+    GVariantBuilder *builder;
     gint i = 0;
 
-    fds = calloc (nfd, sizeof (GVariant*));
-    for (i = 0; i < nfd; ++i) {
-        *(fds + i) = g_variant_new_handle (i);
-    }
-    fd_array = g_variant_new_array (NULL, fds, nfd);
-    fd_tuple = g_variant_new_tuple (&fd_array, 1);
-    return fd_tuple;
+    /* build array of handles as GVariant */
+    builder = g_variant_builder_new (G_VARIANT_TYPE ("ah"));
+    for (i = 0; i < g_unix_fd_list_get_length (fdlist); ++i)
+        g_variant_builder_add (builder, "h", i);
+    /* create tuple variant from builder */
+    tuple = g_variant_new ("(ah)", builder);
+    g_variant_builder_unref (builder);
+
+    return tuple;
 }
 
 static gboolean
@@ -72,9 +69,9 @@ on_handle_create_connection (Tab                   *skeleton,
     if (session == NULL)
         g_error ("Failed to allocate new session.");
     g_debug ("Returning two fds: %d, %d", client_fds[0], client_fds[1]);
+    /* prepare response message structure */
     fd_list = g_unix_fd_list_new_from_array (client_fds, 2);
-    fd_tuple =
-        get_tuple_of_array_of_handles (g_unix_fd_list_get_length (fd_list));
+    fd_tuple = create_connection_response_tuple (fd_list);
     g_dbus_method_invocation_return_value_with_unix_fd_list (
         invocation,
         fd_tuple,
