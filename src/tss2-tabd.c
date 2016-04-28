@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include <tss2-tabd.h>
+#include "tss2-tabd-priv.h"
 #include "session-manager.h"
 #include "session-watcher.h"
 #include "session-data.h"
@@ -23,7 +24,9 @@ typedef struct gmain_data {
     GMainLoop *loop;
     Tab *skeleton;
     session_manager_t *manager;
+    session_watcher_t *watcher;
     gint wakeup_send_fd;
+    GMutex init_mutex;
 } gmain_data_t;
 
 /* This global pointer to the GMainLoop is necessary so that we can react to
@@ -95,6 +98,11 @@ on_handle_create_connection (Tab                   *skeleton,
         invocation,
         fd_tuple,
         fd_list);
+    /* make sure the init thread is done before we add the session to the
+     * session manager
+     */
+    while (g_mutex_trylock (&data->init_mutex) != FALSE);
+    g_mutex_unlock (&data->init_mutex);
     /* add session to manager and signal manager to wakeup! */
     ret = session_manager_insert (data->manager, session);
     if (ret != 0)
@@ -170,34 +178,53 @@ signal_handler (int signum)
   main_loop_quit (g_loop);
 }
 
+static gpointer
+init_thread_func (gpointer user_data)
+{
+    gmain_data_t *data = (gmain_data_t*)user_data;
+    gint wakeup_fds[2] = { 0 }, ret;
+
+    g_info ("init_thread_func start");
+    g_mutex_lock (&data->init_mutex);
+    /* Setup program signals */
+    signal (SIGINT, signal_handler);
+    signal (SIGTERM, signal_handler);
+
+    data->manager = session_manager_new();
+    if (data->manager == NULL)
+        g_error ("failed to allocate connection_manager");
+    if (pipe2 (wakeup_fds, O_CLOEXEC) != 0)
+        g_error ("failed to make wakeup socket: %s", strerror (errno));
+    data->wakeup_send_fd = wakeup_fds [1];
+
+    data->watcher =
+        session_watcher_new (data->manager, wakeup_fds [0]);
+
+    ret = session_watcher_start (data->watcher);
+    if (ret != 0)
+        g_error ("failed to start connection_watcher");
+
+    g_mutex_unlock (&data->init_mutex);
+    g_info ("init_thread_func done");
+}
+
 int
 main (int argc, char *argv[])
 {
   g_info ("tabd startup");
   guint owner_id;
-  gint wakeup_fds[2] = { 0 }, ret;
   gmain_data_t gmain_data = { 0 };
+  GThread *init_thread;
 
-  /* This initialization should be done on a separate thread. Our goal here
-   * is to get into the g_main_loop_run as fast as possible so we can become
-   * responsive to events on the DBus.
-   */
-  /* Bot the gmain thread and the session_watcher thread share a connection
-   * manager. The gmain thread uses the session_manager to create new
-   * connections in response to DBus events. The session_watcher thread
-   * monitors incoming data from clients via the session_manager.
-   */
-  gmain_data.manager = session_manager_new();
-  if (gmain_data.manager == NULL)
-      g_error ("failed to allocate connection_manager");
-  if (pipe2 (wakeup_fds, O_CLOEXEC) != 0)
-      g_error ("failed to make wakeup socket: %s", strerror (errno));
-  gmain_data.wakeup_send_fd = wakeup_fds [1];
-
-  session_watcher_t *watcher =
-      session_watcher_new (gmain_data.manager, wakeup_fds [0]);
-
+  g_mutex_init (&gmain_data.init_mutex);
   g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);
+  /* Initialize program data on a separate thread. The main thread needs to
+   * acquire the dbus name and get into the GMainLoop ASAP to be responsive to
+   * bus clients.
+   */
+  init_thread = g_thread_new (TABD_INIT_THREAD_NAME,
+                              init_thread_func,
+                              &gmain_data);
   owner_id = g_bus_own_name (G_BUS_TYPE_SESSION,
                              TAB_DBUS_NAME,
                              G_BUS_NAME_OWNER_FLAGS_NONE,
@@ -207,25 +234,18 @@ main (int argc, char *argv[])
                              &gmain_data,
                              NULL);
 
-  ret = session_watcher_start (watcher);
-  if (ret != 0)
-      g_error ("failed to start connection_watcher");
-
-  /* Setup program signals */
-  signal (SIGINT, signal_handler);
-  signal (SIGTERM, signal_handler);
-
   g_info ("entering g_main_loop");
   g_main_loop_run (gmain_data.loop);
   g_info ("g_main_loop_run done, cleaning up");
+  g_thread_join (init_thread);
   /* cleanup glib stuff first so we stop getting events */
   g_bus_unown_name (owner_id);
   if (gmain_data.skeleton != NULL)
       g_object_unref (gmain_data.skeleton);
   /* stop the connection watcher thread */
-  session_watcher_cancel (watcher);
-  session_watcher_join (watcher);
-  session_watcher_free (watcher);
+  session_watcher_cancel (gmain_data.watcher);
+  session_watcher_join (gmain_data.watcher);
+  session_watcher_free (gmain_data.watcher);
   session_manager_free (gmain_data.manager);
 
   return 0;
