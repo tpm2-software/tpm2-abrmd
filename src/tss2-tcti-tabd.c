@@ -194,14 +194,14 @@ on_name_vanished (GDBusConnection *connection,
 void
 init_function_pointers (TSS2_TCTI_CONTEXT *tcti_context)
 {
-    tss2_tcti_context_magic (tcti_context) = TSS2_TCTI_TABD_MAGIC;
-    tss2_tcti_context_version (tcti_context) = 1;
-    tss2_tcti_context_transmit (tcti_context) = tss2_tcti_tabd_transmit;
-    tss2_tcti_context_receive (tcti_context) = tss2_tcti_tabd_receive;
-    tss2_tcti_context_finalize (tcti_context) = tss2_tcti_tabd_finalize;
-    tss2_tcti_context_cancel (tcti_context) = tss2_tcti_tabd_cancel;
-    tss2_tcti_context_get_poll_handles (tcti_context) = tss2_tcti_tabd_get_poll_handles;
-    tss2_tcti_context_set_locality (tcti_context) = tss2_tcti_tabd_set_locality;
+    TSS2_TCTI_MAGIC (tcti_context) = TSS2_TCTI_TABD_MAGIC;
+    TSS2_TCTI_VERSION (tcti_context) = 1;
+    TSS2_TCTI_TRANSMIT (tcti_context) = tss2_tcti_tabd_transmit;
+    TSS2_TCTI_RECEIVE (tcti_context) = tss2_tcti_tabd_receive;
+    TSS2_TCTI_FINALIZE (tcti_context) = tss2_tcti_tabd_finalize;
+    TSS2_TCTI_CANCEL (tcti_context) = tss2_tcti_tabd_cancel;
+    TSS2_TCTI_GET_POLL_HANDLES (tcti_context) = tss2_tcti_tabd_get_poll_handles;
+    TSS2_TCTI_SET_LOCALITY (tcti_context) = tss2_tcti_tabd_set_locality;
 }
 
 static gboolean
