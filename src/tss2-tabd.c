@@ -87,6 +87,7 @@ on_handle_create_connection (Tab                   *skeleton,
         invocation,
         response_tuple,
         fd_list);
+    g_object_unref (fd_list);
     /* add session to manager and signal manager to wakeup! */
     ret = session_manager_insert (data->manager, session);
     if (ret != 0)
