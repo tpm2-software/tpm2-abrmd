@@ -3,6 +3,24 @@
 #include <unistd.h>
 
 int
+send_recv (TSS2_TCTI_CONTEXT *tcti_context)
+{
+    /* send / receive */
+    TSS2_RC ret;
+    char *xmit_str = "test";
+    g_debug ("transmitting string: %s", xmit_str);
+    ret = tss2_tcti_transmit (tcti_context, strlen (xmit_str), (uint8_t*)xmit_str);
+    if (ret != TSS2_RC_SUCCESS)
+        g_debug ("tss2_tcti_transmit failed");
+    char recv_str[10] = {0};
+    size_t recv_size = 10;
+    ret = tss2_tcti_receive (tcti_context, &recv_size, recv_str, TSS2_TCTI_TIMEOUT_BLOCK);
+    if (ret != TSS2_RC_SUCCESS)
+        g_debug ("tss2_tcti_receive failed");
+    g_debug ("received string: %s", recv_str);
+}
+
+int
 main (void)
 {
     TSS2_TCTI_CONTEXT *tcti_context = NULL;
@@ -25,17 +43,7 @@ main (void)
      * tabd. The right thing to do is for the TCTI to cause callers to block
      * on a mutex till the setup thread is done.
      */
-    g_debug ("transmitting ...");
-    /* send / receive */
-    char *xmit_str = "test";
-    ret = tss2_tcti_transmit (tcti_context, strlen (xmit_str), (uint8_t*)xmit_str);
-    if (ret != TSS2_RC_SUCCESS)
-        g_debug ("tss2_tcti_transmit failed");
-    char recv_str[10] = {0};
-    size_t recv_size = 10;
-    ret = tss2_tcti_receive (tcti_context, &recv_size, recv_str, TSS2_TCTI_TIMEOUT_BLOCK);
-    if (ret != TSS2_RC_SUCCESS)
-        g_debug ("tss2_tcti_receive failed");
-    g_debug ("received string: %s", recv_str);
+    send_recv (tcti_context);
+    send_recv (tcti_context);
     tss2_tcti_finalize (tcti_context);
 }
