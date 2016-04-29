@@ -54,7 +54,8 @@ create_pipe_pairs (int pipe_fds_a[],
  */
 session_data_t*
 session_data_new (gint *receive_fd,
-                  gint *send_fd)
+                  gint *send_fd,
+                  guint64 id)
 {
     g_info ("CreateConnection");
     int ret, session_fds[2], client_fds[2];
@@ -63,6 +64,7 @@ session_data_new (gint *receive_fd,
     session = calloc (1, sizeof (session_data_t));
     if (session == NULL)
         g_error ("Failed to allocate memory for session_data_t: %s", strerror (errno));
+    session->id = id;
     ret = create_pipe_pairs (session_fds, client_fds, O_CLOEXEC);
     if (ret == -1)
         g_error ("CreateConnection failed to make pipe pair %s", strerror (errno));

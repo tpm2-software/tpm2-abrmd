@@ -207,6 +207,7 @@ init_function_pointers (TSS2_TCTI_CONTEXT *tcti_context)
 static gboolean
 tab_call_create_connection_sync_fdlist (Tab           *proxy,
                                         GVariant     **out_fds,
+                                        guint64       *out_id,
                                         GUnixFDList  **out_fd_list,
                                         GCancellable  *cancellable,
                                         GError       **error)
@@ -223,7 +224,7 @@ tab_call_create_connection_sync_fdlist (Tab           *proxy,
         error);
     if (_ret == NULL)
         goto _out;
-    g_variant_get (_ret, "(@ah)", out_fds);
+    g_variant_get (_ret, "(@aht)", out_fds, out_id);
     g_variant_unref (_ret);
 _out:
     return _ret != NULL;
@@ -233,7 +234,8 @@ TSS2_RC
 tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
 {
     GError *error = NULL;
-    GVariant *variant;
+    GVariant *fds_variant;
+    guint64 id;
     GUnixFDList *fd_list;
     gboolean call_ret;
     int ret;
@@ -261,7 +263,8 @@ tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
         g_error ("failed to allocate dbus proxy object: %s", error->message);
     call_ret = tab_call_create_connection_sync_fdlist (
         TSS2_TCTI_TABD_PROXY (tcti_context),
-        &variant,
+        &fds_variant,
+        &id,
         &fd_list,
         NULL,
         &error);
@@ -284,6 +287,9 @@ tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
         g_error ("failed to get transmit handle from GUnixFDList: %s",
                  error->message);
     TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context) = fd;
+    TSS2_TCTI_TABD_ID (tcti_context) = id;
+    g_debug ("initialized tabd TCTI context with id: %ld",
+             TSS2_TCTI_TABD_ID (tcti_context));
 
     return TSS2_RC_SUCCESS;
 }

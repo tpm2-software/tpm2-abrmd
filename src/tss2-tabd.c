@@ -37,7 +37,7 @@ typedef struct gmain_data {
 static GMainLoop *g_loop;
 
 static GVariant*
-create_connection_response_tuple (GUnixFDList *fdlist)
+handle_array_variant_from_fdlist (GUnixFDList *fdlist)
 {
     GVariant *tuple;
     GVariantBuilder *builder;
@@ -48,7 +48,7 @@ create_connection_response_tuple (GUnixFDList *fdlist)
     for (i = 0; i < g_unix_fd_list_get_length (fdlist); ++i)
         g_variant_builder_add (builder, "h", i);
     /* create tuple variant from builder */
-    tuple = g_variant_new ("(ah)", builder);
+    tuple = g_variant_new ("ah", builder);
     g_variant_builder_unref (builder);
 
     return tuple;
@@ -62,25 +62,31 @@ on_handle_create_connection (Tab                   *skeleton,
     gmain_data_t *data = (gmain_data_t*)user_data;
     session_data_t *session = NULL;
     gint client_fds[2] = { 0, 0 }, ret = 0;
-    GVariant *fd_tuple = NULL;
+    GVariant *response_variants[2], *response_tuple;
     GUnixFDList *fd_list = NULL;
+    guint64 id;
 
-    session = session_data_new (&client_fds[0], &client_fds[1]);
-    if (session == NULL)
-        g_error ("Failed to allocate new session.");
-    g_debug ("Returning two fds: %d, %d", client_fds[0], client_fds[1]);
-    /* prepare response message structure */
-    fd_list = g_unix_fd_list_new_from_array (client_fds, 2);
-    fd_tuple = create_connection_response_tuple (fd_list);
-    g_dbus_method_invocation_return_value_with_unix_fd_list (
-        invocation,
-        fd_tuple,
-        fd_list);
     /* make sure the init thread is done before we add the session to the
      * session manager
      */
     while (g_mutex_trylock (&data->init_mutex) != FALSE);
     g_mutex_unlock (&data->init_mutex);
+    lrand48_r (&data->rand_data, &id);
+    session = session_data_new (&client_fds[0], &client_fds[1], id);
+    if (session == NULL)
+        g_error ("Failed to allocate new session.");
+    g_debug ("Created connection with fds: %d, %d and id: %ld",
+             client_fds[0], client_fds[1], id);
+    /* prepare response message tuple variant */
+    fd_list = g_unix_fd_list_new_from_array (client_fds, 2);
+    response_variants[0] = handle_array_variant_from_fdlist (fd_list);
+    response_variants[1] = g_variant_new_uint64 (id);
+    response_tuple = g_variant_new_tuple (response_variants, 2);
+    /* send response */
+    g_dbus_method_invocation_return_value_with_unix_fd_list (
+        invocation,
+        response_tuple,
+        fd_list);
     /* add session to manager and signal manager to wakeup! */
     ret = session_manager_insert (data->manager, session);
     if (ret != 0)

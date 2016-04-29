@@ -7,6 +7,8 @@
 
 #define TSS2_TCTI_TABD_MAGIC 0x1c8e03ff00db0f92
 
+#define TSS2_TCTI_TABD_ID(context) \
+    ((TSS2_TCTI_TABD_CONTEXT*)context)->id
 #define TSS2_TCTI_TABD_WATCHER_ID(context) \
     ((TSS2_TCTI_TABD_CONTEXT*)context)->watcher_id
 #define TSS2_TCTI_TABD_MUTEX(context) \
@@ -28,6 +30,7 @@
  */
 typedef struct {
     TSS2_TCTI_CONTEXT_COMMON_V1 common;
+    guint64 id;
     guint watcher_id;
     pthread_mutex_t mutex;
     int pipe_fds[2];

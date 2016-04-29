@@ -4,6 +4,7 @@
     <interface name='us.twobit.tss2.Tab'>
         <method name='CreateConnection'>
             <arg type='ah' name='fds' direction='out'/>
+            <arg type='t'  name='id'  direction='out'/>
         </method>
     </interface>
 </node>
