@@ -44,6 +44,8 @@ main (void)
      * on a mutex till the setup thread is done.
      */
     send_recv (tcti_context);
+    tss2_tcti_cancel (tcti_context);
     send_recv (tcti_context);
+    tss2_tcti_cancel (tcti_context);
     tss2_tcti_finalize (tcti_context);
 }

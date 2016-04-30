@@ -85,7 +85,24 @@ tss2_tcti_tabd_finalize (TSS2_TCTI_CONTEXT *tcti_context)
 static TSS2_RC
 tss2_tcti_tabd_cancel (TSS2_TCTI_CONTEXT *tcti_context)
 {
-    return TSS2_TCTI_RC_NOT_IMPLEMENTED;
+    GVariant *id_variant, *ret_variant;
+    TSS2_RC ret = TSS2_RC_SUCCESS;
+    GError *error = NULL;
+    gboolean cancel_ret;
+
+    g_info("tss2_tcti_tabd_cancel: id 0x%x", TSS2_TCTI_TABD_ID (tcti_context));
+    cancel_ret = tab_call_cancel_sync (TSS2_TCTI_TABD_PROXY (tcti_context),
+                                       TSS2_TCTI_TABD_ID (tcti_context),
+                                       &ret,
+                                       NULL,
+                                       &error);
+    if (cancel_ret == FALSE) {
+        g_warning ("cancel command failed: %s", error->message);
+        g_error_free (error);
+        return TSS2_TCTI_RC_GENERAL_FAILURE;
+    }
+
+    return ret;
 }
 
 static TSS2_RC

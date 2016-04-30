@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <tss2/tpm20.h>
 #include <tss2-tabd.h>
 #include "tss2-tabd-priv.h"
 #include "session-manager.h"
@@ -99,6 +100,34 @@ on_handle_create_connection (Tab                   *skeleton,
     return TRUE;
 }
 
+static gboolean
+on_handle_cancel (Tab                   *skeleton,
+                  GDBusMethodInvocation *invocation,
+                  gint64                 id,
+                  gpointer               user_data)
+{
+    gmain_data_t *data = (gmain_data_t*)user_data;
+    session_data_t *session;
+    GVariant *uint32_variant, *tuple_variant;
+
+    g_info ("on_handle_cancel for id 0x%x", id);
+    g_mutex_lock (&data->init_mutex);
+    g_mutex_unlock (&data->init_mutex);
+    session = session_manager_lookup_id (data->manager, id);
+    if (session == NULL) {
+        g_warning ("no active session for id: 0x%x", id);
+        return FALSE;
+    }
+    g_info ("canceling command for session 0x%x", session);
+    /* cancel any existing commands for the session */
+    /* setup and send return value */
+    uint32_variant = g_variant_new_uint32 (TSS2_RC_SUCCESS);
+    tuple_variant = g_variant_new_tuple (&uint32_variant, 1);
+    g_dbus_method_invocation_return_value (invocation, tuple_variant);
+
+    return TRUE;
+}
+
 static void
 on_bus_acquired (GDBusConnection *connection,
                  const gchar     *name,
@@ -126,6 +155,10 @@ on_name_acquired (GDBusConnection *connection,
     g_signal_connect (gmain_data->skeleton,
                       "handle-create-connection",
                       G_CALLBACK (on_handle_create_connection),
+                      user_data);
+    g_signal_connect (gmain_data->skeleton,
+                      "handle-cancel",
+                      G_CALLBACK (on_handle_cancel),
                       user_data);
     ret = g_dbus_interface_skeleton_export (
         G_DBUS_INTERFACE_SKELETON (gmain_data->skeleton),
