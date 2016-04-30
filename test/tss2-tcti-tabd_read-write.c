@@ -45,7 +45,9 @@ main (void)
      */
     send_recv (tcti_context);
     tss2_tcti_cancel (tcti_context);
+    tss2_tcti_set_locality (tcti_context, 1);
     send_recv (tcti_context);
     tss2_tcti_cancel (tcti_context);
+    tss2_tcti_set_locality (tcti_context, 1);
     tss2_tcti_finalize (tcti_context);
 }

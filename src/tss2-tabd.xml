@@ -10,5 +10,10 @@
             <arg type='t'  name='id'           direction='in'/>
             <arg type='u'  name='return_code'  direction='out'/>
         </method>
+        <method name='SetLocality'>
+            <arg type='t'  name='id'           direction='in'/>
+            <arg type='y'  name='locality'     direction='in'/>
+            <arg type='u'  name='return_code'  direction='out'/>
+        </method>
     </interface>
 </node>

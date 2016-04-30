@@ -114,9 +114,28 @@ tss2_tcti_tabd_get_poll_handles (TSS2_TCTI_CONTEXT *tcti_context,
 }
 
 static TSS2_RC
-tss2_tcti_tabd_set_locality (TSS2_TCTI_CONTEXT *tcti_context, uint8_t locality)
+tss2_tcti_tabd_set_locality (TSS2_TCTI_CONTEXT *tcti_context,
+                             guint8             locality)
 {
-    return TSS2_TCTI_RC_NOT_IMPLEMENTED;
+    gboolean status;
+    TSS2_RC ret;
+    GError *error = NULL;
+
+    g_info ("tss2_tcti_tabd_set_locality: id 0x%x", TSS2_TCTI_TABD_ID (tcti_context));
+    status = tab_call_set_locality_sync (TSS2_TCTI_TABD_PROXY (tcti_context),
+                                         TSS2_TCTI_TABD_ID (tcti_context),
+                                         locality,
+                                         &ret,
+                                         NULL,
+                                         &error);
+
+    if (status == FALSE) {
+        g_warning ("set locality command failed: %s", error->message);
+        g_error_free (error);
+        return TSS2_TCTI_RC_GENERAL_FAILURE;
+    }
+
+    return ret;
 }
 
 static void
