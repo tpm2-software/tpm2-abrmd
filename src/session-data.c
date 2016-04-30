@@ -87,14 +87,27 @@ session_data_free (session_data_t *session)
 }
 
 gpointer
-session_data_key (session_data_t *session)
+session_data_key_fd (session_data_t *session)
 {
     return &session->receive_fd;
 }
 
+gpointer
+session_data_key_id (session_data_t *session)
+{
+    return &session->id;
+}
+
 gboolean
-session_data_equal (gconstpointer a,
-                    gconstpointer b)
+session_data_equal_fd (gconstpointer a,
+                       gconstpointer b)
+{
+    return g_int_equal (a, b);
+}
+
+gboolean
+session_data_equal_id (gconstpointer a,
+                       gconstpointer b)
 {
     return g_int_equal (a, b);
 }

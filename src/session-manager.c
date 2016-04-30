@@ -19,8 +19,10 @@ session_manager_new (void)
     if (pthread_mutex_init (&session_manager->mutex, NULL) != 0)
         g_error ("Failed to initialize session _manager mutex: %s",
                  strerror (errno));
-    session_manager->session_table = g_hash_table_new (g_int_hash,
-                                                       session_data_equal);
+    session_manager->session_from_fd_table =
+        g_hash_table_new (g_int_hash, session_data_equal_fd);
+    session_manager->session_from_id_table =
+        g_hash_table_new (g_int64_hash, session_data_equal_id);
     return session_manager;
 }
 
@@ -34,7 +36,8 @@ session_manager_free (session_manager_t *manager)
     if (ret != 0)
         g_error ("Error locking session_manager mutex: %s",
                  strerror (errno));
-    g_hash_table_unref (manager->session_table);
+    g_hash_table_unref (manager->session_from_fd_table);
+    g_hash_table_unref (manager->session_from_id_table);
     close (manager->wakeup_send_fd);
     ret = pthread_mutex_unlock (&manager->mutex);
     if (ret != 0)
@@ -57,8 +60,11 @@ session_manager_insert (session_manager_t *manager,
     if (ret != 0)
         g_error ("Error locking session_manager mutex: %s",
                  strerror (errno));
-    g_hash_table_insert (manager->session_table,
-                         session_data_key (session),
+    g_hash_table_insert (manager->session_from_fd_table,
+                         session_data_key_fd (session),
+                         session);
+    g_hash_table_insert (manager->session_from_id_table,
+                         session_data_key_id (session),
                          session);
     ret = pthread_mutex_unlock (&manager->mutex);
     if (ret != 0)
@@ -74,8 +80,25 @@ session_manager_lookup (session_manager_t *manager,
     session_data_t *session;
 
     pthread_mutex_lock (&manager->mutex);
-    session = g_hash_table_lookup (manager->session_table,
+    session = g_hash_table_lookup (manager->session_from_fd_table,
                                    &fd_in);
+    pthread_mutex_unlock (&manager->mutex);
+
+    return session;
+}
+
+session_data_t*
+session_manager_lookup_id (session_manager_t *manager,
+                           gint64 id)
+{
+    session_data_t *session;
+
+    g_debug ("locking manager mutex");
+    pthread_mutex_lock (&manager->mutex);
+    g_debug ("g_hash_table_lookup: session_from_id_table");
+    session = g_hash_table_lookup (manager->session_from_id_table,
+                                   &id);
+    g_debug ("unlocking manager mutex");
     pthread_mutex_unlock (&manager->mutex);
 
     return session;
@@ -88,8 +111,10 @@ session_manager_remove (session_manager_t *manager,
     gboolean ret;
 
     pthread_mutex_lock (&manager->mutex);
-    ret = g_hash_table_remove (manager->session_table,
-                               session_data_key (session));
+    ret = g_hash_table_remove (manager->session_from_fd_table,
+                               session_data_key_fd (session));
+    ret = g_hash_table_remove (manager->session_from_id_table,
+                               session_data_key_id (session));
     pthread_mutex_unlock (&manager->mutex);
 
     return ret;
@@ -111,7 +136,7 @@ session_manager_set_fds (session_manager_t *manager,
                          fd_set *fds)
 {
     pthread_mutex_lock (&manager->mutex);
-    g_hash_table_foreach (manager->session_table,
+    g_hash_table_foreach (manager->session_from_fd_table,
                           set_fd,
                           fds);
     pthread_mutex_unlock (&manager->mutex);
@@ -120,5 +145,5 @@ session_manager_set_fds (session_manager_t *manager,
 guint
 session_manager_size (session_manager_t *manager)
 {
-    return g_hash_table_size (manager->session_table);
+    return g_hash_table_size (manager->session_from_fd_table);
 }

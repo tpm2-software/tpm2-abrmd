@@ -7,7 +7,8 @@
 
 typedef struct session_manager {
     pthread_mutex_t mutex;
-    GHashTable *session_table;
+    GHashTable *session_from_fd_table;
+    GHashTable *session_from_id_table;
     gint wakeup_send_fd;
 } session_manager_t;
 
@@ -19,6 +20,8 @@ gint               session_manager_remove  (session_manager_t *manager,
                                             session_data_t *session);
 session_data_t*    session_manager_lookup  (session_manager_t *manager,
                                             gint fd_in);
+session_data_t*    session_manager_lookup_id (session_manager_t *manager,
+                                              gint64             id_in);
 void               session_manager_set_fds (session_manager_t *manager,
                                             fd_set *fds);
 guint              session_manager_size    (session_manager_t *manager);
