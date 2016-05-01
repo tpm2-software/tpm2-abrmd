@@ -1,0 +1,27 @@
+.\" Process this file with
+.\" groff -man -Tascii foo.1
+.\"
+.TH TABD 8 "APRIL 2016" Intel "TPM2 Software Stack"
+.SH NAME
+tabd \- TPM2 access broker daemon
+.SH SYNOPSIS
+.B tabd 
+.SH DESCRIPTION
+.B tabd
+is a daemon that implements the TPM access broker as described by the Trusted
+Computing Group (TGC) in the
+.B \*(lqTSS System Level API and TPM Command Transmission Interface
+.B Specification\*(rq.
+This daemon used DBus and some pipes to communicate with clients. Eventually,
+it will implement the functionality of both both a TPM access broker (TAB)
+and a resource manager (RM).
+.SH OPTIONS
+none
+.SH ENVIRONMENT
+none
+.SH BUGS
+lots
+.SH AUTHOR
+Philip Tricca <philip.b.tricca@intel.com>
+.SH "SEE ALSO"
+.BR tcsd (8)

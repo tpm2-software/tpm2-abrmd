@@ -9,6 +9,7 @@ check_PROGRAMS  = \
     test/session-manager_unit \
     test/session-watcher_unit
 lib_LTLIBRARIES = src/libtss2-tcti-tabd.la
+man8_MANS = man/tabd.man
 TESTS = $(check_PROGRAMS)
 
 tss2_tabddir      = $(includedir)/tss2
