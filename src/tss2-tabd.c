@@ -310,7 +310,7 @@ main (int argc, char *argv[])
   init_thread = g_thread_new (TABD_INIT_THREAD_NAME,
                               init_thread_func,
                               &gmain_data);
-  owner_id = g_bus_own_name (G_BUS_TYPE_SESSION,
+  owner_id = g_bus_own_name (G_BUS_TYPE_SYSTEM,
                              TAB_DBUS_NAME,
                              G_BUS_NAME_OWNER_FLAGS_NONE,
                              on_bus_acquired,

@@ -18,7 +18,8 @@ libtss2_tcti_tabddir      = $(includedir)/tss2
 libtss2_tcti_tabd_HEADERS = $(srcdir)/src/include/tss2-tcti-tabd.h
 CLEANFILES = \
     src/tss2-tabd-generated.c \
-    src/tss2-tabd-generated.h
+    src/tss2-tabd-generated.h \
+    units/*.service
 
 src_libtss2_tcti_tabd_la_CFLAGS  = $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 src_libtss2_tcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
@@ -37,6 +38,9 @@ src_tss2_tabd_SOURCES = \
 %-generated.c %-generated.h : src/tss2-tabd.xml
 	$(GDBUS_CODEGEN) --interface-prefix=us.twobit.tss2. \
 	    --generate-c-code=src/tss2-tabd-generated $^
+
+units/%.service : units/%.service.in
+	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
 
 test_session_data_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_session_data_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)

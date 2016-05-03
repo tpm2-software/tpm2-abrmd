@@ -30,3 +30,4 @@ src/tss2-tabd-generated.c
 src/tss2-tabd-generated.h
 test/*_unit
 test/tss2-tcti-tabd_read-write
+units/tss2-tabd.service
