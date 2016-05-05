@@ -9,6 +9,7 @@
 #include <tss2/tpm20.h>
 #include <tss2-tabd.h>
 #include "tss2-tabd-priv.h"
+#include "tss2-tabd-logging.h"
 #include "session-manager.h"
 #include "session-watcher.h"
 #include "session-data.h"
@@ -293,6 +294,36 @@ init_thread_func (gpointer user_data)
     g_info ("init_thread_func done");
 }
 
+gint
+parse_opts (gint   argc,
+            gchar *argv[])
+{
+    gchar *logger_name = NULL;
+    GOptionContext *ctx;
+    GError *err = NULL;
+
+    GOptionEntry entries[] = {
+        { "logger", 'l', 0, G_OPTION_ARG_STRING, &logger_name,
+          "The name of desired logger, stdout is default.", "[stdout|syslog]"},
+        { NULL },
+    };
+    ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabd)");
+    g_option_context_add_main_entries (ctx, entries, NULL);
+    if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
+        g_print ("Failed to initialize: %s\n", err->message);
+        g_clear_error (&err);
+        g_option_context_free (ctx);
+        return 1;
+    }
+    if (set_logger (logger_name) == -1) {
+        g_print ("Unknown logger: %s, try --help\n", logger_name);
+        return 1;
+    }
+    g_option_context_free (ctx);
+
+    return 0;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -300,6 +331,9 @@ main (int argc, char *argv[])
   guint owner_id;
   gmain_data_t gmain_data = { 0 };
   GThread *init_thread;
+
+  if (parse_opts (argc, argv) != 0)
+      return 1;
 
   g_mutex_init (&gmain_data.init_mutex);
   g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);

@@ -31,6 +31,7 @@ src_tss2_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
 src_tss2_tabd_SOURCES = \
     src/tss2-tabd.c \
     src/tss2-tabd-generated.c \
+    src/tss2-tabd-logging.c \
     src/session-watcher.c \
     src/session-manager.c \
     src/session-data.c
