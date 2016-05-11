@@ -6,6 +6,7 @@
 tabd \- TPM2 access broker daemon
 .SH SYNOPSIS
 .B tabd 
+.RB [ \-l\ logger-name ]
 .SH DESCRIPTION
 .B tabd
 is a daemon that implements the TPM access broker as described by the Trusted
@@ -16,7 +17,11 @@ This daemon used DBus and some pipes to communicate with clients. Eventually,
 it will implement the functionality of both both a TPM access broker (TAB)
 and a resource manager (RM).
 .SH OPTIONS
-none
+.TP
+\fB\-l,\ \-\-logger\fR
+Direct logging output to named logging target. Supported targets are
+\fBstdout\fR and \fBsyslog\fR. If the logger option is not specified the
+default is \fBstdout\fR.
 .SH ENVIRONMENT
 none
 .SH BUGS
