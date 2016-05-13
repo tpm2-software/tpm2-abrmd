@@ -22,6 +22,10 @@ and a resource manager (RM).
 Direct logging output to named logging target. Supported targets are
 \fBstdout\fR and \fBsyslog\fR. If the logger option is not specified the
 default is \fBstdout\fR.
+.TP
+\fB\-s,\ \-\-system\fR
+Connect daemon to the system dbus. If this option is omitted the session bus
+is used instead.
 .SH ENVIRONMENT
 none
 .SH BUGS

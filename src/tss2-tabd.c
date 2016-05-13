@@ -295,16 +295,20 @@ init_thread_func (gpointer user_data)
 }
 
 gint
-parse_opts (gint   argc,
-            gchar *argv[])
+parse_opts (gint            argc,
+            gchar          *argv[],
+            tabd_options_t *options)
 {
     gchar *logger_name = NULL;
     GOptionContext *ctx;
     GError *err = NULL;
+    gboolean system_bus = FALSE;
 
     GOptionEntry entries[] = {
         { "logger", 'l', 0, G_OPTION_ARG_STRING, &logger_name,
           "The name of desired logger, stdout is default.", "[stdout|syslog]"},
+        { "system", 's', 0, G_OPTION_ARG_NONE, &system_bus,
+          "Connect to the system dbus." },
         { NULL },
     };
     ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabd)");
@@ -315,6 +319,8 @@ parse_opts (gint   argc,
         g_option_context_free (ctx);
         return 1;
     }
+    /* select the bus type, default to G_BUS_TYPE_SESSION */
+    options->bus = system_bus ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION;
     if (set_logger (logger_name) == -1) {
         g_print ("Unknown logger: %s, try --help\n", logger_name);
         return 1;
@@ -331,8 +337,9 @@ main (int argc, char *argv[])
   guint owner_id;
   gmain_data_t gmain_data = { 0 };
   GThread *init_thread;
+  tabd_options_t options = { 0 };
 
-  if (parse_opts (argc, argv) != 0)
+  if (parse_opts (argc, argv, &options) != 0)
       return 1;
 
   g_mutex_init (&gmain_data.init_mutex);
@@ -344,7 +351,7 @@ main (int argc, char *argv[])
   init_thread = g_thread_new (TABD_INIT_THREAD_NAME,
                               init_thread_func,
                               &gmain_data);
-  owner_id = g_bus_own_name (G_BUS_TYPE_SYSTEM,
+  owner_id = g_bus_own_name (options.bus,
                              TAB_DBUS_NAME,
                              G_BUS_NAME_OWNER_FLAGS_NONE,
                              on_bus_acquired,
