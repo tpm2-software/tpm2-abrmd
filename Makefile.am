@@ -7,7 +7,8 @@ noinst_PROGRAMS = test/tss2-tcti-tabd_read-write
 check_PROGRAMS  = \
     test/session-data_unit \
     test/session-manager_unit \
-    test/session-watcher_unit
+    test/session-watcher_unit \
+    test/blob_unit
 lib_LTLIBRARIES = src/libtss2-tcti-tabd.la
 man8_MANS = man/tabd.man
 TESTS = $(check_PROGRAMS)
@@ -58,6 +59,13 @@ test_session_watcher_unit_SOURCES = \
     src/session-manager.c \
     src/session-data.c \
     test/session-watcher_unit.c
+
+test_blob_unit_CFLAGS  = $(CMOCKA_CLFAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
+test_blob_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
+test_blob_unit_SOURCES = \
+    src/blob.c \
+    src/session-data.c \
+    test/blob_unit.c
 
 test_tss2_tcti_tabd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_tss2_tcti_tabd_read_write_LDADD   = $(GLIB_LIBS) src/libtss2-tcti-tabd.la
