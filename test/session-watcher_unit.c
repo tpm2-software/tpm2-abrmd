@@ -198,7 +198,7 @@ session_watcher_session_callback_callback (session_watcher_t *watcher,
     gint ret = 0;
 
     my_session = ((watcher_test_data_t*)user_data)->session;
-    watcher_session = session_manager_lookup (watcher->session_manager, fd);
+    watcher_session = session_manager_lookup_fd (watcher->session_manager, fd);
     assert_non_null (watcher_session);
     /* This is the test: the session associated with the fd that has data ready
      * is the same session that we created in the test.
@@ -265,7 +265,7 @@ session_watcher_session_callback_test (void **state)
     session_data_t *session;
     gint ret, receive_fd, send_fd;
 
-    data->session = session_data_new (&receive_fd, &send_fd);
+    data->session = session_data_new (&receive_fd, &send_fd, 5);
     assert_non_null (data->session);
     ret = session_manager_insert (manager, data->session);
     assert_return_code (ret, 0);
@@ -326,7 +326,7 @@ session_watcher_session_insert_test (void **state)
     gchar buf[256] = { 0 };
 
     /* */
-    session = session_data_new (&receive_fd, &send_fd);
+    session = session_data_new (&receive_fd, &send_fd, 5);
     assert_false (FD_ISSET (session->receive_fd, &watcher->session_fdset));
     ret = session_watcher_start(watcher);
     assert_int_equal (ret, 0);
