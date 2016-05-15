@@ -69,7 +69,7 @@ session_allocate_test (void **state)
     session_data_t *session = NULL;
     gint receive_fd, send_fd;
 
-    session = session_data_new (&receive_fd, &send_fd);
+    session = session_data_new (&receive_fd, &send_fd, 0);
     assert_non_null (session);
     assert_true (receive_fd >= 0);
     assert_true (send_fd >= 0);
@@ -83,7 +83,7 @@ session_setup (void **state)
 
     data = calloc (1, sizeof (session_test_data_t));
     assert_non_null (data);
-    data->session = session_data_new (&data->receive_fd, &data->send_fd);
+    data->session = session_data_new (&data->receive_fd, &data->send_fd, 0);
     *state = data;
 }
 
@@ -99,21 +99,39 @@ session_teardown (void **state)
 }
 
 static void
-session_key_test (void **state)
+session_key_fd_test (void **state)
 {
     session_data_t *session = (session_data_t*)*state;
     int *key = NULL;
 
-    key = (int*)session_data_key (session);
+    key = (int*)session_data_key_fd (session);
     assert_int_equal (session->receive_fd, *key);
 }
 
 static void
-session_equal_test (void **state)
+session_key_id_test (void **state)
+{
+    session_data_t *session = *state;
+    guint64 *key = NULL;
+
+    key = (guint64*)session_data_key_id (session);
+    assert_int_equal (session->id, *key);
+}
+
+static void
+session_equal_fd_test (void **state)
 {
     session_test_data_t *data = (session_test_data_t*)*state;
-    const gint *key = session_data_key (data->session);
-    assert_true (session_data_equal (key, session_data_key (data->session)));
+    const gint *key = session_data_key_fd (data->session);
+    assert_true (session_data_equal_fd (key, session_data_key_fd (data->session)));
+}
+
+static void
+session_equal_id_test (void **state)
+{
+    session_test_data_t *data = (session_test_data_t*)*state;
+    const guint64 *key = session_data_key_id (data->session);
+    assert_true (session_data_equal_id (key, session_data_key_id (data->session)));
 }
 
 /* session_client_to_server_test begin
@@ -157,10 +175,16 @@ main(int argc, char* argv[])
         unit_test (session_allocate_test),
         unit_test (session_create_pipe_pair_test),
         unit_test (session_create_pipe_pairs_test),
-        unit_test_setup_teardown (session_key_test,
+        unit_test_setup_teardown (session_key_fd_test,
                                   session_setup,
                                   session_teardown),
-        unit_test_setup_teardown (session_equal_test,
+        unit_test_setup_teardown (session_key_id_test,
+                                  session_setup,
+                                  session_teardown),
+        unit_test_setup_teardown (session_equal_fd_test,
+                                  session_setup,
+                                  session_teardown),
+        unit_test_setup_teardown (session_equal_id_test,
                                   session_setup,
                                   session_teardown),
         unit_test_setup_teardown (session_client_to_server_test,
