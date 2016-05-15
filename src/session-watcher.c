@@ -54,7 +54,7 @@ session_watcher_session_responder (session_watcher_t *watcher,
     session_data_t *session;
     gint ret;
 
-    session = session_manager_lookup (watcher->session_manager, fd);
+    session = session_manager_lookup_fd (watcher->session_manager, fd);
     if (session == NULL)
         g_error ("failed to get session associated with fd: %d", fd);
     ret = session_watcher_echo (session->receive_fd,

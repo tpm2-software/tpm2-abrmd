@@ -74,8 +74,8 @@ session_manager_insert (session_manager_t *manager,
 }
 
 session_data_t*
-session_manager_lookup (session_manager_t *manager,
-                        gint fd_in)
+session_manager_lookup_fd (session_manager_t *manager,
+                           gint fd_in)
 {
     session_data_t *session;
 

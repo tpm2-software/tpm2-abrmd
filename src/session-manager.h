@@ -18,8 +18,8 @@ gint               session_manager_insert  (session_manager_t *manager,
                                             session_data_t *session);
 gint               session_manager_remove  (session_manager_t *manager,
                                             session_data_t *session);
-session_data_t*    session_manager_lookup  (session_manager_t *manager,
-                                            gint fd_in);
+session_data_t*    session_manager_lookup_fd (session_manager_t *manager,
+                                              gint fd_in);
 session_data_t*    session_manager_lookup_id (session_manager_t *manager,
                                               gint64             id_in);
 void               session_manager_set_fds (session_manager_t *manager,
