@@ -44,7 +44,21 @@ blob_queue_enqueue       (blob_queue_t    *blob_queue,
 blob_t*
 blob_queue_dequeue       (blob_queue_t    *blob_queue)
 {
-    return g_async_queue_pop (blob_queue->queue);
+    blob_t *blob;
+
+    /** This bit of ref / unref magic is to cope with a specific edge case:
+     * If there's a thread blocked waiting for something to pop off of this
+     * queue when the blob-queue is freed then the refcount on the queue will
+     * reach 0 while there's still a thread interacting with the GAsyncQueue.
+     * This whole situation is our fault since we're not implementing ref
+     * counted gobjects. Hack around this now by wrapping the blocking call in
+     * ref/unref calls.
+     */
+    g_async_queue_ref (blob_queue->queue);
+    blob = g_async_queue_pop (blob_queue->queue);
+    g_async_queue_unref (blob_queue->queue);
+
+    return blob;
 }
 /** Free all blob_t objects in the blob_queue.
  */
@@ -53,4 +67,18 @@ blob_queue_free (blob_queue_t *blob_queue)
 {
     g_async_queue_unref (blob_queue->queue);
     free (blob_queue);
+}
+blob_t*
+blob_queue_timeout_dequeue (blob_queue_t *blob_queue,
+                            guint64       timeout)
+{
+    blob_t *blob;
+
+    /* Same situation as in blob_queue_dequeue above */
+    g_async_queue_ref (blob_queue->queue);
+    blob = g_async_queue_timeout_pop (blob_queue->queue, timeout);
+    g_async_queue_unref (blob_queue->queue);
+
+    return blob;
+
 }

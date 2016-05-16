@@ -17,5 +17,8 @@ blob_t*
 blob_queue_dequeue       (blob_queue_t    *blob_queue);
 void
 blob_queue_free          (blob_queue_t    *blob_queue);
+blob_t*
+blob_queue_timeout_dequeue (blob_queue_t    *blob_queue,
+                            guint64          timeout);
 
 #endif /* BLOB_QUEUE_H */
