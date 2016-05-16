@@ -8,7 +8,7 @@ blob_new          (session_data_t  *session,
                    guint8          *data,
                    size_t           size);
 void
-blob_free         (blob_t          *blob);
+blob_free         (gpointer         blob);
 session_data_t*
 blob_get_session  (blob_t          *blob);
 guint8*
