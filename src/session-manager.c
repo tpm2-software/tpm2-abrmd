@@ -7,6 +7,13 @@
 #include <string.h>
 #include "session-manager.h"
 
+struct session_manager {
+    pthread_mutex_t mutex;
+    GHashTable *session_from_fd_table;
+    GHashTable *session_from_id_table;
+    gint wakeup_send_fd;
+};
+
 session_manager_t*
 session_manager_new (void)
 {
@@ -128,7 +135,7 @@ set_fd (gpointer key,
     fd_set *fds = (fd_set*)user_data;
     session_data_t *session = (session_data_t*)value;
 
-    FD_SET (session->receive_fd, fds);
+    FD_SET (session_data_receive_fd (session), fds);
 }
 
 void

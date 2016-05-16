@@ -5,12 +5,7 @@
 
 #include "session-data.h"
 
-typedef struct session_manager {
-    pthread_mutex_t mutex;
-    GHashTable *session_from_fd_table;
-    GHashTable *session_from_id_table;
-    gint wakeup_send_fd;
-} session_manager_t;
+typedef struct session_manager session_manager_t;
 
 session_manager_t* session_manager_new     (void);
 void               session_manager_free    (session_manager_t *manager);

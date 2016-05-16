@@ -9,6 +9,12 @@
 
 #include "session-data.h"
 
+struct session_data {
+    gint receive_fd;
+    gint send_fd;
+    guint64 id;
+};
+
 /* Create a pipe and return the recv and send fds. */
 int
 create_pipe_pair (int *recv,
@@ -110,4 +116,14 @@ session_data_equal_id (gconstpointer a,
                        gconstpointer b)
 {
     return g_int_equal (a, b);
+}
+gint
+session_data_receive_fd (session_data_t *session)
+{
+    return session->receive_fd;
+}
+gint
+session_data_send_fd (session_data_t *session)
+{
+    return session->send_fd;
 }

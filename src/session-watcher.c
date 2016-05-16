@@ -6,6 +6,18 @@
 
 #include "session-watcher.h"
 
+struct session_watcher {
+    session_manager_t *session_manager;
+    pthread_t thread;
+    gint wakeup_receive_fd;
+    gboolean running;
+    char *buf;
+    fd_set session_fdset;
+    session_callback_t session_callback;
+    wakeup_callback_t wakeup_callback;
+    gpointer user_data;
+};
+
 int
 session_watcher_echo (gint in_fd,
                       gint out_fd,
@@ -57,8 +69,8 @@ session_watcher_session_responder (session_watcher_t *watcher,
     session = session_manager_lookup_fd (watcher->session_manager, fd);
     if (session == NULL)
         g_error ("failed to get session associated with fd: %d", fd);
-    ret = session_watcher_echo (session->receive_fd,
-                                session->send_fd,
+    ret = session_watcher_echo (session_data_receive_fd (session),
+                                session_data_send_fd (session),
                                 watcher->buf);
     if (ret <= 0) {
         /* read / write returns -1 on error
