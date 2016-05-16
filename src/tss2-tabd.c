@@ -68,10 +68,9 @@ on_handle_create_connection (Tab                   *skeleton,
     GUnixFDList *fd_list = NULL;
     guint64 id;
 
-    /* make sure the init thread is done before we add the session to the
-     * session manager
+    /* make sure the init thread is done before we create new connections
      */
-    while (g_mutex_trylock (&data->init_mutex) != FALSE);
+    g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
     lrand48_r (&data->rand_data, &id);
     session = session_data_new (&client_fds[0], &client_fds[1], id);
@@ -79,7 +78,7 @@ on_handle_create_connection (Tab                   *skeleton,
         g_error ("Failed to allocate new session.");
     g_debug ("Created connection with fds: %d, %d and id: %ld",
              client_fds[0], client_fds[1], id);
-    /* prepare response message tuple variant */
+    /* prepare tuple variant for response message */
     fd_list = g_unix_fd_list_new_from_array (client_fds, 2);
     response_variants[0] = handle_array_variant_from_fdlist (fd_list);
     response_variants[1] = g_variant_new_uint64 (id);
