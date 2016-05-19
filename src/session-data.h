@@ -3,7 +3,11 @@
 
 #include <glib.h>
 
-typedef struct session_data session_data_t;
+typedef struct session_data {
+    gint receive_fd;
+    gint send_fd;
+    guint64 id;
+} session_data_t;
 
 session_data_t*  session_data_new    (gint *receive_fd,
                                       gint *send_fd,

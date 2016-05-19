@@ -1,19 +1,10 @@
 #include <errno.h>
-#include <error.h>
 #include <fcntl.h>
 #include <glib.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 
 #include "session-data.h"
-
-struct session_data {
-    gint receive_fd;
-    gint send_fd;
-    guint64 id;
-};
 
 /* Create a pipe and return the recv and send fds. */
 int
