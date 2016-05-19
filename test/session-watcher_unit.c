@@ -108,6 +108,7 @@ session_watcher_start_teardown (void **state)
     session_watcher_free (data->watcher);
     session_manager_free (data->manager);
     close (data->wakeup_send_fd);
+    free (data);
 }
 /* session_watcher_start_test end */
 
@@ -253,6 +254,7 @@ session_watcher_session_callback_teardown (void **state)
     session_watcher_free (data->watcher);
     session_manager_free (data->manager);
     close (data->wakeup_send_fd);
+    free (data);
 }
 
 
@@ -277,6 +279,8 @@ session_watcher_session_callback_test (void **state)
     assert_true (ret > 0);
     sleep (1);
     assert_true (data->match);
+    session_manager_remove (manager, data->session);
+    session_data_free (data->session);
 }
 /* session_watcher_session_callback_test end */
 
@@ -335,6 +339,10 @@ session_watcher_session_insert_test (void **state)
     assert_true (ret > 0);
     sleep (1);
     assert_true (FD_ISSET (session->receive_fd, &watcher->session_fdset));
+    session_manager_remove (data->manager, session);
+    session_data_free (session);
+    session_watcher_cancel (watcher);
+    session_watcher_join (watcher);
 }
 /* session_watcher_sesion_insert_test end */
 
