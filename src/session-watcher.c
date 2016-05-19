@@ -6,18 +6,6 @@
 
 #include "session-watcher.h"
 
-struct session_watcher {
-    session_manager_t *session_manager;
-    pthread_t thread;
-    gint wakeup_receive_fd;
-    gboolean running;
-    char *buf;
-    fd_set session_fdset;
-    session_callback_t session_callback;
-    wakeup_callback_t wakeup_callback;
-    gpointer user_data;
-};
-
 int
 session_watcher_echo (gint in_fd,
                       gint out_fd,
