@@ -1,13 +1,9 @@
 #include <errno.h>
 #include <glib.h>
 #include <stdlib.h>
-#include "session-data.h"
 
-typedef struct blob {
-    guint8          *data;
-    session_data_t  *session;
-    size_t           size;
-} blob_t;
+#include "blob.h"
+#include "session-data.h"
 
 /** Create a new blob_t object.
  */
