@@ -142,8 +142,8 @@ static void
 session_client_to_server_test (void ** state)
 {
     session_test_data_t *data = (session_test_data_t*)*state;
-    gchar buf[256];
-    gint ret;
+    gchar buf[256] = { 0 };
+    gint ret = 0;
 
     ret = write (data->session->send_fd, "test", strlen ("test"));
     assert_true (ret > 0);
@@ -158,8 +158,8 @@ static void
 session_server_to_client_test (void **state)
 {
     session_test_data_t *data = (session_test_data_t*)*state;
-    gchar buf[256];
-    gint ret;
+    gchar buf[256] = { 0 };
+    gint ret = 0;
 
     ret = write (data->send_fd, "test", strlen ("test"));
     assert_true (ret > 0);
