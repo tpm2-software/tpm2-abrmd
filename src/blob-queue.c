@@ -46,6 +46,8 @@ blob_queue_dequeue       (blob_queue_t    *blob_queue)
 {
     blob_t *blob;
 
+    if (blob_queue == NULL)
+        g_error ("blob_queue_dequeue passed NULL blob_queue_t");
     /** This bit of ref / unref magic is to cope with a specific edge case:
      * If there's a thread blocked waiting for something to pop off of this
      * queue when the blob-queue is freed then the refcount on the queue will
@@ -65,6 +67,8 @@ blob_queue_dequeue       (blob_queue_t    *blob_queue)
 void
 blob_queue_free (blob_queue_t *blob_queue)
 {
+    if (blob_queue == NULL)
+        g_error ("blob_queue_free passed NULL blob_queue_t");
     g_async_queue_unref (blob_queue->queue);
     free (blob_queue);
 }
