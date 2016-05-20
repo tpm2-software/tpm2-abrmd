@@ -17,10 +17,10 @@ blob_new          (session_data_t  *session,
 void
 blob_free         (gpointer         blob);
 session_data_t*
-blob_get_session  (blob_t          *blob);
+blob_get_session  (const blob_t    *blob);
 guint8*
-blob_get_data     (blob_t          *blob);
+blob_get_data     (const blob_t    *blob);
 size_t
-blob_get_size     (blob_t          *blob);
+blob_get_size     (const blob_t    *blob);
 
 #endif /* BLOB_H */
