@@ -30,15 +30,21 @@ src_libtss2_tcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHR
 src_libtss2_tcti_tabd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tss2-tcti-tabd.map
 src_libtss2_tcti_tabd_la_SOURCES = src/tss2-tcti-tabd.c src/tss2-tabd-generated.c
 
-src_tss2_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
-src_tss2_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
+src_tss2_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
+    $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(TSS2_CFLAGS)
+src_tss2_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
+    $(TSS2_LIBS)
 src_tss2_tabd_SOURCES = \
     src/tss2-tabd.c \
     src/tss2-tabd-generated.c \
     src/tss2-tabd-logging.c \
     src/session-watcher.c \
     src/session-manager.c \
-    src/session-data.c
+    src/session-data.c \
+    src/response-watcher.c \
+    src/blob.c \
+    src/blob-queue.c \
+    src/tab.c
 
 %-generated.c %-generated.h : src/tss2-tabd.xml
 	$(GDBUS_CODEGEN) --interface-prefix=us.twobit.tss2. \
@@ -67,12 +73,13 @@ test_session_manager_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
 test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c test/session-manager_unit.c
 
-test_session_watcher_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
-test_session_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
+test_session_watcher_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(TSS2_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
+test_session_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_LIBS) $(PTHREAD_LIBS)
 test_session_watcher_unit_SOURCES = \
     src/session-watcher.c \
     src/session-manager.c \
     src/session-data.c \
+    src/tab.c \
     test/session-watcher_unit.c
 
 test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(TSS2_CFLAGS) \

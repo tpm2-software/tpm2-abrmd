@@ -4,38 +4,44 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "blob.h"
+#include "session-data.h"
 #include "session-watcher.h"
+#include "tab.h"
 
-int
-session_watcher_echo (gint in_fd,
-                      gint out_fd,
-                      char *buf)
+blob_t*
+session_watcher_get_blob_from_fd (session_data_t  *session,
+                                  gint             fd)
 {
-    ssize_t ret;
+    gchar *buf = NULL;
+    blob_t *blob;
+    ssize_t bytes_read;
+    size_t  bytes_total = 0;
 
-    memset (buf, 0, BUF_SIZE);
-    ret = read (in_fd, buf, BUF_SIZE);
-    switch (ret) {
-    case 0:
-        g_info ("read EOF, client connection is closed");
-        goto out;
-    case -1:
-        g_warning ("read on fd %d failed: %s", strerror (errno));
-        goto out;
-    default: break;
-    }
-    ret = write (out_fd, buf, ret);
-    switch (ret) {
-    case 0:
-        g_info ("wrote 0 bytes, client connection is closed");
-        goto out;
-    case -1:
-        g_warning ("write on fd %d failed: %s", strerror (errno));
-        goto out;
-    default: break;
-    }
-out:
-    return ret;
+    g_debug ("session_watcher_get_blob_from_fd: %d", fd);
+    do {
+        buf = realloc (buf, bytes_total + BUF_SIZE);
+        if (buf == NULL)
+            g_error ("realloc of %d byted failed: %s",
+                     bytes_total + BUF_SIZE, strerror (errno));
+        else
+            g_debug ("realloced buf to: %d bytes", bytes_total + BUF_SIZE);
+        bytes_read = read (fd, buf + bytes_total, BUF_SIZE);
+        switch (bytes_read) {
+        case -1:
+            g_warning ("read failed on fd %d: %s", fd, strerror (errno));
+            goto out_err;
+        case 0:
+            g_info ("read returned 0 bytes -> fd %d closed", fd);
+            goto out_err;
+        }
+        bytes_total += bytes_read;
+    } while (bytes_read == BUF_SIZE && bytes_total < BUF_MAX);
+    return blob_new (session, buf, bytes_total);
+out_err:
+    if (buf)
+        free (buf);
+    return NULL;
 }
 
 void
@@ -46,34 +52,40 @@ session_watcher_thread_cleanup (void *data)
     watcher->running = FALSE;
 }
 
-int
+gboolean
 session_watcher_session_responder (session_watcher_t *watcher,
-                                   gint fd,
-                                   gpointer user_data)
+                                   gint               fd,
+                                   tab_t             *tab)
 {
+    blob_t *blob;
     session_data_t *session;
     gint ret;
 
+    g_debug ("session_watcher_session_responder");
     session = session_manager_lookup_fd (watcher->session_manager, fd);
     if (session == NULL)
         g_error ("failed to get session associated with fd: %d", fd);
-    ret = session_watcher_echo (session_data_receive_fd (session),
-                                session_data_send_fd (session),
-                                watcher->buf);
-    if (ret <= 0) {
-        /* read / write returns -1 on error
-         * read / write returns 0 when pipe is closed (EOF)
+    else
+        g_debug ("session_manager_lookup_fd for fd %d: 0x%x", fd, session);
+    blob = session_watcher_get_blob_from_fd (session, fd);
+    if (blob == NULL) {
+        /* blob will be NULL when read error on fd, or fd is closed (EOF)
+         * In either case we remove the session and free it.
          */
+        g_debug ("removing session 0x%x from session_manager 0x%x",
+                 session, watcher->session_manager);
         session_manager_remove (watcher->session_manager,
                                 session);
         session_data_free (session);
+        return TRUE;
     }
-    return ret;
+    g_debug ("made blob 0x%x size: %d", blob, blob->size);
+    tab_send_command (tab, blob);
+    return TRUE;
 }
 
 int
-session_watcher_wakeup_responder (session_watcher_t *watcher,
-                                  gpointer user_data)
+session_watcher_wakeup_responder (session_watcher_t *watcher)
 {
     g_debug ("Got new session, updating fd_set");
     char buf[3] = { 0 };
@@ -113,13 +125,13 @@ session_watcher_thread (void *data)
                 i != watcher->wakeup_receive_fd)
             {
                 g_debug ("data ready on session fd: %d", i);
-                watcher->session_callback (watcher, i, watcher->user_data);
+                watcher->session_callback (watcher, i, watcher->tab);
             }
             if (FD_ISSET (i, &watcher->session_fdset) &&
                 i == watcher->wakeup_receive_fd)
             {
                 g_debug ("data ready on wakeup_receive_fd");
-                watcher->wakeup_callback (watcher, watcher->user_data);
+                watcher->wakeup_callback (watcher);
             }
         }
     } while (TRUE);
@@ -129,13 +141,14 @@ session_watcher_thread (void *data)
 
 session_watcher_t*
 session_watcher_new (session_manager_t *session_manager,
-                     gint wakeup_receive_fd)
+                     gint wakeup_receive_fd,
+                     tab_t             *tab)
 {
     return session_watcher_new_full (session_manager,
                                      wakeup_receive_fd,
                                      NULL,
                                      NULL,
-                                     NULL);
+                                     tab);
 }
 
 session_watcher_t*
@@ -143,7 +156,7 @@ session_watcher_new_full (session_manager_t *session_manager,
                           gint wakeup_receive_fd,
                           session_callback_t session_cb,
                           wakeup_callback_t wakeup_cb,
-                          gpointer user_data)
+                          tab_t *tab)
 {
     session_watcher_t *watcher;
 
@@ -155,7 +168,7 @@ session_watcher_new_full (session_manager_t *session_manager,
     watcher->session_manager = session_manager;
     watcher->wakeup_receive_fd = wakeup_receive_fd;
     watcher->running = FALSE;
-    watcher->user_data = user_data;
+    watcher->tab = tab;
     if (session_cb == NULL)
         watcher->session_callback = session_watcher_session_responder;
     else
@@ -164,10 +177,6 @@ session_watcher_new_full (session_manager_t *session_manager,
         watcher->wakeup_callback = session_watcher_wakeup_responder;
     else
         watcher->wakeup_callback = wakeup_cb;
-    watcher->buf = calloc (1, BUF_SIZE);
-    if (watcher->buf == NULL)
-        g_error ("failed to allocate data buffer for watcher: %s",
-                 strerror (errno));
 
     return watcher;
 }
@@ -211,8 +220,6 @@ session_watcher_free (session_watcher_t *watcher)
 {
     if (watcher == NULL)
         return;
-    if (watcher->buf != NULL)
-        free (watcher->buf);
     if (watcher)
         free (watcher);
 }

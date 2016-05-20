@@ -6,8 +6,14 @@
 #include <sys/select.h>
 
 #include "session-manager.h"
+#include "tab.h"
 
+/* Chunk size for allocations to hold data from clients. */
 #define BUF_SIZE 4096
+/* Maximum buffer size for client data. Connections that send a single
+ * command larger than this size will be closed.
+ */
+#define BUF_MAX  4*BUF_SIZE
 #define WAKEUP_DATA "hi"
 #define WAKEUP_SIZE 2
 
@@ -15,9 +21,8 @@ typedef struct session_watcher session_watcher_t;
 
 typedef int (*session_callback_t) (session_watcher_t *watcher,
                                    gint fd,
-                                   gpointer user_data);
-typedef int (*wakeup_callback_t) (session_watcher_t *watcher,
-                                  gpointer user_data);
+                                   tab_t             *tab);
+typedef int (*wakeup_callback_t) (session_watcher_t *watcher);
 
 struct session_watcher {
     session_manager_t *session_manager;
@@ -28,18 +33,19 @@ struct session_watcher {
     fd_set session_fdset;
     session_callback_t session_callback;
     wakeup_callback_t wakeup_callback;
-    gpointer user_data;
+    tab_t *tab;
 };
 
 session_watcher_t*
 session_watcher_new (session_manager_t *connection_manager,
-                     gint wakeup_receive_fd);
+                     gint wakeup_receive_fd,
+                     tab_t             *tab);
 session_watcher_t*
 session_watcher_new_full (session_manager_t *connection_manager,
                           gint wakeup_receive_fd,
                           session_callback_t session_cb,
                           wakeup_callback_t wakeup_cb,
-                          gpointer user_data);
+                          tab_t              *tab);
 gint session_watcher_start (session_watcher_t *watcher);
 gint session_watcher_cancel (session_watcher_t *watcher);
 gint session_watcher_join (session_watcher_t *watcher);

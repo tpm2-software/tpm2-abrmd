@@ -13,19 +13,28 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include "tab.h"
 #include "session-manager.h"
 #include "session-watcher.h"
 
 /* session_watcher_allocate_test begin
  * Test to allcoate and destroy a session_watcher_t.
  */
+typedef struct session_watcher_allocate_test_data {
+    session_manager_t *manager;
+    tab_t             *tab;
+} session_watcher_allocate_test_data_t;
+
 static void
 session_watcher_allocate_test (void **state)
 {
-    session_manager_t *manager = (session_manager_t*)*state;
+    session_watcher_allocate_test_data_t *data =
+        (session_watcher_allocate_test_data_t *)*state;
+    session_manager_t *manager = data->manager;
+    tab_t *tab = data->tab;
     session_watcher_t *watcher = NULL;
 
-    watcher = session_watcher_new (manager, 0);
+    watcher = session_watcher_new (manager, 0, tab);
     assert_non_null (watcher);
     session_watcher_free (watcher);
 }
@@ -56,6 +65,7 @@ typedef struct watcher_test_data {
     session_manager_t *manager;
     session_watcher_t *watcher;
     session_data_t *session;
+    tab_t *tab;
     gint wakeup_send_fd;
     gboolean wokeup;
     gboolean match;
@@ -91,7 +101,8 @@ session_watcher_start_setup (void **state)
     if (ret != 0)
         g_error ("failed to get pipe2s");
     data->wakeup_send_fd = fds[1];
-    data->watcher = session_watcher_new (data->manager, fds[0]);
+    data->tab = NULL;
+    data->watcher = session_watcher_new (data->manager, fds[0], data->tab);
     if (data->watcher == NULL)
         g_error ("failed to allocate new session_watcher");
 
@@ -122,7 +133,8 @@ session_watcher_start_teardown (void **state)
  */
 int
 session_watcher_wakeup_callback (session_watcher_t *watcher,
-                                 gpointer user_data)
+                                 gint fd,
+                                 tab_t *tab)
 {
     gint ret;
 
@@ -149,9 +161,9 @@ session_watcher_wakeup_setup (void **state)
     data->wokeup = FALSE;
     data->watcher = session_watcher_new_full (data->manager,
                                               fds[0],
-                                              NULL,
                                               session_watcher_wakeup_callback,
-                                              &data->wokeup);
+                                              &data->wokeup,
+                                              NULL);
     data->wakeup_send_fd = fds[1];
     if (data->watcher == NULL)
         g_error ("failed to allocate new session_watcher");

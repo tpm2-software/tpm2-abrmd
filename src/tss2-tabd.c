@@ -13,6 +13,7 @@
 #include "session-manager.h"
 #include "session-watcher.h"
 #include "session-data.h"
+#include "response-watcher.h"
 #include "tss2-tabd-generated.h"
 
 #ifdef G_OS_UNIX
@@ -27,7 +28,9 @@ typedef struct gmain_data {
     GMainLoop *loop;
     Tab *skeleton;
     session_manager_t *manager;
-    session_watcher_t *watcher;
+    session_watcher_t *session_watcher;
+    response_watcher_t *response_watcher;
+    tab_t *tab;
     gint wakeup_send_fd;
     struct drand48_data rand_data;
     GMutex init_mutex;
@@ -282,12 +285,21 @@ init_thread_func (gpointer user_data)
         g_error ("failed to make wakeup socket: %s", strerror (errno));
     data->wakeup_send_fd = wakeup_fds [1];
 
-    data->watcher =
-        session_watcher_new (data->manager, wakeup_fds [0]);
+    data->tab = tab_new (NULL);
+    ret = tab_start (data->tab);
+    if (ret != 0)
+        g_error ("failed to start tab_t: %s", strerror (errno));
+    data->session_watcher =
+        session_watcher_new (data->manager, wakeup_fds [0], data->tab);
+    data->response_watcher =
+        response_watcher_new (data->tab);
 
-    ret = session_watcher_start (data->watcher);
+    ret = session_watcher_start (data->session_watcher);
     if (ret != 0)
         g_error ("failed to start connection_watcher");
+    ret = response_watcher_start (data->response_watcher);
+    if (ret != 0)
+        g_error ("failed to start response_watcher");
 
     g_mutex_unlock (&data->init_mutex);
     g_info ("init_thread_func done");
@@ -368,10 +380,16 @@ main (int argc, char *argv[])
   if (gmain_data.skeleton != NULL)
       g_object_unref (gmain_data.skeleton);
   /* stop the connection watcher thread */
-  session_watcher_cancel (gmain_data.watcher);
-  session_watcher_join (gmain_data.watcher);
-  session_watcher_free (gmain_data.watcher);
+  session_watcher_cancel (gmain_data.session_watcher);
+  session_watcher_join (gmain_data.session_watcher);
+  session_watcher_free (gmain_data.session_watcher);
   session_manager_free (gmain_data.manager);
+  response_watcher_cancel (gmain_data.response_watcher);
+  response_watcher_join (gmain_data.response_watcher);
+  response_watcher_free (gmain_data.response_watcher);
+  tab_cancel (gmain_data.tab);
+  tab_join (gmain_data.tab);
+  tab_free (gmain_data.tab);
 
   return 0;
 }
