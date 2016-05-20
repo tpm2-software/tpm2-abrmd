@@ -7,13 +7,6 @@
 #include <string.h>
 #include "session-manager.h"
 
-struct session_manager {
-    pthread_mutex_t mutex;
-    GHashTable *session_from_fd_table;
-    GHashTable *session_from_id_table;
-    gint wakeup_send_fd;
-};
-
 session_manager_t*
 session_manager_new (void)
 {
@@ -45,7 +38,6 @@ session_manager_free (session_manager_t *manager)
                  strerror (errno));
     g_hash_table_unref (manager->session_from_fd_table);
     g_hash_table_unref (manager->session_from_id_table);
-    close (manager->wakeup_send_fd);
     ret = pthread_mutex_unlock (&manager->mutex);
     if (ret != 0)
         g_error ("Error unlocking session_manager mutex: %s",
