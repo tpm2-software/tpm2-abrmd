@@ -31,17 +31,46 @@ response_watcher_free (response_watcher_t *watcher)
     free (watcher);
 }
 
+gint
+response_watcher_write_response (const gint fd,
+                                 const blob_t *blob)
+{
+    ssize_t written = 0;
+    size_t written_total = 0;
+
+    do {
+        g_debug ("writing %d bytes starting at 0x%x to fd %d",
+                 blob_get_size (blob) - written_total,
+                 blob_get_data (blob) + written_total,
+                 fd);
+        written = write (fd,
+                         blob_get_data (blob) + written_total,
+                         blob_get_size (blob) - written_total);
+        if (written <= 0) {
+            /* close & free session here? */
+            g_warning ("write failed (%d) on fd %d for session 0x%x: %s",
+                       written, fd, blob_get_session (blob), strerror (errno));
+            goto out;
+        } else {
+            g_debug ("wrote %d bytes to fd %d", written, fd);
+        }
+        written_total += written;
+    } while (written_total < blob_get_size (blob));
+out:
+    return written;
+}
+
+
 void*
 response_watcher_thread (void *data)
 {
     response_watcher_t *watcher;
     blob_t *blob;
     gint fd;
+    ssize_t written;
 
     watcher = (response_watcher_t*)data;
     do {
-        ssize_t written = 0;
-        size_t written_total = 0;
         pthread_testcancel ();
         blob = tab_get_timeout_response (watcher->tab, RESPONSE_WATCHER_TIMEOUT);
         if (blob == NULL)
@@ -49,23 +78,10 @@ response_watcher_thread (void *data)
         g_debug ("response_watcher_thread got response blob: 0x%x size %d",
                  blob, blob_get_size (blob));
         fd = session_data_send_fd (blob_get_session (blob));
-        do {
-            g_debug ("writing %d bytes starting at 0x%x to fd %d",
-                     blob_get_size (blob) - written_total,
-                     blob_get_data (blob) + written_total,
-                     fd);
-            written = write (fd,
-                             blob_get_data (blob) + written_total,
-                             blob_get_size (blob) - written_total);
-            if (written == -1) {
-                /* close & free session here? */
-                g_warning ("write failed on fd %d for session 0x%x: %s",
-                           fd, blob_get_session (blob), strerror (errno));
-            } else {
-                g_debug ("wrote %d bytes to fd %d", written, fd);
-            }
-            written_total += written;
-        } while (written_total < blob_get_size (blob));
+        written = response_watcher_write_response (fd, blob);
+        if (written <= 0) {
+
+        }
         blob_free (blob);
     } while (TRUE);
 }
