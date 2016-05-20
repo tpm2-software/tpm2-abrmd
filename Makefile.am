@@ -5,6 +5,7 @@ AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
 sbin_PROGRAMS   = src/tss2-tabd
 noinst_PROGRAMS = test/tss2-tcti-tabd_read-write
 check_PROGRAMS  = \
+    test/response-watcher_unit \
     test/session-data_unit \
     test/session-manager_unit \
     test/session-watcher_unit \
@@ -45,6 +46,18 @@ src_tss2_tabd_SOURCES = \
 
 units/%.service : units/%.service.in
 	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
+
+test_response_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(TSS2_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS)
+test_response_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_LIBS) $(PTHREAD_LIBS)
+test_response_watcher_unit_LDFLAGS = -Wl,--wrap=response_watcher_start
+test_response_watcher_unit_SOURCES = \
+    src/blob.c \
+    src/blob-queue.c \
+    src/response-watcher.c \
+    src/session-data.c \
+    src/session-manager.c \
+    src/tab.c \
+    test/response-watcher_unit.c
 
 test_session_data_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_session_data_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
