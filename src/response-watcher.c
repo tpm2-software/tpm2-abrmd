@@ -36,27 +36,12 @@ response_watcher_write_response (const gint fd,
                                  const blob_t *blob)
 {
     ssize_t written = 0;
-    size_t written_total = 0;
 
-    do {
-        g_debug ("writing %d bytes starting at 0x%x to fd %d",
-                 blob_get_size (blob) - written_total,
-                 blob_get_data (blob) + written_total,
-                 fd);
-        written = write (fd,
-                         blob_get_data (blob) + written_total,
-                         blob_get_size (blob) - written_total);
-        if (written <= 0) {
-            /* close & free session here? */
-            g_warning ("write failed (%d) on fd %d for session 0x%x: %s",
-                       written, fd, blob_get_session (blob), strerror (errno));
-            goto out;
-        } else {
-            g_debug ("wrote %d bytes to fd %d", written, fd);
-        }
-        written_total += written;
-    } while (written_total < blob_get_size (blob));
-out:
+    written = write_all (fd, blob_get_data (blob), blob_get_size (blob));
+    if (written <= 0)
+        g_warning ("write failed (%d) on fd %d for session 0x%x: %s",
+                   written, fd, blob_get_session (blob), strerror (errno));
+
     return written;
 }
 

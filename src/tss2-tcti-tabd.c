@@ -3,7 +3,9 @@
 #include <glib.h>
 #include <tss2-tabd.h>
 #include <tss2-tcti-tabd.h>
+
 #include "tss2-tcti-tabd-priv.h"
+#include "util.h"
 
 static TSS2_RC
 tss2_tcti_tabd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
@@ -18,8 +20,9 @@ tss2_tcti_tabd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
     if (ret != 0)
         g_error ("Error acquiring TCTI lock: %s", strerror (errno));
     g_debug ("blocking on PIPE_TRANSMIT: %d", TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context));
-    /* should loop till all bytes written */
-    ret = write (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context), command, size);
+    ret = write_all (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context),
+                     command,
+                     size);
     /* should switch on possible errors to translate to TSS2 error codes */
     if (ret == size)
         tss2_ret = TSS2_RC_SUCCESS;

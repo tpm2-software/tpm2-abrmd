@@ -13,6 +13,7 @@ check_PROGRAMS  = \
     test/blob-queue_unit \
     test/tab_unit
 lib_LTLIBRARIES = src/libtss2-tcti-tabd.la
+noinst_LIBRARIES = src/libutil.a
 man8_MANS = man/tabd.man
 TESTS = $(check_PROGRAMS)
 
@@ -25,15 +26,22 @@ CLEANFILES = \
     src/tss2-tabd-generated.h \
     units/*.service
 
-src_libtss2_tcti_tabd_la_CFLAGS  = $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
+src_libutil_a_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) -fPIC
+src_libutil_a_LDFLAGS = -fPIC
+src_libutil_a_SOURCES = src/util.c
+
+src_libtss2_tcti_tabd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 src_libtss2_tcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
-src_libtss2_tcti_tabd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tss2-tcti-tabd.map
-src_libtss2_tcti_tabd_la_SOURCES = src/tss2-tabd-generated.c src/tss2-tcti-tabd.c
+src_libtss2_tcti_tabd_la_LDFLAGS = -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tss2-tcti-tabd.map
+src_libtss2_tcti_tabd_la_SOURCES = \
+    src/tss2-tabd-generated.c \
+    src/tss2-tcti-tabd.c \
+    src/util.c
 
 src_tss2_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
     $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(TSS2_CFLAGS)
 src_tss2_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(TSS2_LIBS)
+    $(TSS2_LIBS) $(noinst_LIBRARIES)
 src_tss2_tabd_SOURCES = \
     src/tss2-tabd.c \
     src/tss2-tabd-generated.c \
@@ -54,7 +62,8 @@ units/%.service : units/%.service.in
 	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
 
 test_response_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(TSS2_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS)
-test_response_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_LIBS) $(PTHREAD_LIBS)
+test_response_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_LIBS) \
+    $(PTHREAD_LIBS) $(noinst_LIBRARIES)
 test_response_watcher_unit_LDFLAGS = -Wl,--wrap=response_watcher_start
 test_response_watcher_unit_SOURCES = \
     src/blob.c \
