@@ -11,7 +11,8 @@ check_PROGRAMS  = \
     test/session-watcher_unit \
     test/blob_unit \
     test/blob-queue_unit \
-    test/tab_unit
+    test/tab_unit \
+    test/util_unit
 lib_LTLIBRARIES = src/libtss2-tcti-tabd.la
 noinst_LIBRARIES = src/libutil.a
 man8_MANS = man/tabd.man
@@ -117,3 +118,8 @@ test_blob_queue_unit_SOURCES = \
 test_tss2_tcti_tabd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_tss2_tcti_tabd_read_write_LDADD   = $(GLIB_LIBS) src/libtss2-tcti-tabd.la
 test_tss2_tcti_tabd_read_write_SOURCES = test/tss2-tcti-tabd_read-write.c
+
+test_util_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
+test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(noinst_LIBRARIES)
+test_util_unit_LDFLAGS = -Wl,--wrap=write
+test_util_unit_SOURCES = test/util_unit.c
