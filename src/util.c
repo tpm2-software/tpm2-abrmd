@@ -16,14 +16,15 @@ write_all (const gint    fd,
         written = write (fd,
                          buf  + written_total,
                          size - written_total);
-        if (written <= 0) {
-            goto out;
-        } else {
+        switch (written) {
+        case -1: return written;
+        case  0: return written_total;
+        default:
             g_debug ("wrote %d bytes to fd %d", written, fd);
         }
         written_total += written;
     } while (written_total < size);
-out:
-    return written;
+    g_debug ("returning %d", written_total);
 
+    return written_total;
 }
