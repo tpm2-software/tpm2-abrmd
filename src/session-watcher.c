@@ -125,13 +125,13 @@ session_watcher_thread (void *data)
                 i != watcher->wakeup_receive_fd)
             {
                 g_debug ("data ready on session fd: %d", i);
-                watcher->session_callback (watcher, i, watcher->tab);
+                session_watcher_session_responder (watcher, i, watcher->tab);
             }
             if (FD_ISSET (i, &watcher->session_fdset) &&
                 i == watcher->wakeup_receive_fd)
             {
                 g_debug ("data ready on wakeup_receive_fd");
-                watcher->wakeup_callback (watcher);
+                session_watcher_wakeup_responder (watcher);
             }
         }
     } while (TRUE);
@@ -144,24 +144,12 @@ session_watcher_new (session_manager_t *session_manager,
                      gint wakeup_receive_fd,
                      tab_t             *tab)
 {
-    return session_watcher_new_full (session_manager,
-                                     wakeup_receive_fd,
-                                     NULL,
-                                     NULL,
-                                     tab);
-}
-
-session_watcher_t*
-session_watcher_new_full (session_manager_t *session_manager,
-                          gint wakeup_receive_fd,
-                          session_callback_t session_cb,
-                          wakeup_callback_t wakeup_cb,
-                          tab_t *tab)
-{
     session_watcher_t *watcher;
 
     if (session_manager == NULL)
         g_error ("session_watcher_new passed NULL session_manager_t");
+    if (tab == NULL)
+        g_error ("session_watcher_new passed NULL tab_t");
     watcher = calloc (1, sizeof (session_watcher_t));
     if (watcher == NULL)
         g_error ("failed to allocate session_watcher_t: %s", strerror (errno));
@@ -169,18 +157,20 @@ session_watcher_new_full (session_manager_t *session_manager,
     watcher->wakeup_receive_fd = wakeup_receive_fd;
     watcher->running = FALSE;
     watcher->tab = tab;
-    if (session_cb == NULL)
-        watcher->session_callback = session_watcher_session_responder;
-    else
-        watcher->session_callback = session_cb;
-    if (wakeup_cb == NULL)
-        watcher->wakeup_callback = session_watcher_wakeup_responder;
-    else
-        watcher->wakeup_callback = wakeup_cb;
 
     return watcher;
 }
 
+/* Not doing any sanity checks here. Be sure to shut things downon your own
+ * first.
+ */
+void
+session_watcher_free (session_watcher_t *watcher)
+{
+    if (watcher == NULL)
+        return;
+    free (watcher);
+}
 gint
 session_watcher_start (session_watcher_t *watcher)
 {
@@ -210,16 +200,4 @@ session_watcher_join (session_watcher_t *watcher)
         return -1;
     }
     return pthread_join (watcher->thread, NULL);
-}
-
-/* Not doing any sanity checks here. Be sure to shut things downon your own
- * first.
- */
-void
-session_watcher_free (session_watcher_t *watcher)
-{
-    if (watcher == NULL)
-        return;
-    if (watcher)
-        free (watcher);
 }

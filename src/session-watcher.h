@@ -17,35 +17,20 @@
 #define WAKEUP_DATA "hi"
 #define WAKEUP_SIZE 2
 
-typedef struct session_watcher session_watcher_t;
-
-typedef int (*session_callback_t) (session_watcher_t *watcher,
-                                   gint fd,
-                                   tab_t             *tab);
-typedef int (*wakeup_callback_t) (session_watcher_t *watcher);
-
-struct session_watcher {
+typedef struct session_watcher {
     session_manager_t *session_manager;
     pthread_t thread;
     gint wakeup_receive_fd;
     gboolean running;
     char *buf;
     fd_set session_fdset;
-    session_callback_t session_callback;
-    wakeup_callback_t wakeup_callback;
     tab_t *tab;
-};
+} session_watcher_t;
 
 session_watcher_t*
 session_watcher_new (session_manager_t *connection_manager,
                      gint wakeup_receive_fd,
                      tab_t             *tab);
-session_watcher_t*
-session_watcher_new_full (session_manager_t *connection_manager,
-                          gint wakeup_receive_fd,
-                          session_callback_t session_cb,
-                          wakeup_callback_t wakeup_cb,
-                          tab_t              *tab);
 gint session_watcher_start (session_watcher_t *watcher);
 gint session_watcher_cancel (session_watcher_t *watcher);
 gint session_watcher_join (session_watcher_t *watcher);

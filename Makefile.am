@@ -85,6 +85,8 @@ test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c tes
 test_session_watcher_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(TSS2_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 test_session_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_LIBS) $(PTHREAD_LIBS)
 test_session_watcher_unit_SOURCES = \
+    src/blob.c \
+    src/blob-queue.c \
     src/session-watcher.c \
     src/session-manager.c \
     src/session-data.c \
