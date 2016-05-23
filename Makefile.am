@@ -93,6 +93,7 @@ test_session_watcher_unit_SOURCES = \
     src/session-manager.c \
     src/session-data.c \
     src/tab.c \
+    src/util.c \
     test/session-watcher_unit.c
 
 test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(TSS2_CFLAGS) \

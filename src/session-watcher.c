@@ -8,42 +8,26 @@
 #include "session-data.h"
 #include "session-watcher.h"
 #include "tab.h"
+#include "util.h"
 
 blob_t*
-session_watcher_get_blob_from_fd (session_data_t  *session,
-                                  gint             fd)
+blob_from_fd (session_data_t  *session,
+              gint             fd)
 {
-    gchar *buf = NULL;
+    guint8 *buf = NULL;
     blob_t *blob;
     ssize_t bytes_read;
     size_t  bytes_total = 0;
 
     g_debug ("session_watcher_get_blob_from_fd: %d", fd);
-    do {
-        buf = realloc (buf, bytes_total + BUF_SIZE);
-        if (buf == NULL)
-            g_error ("realloc of %d byted failed: %s",
-                     bytes_total + BUF_SIZE, strerror (errno));
-        else
-            g_debug ("realloced buf to: %d bytes", bytes_total + BUF_SIZE);
-        bytes_read = read (fd, buf + bytes_total, BUF_SIZE);
-        switch (bytes_read) {
-        case -1:
-            g_warning ("read failed on fd %d: %s", fd, strerror (errno));
-            goto out_err;
-        case 0:
-            g_info ("read returned 0 bytes -> fd %d closed", fd);
-            goto out_err;
-        }
-        bytes_total += bytes_read;
-    } while (bytes_read == BUF_SIZE && bytes_total < BUF_MAX);
+    bytes_read = read_till_short (fd, &buf, &bytes_total);
+    if (bytes_read == 0) {
+        if (buf)
+            free (buf);
+        return NULL;
+    }
     return blob_new (session, buf, bytes_total);
-out_err:
-    if (buf)
-        free (buf);
-    return NULL;
 }
-
 void
 session_watcher_thread_cleanup (void *data)
 {
@@ -67,7 +51,7 @@ session_watcher_session_responder (session_watcher_t *watcher,
         g_error ("failed to get session associated with fd: %d", fd);
     else
         g_debug ("session_manager_lookup_fd for fd %d: 0x%x", fd, session);
-    blob = session_watcher_get_blob_from_fd (session, fd);
+    blob = blob_from_fd (session, fd);
     if (blob == NULL) {
         /* blob will be NULL when read error on fd, or fd is closed (EOF)
          * In either case we remove the session and free it.
@@ -85,7 +69,7 @@ session_watcher_session_responder (session_watcher_t *watcher,
 }
 
 int
-session_watcher_wakeup_responder (session_watcher_t *watcher)
+wakeup_responder (session_watcher_t *watcher)
 {
     g_debug ("Got new session, updating fd_set");
     char buf[3] = { 0 };
@@ -93,6 +77,7 @@ session_watcher_wakeup_responder (session_watcher_t *watcher)
     if (ret != WAKEUP_SIZE)
         g_error ("read on wakeup_receive_fd returned %d, was expecting %d",
                  ret, WAKEUP_SIZE);
+    return ret;
 }
 
 /* This function is run as a separate thread dedicated to monitoring the
@@ -131,7 +116,7 @@ session_watcher_thread (void *data)
                 i == watcher->wakeup_receive_fd)
             {
                 g_debug ("data ready on wakeup_receive_fd");
-                session_watcher_wakeup_responder (watcher);
+                wakeup_responder (watcher);
             }
         }
     } while (TRUE);

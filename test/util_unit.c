@@ -6,7 +6,7 @@
 
 #include "util.h"
 
-#define READ_SIZE  BUF_SIZE
+#define READ_SIZE  UTIL_BUF_SIZE
 #define WRITE_SIZE 10
 
 ssize_t
@@ -42,7 +42,7 @@ read_in_two (void **state)
     assert_int_equal (total_read, READ_SIZE + READ_SIZE - 1);
     free (buf);
 }
-/** Force read_till_short to hit BUF_MAX allocation.
+/** Force read_till_short to hit UTIL_BUF_MAX allocation.
  */
 void
 read_max (void **state)
@@ -52,10 +52,10 @@ read_max (void **state)
     guint8  *buf = NULL;
     int i = 0;
 
-    for (i = 0; i < BUF_MAX; i += READ_SIZE)
+    for (i = 0; i < UTIL_BUF_MAX; i += READ_SIZE)
         will_return (__wrap_read, READ_SIZE);
     read = read_till_short (0, &buf, &total_read);
-    assert_int_equal (total_read, BUF_MAX);
+    assert_int_equal (total_read, UTIL_BUF_MAX);
     free (buf);
 }
 

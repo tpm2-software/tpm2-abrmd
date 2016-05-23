@@ -24,7 +24,6 @@ typedef struct watcher_test_data {
     tab_t *tab;
     TSS2_TCTI_CONTEXT *tcti;
     gint wakeup_send_fd;
-    gboolean wokeup;
     gboolean match;
 } watcher_test_data_t;
 
@@ -129,20 +128,7 @@ session_watcher_start_teardown (void **state)
  * provided. We get an indication that this callback was run through the
  * user_data provided, namely the wokeup gboolean from the watcher_test_data
  * structure.
-int
-session_watcher_wakeup_callback (session_watcher_t *watcher,
-                                 gint fd,
-                                 tab_t *tab)
-{
-    gint ret;
-
-    ret = read (watcher->wakeup_receive_fd, watcher->buf, BUF_SIZE);
-    assert_true (ret != -1);
-    *(gboolean*)user_data = TRUE;
-
-    return ret;
-}
-
+*/
 static void
 session_watcher_wakeup_setup (void **state)
 {
@@ -156,19 +142,16 @@ session_watcher_wakeup_setup (void **state)
     ret = pipe2 (fds, O_CLOEXEC);
     if (ret != 0)
         g_error ("failed to get pipe2s");
-    data->wokeup = FALSE;
-    data->watcher = session_watcher_new_full (data->manager,
-                                              fds[0],
-                                              session_watcher_wakeup_callback,
-                                              &data->wokeup,
-                                              NULL);
+    data->tab = tab_new (NULL);
+    data->watcher = session_watcher_new (data->manager,
+                                        fds[0],
+                                        data->tab);
     data->wakeup_send_fd = fds[1];
     if (data->watcher == NULL)
         g_error ("failed to allocate new session_watcher");
 
     *state = data;
 }
- */
 static void
 session_watcher_wakeup_test (void **state)
 {
@@ -177,15 +160,14 @@ session_watcher_wakeup_test (void **state)
 
     data = (watcher_test_data_t*)*state;
     /* This string is arbitrary. */
-    ret = write (data->wakeup_send_fd, "hi", strlen ("hi"));
-    assert_true (ret != -1);
     ret = session_watcher_start (data->watcher);
     assert_int_equal (ret, 0);
-    /* sleep here to give the watcher thread time to react to the data we've
+    ret = write (data->wakeup_send_fd, "hi", strlen ("hi"));
+    sleep (1);
+    assert_true (ret != -1);
+   /* sleep here to give the watcher thread time to react to the data we've
      * sent over the wakeup_send_fd.
      */
-    sleep (1);
-    assert_true (data->wokeup);
     ret = session_watcher_cancel (data->watcher);
     assert_int_equal (ret, 0);
     ret = session_watcher_join (data->watcher);
@@ -316,7 +298,6 @@ session_watcher_session_insert_setup (void **state)
     ret = pipe2 (fds, O_CLOEXEC);
     if (ret != 0)
         g_error ("failed to get pipe2s");
-    data->wokeup = FALSE;
     data->watcher = session_watcher_new_full (data->manager,
                                               fds[0],
                                               NULL,
@@ -367,10 +348,10 @@ main (int argc,
         unit_test_setup_teardown (session_watcher_start_test,
                                   session_watcher_start_setup,
                                   session_watcher_start_teardown),
-        /*
         unit_test_setup_teardown (session_watcher_wakeup_test,
                                   session_watcher_wakeup_setup,
                                   session_watcher_start_teardown),
+        /*
         unit_test_setup_teardown (session_watcher_session_insert_test,
                                   session_watcher_session_insert_setup,
                                   session_watcher_start_teardown),

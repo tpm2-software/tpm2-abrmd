@@ -3,7 +3,6 @@
 #include <unistd.h>
 
 #include "util.h"
-
 ssize_t
 write_all (const gint    fd,
            const void   *buf,
@@ -33,9 +32,9 @@ write_all (const gint    fd,
     return written_total;
 }
 /** Read as many bytes as possible from fd into a newly allocated buffer up to
- * BUF_MAX.
- * We read as much data is available allocating data in BUF_SIZE chunks up to
- * BUF_MAX. This function returns after a short read (less than the requested
+ * UTIL_BUF_MAX.
+ * We read as much data is available allocating data in UTIL_BUF_SIZE chunks up to
+ * UTIL_BUF_MAX. This function returns after a short read (less than the requested
  * byte count), or if a read returns 0 indicating the pipe was closed. In the
  * case of the closed pipe, 0 is returned but the caller should check the
  * returned size to see whether or not data was read before the pipe closed.
@@ -50,13 +49,13 @@ read_till_short (const gint   fd,
 
     g_debug ("attempting to read %d bytes from fd %d", size, fd);
     do {
-        *buf = realloc (*buf, bytes_total + BUF_SIZE);
+        *buf = realloc (*buf, bytes_total + UTIL_BUF_SIZE);
         if (*buf == NULL)
             g_error ("realloc of %d bytes failed: %s",
-                     bytes_total + BUF_SIZE, strerror (errno));
+                     bytes_total + UTIL_BUF_SIZE, strerror (errno));
         else
-            g_debug ("reallocated buf to %d bytes", bytes_total + BUF_SIZE);
-        bytes_read = read (fd, (void*)(*buf + bytes_total), BUF_SIZE);
+            g_debug ("reallocated buf to %d bytes", bytes_total + UTIL_BUF_SIZE);
+        bytes_read = read (fd, (void*)(*buf + bytes_total), UTIL_BUF_SIZE);
         switch (bytes_read) {
         case -1:
             g_warning ("read failed on fd %d: %s", fd, strerror (errno));
@@ -68,7 +67,7 @@ read_till_short (const gint   fd,
             bytes_total += bytes_read;
             break;
         }
-    } while (bytes_read == BUF_SIZE && bytes_total < BUF_MAX);
+    } while (bytes_read == UTIL_BUF_SIZE && bytes_total < UTIL_BUF_MAX);
     *size = bytes_total;
     return bytes_read;
 }

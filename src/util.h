@@ -5,9 +5,9 @@
 #include <sys/types.h>
 
 /* allocate read blocks in BUF_SIZE increments */
-#define BUF_SIZE 1024
+#define UTIL_BUF_SIZE 1024
 /* stop allocating at BUF_MAX */
-#define BUF_MAX  8*BUF_SIZE
+#define UTIL_BUF_MAX  8*UTIL_BUF_SIZE
 
 ssize_t
 write_all (const gint    fd,

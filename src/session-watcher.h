@@ -22,7 +22,6 @@ typedef struct session_watcher {
     pthread_t thread;
     gint wakeup_receive_fd;
     gboolean running;
-    char *buf;
     fd_set session_fdset;
     tab_t *tab;
 } session_watcher_t;
