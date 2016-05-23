@@ -132,6 +132,7 @@ main(int argc, char* argv[])
         unit_test_setup_teardown (session_manager_insert_test,
                                   session_manager_setup,
                                   session_manager_teardown),
+        /*
         unit_test_setup_teardown (session_manager_lookup_fd_test,
                                   session_manager_setup,
                                   session_manager_teardown),
@@ -144,6 +145,7 @@ main(int argc, char* argv[])
         unit_test_setup_teardown (session_manager_set_fds_test,
                                   session_manager_setup,
                                   session_manager_teardown),
+                                  */
     };
     return run_tests(tests);
 }

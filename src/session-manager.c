@@ -19,10 +19,23 @@ session_manager_new (void)
     if (pthread_mutex_init (&session_manager->mutex, NULL) != 0)
         g_error ("Failed to initialize session _manager mutex: %s",
                  strerror (errno));
+    /* These two data structures must be kept in sync. When the
+     * session-manager object is destoryed the session-data objects in these
+     * hash tables will be free'd by the session_data_free function. We only
+     * set this for one of the hash tables because we only want to free
+     * each session-data object once.
+     * We could make this more clean by using reference counted objects.
+     */
     session_manager->session_from_fd_table =
-        g_hash_table_new (g_int_hash, session_data_equal_fd);
+        g_hash_table_new_full (g_int_hash,
+                               session_data_equal_fd,
+                               NULL,
+                               NULL);
     session_manager->session_from_id_table =
-        g_hash_table_new (g_int64_hash, session_data_equal_id);
+        g_hash_table_new_full (g_int64_hash,
+                               session_data_equal_id,
+                               NULL,
+                               (GDestroyNotify)session_data_free);
     return session_manager;
 }
 

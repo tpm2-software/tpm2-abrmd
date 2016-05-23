@@ -90,15 +90,19 @@ static void
 session_watcher_start_setup (void **state)
 {
     watcher_test_data_t *data;
-    gint ret;
+    gint ret, fds[2] = { 0 };
 
+    ret = pipe2 (fds, O_CLOEXEC);
+    if (ret == -1)
+        g_error ("pipe2 failed w/ errno: %d %s", errno, strerror (errno));
     data = calloc (1, sizeof (watcher_test_data_t));
+    data->wakeup_send_fd = fds[1];
     data->manager = session_manager_new ();
     if (data->manager == NULL)
         g_error ("failed to allocate new session_manager");
     data->tcti = NULL;
     data->tab = tab_new (data->tcti);
-    data->watcher = session_watcher_new (data->manager, 0, data->tab);
+    data->watcher = session_watcher_new (data->manager, fds[0], data->tab);
     if (data->watcher == NULL)
         g_error ("failed to allocate new session_watcher");
 
@@ -109,6 +113,8 @@ static void
 session_watcher_start_teardown (void **state)
 {
     watcher_test_data_t *data = (watcher_test_data_t*)*state;
+
+    close (data->wakeup_send_fd);
     session_watcher_free (data->watcher);
     session_manager_free (data->manager);
     tab_free (data->tab);
