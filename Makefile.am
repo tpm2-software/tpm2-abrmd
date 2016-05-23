@@ -120,5 +120,5 @@ test_tss2_tcti_tabd_read_write_SOURCES = test/tss2-tcti-tabd_read-write.c
 
 test_util_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(noinst_LIBRARIES)
-test_util_unit_LDFLAGS = -Wl,--wrap=write
+test_util_unit_LDFLAGS = -Wl,--wrap=read,--wrap=write
 test_util_unit_SOURCES = test/util_unit.c
