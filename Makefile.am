@@ -28,7 +28,6 @@ CLEANFILES = \
     units/*.service
 
 src_libutil_a_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) -fPIC
-src_libutil_a_LDFLAGS = -fPIC
 src_libutil_a_SOURCES = src/util.c
 
 src_libtss2_tcti_tabd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
