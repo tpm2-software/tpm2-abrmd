@@ -5,6 +5,7 @@ AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
 sbin_PROGRAMS   = src/tss2-tabd
 noinst_PROGRAMS = test/tss2-tcti-tabd_read-write
 check_PROGRAMS  = \
+    test/msg_unit \
     test/response-watcher_unit \
     test/session-data_unit \
     test/session-manager_unit \
@@ -102,6 +103,15 @@ test_tab_unit_SOURCES = \
     src/blob-queue.c \
     src/tab.c \
     test/tab_unit.c
+
+# message tests
+test_msg_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
+test_msg_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
+test_msg_unit_SOURCES = \
+    src/msg.c \
+    src/session-data.c \
+    test/msg_unit.c
+
 test_blob_unit_CFLAGS  = $(CMOCKA_CLFAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_blob_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
 test_blob_unit_SOURCES = \
