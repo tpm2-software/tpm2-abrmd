@@ -27,6 +27,7 @@ CLEANFILES = \
     src/tss2-tabd-generated.c \
     src/tss2-tabd-generated.h \
     units/*.service
+@VALGRIND_CHECK_RULES@
 
 src_libutil_a_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) -fPIC
 src_libutil_a_SOURCES = src/util.c
