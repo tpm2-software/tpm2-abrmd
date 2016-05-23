@@ -26,7 +26,7 @@ libtss2_tcti_tabd_HEADERS = $(srcdir)/src/include/tss2-tcti-tabd.h
 CLEANFILES = \
     src/tss2-tabd-generated.c \
     src/tss2-tabd-generated.h \
-    units/*.service
+    dist/*.service
 @VALGRIND_CHECK_RULES@
 
 src_libutil_a_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) -fPIC
@@ -60,7 +60,7 @@ src_tss2_tabd_SOURCES = \
 	$(GDBUS_CODEGEN) --interface-prefix=us.twobit.tss2. \
 	    --generate-c-code=src/tss2-tabd-generated $^
 
-units/%.service : units/%.service.in
+dist/%.service : dist/%.service.in
 	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
 
 test_response_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(TSS2_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS)
