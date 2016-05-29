@@ -21,6 +21,24 @@ send_recv (TSS2_TCTI_CONTEXT *tcti_context)
 }
 
 int
+send_recv_1024 (TSS2_TCTI_CONTEXT *tcti_context)
+{
+    /* send / receive */
+    TSS2_RC ret;
+    uint8_t xmit_buf [1024];
+    g_debug ("transmitting 1024 bytes");
+    ret = tss2_tcti_transmit (tcti_context, 1024, xmit_buf);
+    if (ret != TSS2_RC_SUCCESS)
+        g_debug ("tss2_tcti_transmit failed");
+    uint8_t recv_buf [1024];
+    size_t recv_size;
+    ret = tss2_tcti_receive (tcti_context, &recv_size, recv_buf, TSS2_TCTI_TIMEOUT_BLOCK);
+    if (ret != TSS2_RC_SUCCESS)
+        g_debug ("tss2_tcti_receive failed");
+    g_debug ("received %d byte response", recv_size);
+}
+
+int
 main (void)
 {
     TSS2_TCTI_CONTEXT *tcti_context = NULL;
@@ -44,9 +62,11 @@ main (void)
      * on a mutex till the setup thread is done.
      */
     send_recv (tcti_context);
+//    send_recv_1024 (tcti_context);
     tss2_tcti_cancel (tcti_context);
     tss2_tcti_set_locality (tcti_context, 1);
     send_recv (tcti_context);
+//    send_recv_1024 (tcti_context);
     tss2_tcti_cancel (tcti_context);
     tss2_tcti_set_locality (tcti_context, 1);
     tss2_tcti_finalize (tcti_context);
