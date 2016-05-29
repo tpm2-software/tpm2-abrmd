@@ -122,11 +122,20 @@ session_manager_remove (session_manager_t *manager,
 {
     gboolean ret;
 
+    g_debug ("session_manager 0x%x removing session 0x%x", manager, session);
     pthread_mutex_lock (&manager->mutex);
     ret = g_hash_table_remove (manager->session_from_fd_table,
                                session_data_key_fd (session));
+    if (ret != TRUE)
+        g_error ("failed to remove session 0x%x from g_hash_table 0x%x using "
+                 "key %d", session, manager->session_from_fd_table,
+                 session_data_key_fd (session));
     ret = g_hash_table_remove (manager->session_from_id_table,
                                session_data_key_id (session));
+    if (ret != TRUE)
+        g_error ("failed to remove session 0x%x from g_hash_table 0x%x using "
+                 "key %d", session, manager->session_from_fd_table,
+                 session_data_key_id (session));
     pthread_mutex_unlock (&manager->mutex);
 
     return ret;
