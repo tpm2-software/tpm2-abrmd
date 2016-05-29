@@ -76,6 +76,7 @@ session_data_new (gint *receive_fd,
 void
 session_data_free (session_data_t *session)
 {
+    g_debug ("freeing session_data_t: 0x%x", session);
     if (session == NULL)
         return;
     close (session->receive_fd);

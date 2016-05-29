@@ -47,7 +47,7 @@ read_till_short (const gint   fd,
     ssize_t bytes_read  = 0;
     size_t  bytes_total = 0;
 
-    g_debug ("attempting to read %d bytes from fd %d", size, fd);
+    g_debug ("reading as many bytes from fd %d as I can", fd);
     do {
         *buf = realloc (*buf, bytes_total + UTIL_BUF_SIZE);
         if (*buf == NULL)
