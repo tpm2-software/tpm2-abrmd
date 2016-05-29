@@ -60,7 +60,6 @@ session_watcher_session_responder (session_watcher_t *watcher,
                  session, watcher->session_manager);
         session_manager_remove (watcher->session_manager,
                                 session);
-        session_data_free (session);
         return TRUE;
     }
     g_debug ("made blob 0x%x size: %d", blob, blob->size);
