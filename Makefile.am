@@ -5,6 +5,7 @@ AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
 sbin_PROGRAMS   = src/tss2-tabd
 noinst_PROGRAMS = test/tss2-tcti-tabd_read-write
 check_PROGRAMS  = \
+    test/data-message_unit \
     test/msg_unit \
     test/response-watcher_unit \
     test/session-data_unit \
@@ -28,6 +29,8 @@ CLEANFILES = \
     src/tss2-tabd-generated.h \
     dist/*.service
 @VALGRIND_CHECK_RULES@
+VALGRIND_SUPPRESSIONS_FILES = dist/glib2.supp
+EXTRA_DIST = dist/glib2.supp
 
 src_libutil_a_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) -fPIC
 src_libutil_a_SOURCES = src/util.c
@@ -136,3 +139,9 @@ test_util_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(noinst_LIBRARIES)
 test_util_unit_LDFLAGS = -Wl,--wrap=read,--wrap=write
 test_util_unit_SOURCES = test/util_unit.c
+
+test_data_message_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
+test_data_message_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_data_message_unit_SOURCES = \
+    test/data-message_unit.c \
+    src/data-message.c
