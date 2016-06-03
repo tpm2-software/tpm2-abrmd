@@ -23,15 +23,17 @@ data_message_class_init (DataMessageClass *klass)
     object_class->finalize = data_message_finalize;
 }
 
-gpointer
-data_message_new (guint8 *data,
-                  size_t  size)
+DataMessage*
+data_message_new (session_data_t  *session,
+                  guint8          *data,
+                  size_t           size)
 {
     DataMessage *msg = NULL;
 
     msg = g_object_new (TYPE_DATA_MESSAGE, NULL);
-    msg->data = data;
-    msg->size = size;
+    msg->session = session;
+    msg->data    = data;
+    msg->size    = size;
 
     return msg;
 }

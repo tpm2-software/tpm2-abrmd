@@ -144,8 +144,9 @@ test_util_unit_SOURCES = test/util_unit.c
 test_data_message_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
 test_data_message_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_data_message_unit_SOURCES = \
-    test/data-message_unit.c \
-    src/data-message.c
+    src/data-message.c \
+    src/session-data.c \
+    test/data-message_unit.c
 
 test_message_queue_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
 test_message_queue_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)

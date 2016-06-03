@@ -3,15 +3,18 @@
 
 #include <glib-object.h>
 
+#include "session-data.h"
+
 typedef struct _DataMessageClass {
     GObjectClass parent;
 } DataMessageClass;
 
 typedef struct _DataMessage
 {
-    GObject  parent_instance;
-    guint8  *data;
-    size_t   size;
+    GObject          parent_instance;
+    session_data_t  *session;
+    guint8          *data;
+    size_t           size;
 } DataMessage;
 
 #define TYPE_DATA_MESSAGE           (data_message_get_type             ())
@@ -21,6 +24,9 @@ typedef struct _DataMessage
 #define IS_DATA_MESSAGE_CLASS(cls)  (G_TYPE_CHECK_CLASS_TYPE    ((cls), TYPE_DATA_MESSAGE))
 #define DATA_MESSAGE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS  ((obj), TYPE_DATA_MESSAGE, DataMessageClass))
 
-gpointer data_message_new (guint8 *data, size_t size);
+DataMessage*
+data_message_new (session_data_t  *session,
+                  guint8          *data,
+                  size_t           size);
 
 #endif /* MESSAGE_H */
