@@ -6,6 +6,7 @@ sbin_PROGRAMS   = src/tss2-tabd
 noinst_PROGRAMS = test/tss2-tcti-tabd_read-write
 check_PROGRAMS  = \
     test/data-message_unit \
+    test/message-queue_unit \
     test/msg_unit \
     test/response-watcher_unit \
     test/session-data_unit \
@@ -145,3 +146,10 @@ test_data_message_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_data_message_unit_SOURCES = \
     test/data-message_unit.c \
     src/data-message.c
+
+test_message_queue_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
+test_message_queue_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_message_queue_unit_SOURCES = \
+    src/data-message.c \
+    src/message-queue.c \
+    test/message-queue_unit.c
