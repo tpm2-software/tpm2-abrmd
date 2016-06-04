@@ -28,5 +28,7 @@ DataMessage*
 data_message_new (session_data_t  *session,
                   guint8          *data,
                   size_t           size);
+void
+data_message_print (DataMessage *message);
 
 #endif /* MESSAGE_H */

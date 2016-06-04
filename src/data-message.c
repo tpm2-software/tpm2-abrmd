@@ -37,3 +37,11 @@ data_message_new (session_data_t  *session,
 
     return msg;
 }
+
+void
+data_message_print (DataMessage *message)
+{
+    g_debug ("  DataMessage->session: 0x%x", message->session);
+    g_debug ("  DataMessage->data: 0x%x",    message->data);
+    g_debug ("  DataMessage->size: 0x%x",    message->size);
+}
