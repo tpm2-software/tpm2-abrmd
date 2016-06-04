@@ -310,7 +310,7 @@ parse_opts (gint            argc,
             gchar          *argv[],
             tabd_options_t *options)
 {
-    gchar *logger_name = NULL;
+    gchar *logger_name = "stdout";
     GOptionContext *ctx;
     GError *err = NULL;
     gboolean system_bus = FALSE;

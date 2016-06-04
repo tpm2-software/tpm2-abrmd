@@ -41,24 +41,13 @@ syslog_log_handler (const char     *log_domain,
 gint
 set_logger (gchar *name)
 {
-    gint ret = 0;
-
-    if (name == NULL)
-        goto out;
-    if (g_strcmp0 (name, "stdout") == 0) {
-        g_info ("logging to glib standard logger");
-        goto out;
-    }
-    if (g_strcmp0 (name, "syslog") == 0) {
+   if (g_strcmp0 (name, "syslog") == 0) {
         g_info ("logging to syslog");
-        g_log_set_handler (NULL,
-                           LOG_LEVEL_ALL | G_LOG_FLAG_FATAL | \
-                           G_LOG_FLAG_RECURSION,
-                           syslog_log_handler,
-                           NULL);
-        goto out;
+        return g_log_set_handler (NULL,
+                                  LOG_LEVEL_ALL | G_LOG_FLAG_FATAL | \
+                                  G_LOG_FLAG_RECURSION,
+                                  syslog_log_handler,
+                                  NULL);
     }
-    ret = -1;
-out:
-    return ret;
+    return 0;
 }
