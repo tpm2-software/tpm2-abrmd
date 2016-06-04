@@ -41,6 +41,23 @@ data_message_new_unref_test (void **state)
     g_object_unref (msg);
 }
 
+static void
+data_message_type_check_test (void **state)
+{
+    GObject         *obj     = NULL;
+    DataMessage     *msg     = NULL;
+    guint8          *data    = NULL;
+    size_t           size    = 0;
+    session_data_t  *session = NULL;
+
+    obj = G_OBJECT (data_message_new (session, data, size));
+    assert_true (IS_DATA_MESSAGE (obj));
+    msg = DATA_MESSAGE (obj);
+    assert_int_equal (msg, obj);
+
+    g_object_unref (obj);
+}
+
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -48,6 +65,7 @@ main (gint    argc,
     const UnitTest tests[] = {
         unit_test (data_message_new_unref_test),
         unit_test (data_message_new_unref_with_data_test),
+        unit_test (data_message_type_check_test),
     };
     return run_tests (tests);
 }
