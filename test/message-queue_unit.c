@@ -44,7 +44,7 @@ message_queue_enqueue_dequeue_test (void **state)
     MessageQueue *queue = data->queue;
     DataMessage *data_message_in, *data_message_out;
 
-    data_message_in = data_message_new (NULL, 0);
+    data_message_in = data_message_new (NULL, NULL, 0);
     message_queue_enqueue (queue, G_OBJECT (data_message_in));
     data_message_out = DATA_MESSAGE (message_queue_dequeue (queue));
     /* ptr != int but they're the same size usually? */
@@ -58,9 +58,9 @@ message_queue_dequeue_order_test (void **state)
     MessageQueue *queue = data->queue;
     DataMessage *data_message_0, *data_message_1, *data_message_2, *data_message_tmp;
 
-    data_message_0 = data_message_new (NULL, 0);
-    data_message_1 = data_message_new (NULL, 0);
-    data_message_2 = data_message_new (NULL, 0);
+    data_message_0 = data_message_new (NULL, NULL, 0);
+    data_message_1 = data_message_new (NULL, NULL, 0);
+    data_message_2 = data_message_new (NULL, NULL, 0);
 
     message_queue_enqueue (queue, G_OBJECT (data_message_0));
     message_queue_enqueue (queue, G_OBJECT (data_message_1));
@@ -77,6 +77,17 @@ message_queue_dequeue_order_test (void **state)
     g_object_unref (data_message_2);
 }
 
+static void
+message_queue_dequeue_nothing_test (void **state)
+{
+    msgq_test_data_t *data = (msgq_test_data_t*)*state;
+    MessageQueue *queue = data->queue;
+    GObject *obj = NULL;
+
+    obj = message_queue_timeout_dequeue (queue, 0);
+    assert_null (obj);
+}
+
 int
 main(int argc, char* argv[])
 {
@@ -86,6 +97,9 @@ main(int argc, char* argv[])
                                   message_queue_setup,
                                   message_queue_teardown),
         unit_test_setup_teardown (message_queue_dequeue_order_test,
+                                  message_queue_setup,
+                                  message_queue_teardown),
+        unit_test_setup_teardown (message_queue_dequeue_nothing_test,
                                   message_queue_setup,
                                   message_queue_teardown),
     };

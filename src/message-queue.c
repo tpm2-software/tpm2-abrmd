@@ -49,6 +49,7 @@ message_queue_enqueue (MessageQueue  *message_queue,
                        GObject       *object)
 {
     g_assert (message_queue != NULL);
+    g_debug ("message_queue_enqueue 0x%x: message 0x%x", message_queue, object);
     g_async_queue_push (message_queue->queue, object);
 }
 /** Dequeue a blob from the blob_queue_t.
@@ -59,11 +60,16 @@ GObject*
 message_queue_dequeue (MessageQueue *message_queue)
 {
     g_assert (message_queue != NULL);
+    g_debug ("message_queue_dequeue 0x%x", message_queue);
     return g_async_queue_pop (message_queue->queue);
 }
 GObject*
 message_queue_timeout_dequeue (MessageQueue *message_queue,
                                guint64       timeout)
 {
+    GObject *obj = NULL;
+
+    g_assert (message_queue != NULL);
+    g_debug ("message_queue_timeout_dequeue 0x%x", message_queue);
     return g_async_queue_timeout_pop (message_queue->queue, timeout);
 }
