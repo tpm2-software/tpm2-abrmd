@@ -59,7 +59,7 @@ not_response_watcher_thread (void *data)
 gint
 __wrap_response_watcher_start (response_watcher_t *watcher)
 {
-   if (watcher->thread != 0)
+    if (watcher->thread != 0)
         g_error ("response_watcher already started");
     return pthread_create (&watcher->thread, NULL, not_response_watcher_thread, watcher);
 }
