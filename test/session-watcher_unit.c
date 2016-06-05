@@ -207,6 +207,94 @@ session_watcher_session_insert_test (void **state)
     session_watcher_join (watcher);
 }
 /* session_watcher_sesion_insert_test end */
+/* session_watcher_session_data_test start */
+/* This test picks up where the insert test left off.
+ * This time we insert a session but then write some data to it.
+ * The session watcher should pick this up, create a DataMessage,
+ * insert it into the tab.
+ * The tab should turn around and dump this into a TCTI (which it doesn't do
+ * yet) and then put the response into the tab output queue.
+ * We then grab this response and compare it to the data that we sent.
+ * They should be identical.
+ */
+static void
+session_watcher_session_data_setup (void **state)
+{
+    watcher_test_data_t *data;
+    int fds[2] = { 0 }, ret;
+
+    data = calloc (1, sizeof (watcher_test_data_t));
+    data->manager = session_manager_new ();
+    if (data->manager == NULL)
+        g_error ("failed to allocate new session_manager");
+    ret = pipe2 (fds, O_CLOEXEC);
+    if (ret != 0)
+        g_error ("failed to get pipe2s");
+    data->tab = tab_new (NULL);
+    ret = tab_start (data->tab);
+    if (ret != 0)
+        g_error ("failed to start tab");
+    data->watcher = session_watcher_new (data->manager,
+                                        fds[0],
+                                        data->tab);
+    data->wakeup_send_fd = fds[1];
+    if (data->watcher == NULL)
+        g_error ("failed to allocate new session_watcher");
+
+    ret = session_watcher_start (data->watcher);
+    if (ret != 0)
+        g_error ("failed to start session_watcher_t");
+
+    *state = data;
+}
+static void
+session_watcher_session_data_teardown (void **state)
+{
+    watcher_test_data_t *data = (watcher_test_data_t*)*state;
+
+    close (data->wakeup_send_fd);
+    session_watcher_cancel (data->watcher);
+    session_watcher_join (data->watcher);
+    tab_cancel (data->tab);
+    tab_join (data->tab);
+
+    session_watcher_free (data->watcher);
+    tab_free (data->tab);
+    session_manager_free (data->manager);
+    free (data);
+}
+static void
+session_watcher_session_data_test (void **state)
+{
+    struct watcher_test_data *data = (struct watcher_test_data*)*state;
+    session_watcher_t *watcher = data->watcher;
+    session_manager_t *manager = data->manager;
+    tab_t *tab = data->tab;
+    DataMessage *msg;
+    session_data_t *session;
+    gint ret, receive_fd, send_fd;
+
+    session = session_data_new (&receive_fd, &send_fd, 5);
+    assert_false (FD_ISSET (session->receive_fd, &watcher->session_fdset));
+    session_manager_insert (data->manager, session);
+    ret = write (data->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
+    assert_true (ret > 0);
+    sleep (1);
+    assert_true (FD_ISSET (session->receive_fd, &watcher->session_fdset));
+
+    g_debug ("writing to send_fd");
+    ret = write (send_fd, WAKEUP_DATA, WAKEUP_SIZE);
+    assert_true (ret > 0);
+    g_debug ("calling tab_get_timeout_response\n");
+    msg = DATA_MESSAGE (tab_get_timeout_response (tab, 1e6));
+
+    g_debug ("I got this message back:");
+    data_message_print (msg);
+    assert_memory_equal (WAKEUP_DATA, msg->data, WAKEUP_SIZE);
+    session_manager_remove (data->manager, session);
+    g_object_unref (msg);
+}
+/* session_watcher_session_data_test end */
 int
 main (int argc,
       char* argv[])
@@ -224,6 +312,9 @@ main (int argc,
         unit_test_setup_teardown (session_watcher_session_insert_test,
                                   session_watcher_wakeup_setup,
                                   session_watcher_start_teardown),
+        unit_test_setup_teardown (session_watcher_session_data_test,
+                                  session_watcher_session_data_setup,
+                                  session_watcher_session_data_teardown),
     };
     return run_tests (tests);
 }
