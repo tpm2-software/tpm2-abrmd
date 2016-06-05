@@ -33,14 +33,14 @@ response_watcher_free (response_watcher_t *watcher)
 
 gint
 response_watcher_write_response (const gint fd,
-                                 const blob_t *blob)
+                                 const DataMessage *msg)
 {
     ssize_t written = 0;
 
-    written = write_all (fd, blob_get_data (blob), blob_get_size (blob));
+    written = write_all (fd, msg->data, msg->size);
     if (written <= 0)
         g_warning ("write failed (%d) on fd %d for session 0x%x: %s",
-                   written, fd, blob_get_session (blob), strerror (errno));
+                   written, fd, msg->session, strerror (errno));
 
     return written;
 }
@@ -50,24 +50,33 @@ void*
 response_watcher_thread (void *data)
 {
     response_watcher_t *watcher;
-    blob_t *blob;
+    DataMessage *msg;
+    GObject *obj;
     gint fd;
     ssize_t written;
 
     watcher = (response_watcher_t*)data;
     do {
+        g_debug ("response_watcher_thread waiting for response on tab: 0x%x",
+                 watcher->tab);
+        obj = tab_get_timeout_response (watcher->tab, RESPONSE_WATCHER_TIMEOUT);
+        g_debug ("response_watcher_thread got obj: 0x%x", obj);
         pthread_testcancel ();
-        blob = tab_get_timeout_response (watcher->tab, RESPONSE_WATCHER_TIMEOUT);
-        if (blob == NULL)
+        if (obj == NULL)
             continue;
-        g_debug ("response_watcher_thread got response blob: 0x%x size %d",
-                 blob, blob_get_size (blob));
-        fd = session_data_send_fd (blob_get_session (blob));
-        written = response_watcher_write_response (fd, blob);
+        g_assert (IS_DATA_MESSAGE (obj));
+        msg = DATA_MESSAGE (obj);
+        g_debug ("response_watcher_thread got response message: 0x%x size %d",
+                 obj, msg->size);
+        fd = session_data_send_fd (msg->session);
+        written = response_watcher_write_response (fd, msg);
         if (written <= 0) {
-
+            /* should have a reference to the session manager so we can remove
+             * session after an error like this
+             */
+            g_warning ("Failed to write response to fd: %d", fd);
         }
-        blob_free (blob);
+        g_object_unref (msg);
     } while (TRUE);
 }
 

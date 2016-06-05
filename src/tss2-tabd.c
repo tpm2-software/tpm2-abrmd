@@ -10,6 +10,7 @@
 #include <tss2-tabd.h>
 #include "tss2-tabd-priv.h"
 #include "tss2-tabd-logging.h"
+#include "data-message.h"
 #include "session-manager.h"
 #include "session-watcher.h"
 #include "session-data.h"
@@ -352,6 +353,11 @@ main (int argc, char *argv[])
 
   if (parse_opts (argc, argv, &options) != 0)
       return 1;
+
+    /* no clue why I've gotta do this
+     * without it I get a weird segfault from G_OBJECT cast mecros
+     * */
+    DataMessage *msg = DATA_MESSAGE (NULL);
 
   g_mutex_init (&gmain_data.init_mutex);
   g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);

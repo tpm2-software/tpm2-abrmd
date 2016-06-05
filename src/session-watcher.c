@@ -4,30 +4,30 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "blob.h"
+#include "data-message.h"
 #include "session-data.h"
 #include "session-watcher.h"
 #include "tab.h"
 #include "util.h"
-
-blob_t*
-blob_from_fd (session_data_t  *session,
-              gint             fd)
+DataMessage*
+data_message_from_fd (session_data_t  *session,
+                      gint             fd)
 {
     guint8 *buf = NULL;
-    blob_t *blob;
+    DataMessage *msg;
     ssize_t bytes_read;
     size_t  bytes_total = 0;
 
-    g_debug ("session_watcher_get_blob_from_fd: %d", fd);
+    g_debug ("data_message_from_fd: %d", fd);
     bytes_read = read_till_short (fd, &buf, &bytes_total);
     if (bytes_read == 0) {
         if (buf)
             free (buf);
         return NULL;
     }
-    return blob_new (session, buf, bytes_total);
+    return data_message_new (session, buf, bytes_total);
 }
+
 void
 session_watcher_thread_cleanup (void *data)
 {
@@ -41,19 +41,19 @@ session_watcher_session_responder (session_watcher_t *watcher,
                                    gint               fd,
                                    tab_t             *tab)
 {
-    blob_t *blob;
+    DataMessage *msg;
     session_data_t *session;
     gint ret;
 
-    g_debug ("session_watcher_session_responder");
+    g_debug ("session_watcher_session_responder 0x%x", watcher);
     session = session_manager_lookup_fd (watcher->session_manager, fd);
     if (session == NULL)
         g_error ("failed to get session associated with fd: %d", fd);
     else
         g_debug ("session_manager_lookup_fd for fd %d: 0x%x", fd, session);
-    blob = blob_from_fd (session, fd);
-    if (blob == NULL) {
-        /* blob will be NULL when read error on fd, or fd is closed (EOF)
+    msg = data_message_from_fd (session, fd);
+    if (msg == NULL) {
+        /* msg will be NULL when read error on fd, or fd is closed (EOF)
          * In either case we remove the session and free it.
          */
         g_debug ("removing session 0x%x from session_manager 0x%x",
@@ -62,8 +62,7 @@ session_watcher_session_responder (session_watcher_t *watcher,
                                 session);
         return TRUE;
     }
-    g_debug ("made blob 0x%x size: %d", blob, blob->size);
-    tab_send_command (tab, blob);
+    tab_send_command (tab, G_OBJECT (msg));
     return TRUE;
 }
 
@@ -99,6 +98,7 @@ session_watcher_thread (void *data)
         session_manager_set_fds (watcher->session_manager,
                                  &watcher->session_fdset);
         FD_SET (watcher->wakeup_receive_fd, &watcher->session_fdset);
+        g_debug ("session_watcher_thread: selecting session_fdset");
         ret = select (FD_SETSIZE, &watcher->session_fdset, NULL, NULL, NULL);
         if (ret == -1) {
             g_debug ("Error selecting on pipes: %s", strerror (errno));
@@ -141,7 +141,6 @@ session_watcher_new (session_manager_t *session_manager,
     watcher->wakeup_receive_fd = wakeup_receive_fd;
     watcher->running = FALSE;
     watcher->tab = tab;
-
     return watcher;
 }
 

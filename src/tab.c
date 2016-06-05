@@ -1,6 +1,6 @@
 #include <errno.h>
 
-#include "blob-queue.h"
+#include "message-queue.h"
 #include "tab.h"
 
 #define TAB_TIMEOUT_DEQUEUE 1e6
@@ -9,11 +9,11 @@ gpointer
 cmd_runner (gpointer data)
 {
     tab_t  *tab  = (tab_t*)data;
-    blob_t *blob = NULL;
+    GObject     *obj = NULL;
 
     g_debug ("cmd_runner start");
     while (TRUE) {
-        /* To join this thread cleanly we can't block on the blob_queue
+        /* To join this thread cleanly we can't block on the MessageQueue
          * indefinitely. Waking up every second may be bad for battery
          * though. Other options are a bit ugly though:
          * Exit with this thread blocked and let the system recover the
@@ -24,18 +24,18 @@ cmd_runner (gpointer data)
          * to get it to the cancelation point.
          * This last one is probably the best option.
          */
-        g_debug ("blob_queue_timeout_dequeue: 0x%x for %e",
+        g_debug ("tab_cmd_runner: message_queue_timeout_dequeue: 0x%x for %e",
                  tab->in_queue,
                  TAB_TIMEOUT_DEQUEUE);
-        blob = blob_queue_timeout_dequeue (tab->in_queue,
-                                           TAB_TIMEOUT_DEQUEUE);
-        if (blob != NULL) {
-        /*
+        obj = message_queue_timeout_dequeue (tab->in_queue, TAB_TIMEOUT_DEQUEUE);
+        g_debug ("cmd_runner message_queue_timeout_dequeue got obj: 0x%x", obj);
+        if (obj != NULL) {
+       /*
         tss2_tcti_transmit (tab->tcti_context, size, blob);
         tss2_tcti_receive (tab->tcti_context, size, blob, timeout);
         */
-            g_debug ("blob_queue_enqueue: 0x%x", tab->out_queue);
-            blob_queue_enqueue (tab->out_queue, blob);
+            g_debug ("message_queue_enqueue: 0x%x, object", tab->out_queue, obj);
+            message_queue_enqueue (tab->out_queue, obj);
         }
         pthread_testcancel ();
     }
@@ -52,8 +52,8 @@ tab_new (TSS2_TCTI_CONTEXT *tcti_context)
     if (tcti_context != NULL)
         g_error ("tab_new passed NON-NULL TSS2_TCTI_CONTEXT pointer, we don't do anything with the TCTI yet.");
     tab = calloc (1, sizeof (tab_t));
-    tab->in_queue  = blob_queue_new ("TAB in queue");
-    tab->out_queue = blob_queue_new ("TAB out queue");
+    tab->in_queue  = message_queue_new ("TAB in queue");
+    tab->out_queue = message_queue_new ("TAB out queue");
     tab->tcti_context = tcti_context;
 
     return tab;
@@ -70,8 +70,8 @@ tab_free (tab_t *tab)
         g_error ("tab_free passed NULL tab_t pointer");
     if (tab->thread != 0)
         g_error ("tab_free called with thread running, cancel thread first");
-    blob_queue_free (tab->in_queue);
-    blob_queue_free (tab->out_queue);
+    g_object_unref (tab->in_queue);
+    g_object_unref (tab->out_queue);
     free (tab);
 }
 gint
@@ -115,20 +115,22 @@ tab_join (tab_t *tab)
  * we return true, an error will return false.
  */
 void
-tab_send_command (tab_t   *tab,
-                  blob_t  *blob)
+tab_send_command (tab_t       *tab,
+                  GObject     *obj)
 {
-    blob_queue_enqueue (tab->in_queue, blob);
+    g_debug ("tab_send_command: tab_t: 0x%x DataMessage: 0x%x", tab, obj);
+    message_queue_enqueue (tab->in_queue, obj);
 }
 /** Get the next response from the TAB.
  * Block for timeout microseconds waiting for the next resonse to a TPM
  * command. The caller is responsible for freeing the returned buffer.
  */
-blob_t*
+GObject*
 tab_get_timeout_response (tab_t    *tab,
                           guint64  timeout)
 {
-    return blob_queue_timeout_dequeue (tab->out_queue, timeout);
+    g_debug ("tab_get_timeout_response: tab_t: 0x%x", tab);
+    return message_queue_timeout_dequeue (tab->out_queue, timeout);
 }
 /** Cancel pending commands for a session in the TAB
  * Cancel each pending command associated with the given session in the TAB
