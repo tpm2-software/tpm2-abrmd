@@ -5,6 +5,8 @@
 
 #include "data-message.h"
 
+G_BEGIN_DECLS
+
 typedef struct _MessageQueueClass {
     GObjectClass parent;
 } MessageQueueClass;
@@ -33,4 +35,5 @@ GObject*
 message_queue_timeout_dequeue  (MessageQueue  *message_queue,
                                 guint64        timeout);
 
+G_END_DECLS
 #endif /* MESSAGE_QUEUE_H */

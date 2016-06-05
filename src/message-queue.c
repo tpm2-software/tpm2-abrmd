@@ -4,7 +4,7 @@
 
 #include "message-queue.h"
 
-G_DEFINE_TYPE (MessageQueue, message_queue, G_TYPE_OBJECT)
+G_DEFINE_TYPE (MessageQueue, message_queue, G_TYPE_OBJECT);
 
 static void
 message_queue_init (MessageQueue *self) {}
@@ -59,17 +59,23 @@ message_queue_enqueue (MessageQueue  *message_queue,
 GObject*
 message_queue_dequeue (MessageQueue *message_queue)
 {
+    GObject *obj;
+
     g_assert (message_queue != NULL);
     g_debug ("message_queue_dequeue 0x%x", message_queue);
-    return g_async_queue_pop (message_queue->queue);
+    obj = g_async_queue_pop (message_queue->queue);
+    g_debug ("  got obj: 0x%x", obj);
+    return obj;
 }
 GObject*
 message_queue_timeout_dequeue (MessageQueue *message_queue,
                                guint64       timeout)
 {
-    GObject *obj = NULL;
+    GObject *obj;
 
     g_assert (message_queue != NULL);
     g_debug ("message_queue_timeout_dequeue 0x%x", message_queue);
-    return g_async_queue_timeout_pop (message_queue->queue, timeout);
+    obj = g_async_queue_timeout_pop (message_queue->queue, timeout);
+    g_debug ("  got obj: 0x%x", obj);
+    return obj;
 }
