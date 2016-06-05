@@ -5,6 +5,8 @@
 
 #include "session-data.h"
 
+G_BEGIN_DECLS
+
 typedef struct _DataMessageClass {
     GObjectClass parent;
 } DataMessageClass;
@@ -31,4 +33,5 @@ data_message_new (session_data_t  *session,
 void
 data_message_print (DataMessage *message);
 
+G_END_DECLS
 #endif /* MESSAGE_H */

@@ -1,6 +1,6 @@
 #include "data-message.h"
 
-G_DEFINE_TYPE (DataMessage, data_message, G_TYPE_OBJECT)
+G_DEFINE_TYPE (DataMessage, data_message, G_TYPE_OBJECT);
 
 static void
 data_message_finalize (GObject *obj)
@@ -30,7 +30,7 @@ data_message_new (session_data_t  *session,
 {
     DataMessage *msg = NULL;
 
-    msg = g_object_new (TYPE_DATA_MESSAGE, NULL);
+    msg = DATA_MESSAGE (g_object_new (TYPE_DATA_MESSAGE, NULL));
     msg->session = session;
     msg->data    = data;
     msg->size    = size;
