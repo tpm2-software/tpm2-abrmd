@@ -50,12 +50,15 @@ data_message_type_check_test (void **state)
     size_t           size    = 0;
     session_data_t  *session = NULL;
 
-    obj = G_OBJECT (data_message_new (session, data, size));
+    msg = data_message_new (session, data, size);
+    assert_true (IS_DATA_MESSAGE (msg));
+    assert_true (G_IS_OBJECT (msg));
+    obj = G_OBJECT (msg);
+    assert_true (G_IS_OBJECT (obj));
     assert_true (IS_DATA_MESSAGE (obj));
-    msg = DATA_MESSAGE (obj);
     assert_int_equal (msg, obj);
 
-    g_object_unref (obj);
+    g_object_unref (msg);
 }
 
 gint
