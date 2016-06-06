@@ -19,12 +19,15 @@ typedef struct _DataMessage
     size_t           size;
 } DataMessage;
 
-#define TYPE_DATA_MESSAGE           (data_message_get_type             ())
-#define DATA_MESSAGE(obj)           (G_TYPE_CHECK_INSTANCE_CAST ((obj), TYPE_DATA_MESSAGE, DataMessage))
-#define DATA_MESSAGE_CLASS(cls)     (G_TYPE_CHECK_CLASS_CAST    ((cls), TYPE_DATA_MESSAGE, DataMessageClass))
-#define IS_DATA_MESSAGE(obj)        (G_TYPE_CHECK_INSTANCE_TYPE ((obj), TYPE_DATA_MESSAGE))
-#define IS_DATA_MESSAGE_CLASS(cls)  (G_TYPE_CHECK_CLASS_TYPE    ((cls), TYPE_DATA_MESSAGE))
-#define DATA_MESSAGE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS  ((obj), TYPE_DATA_MESSAGE, DataMessageClass))
+GType
+data_message_get_type (void);
+
+#define TYPE_DATA_MESSAGE            (data_message_get_type      ())
+#define DATA_MESSAGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_DATA_MESSAGE, DataMessage))
+#define DATA_MESSAGE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST    ((klass), TYPE_DATA_MESSAGE, DataMessageClass))
+#define IS_DATA_MESSAGE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj),   TYPE_DATA_MESSAGE))
+#define IS_DATA_MESSAGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE    ((klass), TYPE_DATA_MESSAGE))
+#define DATA_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_DATA_MESSAGE, DataMessageClass))
 
 DataMessage*
 data_message_new (session_data_t  *session,

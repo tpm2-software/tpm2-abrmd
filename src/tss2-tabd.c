@@ -354,11 +354,6 @@ main (int argc, char *argv[])
   if (parse_opts (argc, argv, &options) != 0)
       return 1;
 
-    /* no clue why I've gotta do this
-     * without it I get a weird segfault from G_OBJECT cast mecros
-     * */
-    DataMessage *msg = DATA_MESSAGE (NULL);
-
   g_mutex_init (&gmain_data.init_mutex);
   g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);
   /* Initialize program data on a separate thread. The main thread needs to
