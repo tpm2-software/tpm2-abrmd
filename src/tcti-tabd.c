@@ -1,10 +1,10 @@
 #include <errno.h>
 #include <gio/gio.h>
 #include <glib.h>
-#include <tss2-tabd.h>
-#include <tss2-tcti-tabd.h>
+#include <tabd.h>
+#include <tcti-tabd.h>
 
-#include "tss2-tcti-tabd-priv.h"
+#include "tcti-tabd-priv.h"
 #include "util.h"
 
 static TSS2_RC

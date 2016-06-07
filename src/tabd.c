@@ -7,15 +7,15 @@
 #include <unistd.h>
 
 #include <tss2/tpm20.h>
-#include <tss2-tabd.h>
-#include "tss2-tabd-priv.h"
-#include "tss2-tabd-logging.h"
+#include <tabd.h>
+#include "tabd-priv.h"
+#include "logging.h"
 #include "data-message.h"
 #include "session-manager.h"
 #include "session-watcher.h"
 #include "session-data.h"
 #include "response-watcher.h"
-#include "tss2-tabd-generated.h"
+#include "tabd-generated.h"
 
 #ifdef G_OS_UNIX
 #include <gio/gunixfdlist.h>

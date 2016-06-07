@@ -2,8 +2,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
 
-sbin_PROGRAMS   = src/tss2-tabd
-noinst_PROGRAMS = test/tss2-tcti-tabd_read-write
+sbin_PROGRAMS   = src/tabd
+noinst_PROGRAMS = test/tcti-tabd_read-write
 check_PROGRAMS  = \
     test/data-message_unit \
     test/message-queue_unit \
@@ -14,18 +14,18 @@ check_PROGRAMS  = \
     test/session-watcher_unit \
     test/tab_unit \
     test/util_unit
-lib_LTLIBRARIES = src/libtss2-tcti-tabd.la
+lib_LTLIBRARIES = src/libtcti-tabd.la
 noinst_LIBRARIES = src/libutil.a
 man8_MANS = man/tabd.man
 TESTS = $(check_PROGRAMS)
 
-tss2_tabddir      = $(includedir)/tss2
-tss2_tabd_HEADERS = $(srcdir)/src/include/tss2-tabd.h
-libtss2_tcti_tabddir      = $(includedir)/tss2
-libtss2_tcti_tabd_HEADERS = $(srcdir)/src/include/tss2-tcti-tabd.h
+tabddir      = $(includedir)/tss2
+tabd_HEADERS = $(srcdir)/src/include/tabd.h
+libtcti_tabddir      = $(includedir)/tss2
+libtcti_tabd_HEADERS = $(srcdir)/src/include/tcti-tabd.h
 CLEANFILES = \
-    src/tss2-tabd-generated.c \
-    src/tss2-tabd-generated.h \
+    src/tabd-generated.c \
+    src/tabd-generated.h \
     dist/*.service
 @VALGRIND_CHECK_RULES@
 VALGRIND_SUPPRESSIONS_FILES = dist/glib2.supp
@@ -34,33 +34,33 @@ EXTRA_DIST = dist/glib2.supp
 src_libutil_a_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) -fPIC
 src_libutil_a_SOURCES = src/util.c
 
-src_libtss2_tcti_tabd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
-src_libtss2_tcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
-src_libtss2_tcti_tabd_la_LDFLAGS = -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tss2-tcti-tabd.map
-src_libtss2_tcti_tabd_la_SOURCES = \
-    src/tss2-tabd-generated.c \
-    src/tss2-tcti-tabd.c \
+src_libtcti_tabd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
+src_libtcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
+src_libtcti_tabd_la_LDFLAGS = -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabd.map
+src_libtcti_tabd_la_SOURCES = \
+    src/tabd-generated.c \
+    src/tcti-tabd.c \
     src/util.c
 
-src_tss2_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
+src_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
     $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(TSS2_CFLAGS)
-src_tss2_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
+src_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(TSS2_LIBS) $(noinst_LIBRARIES)
-src_tss2_tabd_SOURCES = \
+src_tabd_SOURCES = \
     src/data-message.c \
     src/message-queue.c \
-    src/tss2-tabd.c \
-    src/tss2-tabd-generated.c \
-    src/tss2-tabd-logging.c \
+    src/tabd.c \
+    src/tabd-generated.c \
+    src/logging.c \
     src/session-watcher.c \
     src/session-manager.c \
     src/session-data.c \
     src/response-watcher.c \
     src/tab.c
 
-%-generated.c %-generated.h : src/tss2-tabd.xml
+%-generated.c %-generated.h : src/tabd.xml
 	$(GDBUS_CODEGEN) --interface-prefix=us.twobit.tss2. \
-	    --generate-c-code=src/tss2-tabd-generated $^
+	    --generate-c-code=src/tabd-generated $^
 
 dist/%.service : dist/%.service.in
 	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
@@ -115,9 +115,9 @@ test_msg_unit_SOURCES = \
     src/session-data.c \
     test/msg_unit.c
 
-test_tss2_tcti_tabd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)
-test_tss2_tcti_tabd_read_write_LDADD   = $(GLIB_LIBS) src/libtss2-tcti-tabd.la
-test_tss2_tcti_tabd_read_write_SOURCES = test/tss2-tcti-tabd_read-write.c
+test_tcti_tabd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)
+test_tcti_tabd_read_write_LDADD   = $(GLIB_LIBS) src/libtcti-tabd.la
+test_tcti_tabd_read_write_SOURCES = test/tcti-tabd_read-write.c
 
 test_util_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(noinst_LIBRARIES)

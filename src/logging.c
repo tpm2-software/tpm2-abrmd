@@ -1,5 +1,5 @@
 #include <syslog.h>
-#include "tss2-tabd-logging.h"
+#include "logging.h"
 
 #define LOG_LEVEL_ALL \
      (G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING | \

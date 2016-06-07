@@ -3,7 +3,7 @@
 
 #include <glib.h>
 #include <pthread.h>
-#include "tss2-tabd-generated.h"
+#include "tabd-generated.h"
 
 #define TSS2_TCTI_TABD_MAGIC 0x1c8e03ff00db0f92
 

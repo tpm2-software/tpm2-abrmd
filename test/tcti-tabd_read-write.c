@@ -1,5 +1,5 @@
 #include <glib.h>
-#include <tss2-tcti-tabd.h>
+#include <tcti-tabd.h>
 #include <unistd.h>
 
 int
