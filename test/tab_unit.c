@@ -60,6 +60,7 @@ tab_add_no_remove_test (void **state)
 
     msg = data_message_new (NULL, NULL, 0);
     tab_send_command (tab, G_OBJECT (msg));
+    g_object_unref (msg);
 }
 static void
 tab_add_remove_test (void **state)
@@ -71,11 +72,12 @@ tab_add_remove_test (void **state)
     msg_in = data_message_new (NULL, NULL, 0);
     g_print ("tab_send_command on tab 0x%x, msg 0x%x", tab, msg_in);
     tab_send_command (tab, G_OBJECT (msg_in));
+    g_object_unref (msg_in);
     obj_out = tab_get_timeout_response (tab, 1e6);
     assert_int_equal (msg_in, obj_out);
     msg_out = DATA_MESSAGE (obj_out);
     assert_int_equal (msg_in, msg_out);
-    g_object_unref (msg_in);
+    g_object_unref (msg_out);
 }
 
 gint

@@ -119,11 +119,14 @@ tab_send_command (tab_t       *tab,
                   GObject     *obj)
 {
     g_debug ("tab_send_command: tab_t: 0x%x DataMessage: 0x%x", tab, obj);
+    /* The TAB takes ownership of this object */
+    g_object_ref (obj);
     message_queue_enqueue (tab->in_queue, obj);
 }
 /** Get the next response from the TAB.
  * Block for timeout microseconds waiting for the next resonse to a TPM
  * command. The caller is responsible for freeing the returned buffer.
+ * The returned object is owned by the caller, we do not unref it.
  */
 GObject*
 tab_get_timeout_response (tab_t    *tab,

@@ -63,6 +63,8 @@ session_watcher_session_responder (session_watcher_t *watcher,
         return TRUE;
     }
     tab_send_command (tab, G_OBJECT (msg));
+    /* the tab now owns this message */
+    g_object_unref (msg);
     return TRUE;
 }
 
