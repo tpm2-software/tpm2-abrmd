@@ -380,17 +380,21 @@ main (int argc, char *argv[])
   g_bus_unown_name (owner_id);
   if (gmain_data.skeleton != NULL)
       g_object_unref (gmain_data.skeleton);
-  /* stop the connection watcher thread */
+  /* cancel the session watcher and the response watcher threads */
   session_watcher_cancel (gmain_data.session_watcher);
+  response_watcher_cancel (gmain_data.response_watcher);
+  /* cancel the TAB thread, this will cause the treads blocked on the queues
+   * in the TAB to be unblocked.
+   */
+  tab_cancel (gmain_data.tab);
+  /* The threads that block on the TAB queues can now be joined and freed */
   session_watcher_join (gmain_data.session_watcher);
   session_watcher_free (gmain_data.session_watcher);
-  session_manager_free (gmain_data.manager);
-  response_watcher_cancel (gmain_data.response_watcher);
   response_watcher_join (gmain_data.response_watcher);
   response_watcher_free (gmain_data.response_watcher);
-  tab_cancel (gmain_data.tab);
+  /* clean up what remains */
+  session_manager_free (gmain_data.manager);
   tab_join (gmain_data.tab);
   tab_free (gmain_data.tab);
-
   return 0;
 }

@@ -2,7 +2,6 @@
 #define DATA_MESSAGE_H
 
 #include <glib-object.h>
-
 #include "session-data.h"
 
 G_BEGIN_DECLS

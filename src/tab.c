@@ -1,9 +1,22 @@
 #include <errno.h>
 
+#include "control-message.h"
 #include "message-queue.h"
 #include "tab.h"
 
 #define TAB_TIMEOUT_DEQUEUE 1e6
+
+ssize_t
+tab_process_data_message (tab_t        *tab,
+                          DataMessage  *msg)
+{
+   /*
+    tss2_tcti_transmit (tab->tcti_context, size, blob);
+    tss2_tcti_receive (tab->tcti_context, size, blob, timeout);
+    */
+    g_debug ("tab process_data_message: 0x%x, object", tab->out_queue, msg);
+    message_queue_enqueue (tab->out_queue, G_OBJECT (msg));
+}
 
 gpointer
 cmd_runner (gpointer data)
@@ -13,30 +26,14 @@ cmd_runner (gpointer data)
 
     g_debug ("cmd_runner start");
     while (TRUE) {
-        /* To join this thread cleanly we can't block on the MessageQueue
-         * indefinitely. Waking up every second may be bad for battery
-         * though. Other options are a bit ugly though:
-         * Exit with this thread blocked and let the system recover the
-         * resources we leave behind. This will make reconfiguring the daemon
-         * dynamically difficult though I don't know we'll ever have to do
-         * that.
-         * Have the tab put a dummy blob in the queue to wake up the thread
-         * to get it to the cancelation point.
-         * This last one is probably the best option.
-         */
-        g_debug ("tab_cmd_runner: message_queue_timeout_dequeue: 0x%x for %e",
-                 tab->in_queue,
-                 TAB_TIMEOUT_DEQUEUE);
-        obj = message_queue_timeout_dequeue (tab->in_queue, TAB_TIMEOUT_DEQUEUE);
-        g_debug ("cmd_runner message_queue_timeout_dequeue got obj: 0x%x", obj);
-        if (obj != NULL) {
-       /*
-        tss2_tcti_transmit (tab->tcti_context, size, blob);
-        tss2_tcti_receive (tab->tcti_context, size, blob, timeout);
-        */
-            g_debug ("message_queue_enqueue: 0x%x, object", tab->out_queue, obj);
-            message_queue_enqueue (tab->out_queue, obj);
-        }
+        obj = message_queue_dequeue (tab->in_queue);
+        g_debug ("cmd_runner message_queue_dequeue got obj: 0x%x", obj);
+        if (IS_DATA_MESSAGE (obj))
+            tab_process_data_message (tab, DATA_MESSAGE (obj));
+        if (IS_CONTROL_MESSAGE (obj))
+            process_control_message (CONTROL_MESSAGE (obj));
+        if (obj == NULL)
+            g_debug ("cmd_runner: dequeued a null object");
         pthread_testcancel ();
     }
 }
@@ -87,13 +84,26 @@ gint
 tab_cancel (tab_t *tab)
 {
     gint ret;
+    ControlMessage *msg;
 
     if (tab == NULL)
         g_error ("tab_cancel passed NULL tab_t");
     if (tab->thread == 0)
         g_error ("tab_t not running, cannot cancel");
+    /* cancel our internal thread before we unblock it */
+    ret = pthread_cancel (tab->thread);
+    /* Let anything blocked on the in_queue know that they should check to
+     * see if they need to cancel too.
+     */
+    msg = control_message_new (CHECK_CANCEL);
+    g_debug ("tab_cancel: enqueuing ControlMessage: 0x%x", msg);
+    message_queue_enqueue (tab->in_queue, G_OBJECT (msg));
+    /* Same for the out_queue. */
+    msg = control_message_new (CHECK_CANCEL);
+    g_debug ("tab_cancel: enqueuing ControlMessage: 0x%x", msg);
+    message_queue_enqueue (tab->out_queue, G_OBJECT (msg));
 
-    return pthread_cancel (tab->thread);
+    return ret;
 }
 gint
 tab_join (tab_t *tab)
@@ -118,7 +128,7 @@ void
 tab_send_command (tab_t       *tab,
                   GObject     *obj)
 {
-    g_debug ("tab_send_command: tab_t: 0x%x DataMessage: 0x%x", tab, obj);
+    g_debug ("tab_send_command: tab_t: 0x%x obj: 0x%x", tab, obj);
     /* The TAB takes ownership of this object */
     g_object_ref (obj);
     message_queue_enqueue (tab->in_queue, obj);
@@ -134,6 +144,15 @@ tab_get_timeout_response (tab_t    *tab,
 {
     g_debug ("tab_get_timeout_response: tab_t: 0x%x", tab);
     return message_queue_timeout_dequeue (tab->out_queue, timeout);
+}
+/** Get the next response from this TAB.
+ * Block indefinitely waiting for a message to come from the TAB.
+ */
+GObject*
+tab_get_response (tab_t *tab)
+{
+    g_debug ("tab_get_response: tab_t: 0x%x", tab);
+    return message_queue_dequeue (tab->out_queue);
 }
 /** Cancel pending commands for a session in the TAB
  * Cancel each pending command associated with the given session in the TAB

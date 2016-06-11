@@ -3,6 +3,8 @@
 #include <pthread.h>
 
 #include "response-watcher.h"
+#include "control-message.h"
+#include "data-message.h"
 
 #define RESPONSE_WATCHER_TIMEOUT 1e6
 
@@ -45,38 +47,41 @@ response_watcher_write_response (const gint fd,
     return written;
 }
 
+ssize_t
+response_watcher_process_data_message (DataMessage *msg)
+{
+    gint fd;
+    ssize_t written;
+
+    g_debug ("response_watcher_thread got response message: 0x%x size %d",
+             msg, msg->size);
+    fd = session_data_send_fd (msg->session);
+    written = response_watcher_write_response (fd, msg);
+    if (written <= 0) {
+        /* should have a reference to the session manager so we can remove
+         * session after an error like this
+         */
+        g_warning ("Failed to write response to fd: %d", fd);
+    }
+}
+
 
 void*
 response_watcher_thread (void *data)
 {
     response_watcher_t *watcher;
-    DataMessage *msg;
     GObject *obj;
-    gint fd;
-    ssize_t written;
-
     watcher = (response_watcher_t*)data;
     do {
         g_debug ("response_watcher_thread waiting for response on tab: 0x%x",
                  watcher->tab);
-        obj = tab_get_timeout_response (watcher->tab, RESPONSE_WATCHER_TIMEOUT);
+        obj = tab_get_response (watcher->tab);
         g_debug ("response_watcher_thread got obj: 0x%x", obj);
-        pthread_testcancel ();
-        if (obj == NULL)
-            continue;
-        g_assert (IS_DATA_MESSAGE (obj));
-        msg = DATA_MESSAGE (obj);
-        g_debug ("response_watcher_thread got response message: 0x%x size %d",
-                 obj, msg->size);
-        fd = session_data_send_fd (msg->session);
-        written = response_watcher_write_response (fd, msg);
-        if (written <= 0) {
-            /* should have a reference to the session manager so we can remove
-             * session after an error like this
-             */
-            g_warning ("Failed to write response to fd: %d", fd);
-        }
-        g_object_unref (msg);
+        if (IS_CONTROL_MESSAGE (obj))
+            process_control_message (CONTROL_MESSAGE (obj));
+        if (IS_DATA_MESSAGE (obj))
+            response_watcher_process_data_message (DATA_MESSAGE (obj));
+        g_object_unref (obj);
     } while (TRUE);
 }
 

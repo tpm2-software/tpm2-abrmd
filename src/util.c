@@ -71,3 +71,16 @@ read_till_short (const gint   fd,
     *size = bytes_total;
     return bytes_read;
 }
+
+void
+process_control_message (ControlMessage *msg)
+{
+    g_debug ("Got a ControlMessage with code: 0x%x", msg->code);
+    switch (msg->code) {
+    case CHECK_CANCEL:
+        pthread_testcancel ();
+        break;
+    default:
+        break;
+    }
+}

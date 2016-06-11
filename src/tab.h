@@ -4,7 +4,6 @@
 #include <glib.h>
 #include <pthread.h>
 #include <tpm20.h>
-#include "data-message.h"
 #include "message-queue.h"
 #include "session-data.h"
 
@@ -23,6 +22,8 @@ tab_send_command         (tab_t             *tab,
 GObject*
 tab_get_timeout_command (tab_t              *tab,
                          guint64             timeout);
+GObject*
+tab_get_response        (tab_t              *tab);
 GObject*
 tab_get_timeout_response (tab_t             *tab,
                           guint64            timeout);
