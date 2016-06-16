@@ -13,7 +13,8 @@ check_PROGRAMS  = \
     test/session-manager_unit \
     test/session-watcher_unit \
     test/tab_unit \
-    test/util_unit
+    test/util_unit \
+    test/util-mock-realloc_unit
 lib_LTLIBRARIES = src/libtcti-tabd.la
 noinst_LIBRARIES = src/libutil.a
 man8_MANS = man/tabd.man
@@ -128,6 +129,11 @@ test_util_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_C
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LIBRARIES)
 test_util_unit_LDFLAGS = -Wl,--wrap=read,--wrap=write
 test_util_unit_SOURCES = test/util_unit.c
+
+test_util_mock_realloc_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
+test_util_mock_realloc_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LIBRARIES)
+test_util_mock_realloc_unit_LDFLAGS = -Wl,--wrap=realloc
+test_util_mock_realloc_unit_SOURCES = test/util-mock-realloc_unit.c
 
 test_data_message_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
 test_data_message_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
