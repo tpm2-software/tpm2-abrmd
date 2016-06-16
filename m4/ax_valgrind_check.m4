@@ -157,6 +157,7 @@ m4_if(m4_defn([en_dflt_valgrind_]vgtool), [off], [= "yes"], [!= "no"]),[
 # Optional variables
 VALGRIND_SUPPRESSIONS ?= $(addprefix --suppressions=,$(VALGRIND_SUPPRESSIONS_FILES))
 VALGRIND_FLAGS ?= --num-callers=30
+VALGRIND_G_DEBUG ?= fatal-warnings,fatal-criticals,gc-friendly
 VALGRIND_memcheck_FLAGS ?= --leak-check=full --show-reachable=no
 VALGRIND_helgrind_FLAGS ?= --history-level=approx
 VALGRIND_drd_FLAGS ?=
@@ -199,7 +200,7 @@ VALGRIND_TESTS_ENVIRONMENT = \
 	$(TESTS_ENVIRONMENT) \
 	env VALGRIND=$(VALGRIND) \
 	G_SLICE=always-malloc,debug-blocks \
-	G_DEBUG=fatal-warnings,fatal-criticals,gc-friendly
+	G_DEBUG=$(VALGRIND_G_DEBUG)
 
 VALGRIND_LOG_COMPILER = \
 	$(valgrind_lt) \

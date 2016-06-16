@@ -28,6 +28,7 @@ CLEANFILES = \
     src/tabd-generated.h \
     dist/*.service
 @VALGRIND_CHECK_RULES@
+VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
 VALGRIND_SUPPRESSIONS_FILES = dist/glib2.supp
 EXTRA_DIST = dist/glib2.supp
 
