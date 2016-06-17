@@ -34,23 +34,26 @@ write_all (const gint    fd,
     return written_total;
 }
 /** Read as many bytes as possible from fd into a newly allocated buffer up to
- * UTIL_BUF_MAX.
- * We read as much data is available allocating data in UTIL_BUF_SIZE chunks up to
- * UTIL_BUF_MAX. This function returns after a short read (less than the requested
- * byte count), or if a read returns 0 indicating the pipe was closed. In the
- * case of the closed pipe, 0 is returned but the caller should check the
- * returned size to see whether or not data was read before the pipe closed.
+ * UTIL_BUF_MAX or a call to read that would block.
+ * We return -1 for an unrecoverable error or when the fd has been closed.
+ * The rest of the time we return the number of bytes read.
  */
 ssize_t
-read_till_short (const gint   fd,
+read_till_block (const gint   fd,
                  guint8     **buf,
                  size_t      *size)
 {
     guint8  *local_buf = NULL, *tmp_buf;
     ssize_t bytes_read  = 0;
     size_t  bytes_total = 0;
+    gint    flags = 0;
 
-    g_debug ("reading as many bytes from fd %d as I can", fd);
+    flags = fcntl(fd, F_GETFL, 0);
+    if (!(flags && O_NONBLOCK)) {
+        g_debug ("read_till_eagain: setting fd %d to O_NONBLOCK", fd);
+        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    }
+    g_debug ("reading till EAGAIN on fd %d", fd);
     do {
         g_debug ("reallocing buf at 0x%x to %d bytes", local_buf, bytes_total + UTIL_BUF_SIZE);
         tmp_buf = realloc (local_buf, bytes_total + UTIL_BUF_SIZE);
@@ -59,28 +62,38 @@ read_till_short (const gint   fd,
                        bytes_total + UTIL_BUF_SIZE, strerror (errno));
             goto err_out;
         }
-        g_debug ("reallocated buf at 0x%x to %d bytes", local_buf, bytes_total + UTIL_BUF_SIZE);
+        g_debug ("reallocated buf at 0x%x to %d bytes",
+                 local_buf, bytes_total + UTIL_BUF_SIZE);
         local_buf = tmp_buf;
 
         bytes_read = read (fd, (void*)(local_buf + bytes_total), UTIL_BUF_SIZE);
         switch (bytes_read) {
         case -1:
-            g_warning ("read failed on fd %d: %s", fd, strerror (errno));
-            break;
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                g_debug ("would block on fd %d", fd);
+                goto out;
+            } else {
+                g_warning ("unexpected error reading from fd %d: errno %d: %s",
+                           fd, errno, strerror (errno));
+                goto err_out;
+            }
         case 0:
             g_info ("read returned 0 bytes -> fd %d closed", fd);
-            break;
+            goto err_out;
         default:
             g_debug ("read %d bytes from fd %d", bytes_read, fd);
             bytes_total += bytes_read;
             break;
         }
-    } while (bytes_read == UTIL_BUF_SIZE && bytes_total < UTIL_BUF_MAX);
+    } while (bytes_total < UTIL_BUF_MAX);
+out:
     *size = bytes_total;
     *buf = local_buf;
+    fcntl(fd, F_SETFL, flags);
 
-    return bytes_read;
+    return bytes_total;
 err_out:
+    fcntl(fd, F_SETFL, flags);
     if (local_buf != NULL)
         free (local_buf);
     return -1;

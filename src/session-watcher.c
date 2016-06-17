@@ -19,8 +19,9 @@ data_message_from_fd (session_data_t  *session,
     size_t  bytes_total = 0;
 
     g_debug ("data_message_from_fd: %d", fd);
-    bytes_read = read_till_short (fd, &buf, &bytes_total);
-    if (bytes_read == 0) {
+    bytes_read = read_till_block (fd, &buf, &bytes_total);
+    if (bytes_read == -1) {
+        g_info ("read_till_block: error, or connection closed");
         if (buf)
             free (buf);
         return NULL;

@@ -16,7 +16,7 @@ write_all (const gint    fd,
            const void   *buf,
            const size_t  size);
 ssize_t
-read_till_short (const gint   fd,
+read_till_block (const gint   fd,
                  guint8     **buf,
                  size_t      *size);
 void
