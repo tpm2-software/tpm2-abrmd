@@ -21,21 +21,34 @@ send_recv (TSS2_TCTI_CONTEXT *tcti_context)
 }
 
 int
-send_recv_1024 (TSS2_TCTI_CONTEXT *tcti_context)
+send_recv_bytes (TSS2_TCTI_CONTEXT *tcti_context,
+                 size_t             count)
 {
     /* send / receive */
     TSS2_RC ret;
-    uint8_t xmit_buf [1024];
-    g_debug ("transmitting 1024 bytes");
-    ret = tss2_tcti_transmit (tcti_context, 1024, xmit_buf);
-    if (ret != TSS2_RC_SUCCESS)
-        g_debug ("tss2_tcti_transmit failed");
-    uint8_t recv_buf [1024];
-    size_t recv_size;
-    ret = tss2_tcti_receive (tcti_context, &recv_size, recv_buf, TSS2_TCTI_TIMEOUT_BLOCK);
-    if (ret != TSS2_RC_SUCCESS)
-        g_debug ("tss2_tcti_receive failed");
-    g_debug ("received %d byte response", recv_size);
+    uint8_t xmit_buf [1024], recv_buf [1024];
+    size_t recv_size = 1024, recv_total = 0;
+    int i;
+
+    g_debug ("transmitting %d bytes in 1024 chunks", count);
+    for (i = count / 1024; i > 0; --i) {
+        ret = tss2_tcti_transmit (tcti_context, 1024, xmit_buf);
+        if (ret != TSS2_RC_SUCCESS)
+            g_debug ("tss2_tcti_transmit failed");
+    }
+    if (count % 1024 > 0) {
+        ret = tss2_tcti_transmit (tcti_context, count % 1024, xmit_buf);
+        if (ret != TSS2_RC_SUCCESS)
+            g_error ("tss2_tcti_transmit failed");
+    }
+    g_debug ("receiving %d bytes in 1024 chunks", count);
+    do {
+        ret = tss2_tcti_receive (tcti_context, &recv_size, recv_buf, TSS2_TCTI_TIMEOUT_BLOCK);
+        if (ret != TSS2_RC_SUCCESS)
+            g_error ("tss2_tcti_receive failed");
+        recv_total += recv_size;
+    } while (recv_total < count);
+    g_debug ("received %d byte response", recv_total);
 }
 
 int
@@ -56,17 +69,32 @@ main (void)
     ret = tss2_tcti_tabd_init (tcti_context, NULL);
     if (ret != TSS2_RC_SUCCESS)
         g_error ("failed to initialize tcti context");
-    g_debug ("initialized");
     /* Wait for initialization thread in the TCTI to setup a connection to the
      * tabd. The right thing to do is for the TCTI to cause callers to block
      * on a mutex till the setup thread is done.
      */
+    g_debug ("initialized");
+    g_debug ("send_recv_bytes 1023");
+    send_recv_bytes (tcti_context, 1023);
+    g_debug ("send_recv_bytes 1024");
+    send_recv_bytes (tcti_context, 1024);
+    g_debug ("send_recv_bytes 1025");
+    send_recv_bytes (tcti_context, 1025);
+    g_debug ("send-recv_bytes 1026");
+    send_recv_bytes (tcti_context, 1026);
+    g_debug ("send-recv_bytes 2047");
+    send_recv_bytes (tcti_context, 2047);
+    g_debug ("send-recv_bytes 2048");
+    send_recv_bytes (tcti_context, 2048);
+    g_debug ("send-recv_bytes 2049");
+    send_recv_bytes (tcti_context, 2049);
+
     send_recv (tcti_context);
-//    send_recv_1024 (tcti_context);
+    send_recv_bytes (tcti_context, 1024);
     tss2_tcti_cancel (tcti_context);
     tss2_tcti_set_locality (tcti_context, 1);
     send_recv (tcti_context);
-//    send_recv_1024 (tcti_context);
+    send_recv_bytes (tcti_context, 1024);
     tss2_tcti_cancel (tcti_context);
     tss2_tcti_set_locality (tcti_context, 1);
     tss2_tcti_finalize (tcti_context);
