@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <gio/gio.h>
 #include <glib.h>
+#include <string.h>
 #include <tabd.h>
 #include <tcti-tabd.h>
 
