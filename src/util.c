@@ -5,6 +5,9 @@
 #include <unistd.h>
 
 #include "util.h"
+
+/** Write as many of the size bytes from buf to fd as possible.
+ */
 ssize_t
 write_all (const gint    fd,
            const void   *buf,
@@ -22,8 +25,11 @@ write_all (const gint    fd,
                          buf  + written_total,
                          size - written_total);
         switch (written) {
-        case -1: return written;
-        case  0: return written_total;
+        case -1:
+            g_warning ("failed to write to fd %d: %s", fd, strerror (errno));
+            return written;
+        case  0:
+            return written_total;
         default:
             g_debug ("wrote %d bytes to fd %d", written, fd);
         }
