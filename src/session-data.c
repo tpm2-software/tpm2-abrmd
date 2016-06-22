@@ -44,6 +44,21 @@ create_pipe_pairs (int pipe_fds_a[],
     return 0;
 }
 
+int
+set_flags (const int fd,
+           const int flags)
+{
+    int local_flags, ret;
+
+    local_flags = fcntl(fd, F_GETFL, 0);
+    if (!(local_flags && flags)) {
+        g_debug ("session_data: setting flags for fd %d to %d",
+                 fd, local_flags | flags);
+        ret = fcntl(fd, F_SETFL, local_flags | flags);
+    }
+    return ret;
+}
+
 /* CreateConnection builds two pipes for communicating with client
  * applications. It's provided with an array of two integers by the caller
  * and it returns this array populated with the receiving and sending pipe fds
@@ -69,6 +84,18 @@ session_data_new (gint *receive_fd,
     *receive_fd = client_fds[0];
     session->send_fd = session_fds[1];
     *send_fd = client_fds[1];
+
+    /* Make the fds used by the server non-blocking, the client will have to
+     * set its own flags.
+     */
+    ret = set_flags (session->receive_fd, O_NONBLOCK);
+    if (ret == -1)
+        g_error ("Failed to set O_NONBLOCK for server receive fd %d: %s",
+                 session->receive_fd);
+    set_flags (session->send_fd,    O_NONBLOCK);
+    if (ret == -1)
+        g_error ("Failed to set O_NONBLOCK for server send fd %d: %s",
+                 session->send_fd, strerror (errno));
 
     return session;
 }

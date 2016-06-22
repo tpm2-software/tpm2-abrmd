@@ -41,6 +41,7 @@ write_all (const gint    fd,
 }
 /** Read as many bytes as possible from fd into a newly allocated buffer up to
  * UTIL_BUF_MAX or a call to read that would block.
+ * THE fd PARAMETER MUST BE AN FD WITH O_NONBLOCK SET.
  * We return -1 for an unrecoverable error or when the fd has been closed.
  * The rest of the time we return the number of bytes read.
  */
@@ -52,13 +53,7 @@ read_till_block (const gint   fd,
     guint8  *local_buf = NULL, *tmp_buf;
     ssize_t bytes_read  = 0;
     size_t  bytes_total = 0;
-    gint    flags = 0;
 
-    flags = fcntl(fd, F_GETFL, 0);
-    if (!(flags && O_NONBLOCK)) {
-        g_debug ("read_till_eagain: setting fd %d to O_NONBLOCK", fd);
-        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    }
     g_debug ("reading till EAGAIN on fd %d", fd);
     do {
         g_debug ("reallocing buf at 0x%x to %d bytes", local_buf, bytes_total + UTIL_BUF_SIZE);
@@ -95,11 +90,9 @@ read_till_block (const gint   fd,
 out:
     *size = bytes_total;
     *buf = local_buf;
-    fcntl(fd, F_SETFL, flags);
 
     return bytes_total;
 err_out:
-    fcntl(fd, F_SETFL, flags);
     if (local_buf != NULL)
         free (local_buf);
     return -1;
