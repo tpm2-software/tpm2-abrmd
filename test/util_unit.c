@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -14,6 +15,7 @@ __wrap_read (gint    fd,
                void   *buf,
                size_t  count)
 {
+    errno = (int) mock ();
     return (ssize_t) mock ();
 }
 
@@ -24,8 +26,11 @@ read_in_one (void **state)
     size_t  total_read;
     guint8  *buf = NULL;
 
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, READ_SIZE - 1);
-    read = read_till_short (0, &buf, &total_read);
+    will_return (__wrap_read, EAGAIN);
+    will_return (__wrap_read, -1);
+    read = read_till_block (0, &buf, &total_read);
     assert_int_equal (total_read, READ_SIZE - 1);
     free (buf);
 }
@@ -36,13 +41,17 @@ read_in_two (void **state)
     size_t   total_read;
     guint8  *buf = NULL;
 
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, READ_SIZE);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, READ_SIZE - 1);
-    read = read_till_short (0, &buf, &total_read);
+    will_return (__wrap_read, EAGAIN);
+    will_return (__wrap_read, -1);
+    read = read_till_block (0, &buf, &total_read);
     assert_int_equal (total_read, READ_SIZE + READ_SIZE - 1);
     free (buf);
 }
-/** Force read_till_short to hit UTIL_BUF_MAX allocation.
+/** Force read_till_block to hit UTIL_BUF_MAX allocation.
  */
 void
 read_max (void **state)
@@ -52,9 +61,11 @@ read_max (void **state)
     guint8  *buf = NULL;
     int i = 0;
 
-    for (i = 0; i < UTIL_BUF_MAX; i += READ_SIZE)
+    for (i = 0; i < UTIL_BUF_MAX; i += READ_SIZE) {
+        will_return (__wrap_read, 0);
         will_return (__wrap_read, READ_SIZE);
-    read = read_till_short (0, &buf, &total_read);
+    }
+    read = read_till_block (0, &buf, &total_read);
     assert_int_equal (total_read, UTIL_BUF_MAX);
     free (buf);
 }

@@ -27,7 +27,7 @@ fail_on_first (void **state)
 
     will_return (__wrap_realloc, ENOMEM);
     will_return (__wrap_realloc, NULL);
-    read = read_till_short (0, &buf, &total_read);
+    read = read_till_block (0, &buf, &total_read);
     assert_int_equal (read, -1);
 }
 
@@ -50,7 +50,7 @@ fail_on_second (void **state)
     will_return (__wrap_realloc, ENOMEM);
     will_return (__wrap_realloc, NULL);
     write (fds[1], priv_buf, UTIL_BUF_SIZE);
-    read = read_till_short (fds[0], &buf, &total_read);
+    read = read_till_block (fds[0], &buf, &total_read);
     assert_int_equal (read, -1);
 }
 
