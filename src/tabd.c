@@ -6,7 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <tss2/tpm20.h>
+#include <sapi/tpm20.h>
 #include <tabd.h>
 #include "tabd-priv.h"
 #include "logging.h"
@@ -153,7 +153,7 @@ on_handle_set_locality (Tab                   *skeleton,
     }
     g_info ("setting locality for session 0x%x to: 0x%x",
             session, locality);
-    /* cancel any existing commands for the session */
+    /* set locality for an existing session */
     /* setup and send return value */
     uint32_variant = g_variant_new_uint32 (TSS2_RC_SUCCESS);
     tuple_variant = g_variant_new_tuple (&uint32_variant, 1);

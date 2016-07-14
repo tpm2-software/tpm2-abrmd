@@ -3,7 +3,7 @@
 
 #include <glib.h>
 #include <pthread.h>
-#include <tpm20.h>
+#include <sapi/tpm20.h>
 #include "message-queue.h"
 #include "session-data.h"
 

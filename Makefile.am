@@ -45,9 +45,9 @@ src_libtcti_tabd_la_SOURCES = \
     src/util.c
 
 src_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
-    $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(TSS2_CFLAGS)
+    $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
 src_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(TSS2_LIBS) $(noinst_LIBRARIES)
+    $(SAPI_LIBS) $(noinst_LIBRARIES)
 src_tabd_SOURCES = \
     src/control-message.c \
     src/data-message.c \
@@ -68,8 +68,8 @@ src_tabd_SOURCES = \
 dist/%.service : dist/%.service.in
 	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
 
-test_response_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(TSS2_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
-test_response_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_LIBS) \
+test_response_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
+test_response_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LIBRARIES) $(GOBJECT_LIBS)
 test_response_watcher_unit_LDFLAGS = -Wl,--wrap=response_watcher_start
 test_response_watcher_unit_SOURCES = \
@@ -90,7 +90,7 @@ test_session_manager_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
 test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c test/session-manager_unit.c
 
-test_session_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(TSS2_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
+test_session_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
 test_session_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LIBRARIES)
 test_session_watcher_unit_SOURCES = \
     src/control-message.c \
@@ -102,9 +102,9 @@ test_session_watcher_unit_SOURCES = \
     src/tab.c \
     test/session-watcher_unit.c
 
-test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(TSS2_CFLAGS) \
+test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) \
     $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
-test_tab_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_LIBS) \
+test_tab_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
     $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LIBRARIES)
 test_tab_unit_SOURCES = \
     src/control-message.c \
