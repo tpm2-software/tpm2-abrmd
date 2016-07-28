@@ -11,12 +11,14 @@ tab_process_data_message (tab_t        *tab,
                           DataMessage  *msg)
 {
     TSS2_RC rc;
+    TSS2_TCTI_CONTEXT *tcti_context;
 
     g_debug ("tab process_data_message: 0x%x, object", tab->out_queue, msg);
-    rc = tss2_tcti_transmit (tab->tcti_context, msg->size, msg->data);
+    tcti_context = tcti_echo_get_context (tab->tcti_echo);
+    rc = tss2_tcti_transmit (tcti_context, msg->size, msg->data);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_transmit returned error: 0x%x", rc);
-    rc = tss2_tcti_receive (tab->tcti_context, &msg->size, msg->data, 0);
+    rc = tss2_tcti_receive (tcti_context, &msg->size, msg->data, 0);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_receive returned error: 0x%x", rc);
 
@@ -46,17 +48,17 @@ cmd_runner (gpointer data)
 /** Create new TPM access broker (TAB) object
  */
 tab_t*
-tab_new (TSS2_TCTI_CONTEXT *tcti_context)
+tab_new (TctiEcho *tcti_echo)
 {
     tab_t *tab = NULL;
     gint ret = 0;
 
-    if (tcti_context == NULL)
-        g_error ("tab_new passed NULL TSS2_TCTI_CONTEXT");
+    if (tcti_echo == NULL)
+        g_error ("tab_new passed NULL TctiEcho");
     tab = calloc (1, sizeof (tab_t));
     tab->in_queue  = message_queue_new ("TAB in queue");
     tab->out_queue = message_queue_new ("TAB out queue");
-    tab->tcti_context = tcti_context;
+    tab->tcti_echo = tcti_echo;
 
     return tab;
 }
@@ -74,8 +76,8 @@ tab_free (tab_t *tab)
         g_error ("tab_free called with thread running, cancel thread first");
     g_object_unref (tab->in_queue);
     g_object_unref (tab->out_queue);
-    if (tab->tcti_context)
-        tss2_tcti_finalize (tab->tcti_context);
+    if (tab->tcti_echo)
+        g_object_unref (tab->tcti_echo);
     free (tab);
 }
 gint

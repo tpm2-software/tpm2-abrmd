@@ -1,13 +1,16 @@
 #include <errno.h>
 #include <string.h>
 
-#include <glib.h>
-
 #include "tcti-echo.h"
 #include "tcti-echo-priv.h"
 
+#define TCTI_ECHO_MIN_BUF 1024
+#define TCTI_ECHO_DEFAULT_BUF 8192
 #define TCTI_ECHO_MAX_BUF 16384
 
+/**
+ * Begin TSS2_TCTI_CONTEXT code
+ */
 TSS2_RC
 tcti_echo_transmit (TSS2_TCTI_CONTEXT *tcti_context,
                     size_t             size,
@@ -120,3 +123,142 @@ tcti_echo_init (TSS2_TCTI_CONTEXT *tcti_context,
 
     return TSS2_RC_SUCCESS;
 }
+/**
+ * End TSS2_TCTI_CONTEXT code
+ */
+/**
+ * Begin GObject code.
+ */
+static gpointer tcti_echo_parent_class = NULL;
+
+enum {
+    PROP_0,
+    PROP_SIZE,
+    N_PROPERTIES
+};
+static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
+
+static void
+tcti_echo_set_property (GObject      *object,
+                        guint         property_id,
+                        const GValue *value,
+                        GParamSpec   *pspec)
+{
+    TctiEcho *self = TCTI_ECHO (object);
+
+    switch (property_id) {
+    case PROP_SIZE:
+        self->size = g_value_get_uint (value);
+        g_debug ("TctiEcho set size: %d", self->size);
+        break;
+    default:
+        /* We don't have any other property... */
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+static void
+tcti_echo_get_property (GObject    *object,
+                        guint       property_id,
+                        GValue     *value,
+                        GParamSpec *pspec)
+{
+    TctiEcho *self = TCTI_ECHO (object);
+
+    switch (property_id) {
+    case PROP_SIZE:
+        g_value_set_uint (value, self->size);
+        break;
+    default:
+        /* We don't have any other property... */
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+/* override the parent finalize method so we can free the data associated with
+ * the TctiEcho instance.
+ * NOTE: breaking naming convention due to conflict with TCTI finalize function
+ */
+static void
+tcti_echo_finalize_gobject (GObject *obj)
+{
+    TctiEcho *tcti_echo = TCTI_ECHO (obj);
+
+    if (tcti_echo_parent_class)
+        G_OBJECT_CLASS (tcti_echo_parent_class)->finalize (obj);
+}
+/* When the class is initialized we set the pointer to our finalize function.
+ */
+static void
+tcti_echo_class_init (gpointer klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    if (tcti_echo_parent_class == NULL)
+        tcti_echo_parent_class = g_type_class_peek_parent (klass);
+
+    object_class->finalize     = tcti_echo_finalize_gobject;
+    object_class->get_property = tcti_echo_get_property;
+    object_class->set_property = tcti_echo_set_property;
+
+    obj_properties[PROP_SIZE] =
+        g_param_spec_uint ("size",
+                           "buffer size",
+                           "Size for allocated internal buffer",
+                           TCTI_ECHO_MIN_BUF,
+                           TCTI_ECHO_MAX_BUF,
+                           TCTI_ECHO_DEFAULT_BUF,
+                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    g_object_class_install_properties (object_class,
+                                       N_PROPERTIES,
+                                       obj_properties);
+}
+/* Upon first call to *_get_type we register the type with the GType system.
+ * We keep a static GType around to speed up future calls.
+ */
+GType
+tcti_echo_get_type (void)
+{
+    static GType type = 0;
+    if (type == 0) {
+        type = g_type_register_static_simple (G_TYPE_OBJECT,
+                                              "TctiEcho",
+                                              sizeof (TctiEchoClass),
+                                              (GClassInitFunc) tcti_echo_class_init,
+                                              sizeof (TctiEcho),
+                                              NULL,
+                                              0);
+    }
+    return type;
+}
+TctiEcho*
+tcti_echo_new (guint size)
+{
+    return TCTI_ECHO (g_object_new (TYPE_TCTI_ECHO,
+                                    "size", size,
+                                    NULL));
+}
+/* Create and expose the internal TCTI context needed by the TSS / SAPI */
+TSS2_TCTI_CONTEXT*
+tcti_echo_get_context (TctiEcho *self)
+{
+    TSS2_RC rc;
+    size_t ctx_size;
+
+    if (self->tcti_context)
+        goto out;
+    rc = tcti_echo_init (NULL, &ctx_size, self->size);
+    if (rc != TSS2_RC_SUCCESS)
+        g_error ("failed to get size for echo TCTI context structure: "
+                 "0x%x", rc);
+    self->tcti_context = g_malloc0 (ctx_size);
+    rc = tcti_echo_init (self->tcti_context, &ctx_size, self->size);
+    if (rc != TSS2_RC_SUCCESS)
+        g_error ("tcti_echo_init failed: 0x%x", rc);
+
+out:
+    return self->tcti_context;
+}
+/**
+ * End GObject code
+ */

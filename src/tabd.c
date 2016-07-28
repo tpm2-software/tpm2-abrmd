@@ -270,7 +270,7 @@ init_thread_func (gpointer user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     gint wakeup_fds[2] = { 0 }, ret;
-    TSS2_TCTI_CONTEXT *tcti_context;
+    TctiEcho *tcti_echo;
     size_t tcti_size;
     TSS2_RC rc;
 
@@ -290,18 +290,11 @@ init_thread_func (gpointer user_data)
         g_error ("failed to make wakeup socket: %s", strerror (errno));
     data->wakeup_send_fd = wakeup_fds [1];
 
-    /* initialize the echo TCTI: tab_t takes ownership and will free */
-    rc = tcti_echo_init (NULL, &tcti_size, 0);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to obtain proper size for TCTI: 0x%x", rc);
-    tcti_context = (TSS2_TCTI_CONTEXT*)calloc (1, tcti_size);
-    if (tcti_context == NULL)
-        g_error ("failed to allocate buffer for tcti: %s", strerror (errno));
-    rc = tcti_echo_init (tcti_context, &tcti_size, 0);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize TCTI: 0x%x", rc);
+    tcti_echo = tcti_echo_new (8192);
+    if (tcti_echo == NULL)
+        g_error ("failed to crate echo TCTI");
 
-    data->tab = tab_new (tcti_context);
+    data->tab = tab_new (tcti_echo);
     ret = tab_start (data->tab);
     if (ret != 0)
         g_error ("failed to start tab_t: %s", strerror (errno));

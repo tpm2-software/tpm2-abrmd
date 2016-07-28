@@ -6,16 +6,17 @@
 #include <sapi/tpm20.h>
 #include "message-queue.h"
 #include "session-data.h"
+#include "tcti-echo.h"
 
 typedef struct tab {
     MessageQueue *in_queue, *out_queue;
     pthread_t thread;
-    TSS2_TCTI_CONTEXT *tcti_context;
+    TctiEcho     *tcti_echo;
 } tab_t;
 
 
 tab_t*
-tab_new                  (TSS2_TCTI_CONTEXT *tctiContext);
+tab_new                  (TctiEcho          *tcti_echo);
 void
 tab_send_command         (tab_t             *tab,
                           GObject           *obj);
