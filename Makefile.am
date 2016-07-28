@@ -16,6 +16,7 @@ check_PROGRAMS  = \
     test/util_unit \
     test/util-mock-realloc_unit
 lib_LTLIBRARIES = src/libtcti-tabd.la
+noinst_LTLIBRARIES = src/libtcti-echo.la
 noinst_LIBRARIES = src/libutil.a
 man8_MANS = man/tabd.man
 TESTS = $(check_PROGRAMS)
@@ -44,10 +45,13 @@ src_libtcti_tabd_la_SOURCES = \
     src/tcti-tabd.c \
     src/util.c
 
+src_libtcti_echo_la_CFLAGS  = -fPIC $(GLIB_CFLAGS) $(AM_CFLAGS)
+src_libtcti_echo_la_SOURCES = src/tcti-echo.c
+
 src_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
     $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
 src_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(SAPI_LIBS) $(noinst_LIBRARIES)
+    $(SAPI_LIBS) $(noinst_LTLIBRARIES) $(noinst_LIBRARIES)
 src_tabd_SOURCES = \
     src/control-message.c \
     src/data-message.c \
