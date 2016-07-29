@@ -46,7 +46,7 @@ src_libtcti_tabd_la_SOURCES = \
     src/util.c
 
 src_libtcti_echo_la_CFLAGS  = -fPIC $(GLIB_CFLAGS) $(AM_CFLAGS)
-src_libtcti_echo_la_SOURCES = src/tcti-echo.c
+src_libtcti_echo_la_SOURCES = src/tcti-interface.c src/tcti-echo.c
 
 src_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
     $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
@@ -63,7 +63,8 @@ src_tabd_SOURCES = \
     src/session-manager.c \
     src/session-data.c \
     src/response-watcher.c \
-    src/tab.c
+    src/tab.c \
+    src/tcti-interface.c
 
 %-generated.c %-generated.h : src/tabd.xml
 	$(GDBUS_CODEGEN) --interface-prefix=us.twobit.tss2. \

@@ -17,6 +17,7 @@
 #include "response-watcher.h"
 #include "tabd-generated.h"
 #include "tcti-echo.h"
+#include "tcti-interface.h"
 
 #ifdef G_OS_UNIX
 #include <gio/gunixfdlist.h>
@@ -294,7 +295,7 @@ init_thread_func (gpointer user_data)
     if (tcti_echo == NULL)
         g_error ("failed to crate echo TCTI");
 
-    data->tab = tab_new (tcti_echo);
+    data->tab = tab_new (TCTI (tcti_echo));
     ret = tab_start (data->tab);
     if (ret != 0)
         g_error ("failed to start tab_t: %s", strerror (errno));

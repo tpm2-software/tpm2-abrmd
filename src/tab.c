@@ -14,7 +14,7 @@ tab_process_data_message (tab_t        *tab,
     TSS2_TCTI_CONTEXT *tcti_context;
 
     g_debug ("tab process_data_message: 0x%x, object", tab->out_queue, msg);
-    tcti_context = tcti_echo_get_context (tab->tcti_echo);
+    tcti_context = tcti_get_context (tab->tcti);
     rc = tss2_tcti_transmit (tcti_context, msg->size, msg->data);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_transmit returned error: 0x%x", rc);
@@ -48,17 +48,17 @@ cmd_runner (gpointer data)
 /** Create new TPM access broker (TAB) object
  */
 tab_t*
-tab_new (TctiEcho *tcti_echo)
+tab_new (Tcti *tcti)
 {
     tab_t *tab = NULL;
     gint ret = 0;
 
-    if (tcti_echo == NULL)
-        g_error ("tab_new passed NULL TctiEcho");
+    if (tcti == NULL)
+        g_error ("tab_new passed NULL Tcti");
     tab = calloc (1, sizeof (tab_t));
     tab->in_queue  = message_queue_new ("TAB in queue");
     tab->out_queue = message_queue_new ("TAB out queue");
-    tab->tcti_echo = tcti_echo;
+    tab->tcti      = tcti;
 
     return tab;
 }
@@ -76,8 +76,8 @@ tab_free (tab_t *tab)
         g_error ("tab_free called with thread running, cancel thread first");
     g_object_unref (tab->in_queue);
     g_object_unref (tab->out_queue);
-    if (tab->tcti_echo)
-        g_object_unref (tab->tcti_echo);
+    if (tab->tcti)
+        g_object_unref (tab->tcti);
     free (tab);
 }
 gint

@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <string.h>
 
+#include "tcti-interface.h"
 #include "tcti-echo.h"
 #include "tcti-echo-priv.h"
 
@@ -213,6 +214,13 @@ tcti_echo_class_init (gpointer klass)
                                        N_PROPERTIES,
                                        obj_properties);
 }
+
+static void
+tcti_echo_interface_init (gpointer g_iface)
+{
+    TctiInterface *tcti_interface = (TctiInterface*)g_iface;
+    tcti_interface->get_context = tcti_echo_get_context;
+}
 /* Upon first call to *_get_type we register the type with the GType system.
  * We keep a static GType around to speed up future calls.
  */
@@ -228,6 +236,12 @@ tcti_echo_get_type (void)
                                               sizeof (TctiEcho),
                                               NULL,
                                               0);
+        const GInterfaceInfo tcti_info = {
+            (GInterfaceInitFunc) tcti_echo_interface_init,
+            NULL,
+            NULL
+        };
+        g_type_add_interface_static (type, TYPE_TCTI, &tcti_info);
     }
     return type;
 }
@@ -240,10 +254,11 @@ tcti_echo_new (guint size)
 }
 /* Create and expose the internal TCTI context needed by the TSS / SAPI */
 TSS2_TCTI_CONTEXT*
-tcti_echo_get_context (TctiEcho *self)
+tcti_echo_get_context (Tcti *tcti)
 {
     TSS2_RC rc;
     size_t ctx_size;
+    TctiEcho *self = TCTI_ECHO (tcti);
 
     if (self->tcti_context)
         goto out;

@@ -28,7 +28,7 @@ typedef struct _TctiEcho
 
 GType                tcti_echo_get_type       (void);
 TctiEcho*            tcti_echo_new            (guint        size);
-TSS2_TCTI_CONTEXT*   tcti_echo_get_context    (TctiEcho    *tcti);
+TSS2_TCTI_CONTEXT*   tcti_echo_get_context    (Tcti        *tcti);
 
 G_END_DECLS
 
