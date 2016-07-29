@@ -16,8 +16,7 @@
 #include "session-data.h"
 #include "response-watcher.h"
 #include "tabd-generated.h"
-#include "tcti-echo.h"
-#include "tcti-interface.h"
+#include "tcti-options.h"
 
 #ifdef G_OS_UNIX
 #include <gio/gunixfdlist.h>
@@ -37,6 +36,7 @@ typedef struct gmain_data {
     gint wakeup_send_fd;
     struct drand48_data rand_data;
     GMutex init_mutex;
+    TctiOptions *tcti_options;
 } gmain_data_t;
 
 /* This global pointer to the GMainLoop is necessary so that we can react to
@@ -271,9 +271,6 @@ init_thread_func (gpointer user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     gint wakeup_fds[2] = { 0 }, ret;
-    TctiEcho *tcti_echo;
-    size_t tcti_size;
-    TSS2_RC rc;
 
     g_info ("init_thread_func start");
     g_mutex_lock (&data->init_mutex);
@@ -291,11 +288,7 @@ init_thread_func (gpointer user_data)
         g_error ("failed to make wakeup socket: %s", strerror (errno));
     data->wakeup_send_fd = wakeup_fds [1];
 
-    tcti_echo = tcti_echo_new (8192);
-    if (tcti_echo == NULL)
-        g_error ("failed to crate echo TCTI");
-
-    data->tab = tab_new (TCTI (tcti_echo));
+    data->tab = tab_new (tcti_options_get_tcti (data->tcti_options));
     ret = tab_start (data->tab);
     if (ret != 0)
         g_error ("failed to start tab_t: %s", strerror (errno));
@@ -324,6 +317,7 @@ parse_opts (gint            argc,
     GOptionContext *ctx;
     GError *err = NULL;
     gboolean system_bus = FALSE;
+    gint ret = 0;
 
     GOptionEntry entries[] = {
         { "logger", 'l', 0, G_OPTION_ARG_STRING, &logger_name,
@@ -332,23 +326,27 @@ parse_opts (gint            argc,
           "Connect to the system dbus." },
         { NULL },
     };
+
+    g_debug ("creating tcti_options object");
+    options->tcti_options = tcti_options_new ();
     ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabd)");
     g_option_context_add_main_entries (ctx, entries, NULL);
+    g_option_context_add_group (ctx, tcti_options_get_group (options->tcti_options));
     if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
         g_print ("Failed to initialize: %s\n", err->message);
         g_clear_error (&err);
-        g_option_context_free (ctx);
-        return 1;
+        ret = 1;
+        goto out;
     }
     /* select the bus type, default to G_BUS_TYPE_SESSION */
     options->bus = system_bus ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION;
     if (set_logger (logger_name) == -1) {
         g_print ("Unknown logger: %s, try --help\n", logger_name);
-        return 1;
+        ret = 1;
     }
+out:
     g_option_context_free (ctx);
-
-    return 0;
+    return ret;
 }
 
 int
@@ -362,7 +360,7 @@ main (int argc, char *argv[])
 
   if (parse_opts (argc, argv, &options) != 0)
       return 1;
-
+  gmain_data.tcti_options = options.tcti_options;
   g_mutex_init (&gmain_data.init_mutex);
   g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);
   /* Initialize program data on a separate thread. The main thread needs to
@@ -403,6 +401,7 @@ main (int argc, char *argv[])
   response_watcher_free (gmain_data.response_watcher);
   /* clean up what remains */
   session_manager_free (gmain_data.manager);
+  g_object_unref (options.tcti_options);
   tab_join (gmain_data.tab);
   tab_free (gmain_data.tab);
   return 0;

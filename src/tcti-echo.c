@@ -147,10 +147,11 @@ tcti_echo_set_property (GObject      *object,
 {
     TctiEcho *self = TCTI_ECHO (object);
 
+    g_debug ("tcti_echo_set_property");
     switch (property_id) {
     case PROP_SIZE:
         self->size = g_value_get_uint (value);
-        g_debug ("TctiEcho set size: %d", self->size);
+        g_debug ("  PROP_SIZE: 0x%x", self->size);
         break;
     default:
         /* We don't have any other property... */
@@ -166,8 +167,10 @@ tcti_echo_get_property (GObject    *object,
 {
     TctiEcho *self = TCTI_ECHO (object);
 
+    g_debug ("tcti_echo_get_property");
     switch (property_id) {
     case PROP_SIZE:
+        g_debug ("  PROP_SIZE: 0x%x", self->size);
         g_value_set_uint (value, self->size);
         break;
     default:
@@ -248,6 +251,7 @@ tcti_echo_get_type (void)
 TctiEcho*
 tcti_echo_new (guint size)
 {
+    g_debug ("tcti_echo_new with parameter size: 0x%x", size);
     return TCTI_ECHO (g_object_new (TYPE_TCTI_ECHO,
                                     "size", size,
                                     NULL));
@@ -266,6 +270,7 @@ tcti_echo_get_context (Tcti *tcti)
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to get size for echo TCTI context structure: "
                  "0x%x", rc);
+    g_debug ("allocating tcti_context: 0x%x", ctx_size);
     self->tcti_context = g_malloc0 (ctx_size);
     rc = tcti_echo_init (self->tcti_context, &ctx_size, self->size);
     if (rc != TSS2_RC_SUCCESS)

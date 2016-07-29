@@ -64,7 +64,10 @@ src_tabd_SOURCES = \
     src/session-data.c \
     src/response-watcher.c \
     src/tab.c \
-    src/tcti-interface.c
+    src/tcti-interface.c \
+    src/tcti-options.c \
+    src/tcti-echo.c \
+    src/tcti-type-enum.c
 
 %-generated.c %-generated.h : src/tabd.xml
 	$(GDBUS_CODEGEN) --interface-prefix=us.twobit.tss2. \
