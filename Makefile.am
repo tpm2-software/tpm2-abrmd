@@ -18,7 +18,7 @@ check_PROGRAMS  = \
 lib_LTLIBRARIES = src/libtcti-tabd.la
 noinst_LTLIBRARIES = src/libtcti-echo.la
 noinst_LIBRARIES = src/libutil.a
-man8_MANS = man/tabd.man
+man8_MANS = man/tabd.8
 TESTS = $(check_PROGRAMS)
 
 tabddir      = $(includedir)/tss2
