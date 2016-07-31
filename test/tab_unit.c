@@ -10,7 +10,7 @@
 static void
 tab_allocate_deallocate_test (void **state)
 {
-    TSS2_TCTI_CONTEXT *tcti = NULL;
+    Tcti *tcti = NULL;
     tab_t *tab;
     tab = tab_new (tcti);
     tab_free (tab);
@@ -18,7 +18,7 @@ tab_allocate_deallocate_test (void **state)
 static void
 tab_start_stop_test_setup (void **state)
 {
-    TSS2_TCTI_CONTEXT *tcti = NULL;
+    Tcti *tcti = NULL;
     tab_t *tab;
 
     tab = tab_new (tcti);
@@ -42,7 +42,7 @@ tab_start_stop_test (void **state)
 static void
 tab_add_no_remove_test_setup (void **state)
 {
-    TSS2_TCTI_CONTEXT *tcti = NULL;
+    Tcti *tcti = NULL;
     tab_t *tab = *state;
 
     tab = tab_new (tcti);

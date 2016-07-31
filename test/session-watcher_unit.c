@@ -22,7 +22,7 @@ typedef struct watcher_test_data {
     session_watcher_t *watcher;
     session_data_t *session;
     tab_t *tab;
-    TSS2_TCTI_CONTEXT *tcti;
+    Tcti *tcti;
     gint wakeup_send_fd;
     gboolean match;
 } watcher_test_data_t;

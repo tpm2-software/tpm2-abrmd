@@ -112,6 +112,7 @@ test_response_watcher_unit_SOURCES = \
     src/session-data.c \
     src/session-manager.c \
     src/tab.c \
+    src/tcti-interface.c \
     test/response-watcher_unit.c
 
 test_session_data_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
@@ -132,6 +133,7 @@ test_session_watcher_unit_SOURCES = \
     src/session-manager.c \
     src/session-data.c \
     src/tab.c \
+    src/tcti-interface.c \
     test/session-watcher_unit.c
 
 test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) \
@@ -143,6 +145,7 @@ test_tab_unit_SOURCES = \
     src/data-message.c \
     src/message-queue.c \
     src/tab.c \
+    src/tcti-interface.c \
     test/tab_unit.c
 
 # message tests
