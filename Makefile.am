@@ -79,6 +79,20 @@ src_tabd_LDADD += $(TCTI_SOCKET_LIBS)
 src_tabd_SOURCES += src/tcti-socket.c
 endif
 
+man/%.8 : man/%.8.in
+	rm -f $@
+if TCTI_DEVICE
+	echo ".nr HAVE_DEVICE_TCTI 1" >> $@
+else
+	echo ".nr HAVE_DEVICE_TCTI 0" >> $@
+endif
+if TCTI_SOCKET
+	echo ".nr HAVE_SOCKET_TCTI 1" >> $@
+else
+	echo ".nr HAVE_SOCKET_TCTI 0" >> $@
+endif
+	cat $^ >> $@
+
 %-generated.c %-generated.h : src/tabd.xml
 	$(GDBUS_CODEGEN) --interface-prefix=us.twobit.tss2. \
 	    --generate-c-code=src/tabd-generated $^

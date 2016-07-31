@@ -7,6 +7,7 @@ tabd \- TPM2 access broker daemon
 .SH SYNOPSIS
 .B tabd 
 .RB [ \-l\ logger-name ]
+
 .SH DESCRIPTION
 .B tabd
 is a daemon that implements the TPM access broker as described by the Trusted
@@ -26,6 +27,29 @@ default is \fBstdout\fR.
 \fB\-s,\ \-\-system\fR
 Connect daemon to the system dbus. If this option is omitted the session bus
 is used instead.
+.TP
+\fB\-t,\ \-\-tcti\fR
+Select the TCTI used by tabd for communication with the next component down
+the TSS stack. In most configurations this will be the TPM but it could be
+a simulator or proxy. Supported TCTIs are \fB\*(lqecho\*(rq\fR
+.if (\n[HAVE_DEVICE_TCTI]) or \fB\*(lqdevice\*(rq\fR
+.if (\n[HAVE_SOCKET_TCTI]) or \fB\*(lqsocket\*(rq\fR
+\[char46]
+.\" Conditional inclusion of the device TCTI options
+.if (\n[HAVE_DEVICE_TCTI]) \{ .TP
+\fB\-d,\ \-\-tcti-device\fR
+Specify the TPM device file for use by the device TCTI. The default is
+/dev/tpm0.
+\}
+.\" Conditional inclusion of the socket TCTI options
+.if (\n[HAVE_SOCKET_TCTI]) \{ .TP
+\fB\-a,\ \-\-tcti-socket-address\fR
+Specify the domain name or IP address used by the socket TCTI. The default
+is 127.0.0.1.
+.TP
+\fB\-p,\ \-\-tcti-socket-port\fR
+Specify the port number used by the socket TCTI. The default is 2222.
+\}
 .SH ENVIRONMENT
 none
 .SH BUGS
