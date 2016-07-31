@@ -103,7 +103,7 @@ tcti_options_class_init (gpointer klass)
                            TCTI_TYPE_ECHO,
                            G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
     obj_properties[PROP_ECHO_SIZE] =
-        g_param_spec_uint ("echo-size",
+        g_param_spec_uint ("tcti-echo-size",
                            "Echo buffer size",
                            "Size of buffer to allocate for echo TCTI",
                            0,
@@ -207,7 +207,7 @@ tcti_options_get_group (TctiOptions *options)
             .arg_description = "echo"
         },
         {
-            .long_name       = "echo-size",
+            .long_name       = "tcti-echo-size",
             .short_name      = 's',
             .flags           = G_OPTION_FLAG_NONE,
             .arg             = G_OPTION_ARG_INT,

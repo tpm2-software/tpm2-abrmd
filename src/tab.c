@@ -14,7 +14,9 @@ tab_process_data_message (tab_t        *tab,
     TSS2_TCTI_CONTEXT *tcti_context;
 
     g_debug ("tab process_data_message: 0x%x, object", tab->out_queue, msg);
-    tcti_context = tcti_get_context (tab->tcti);
+    rc = tcti_get_context (tab->tcti, &tcti_context);
+    if (rc != TSS2_RC_SUCCESS)
+        g_error ("tcti_get_context failed: 0x%x", rc);
     rc = tss2_tcti_transmit (tcti_context, msg->size, msg->data);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_transmit returned error: 0x%x", rc);

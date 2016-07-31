@@ -271,6 +271,8 @@ init_thread_func (gpointer user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     gint wakeup_fds[2] = { 0 }, ret;
+    Tcti *tcti;
+    TSS2_RC rc;
 
     g_info ("init_thread_func start");
     g_mutex_lock (&data->init_mutex);
@@ -288,7 +290,16 @@ init_thread_func (gpointer user_data)
         g_error ("failed to make wakeup socket: %s", strerror (errno));
     data->wakeup_send_fd = wakeup_fds [1];
 
-    data->tab = tab_new (tcti_options_get_tcti (data->tcti_options));
+    /**
+     * this isn't strictly necessary but it allows us to detect a failure in
+     * the TCTI before we start communicating with clients
+     */
+    tcti = tcti_options_get_tcti (data->tcti_options);
+    rc = tcti_initialize (tcti);
+    if (rc != TSS2_RC_SUCCESS)
+        g_error ("failed to initialize TCTI: 0x%x", rc);
+
+    data->tab = tab_new (tcti);
     ret = tab_start (data->tab);
     if (ret != 0)
         g_error ("failed to start tab_t: %s", strerror (errno));

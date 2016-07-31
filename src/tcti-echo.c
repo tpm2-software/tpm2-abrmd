@@ -92,6 +92,7 @@ tcti_echo_init (TSS2_TCTI_CONTEXT *tcti_context,
 {
     TCTI_ECHO_CONTEXT *echo_context = (TCTI_ECHO_CONTEXT*)tcti_context;
 
+    g_debug ("tcti_echo_init");
     if (tcti_context == NULL && ctx_size == NULL)
         return TSS2_TCTI_RC_BAD_VALUE;
     if (tcti_context == NULL && ctx_size != NULL) {
@@ -115,6 +116,7 @@ tcti_echo_init (TSS2_TCTI_CONTEXT *tcti_context,
     TSS2_TCTI_GET_POLL_HANDLES (tcti_context) = tcti_echo_get_poll_handles;
     TSS2_TCTI_SET_LOCALITY (tcti_context)     = tcti_echo_set_locality;
 
+    g_debug ("tcti_echo_init allocate data buffer: 0x%x", buf_size);
     echo_context->buf = (uint8_t*)calloc (1, buf_size);
     if (echo_context->buf == NULL)
         g_error ("tcti_echo_init buffer allocation failed: %s", strerror (errno));
@@ -223,6 +225,7 @@ tcti_echo_interface_init (gpointer g_iface)
 {
     TctiInterface *tcti_interface = (TctiInterface*)g_iface;
     tcti_interface->get_context = tcti_echo_get_context;
+    tcti_interface->initialize  = tcti_echo_initialize;
 }
 /* Upon first call to *_get_type we register the type with the GType system.
  * We keep a static GType around to speed up future calls.
@@ -256,11 +259,10 @@ tcti_echo_new (guint size)
                                     "size", size,
                                     NULL));
 }
-/* Create and expose the internal TCTI context needed by the TSS / SAPI */
-TSS2_TCTI_CONTEXT*
-tcti_echo_get_context (Tcti *tcti)
+TSS2_RC
+tcti_echo_initialize (Tcti *tcti)
 {
-    TSS2_RC rc;
+    TSS2_RC rc = TSS2_RC_SUCCESS;
     size_t ctx_size;
     TctiEcho *self = TCTI_ECHO (tcti);
 
@@ -268,16 +270,29 @@ tcti_echo_get_context (Tcti *tcti)
         goto out;
     rc = tcti_echo_init (NULL, &ctx_size, self->size);
     if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to get size for echo TCTI context structure: "
-                 "0x%x", rc);
+        goto out;
     g_debug ("allocating tcti_context: 0x%x", ctx_size);
     self->tcti_context = g_malloc0 (ctx_size);
     rc = tcti_echo_init (self->tcti_context, &ctx_size, self->size);
     if (rc != TSS2_RC_SUCCESS)
-        g_error ("tcti_echo_init failed: 0x%x", rc);
-
+        g_free (self->tcti_context);
 out:
-    return self->tcti_context;
+    return rc;
+
+}
+/* Create and expose the internal TCTI context needed by the TSS / SAPI */
+TSS2_RC
+tcti_echo_get_context (Tcti               *tcti,
+                       TSS2_TCTI_CONTEXT **ctx)
+{
+    TSS2_RC rc = TSS2_RC_SUCCESS;
+    TctiEcho *self = TCTI_ECHO (tcti);
+
+    g_debug ("tcti_echo_get_context");
+    if (self->tcti_context == NULL)
+        rc = tcti_echo_initialize (tcti);
+    *ctx = self->tcti_context;
+    return rc;
 }
 /**
  * End GObject code
