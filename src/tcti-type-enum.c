@@ -8,6 +8,9 @@ tcti_type_enum_get_type (void)
     if (!tcti_type_enum_type) {
         static const GEnumValue my_enum_values[] = {
             { TCTI_TYPE_ECHO, "TCTI for a dumb echo service", "echo" },
+#ifdef HAVE_TCTI_DEVICE
+            { TCTI_TYPE_DEVICE, "TCTI for tpm device node", "device" },
+#endif
             { 0, NULL, NULL }
         };
 

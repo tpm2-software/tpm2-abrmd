@@ -24,4 +24,19 @@ fi
 AX_VALGRIND_DFLT([helgrind], [off])
 AX_VALGRIND_DFLT([drd], [off])
 AX_VALGRIND_CHECK
+# function from the gnu.org docs
+AC_DEFUN([MY_ARG_WITH],
+         [AC_ARG_WITH(m4_translit([[$1]], [_], [-]),
+                      [AS_HELP_STRING([--with-m4_translit([$1], [_], [-])],
+                                      [use $1 (default is $2)])],
+                      [use_[]$1=$withval],
+                      [use_[]$1=$2])
+         ])
+MY_ARG_WITH([tcti_device], [no])
+AS_IF([test "x$use_tcti_device" != xno],
+      [PKG_CHECK_MODULES([TCTI_DEVICE],
+                         [tcti-device],
+                         [AC_DEFINE([HAVE_TCTI_DEVICE],
+                                    [1])])])
+AM_CONDITIONAL([TCTI_DEVICE], [test "x$use_tcti_device" != xno])
 AC_OUTPUT

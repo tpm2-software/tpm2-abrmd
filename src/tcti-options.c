@@ -3,6 +3,9 @@
 #include "tcti-options.h"
 #include "tcti-interface.h"
 #include "tcti-echo.h"
+#ifdef HAVE_TCTI_DEVICE
+#include "tcti-device.h"
+#endif
 #include "tcti-type-enum.h"
 
 static gpointer tcti_options_parent_class = NULL;
@@ -12,6 +15,9 @@ enum
     PROP_0,
     PROP_TCTI_TYPE,
     PROP_ECHO_SIZE,
+#ifdef HAVE_TCTI_DEVICE
+    PROP_DEVICE_NAME,
+#endif
     N_PROPERTIES
 };
 
@@ -37,6 +43,13 @@ tcti_options_set_property (GObject      *object,
         self->echo_size = g_value_get_uint (value);
         g_debug ("  value: 0x%x", self->echo_size);
         break;
+#ifdef HAVE_TCTI_DEVICE
+    case PROP_DEVICE_NAME:
+        g_free (self->device_name);
+        self->device_name = g_value_dup_string (value);
+        g_debug ("TctiOptions set device_name: %s", self->device_name);
+        break;
+#endif
     default:
         /* We don't have any other property... */
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -61,6 +74,11 @@ tcti_options_get_property (GObject    *object,
         g_debug ("  PROP_ECHO_SIZE: 0x%x", self->echo_size);
         g_value_set_uint (value, self->echo_size);
         break;
+#ifdef HAVE_TCTI_DEVICE
+    case PROP_DEVICE_NAME:
+        g_value_set_string (value, self->device_name);
+        break;
+#endif
     default:
         /* We don't have any other property... */
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -110,7 +128,14 @@ tcti_options_class_init (gpointer klass)
                            16384,
                            8192,
                            G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
-
+#ifdef HAVE_TCTI_DEVICE
+    obj_properties[PROP_DEVICE_NAME] =
+        g_param_spec_string ("device-name",
+                             "Device name",
+                             "TPM2 device node",
+                             "/dev/tpm0",
+                             G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
+#endif
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
@@ -150,6 +175,12 @@ tcti_map_entry_t tcti_map[] = {
         .name      = "echo",
         .tcti_type = TCTI_TYPE_ECHO
     },
+#ifdef HAVE_TCTI_DEVICE
+    {
+        .name      = "device",
+        .tcti_type = TCTI_TYPE_DEVICE
+    }
+#endif
 };
 #define ARRAY_LENGTH(array, type) (sizeof (array) / sizeof (type))
 
@@ -204,7 +235,11 @@ tcti_options_get_group (TctiOptions *options)
             .arg             = G_OPTION_ARG_CALLBACK,
             .arg_data        = tcti_parse_opt_callback,
             .description     = "Downstream TCTI",
-            .arg_description = "echo"
+            .arg_description = "[echo"
+#ifdef HAVE_TCTI_DEVICE
+            "|device"
+#endif
+            "]"
         },
         {
             .long_name       = "tcti-echo-size",
@@ -215,6 +250,17 @@ tcti_options_get_group (TctiOptions *options)
             .description     = "Size of buffer to allocate for echo TCTI",
             .arg_description = "[0-16384]"
         },
+#ifdef HAVE_TCTI_DEVICE
+        {
+            .long_name       = "tcti-device",
+            .short_name      = 'd',
+            .flags           = G_OPTION_FLAG_NONE,
+            .arg             = G_OPTION_ARG_FILENAME,
+            .arg_data        = &options->device_name,
+            .description     = "TPM2 device nade, default is /dev/tpm0",
+            .arg_description = "/dev/tpm0"
+        },
+#endif
         { NULL }
     };
 
@@ -237,6 +283,11 @@ tcti_options_get_tcti (TctiOptions *self)
     switch (self->tcti_type) {
     case TCTI_TYPE_ECHO:
         return TCTI (tcti_echo_new (self->echo_size));
+#ifdef HAVE_TCTI_DEVICE
+    case TCTI_TYPE_DEVICE:
+        g_assert (self->device_name);
+        return TCTI (tcti_device_new (self->device_name));
+#endif
     default:
         g_error ("unsupported TCTI type");
         break;

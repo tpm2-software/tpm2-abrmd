@@ -68,6 +68,11 @@ src_tabd_SOURCES = \
     src/tcti-options.c \
     src/tcti-echo.c \
     src/tcti-type-enum.c
+if TCTI_DEVICE
+src_tabd_CFLAGS += $(TCTI_DEVICE_CFLAGS)
+src_tabd_LDADD += $(TCTI_DEVICE_LIBS)
+src_tabd_SOURCES += src/tcti-device.c
+endif
 
 %-generated.c %-generated.h : src/tabd.xml
 	$(GDBUS_CODEGEN) --interface-prefix=us.twobit.tss2. \
