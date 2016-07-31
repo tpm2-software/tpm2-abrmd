@@ -39,4 +39,11 @@ AS_IF([test "x$use_tcti_device" != xno],
                          [AC_DEFINE([HAVE_TCTI_DEVICE],
                                     [1])])])
 AM_CONDITIONAL([TCTI_DEVICE], [test "x$use_tcti_device" != xno])
+MY_ARG_WITH([tcti_socket], [no])
+AS_IF([test "x$use_tcti_socket" != xno],
+      [PKG_CHECK_MODULES([TCTI_SOCKET],
+                         [tcti-socket],
+                         [AC_DEFINE([HAVE_TCTI_SOCKET],
+                                    [1])])])
+AM_CONDITIONAL([TCTI_SOCKET], [test "x$use_tcti_socket" != xno])
 AC_OUTPUT

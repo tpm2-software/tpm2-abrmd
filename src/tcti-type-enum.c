@@ -11,6 +11,9 @@ tcti_type_enum_get_type (void)
 #ifdef HAVE_TCTI_DEVICE
             { TCTI_TYPE_DEVICE, "TCTI for tpm device node", "device" },
 #endif
+#ifdef HAVE_TCTI_SOCKET
+            { TCTI_TYPE_SOCKET, "TCTI for tcp socket", "socket" },
+#endif
             { 0, NULL, NULL }
         };
 

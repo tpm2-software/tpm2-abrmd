@@ -8,6 +8,9 @@ typedef enum TCTI_TYPE {
 #ifdef HAVE_TCTI_DEVICE
     TCTI_TYPE_DEVICE,
 #endif
+#ifdef HAVE_TCTI_SOCKET
+    TCTI_TYPE_SOCKET,
+#endif
 } TctiTypeEnum;
 
 #define TYPE_TCTI_TYPE_ENUM      (tcti_type_enum_get_type ())

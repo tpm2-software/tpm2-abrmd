@@ -6,6 +6,9 @@
 #ifdef HAVE_TCTI_DEVICE
 #include "tcti-device.h"
 #endif
+#ifdef HAVE_TCTI_SOCKET
+#include "tcti-socket.h"
+#endif
 #include "tcti-type-enum.h"
 
 static gpointer tcti_options_parent_class = NULL;
@@ -17,6 +20,10 @@ enum
     PROP_ECHO_SIZE,
 #ifdef HAVE_TCTI_DEVICE
     PROP_DEVICE_NAME,
+#endif
+#ifdef HAVE_TCTI_SOCKET
+    PROP_SOCKET_ADDRESS,
+    PROP_SOCKET_PORT,
 #endif
     N_PROPERTIES
 };
@@ -50,6 +57,16 @@ tcti_options_set_property (GObject      *object,
         g_debug ("TctiOptions set device_name: %s", self->device_name);
         break;
 #endif
+#ifdef HAVE_TCTI_SOCKET
+    case PROP_SOCKET_ADDRESS:
+        self->socket_address = g_value_dup_string (value);
+        g_debug ("TctiOptions set socket_address: %s\n", self->socket_address);
+        break;
+    case PROP_SOCKET_PORT:
+        self->socket_port = g_value_get_int (value);
+        g_debug ("TctiOptions set socket_port: %d\n", self->socket_port);
+        break;
+#endif
     default:
         /* We don't have any other property... */
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -77,6 +94,14 @@ tcti_options_get_property (GObject    *object,
 #ifdef HAVE_TCTI_DEVICE
     case PROP_DEVICE_NAME:
         g_value_set_string (value, self->device_name);
+        break;
+#endif
+#ifdef HAVE_TCTI_SOCKET
+    case PROP_SOCKET_ADDRESS:
+        g_value_set_string (value, self->socket_address);
+        break;
+    case PROP_SOCKET_PORT:
+        g_value_set_int (value, self->socket_port);
         break;
 #endif
     default:
@@ -136,6 +161,22 @@ tcti_options_class_init (gpointer klass)
                              "/dev/tpm0",
                              G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
 #endif
+#ifdef HAVE_TCTI_SOCKET
+    obj_properties[PROP_SOCKET_ADDRESS] =
+        g_param_spec_string ("socket-address",
+                             "Socket address",
+                             "Address for socket TCTI to connect",
+                             NULL  /* default value */,
+                             G_PARAM_READWRITE);
+    obj_properties[PROP_SOCKET_PORT] =
+        g_param_spec_int ("socket-port",
+                          "Port",
+                          "Port for socket TCTI connection",
+                          0,
+                          65535,
+                          2222,
+                          G_PARAM_READWRITE);
+#endif
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
@@ -179,8 +220,15 @@ tcti_map_entry_t tcti_map[] = {
     {
         .name      = "device",
         .tcti_type = TCTI_TYPE_DEVICE
-    }
+    },
 #endif
+#ifdef HAVE_TCTI_SOCKET
+    {
+        .name      = "socket",
+        .tcti_type = TCTI_TYPE_SOCKET
+    },
+#endif
+
 };
 #define ARRAY_LENGTH(array, type) (sizeof (array) / sizeof (type))
 
@@ -239,6 +287,9 @@ tcti_options_get_group (TctiOptions *options)
 #ifdef HAVE_TCTI_DEVICE
             "|device"
 #endif
+#ifdef HAVE_TCTI_SOCKET
+            "|socket"
+#endif
             "]"
         },
         {
@@ -259,6 +310,26 @@ tcti_options_get_group (TctiOptions *options)
             .arg_data        = &options->device_name,
             .description     = "TPM2 device nade, default is /dev/tpm0",
             .arg_description = "/dev/tpm0"
+        },
+#endif
+#ifdef HAVE_TCTI_SOCKET
+        {
+            .long_name       = "tcti-socket-address",
+            .short_name      = 'a',
+            .flags           = G_OPTION_FLAG_NONE,
+            .arg             = G_OPTION_ARG_STRING,
+            .arg_data        = &options->socket_address,
+            .description     = "address for socket TCTI",
+            .arg_description = "127.0.0.1"
+        },
+        {
+            .long_name       = "tcti-socket-port",
+            .short_name      = 'p',
+            .flags           = G_OPTION_FLAG_NONE,
+            .arg             = G_OPTION_ARG_INT,
+            .arg_data        = &options->socket_port,
+            .description     = "port for socket TCTI",
+            .arg_description = "0-65535",
         },
 #endif
         { NULL }
@@ -287,6 +358,15 @@ tcti_options_get_tcti (TctiOptions *self)
     case TCTI_TYPE_DEVICE:
         g_assert (self->device_name);
         return TCTI (tcti_device_new (self->device_name));
+#endif
+#ifdef HAVE_TCTI_SOCKET
+    case TCTI_TYPE_SOCKET:
+        g_assert (self->socket_address);
+        TctiSocket *tcti_socket;
+        tcti_socket = tcti_socket_new (self->socket_address,
+                                       self->socket_port);
+
+        return TCTI (tcti_socket);
 #endif
     default:
         g_error ("unsupported TCTI type");
