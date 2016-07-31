@@ -208,7 +208,7 @@ tcti_options_get_group (TctiOptions *options)
         },
         {
             .long_name       = "tcti-echo-size",
-            .short_name      = 's',
+            .short_name      = 'e',
             .flags           = G_OPTION_FLAG_NONE,
             .arg             = G_OPTION_ARG_INT,
             .arg_data        = &options->echo_size,
