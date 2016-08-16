@@ -16,6 +16,9 @@ check_PROGRAMS  = \
     test/tcti-options_unit \
     test/util_unit \
     test/util-mock-realloc_unit
+if TCTI_DEVICE
+check_PROGRAMS += test/tcti-device_unit
+endif
 lib_LTLIBRARIES = src/libtcti-tabd.la
 noinst_LTLIBRARIES = src/libtcti-echo.la
 noinst_LIBRARIES = src/libutil.a
@@ -156,6 +159,15 @@ test_msg_unit_SOURCES = \
     src/msg.c \
     src/session-data.c \
     test/msg_unit.c
+
+if TCTI_DEVICE
+test_tcti_device_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(AM_CFLAGS)
+test_tcti_device_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TCTI_DEVICE_LIBS)
+test_tcti_device_unit_SOURCES  = \
+    src/tcti-device.c \
+    src/tcti-interface.c \
+    test/tcti-device_unit.c
+endif
 
 test_tcti_options_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
 test_tcti_options_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
