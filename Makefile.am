@@ -13,6 +13,7 @@ check_PROGRAMS  = \
     test/session-manager_unit \
     test/session-watcher_unit \
     test/tab_unit \
+    test/tcti-options_unit \
     test/util_unit \
     test/util-mock-realloc_unit
 lib_LTLIBRARIES = src/libtcti-tabd.la
@@ -155,6 +156,25 @@ test_msg_unit_SOURCES = \
     src/msg.c \
     src/session-data.c \
     test/msg_unit.c
+
+test_tcti_options_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
+test_tcti_options_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_tcti_options_unit_SOURCES = \
+    src/tcti-echo.c \
+    src/tcti-interface.c \
+    src/tcti-options.c \
+    src/tcti-type-enum.c \
+    test/tcti-options_unit.c
+if TCTI_DEVICE
+test_tcti_options_unit_CFLAGS  += $(TCTI_DEVICE_CFLAGS)
+test_tcti_options_unit_LDADD   += $(TCTI_DEVICE_LIBS)
+test_tcti_options_unit_SOURCES += src/tcti-device.c
+endif
+if TCTI_SOCKET
+test_tcti_options_unit_CFLAGS  += $(TCTI_SOCKET_CFLAGS)
+test_tcti_options_unit_LDADD   += $(TCTI_SOCKET_LIBS)
+test_tcti_options_unit_SOURCES += src/tcti-socket.c
+endif
 
 test_tcti_tabd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_tcti_tabd_read_write_LDADD   = $(GLIB_LIBS) src/libtcti-tabd.la
