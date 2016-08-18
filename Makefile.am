@@ -19,6 +19,10 @@ check_PROGRAMS  = \
 if TCTI_DEVICE
 check_PROGRAMS += test/tcti-device_unit
 endif
+if TCTI_SOCKET
+check_PROGRAMS += test/tcti-socket_unit
+endif
+
 lib_LTLIBRARIES = src/libtcti-tabd.la
 noinst_LTLIBRARIES = src/libtcti-echo.la
 noinst_LIBRARIES = src/libutil.a
@@ -167,6 +171,15 @@ test_tcti_device_unit_SOURCES  = \
     src/tcti-device.c \
     src/tcti-interface.c \
     test/tcti-device_unit.c
+endif
+
+if TCTI_SOCKET
+test_tcti_socket_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAGS) $(TCTI_SOCKET_CFLAGS) $(AM_CFLAGS)
+test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TCTI_SOCKET_LIBS)
+test_tcti_socket_unit_SOURCES  = \
+    src/tcti-socket.c \
+    src/tcti-interface.c \
+    test/tcti-socket_unit.c
 endif
 
 test_tcti_options_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
