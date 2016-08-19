@@ -152,6 +152,7 @@ test_tab_unit_SOURCES = \
     src/data-message.c \
     src/message-queue.c \
     src/tab.c \
+    src/tcti-echo.c \
     src/tcti-interface.c \
     test/tab_unit.c
 
