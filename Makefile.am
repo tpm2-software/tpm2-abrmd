@@ -141,6 +141,7 @@ test_session_watcher_unit_SOURCES = \
     src/session-manager.c \
     src/session-data.c \
     src/tab.c \
+    src/tcti-echo.c \
     src/tcti-interface.c \
     test/session-watcher_unit.c
 

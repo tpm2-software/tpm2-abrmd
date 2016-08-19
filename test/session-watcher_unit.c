@@ -16,6 +16,7 @@
 #include "tab.h"
 #include "session-manager.h"
 #include "session-watcher.h"
+#include "tcti-echo.h"
 
 typedef struct watcher_test_data {
     session_manager_t *manager;
@@ -48,7 +49,7 @@ session_watcher_allocate_setup (void **state)
 
     data = calloc (1, sizeof (watcher_test_data_t));
     data->manager = session_manager_new ();
-    data->tcti = NULL;
+    data->tcti = (Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF);
     data->tab = tab_new (data->tcti);
 
     *state = data;
@@ -99,7 +100,7 @@ session_watcher_start_setup (void **state)
     data->manager = session_manager_new ();
     if (data->manager == NULL)
         g_error ("failed to allocate new session_manager");
-    data->tcti = NULL;
+    data->tcti = (Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF);
     data->tab = tab_new (data->tcti);
     data->watcher = session_watcher_new (data->manager, fds[0], data->tab);
     if (data->watcher == NULL)
@@ -142,7 +143,7 @@ session_watcher_wakeup_setup (void **state)
     ret = pipe2 (fds, O_CLOEXEC);
     if (ret != 0)
         g_error ("failed to get pipe2s");
-    data->tab = tab_new (NULL);
+    data->tab = tab_new ((Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF));
     data->watcher = session_watcher_new (data->manager,
                                         fds[0],
                                         data->tab);
@@ -230,7 +231,7 @@ session_watcher_session_data_setup (void **state)
     ret = pipe2 (fds, O_CLOEXEC);
     if (ret != 0)
         g_error ("failed to get pipe2s");
-    data->tab = tab_new (NULL);
+    data->tab = tab_new ((Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF));
     ret = tab_start (data->tab);
     if (ret != 0)
         g_error ("failed to start tab");
