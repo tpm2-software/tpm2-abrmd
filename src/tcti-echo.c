@@ -5,10 +5,6 @@
 #include "tcti-echo.h"
 #include "tcti-echo-priv.h"
 
-#define TCTI_ECHO_MIN_BUF 1024
-#define TCTI_ECHO_DEFAULT_BUF 8192
-#define TCTI_ECHO_MAX_BUF 16384
-
 /**
  * Begin TSS2_TCTI_CONTEXT code
  */
