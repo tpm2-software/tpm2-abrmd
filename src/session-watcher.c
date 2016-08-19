@@ -10,7 +10,7 @@
 #include "tab.h"
 #include "util.h"
 DataMessage*
-data_message_from_fd (session_data_t  *session,
+data_message_from_fd (SessionData     *session,
                       gint             fd)
 {
     guint8 *buf = NULL;
@@ -43,7 +43,7 @@ session_watcher_session_responder (session_watcher_t *watcher,
                                    tab_t             *tab)
 {
     DataMessage *msg;
-    session_data_t *session;
+    SessionData *session;
     gint ret;
 
     g_debug ("session_watcher_session_responder 0x%x", watcher);

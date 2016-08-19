@@ -12,7 +12,7 @@ data_message_new_unref_with_data_test (void **state)
     DataMessage     *msg     = NULL;
     guint8          *data    = NULL;
     size_t           size    = 0;
-    session_data_t  *session = NULL;
+    SessionData     *session = NULL;
 
     size = 10;
     data = calloc (1, size);
@@ -31,7 +31,7 @@ data_message_new_unref_test (void **state)
     DataMessage     *msg     = NULL;
     guint8          *data    = NULL;
     size_t           size    = 0;
-    session_data_t  *session = NULL;
+    SessionData     *session = NULL;
 
     msg = data_message_new (session, data, size);
     assert_int_equal (session, msg->session);
@@ -48,7 +48,7 @@ data_message_type_check_test (void **state)
     DataMessage     *msg     = NULL;
     guint8          *data    = NULL;
     size_t           size    = 0;
-    session_data_t  *session = NULL;
+    SessionData     *session = NULL;
 
     msg = data_message_new (session, data, size);
     assert_true (IS_DATA_MESSAGE (msg));

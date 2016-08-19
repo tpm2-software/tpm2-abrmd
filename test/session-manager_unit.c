@@ -47,7 +47,7 @@ static void
 session_manager_insert_test (void **state)
 {
     session_manager_t *manager = (session_manager_t*)*state;
-    session_data_t *session = NULL;
+    SessionData *session = NULL;
     gint ret, receive_fd, send_fd;
 
     session = session_data_new (&receive_fd, &send_fd, 5);
@@ -59,7 +59,7 @@ static void
 session_manager_lookup_fd_test (void **state)
 {
     session_manager_t *manager = (session_manager_t*)*state;
-    session_data_t *session = NULL, *session_lookup = NULL;
+    SessionData *session = NULL, *session_lookup = NULL;
     gint ret, receive_fd, send_fd;
 
     session = session_data_new (&receive_fd, &send_fd, 5);
@@ -72,7 +72,7 @@ static void
 session_manager_lookup_id_test (void **state)
 {
     session_manager_t *manager = (session_manager_t*)*state;
-    session_data_t *session = NULL, *session_lookup = NULL;
+    SessionData *session = NULL, *session_lookup = NULL;
     gint ret, receive_fd, send_fd;
 
     session = session_data_new (&receive_fd, &send_fd, 5);
@@ -85,7 +85,7 @@ static void
 session_manager_remove_test (void **state)
 {
     session_manager_t *manager = (session_manager_t*)*state;
-    session_data_t *session = NULL;
+    SessionData *session = NULL;
     gint ret_int, receive_fd, send_fd;
     gboolean ret_bool;
 
@@ -100,7 +100,7 @@ static void
 session_manager_set_fds_test (void **state)
 {
     session_manager_t *manager = (session_manager_t*)*state;
-    session_data_t *first_session = NULL, *second_session = NULL;
+    SessionData *first_session = NULL, *second_session = NULL;
     gint ret_int, receive_fd0, send_fd0, receive_fd1, send_fd1;
     fd_set manager_fds = { 0 };
 
@@ -120,8 +120,8 @@ session_manager_set_fds_test (void **state)
             assert_true (FD_ISSET (ret_int, &manager_fds) == 0);
         }
     }
-    session_data_free (first_session);
-    session_data_free (second_session);
+    g_object_unref (G_OBJECT (first_session));
+    g_object_unref (G_OBJECT (second_session));
 }
 
 int

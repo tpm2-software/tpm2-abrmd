@@ -173,7 +173,7 @@ tab_get_response (tab_t *tab)
  */
 gint
 tab_cancel_commands (tab_t          *tab,
-                     session_data_t *session)
+                     SessionData    *session)
 {
     g_error ("tab_cancel_commands: unimplemented");
     return 0;

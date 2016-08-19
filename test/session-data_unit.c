@@ -15,7 +15,7 @@
 #include "session-data.h"
 
 typedef struct session_test_data {
-    session_data_t *session;
+    SessionData *session;
     gint receive_fd;
     gint send_fd;
 } session_test_data_t;
@@ -66,14 +66,14 @@ session_create_pipe_pairs_test (void **state)
 static void
 session_allocate_test (void **state)
 {
-    session_data_t *session = NULL;
+    SessionData *session = NULL;
     gint receive_fd, send_fd;
 
     session = session_data_new (&receive_fd, &send_fd, 0);
     assert_non_null (session);
     assert_true (receive_fd >= 0);
     assert_true (send_fd >= 0);
-    session_data_free (session);
+    g_object_unref (session);
 }
 
 static void
@@ -84,6 +84,7 @@ session_setup (void **state)
     data = calloc (1, sizeof (session_test_data_t));
     assert_non_null (data);
     data->session = session_data_new (&data->receive_fd, &data->send_fd, 0);
+    assert_non_null (data->session);
     *state = data;
 }
 
@@ -92,7 +93,7 @@ session_teardown (void **state)
 {
     session_test_data_t *data = (session_test_data_t*)*state;
 
-    session_data_free (data->session);
+    g_object_unref (data->session);
     close (data->receive_fd);
     close (data->send_fd);
     free (data);
@@ -101,7 +102,8 @@ session_teardown (void **state)
 static void
 session_key_fd_test (void **state)
 {
-    session_data_t *session = (session_data_t*)*state;
+    session_test_data_t *data = (session_test_data_t*)*state;
+    SessionData *session = SESSION_DATA (data->session);
     int *key = NULL;
 
     key = (int*)session_data_key_fd (session);
@@ -111,7 +113,8 @@ session_key_fd_test (void **state)
 static void
 session_key_id_test (void **state)
 {
-    session_data_t *session = *state;
+    session_test_data_t *data = (session_test_data_t*)*state;
+    SessionData *session = SESSION_DATA (data->session);
     guint64 *key = NULL;
 
     key = (guint64*)session_data_key_id (session);
@@ -142,13 +145,12 @@ static void
 session_client_to_server_test (void ** state)
 {
     session_test_data_t *data = (session_test_data_t*)*state;
-    gchar buf[256] = { 0 };
     gint ret = 0;
 
-    ret = write (data->session->send_fd, "test", strlen ("test"));
-    assert_true (ret > 0);
-    ret = read (data->receive_fd, buf, 256);
-    assert_true (strcmp ("test", buf) == 0);
+    ret = write_read (data->session->send_fd, data->receive_fd, "test", strlen ("test"));
+    if (ret == -1)
+        g_print ("write_read failed: %d\n", ret);
+    assert_int_equal (ret, strlen ("test"));
 }
 /* session_client_to_server_test end */
 /* session_server_to_client_test begin
@@ -161,10 +163,10 @@ session_server_to_client_test (void **state)
     gchar buf[256] = { 0 };
     gint ret = 0;
 
-    ret = write (data->send_fd, "test", strlen ("test"));
-    assert_true (ret > 0);
-    ret = read (data->session->receive_fd, buf, 256);
-    assert_true (strcmp ("test", buf) == 0);
+    ret = write_read (data->send_fd, data->session->receive_fd, "test", strlen ("test"));
+    if (ret == -1)
+        g_print ("write_read failed: %d\n", ret);
+    assert_int_equal (ret, strlen ("test"));
 }
 /* session_server_to_client_test end */
 

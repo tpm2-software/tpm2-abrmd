@@ -123,12 +123,12 @@ test_response_watcher_unit_SOURCES = \
     src/tcti-interface.c \
     test/response-watcher_unit.c
 
-test_session_data_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
-test_session_data_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
+test_session_data_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
+test_session_data_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_session_data_unit_SOURCES = src/session-data.c test/session-data_unit.c
 
-test_session_manager_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
-test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
+test_session_manager_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
+test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c test/session-manager_unit.c
 
 test_session_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
@@ -159,8 +159,8 @@ test_tab_unit_SOURCES = \
     test/tab_unit.c
 
 # message tests
-test_msg_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS)
-test_msg_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS)
+test_msg_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
+test_msg_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_msg_unit_SOURCES = \
     src/msg.c \
     src/session-data.c \

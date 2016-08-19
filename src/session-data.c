@@ -6,6 +6,145 @@
 
 #include "session-data.h"
 
+static gpointer session_data_parent_class = NULL;
+
+enum {
+    PROP_0,
+    PROP_ID,
+    PROP_RECEIVE_FD,
+    PROP_SEND_FD,
+    N_PROPERTIES
+};
+static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
+
+static void
+session_data_set_property (GObject        *object,
+                           guint          property_id,
+                           const GValue  *value,
+                           GParamSpec    *pspec)
+{
+    SessionData *self = SESSION_DATA (object);
+
+    g_debug ("session_data_set_property");
+    switch (property_id) {
+    case PROP_ID:
+        self->id = g_value_get_uint (value);
+        g_debug ("SessionData 0x%x set id to 0x%x\n",
+                 self, self->id);
+        break;
+    case PROP_RECEIVE_FD:
+        self->receive_fd = g_value_get_int (value);
+        g_debug ("SessionData 0x%x set receive_fd to 0x%x\n",
+                 self, self->receive_fd);
+        break;
+    case PROP_SEND_FD:
+        self->send_fd = g_value_get_int (value);
+        g_debug ("SessionData 0x%x set send_fd to 0x%x\n",
+                 self, self->send_fd);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+static void
+session_data_get_property (GObject     *object,
+                           guint        property_id,
+                           GValue      *value,
+                           GParamSpec  *pspec)
+{
+    SessionData *self = SESSION_DATA (object);
+
+    g_debug ("session_data_get_property");
+    switch (property_id) {
+    case PROP_ID:
+        g_value_set_uint (value, self->id);
+        break;
+    case PROP_RECEIVE_FD:
+        g_value_set_int (value, self->receive_fd);
+        break;
+    case PROP_SEND_FD:
+        g_value_set_int (value, self->send_fd);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+session_data_finalize (GObject *obj)
+{
+    SessionData *session = SESSION_DATA (obj);
+
+    g_debug ("session_data_finalize: 0x%x", session);
+    if (session == NULL)
+        return;
+    close (session->receive_fd);
+    close (session->send_fd);
+    if (session_data_parent_class)
+        G_OBJECT_CLASS (session_data_parent_class)->finalize (obj);
+}
+
+static void
+session_data_class_init (gpointer klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    g_debug ("session_data_class_init");
+    if (session_data_parent_class == NULL)
+        session_data_parent_class = g_type_class_peek_parent (klass);
+
+    object_class->finalize     = session_data_finalize;
+    object_class->get_property = session_data_get_property;
+    object_class->set_property = session_data_set_property;
+
+    obj_properties [PROP_ID] =
+        g_param_spec_uint ("id",
+                           "session identifier",
+                           "Unique identifier for the session",
+                           0,
+                           UINT_MAX,
+                           0,
+                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_RECEIVE_FD] =
+        g_param_spec_int ("receive_fd",
+                          "Receie File Descriptor",
+                          "File descriptor for receiving data",
+                          0,
+                          INT_MAX,
+                          0,
+                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_SEND_FD] =
+        g_param_spec_int ("send_fd",
+                          "Send file descriptor",
+                          "File descriptor for sending data",
+                          0,
+                          INT_MAX,
+                          0,
+                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    g_object_class_install_properties (object_class,
+                                       N_PROPERTIES,
+                                       obj_properties);
+}
+GType
+session_data_get_type (void)
+{
+    static GType type = 0;
+
+    g_debug ("session_data_get_type");
+    if (type == 0) {
+        type = g_type_register_static_simple (G_TYPE_OBJECT,
+                                              "SessionData",
+                                              sizeof (SessionDataClass),
+                                              (GClassInitFunc) session_data_class_init,
+                                              sizeof (SessionData),
+                                              NULL,
+                                              0);
+    }
+    return type;
+}
+
 /* Create a pipe and return the recv and send fds. */
 int
 create_pipe_pair (int *recv,
@@ -64,61 +203,49 @@ set_flags (const int fd,
  * and it returns this array populated with the receiving and sending pipe fds
  * respectively.
  */
-session_data_t*
+SessionData*
 session_data_new (gint *receive_fd,
                   gint *send_fd,
                   guint64 id)
 {
+
     g_info ("CreateConnection");
     int ret, session_fds[2], client_fds[2];
-    session_data_t *session;
 
-    session = calloc (1, sizeof (session_data_t));
-    if (session == NULL)
-        g_error ("Failed to allocate memory for session_data_t: %s", strerror (errno));
-    session->id = id;
+    g_debug ("session_data_new creating pipe pairs");
     ret = create_pipe_pairs (session_fds, client_fds, O_CLOEXEC);
     if (ret == -1)
         g_error ("CreateConnection failed to make pipe pair %s", strerror (errno));
-    session->receive_fd = session_fds[0];
-    *receive_fd = client_fds[0];
-    session->send_fd = session_fds[1];
-    *send_fd = client_fds[1];
-
     /* Make the fds used by the server non-blocking, the client will have to
      * set its own flags.
      */
-    ret = set_flags (session->receive_fd, O_NONBLOCK);
+    ret = set_flags (session_fds [0], O_NONBLOCK);
     if (ret == -1)
         g_error ("Failed to set O_NONBLOCK for server receive fd %d: %s",
-                 session->receive_fd);
-    set_flags (session->send_fd,    O_NONBLOCK);
+                 session_fds [0]);
+    ret = set_flags (session_fds [1], O_NONBLOCK);
     if (ret == -1)
         g_error ("Failed to set O_NONBLOCK for server send fd %d: %s",
-                 session->send_fd, strerror (errno));
+                 session_fds [1], strerror (errno));
+    /* return a receive & send end back for the client */
+    *receive_fd = client_fds[0];
+    *send_fd = client_fds[1];
 
-    return session;
-}
-
-void
-session_data_free (session_data_t *session)
-{
-    g_debug ("freeing session_data_t: 0x%x", session);
-    if (session == NULL)
-        return;
-    close (session->receive_fd);
-    close (session->send_fd);
-    free (session);
+    return SESSION_DATA (g_object_new (TYPE_SESSION_DATA,
+                                       "id", id,
+                                       "receive_fd", session_fds [0],
+                                       "send_fd", session_fds [1],
+                                       NULL));
 }
 
 gpointer
-session_data_key_fd (session_data_t *session)
+session_data_key_fd (SessionData *session)
 {
     return &session->receive_fd;
 }
 
 gpointer
-session_data_key_id (session_data_t *session)
+session_data_key_id (SessionData *session)
 {
     return &session->id;
 }
@@ -137,12 +264,24 @@ session_data_equal_id (gconstpointer a,
     return g_int_equal (a, b);
 }
 gint
-session_data_receive_fd (session_data_t *session)
+session_data_receive_fd (SessionData *session)
 {
-    return session->receive_fd;
+    GValue value = G_VALUE_INIT;
+
+    g_value_init (&value, G_TYPE_INT);
+    g_object_get_property (G_OBJECT (session),
+                           "receive_fd",
+                           &value);
+    return g_value_get_int (&value);
 }
 gint
-session_data_send_fd (session_data_t *session)
+session_data_send_fd (SessionData *session)
 {
-    return session->send_fd;
+    GValue value = G_VALUE_INIT;
+
+    g_value_init (&value, G_TYPE_INT);
+    g_object_get_property (G_OBJECT (session),
+                           "send_fd",
+                           &value);
+    return g_value_get_int (&value);
 }

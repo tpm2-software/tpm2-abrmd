@@ -36,18 +36,18 @@ check_cancel_msg_free (check_cancel_msg_t *msg);
 /* data_msg_t */
 typedef struct data_msg {
     msg_t            msg;
-    session_data_t  *session;
+    SessionData     *session;
     guint8          *data;
     size_t           size;
 } data_msg_t;
 
 data_msg_t*
-data_msg_new (session_data_t *session,
+data_msg_new (SessionData    *session,
               guint8         *data,
               size_t          size);
 void
 data_msg_free (data_msg_t *msg);
-session_data_t*
+SessionData*
 data_msg_get_session (const data_msg_t *msg);
 guint8*
 data_msg_get_data (const data_msg_t *msg);

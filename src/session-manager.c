@@ -21,7 +21,7 @@ session_manager_new (void)
                  strerror (errno));
     /* These two data structures must be kept in sync. When the
      * session-manager object is destoryed the session-data objects in these
-     * hash tables will be free'd by the session_data_free function. We only
+     * hash tables will be free'd by the g_object_unref function. We only
      * set this for one of the hash tables because we only want to free
      * each session-data object once.
      * We could make this more clean by using reference counted objects.
@@ -35,7 +35,7 @@ session_manager_new (void)
         g_hash_table_new_full (g_int64_hash,
                                session_data_equal_id,
                                NULL,
-                               (GDestroyNotify)session_data_free);
+                               (GDestroyNotify)g_object_unref);
     return session_manager;
 }
 
@@ -64,7 +64,7 @@ session_manager_free (session_manager_t *manager)
 
 gint
 session_manager_insert (session_manager_t *manager,
-                        session_data_t *session)
+                        SessionData       *session)
 {
     gint ret;
 
@@ -85,11 +85,11 @@ session_manager_insert (session_manager_t *manager,
     return ret;
 }
 
-session_data_t*
+SessionData*
 session_manager_lookup_fd (session_manager_t *manager,
                            gint fd_in)
 {
-    session_data_t *session;
+    SessionData *session;
 
     pthread_mutex_lock (&manager->mutex);
     session = g_hash_table_lookup (manager->session_from_fd_table,
@@ -99,11 +99,11 @@ session_manager_lookup_fd (session_manager_t *manager,
     return session;
 }
 
-session_data_t*
+SessionData*
 session_manager_lookup_id (session_manager_t *manager,
                            gint64 id)
 {
-    session_data_t *session;
+    SessionData *session;
 
     g_debug ("locking manager mutex");
     pthread_mutex_lock (&manager->mutex);
@@ -118,7 +118,7 @@ session_manager_lookup_id (session_manager_t *manager,
 
 gboolean
 session_manager_remove (session_manager_t *manager,
-                        session_data_t *session)
+                        SessionData       *session)
 {
     gboolean ret;
 
@@ -147,7 +147,7 @@ set_fd (gpointer key,
         gpointer user_data)
 {
     fd_set *fds = (fd_set*)user_data;
-    session_data_t *session = (session_data_t*)value;
+    SessionData *session = (SessionData*)value;
 
     FD_SET (session_data_receive_fd (session), fds);
 }

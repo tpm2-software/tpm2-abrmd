@@ -13,7 +13,7 @@ typedef struct _DataMessageClass {
 typedef struct _DataMessage
 {
     GObject          parent_instance;
-    session_data_t  *session;
+    SessionData     *session;
     guint8          *data;
     size_t           size;
 } DataMessage;
@@ -29,7 +29,7 @@ data_message_get_type (void);
 #define DATA_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_DATA_MESSAGE, DataMessageClass))
 
 DataMessage*
-data_message_new (session_data_t  *session,
+data_message_new (SessionData     *session,
                   guint8          *data,
                   size_t           size);
 void

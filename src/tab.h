@@ -30,6 +30,6 @@ tab_get_timeout_response (tab_t             *tab,
                           guint64            timeout);
 gint
 tab_cancel_commands      (tab_t             *tab,
-                          session_data_t    *session);
+                          SessionData       *session);
 
 #endif /* TAB_H */

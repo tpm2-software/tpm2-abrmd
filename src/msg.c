@@ -34,7 +34,7 @@ check_cancel_msg_free (check_cancel_msg_t *msg)
 }
 
 data_msg_t*
-data_msg_new (session_data_t  *session,
+data_msg_new (SessionData     *session,
               guint8          *data,
               size_t           size)
 {
@@ -60,7 +60,7 @@ data_msg_free (data_msg_t *msg)
         free (msg->data);
     free (msg);
 }
-inline session_data_t*
+inline SessionData*
 data_msg_get_session (const data_msg_t *msg)
 {
     return msg->session;

@@ -21,7 +21,7 @@
 typedef struct watcher_test_data {
     session_manager_t *manager;
     session_watcher_t *watcher;
-    session_data_t *session;
+    SessionData *session;
     tab_t *tab;
     Tcti *tcti;
     gint wakeup_send_fd;
@@ -190,7 +190,7 @@ session_watcher_session_insert_test (void **state)
     struct watcher_test_data *data = (struct watcher_test_data*)*state;
     session_watcher_t *watcher = data->watcher;
     session_manager_t *manager = data->manager;
-    session_data_t *session;
+    SessionData *session;
     gint ret, receive_fd, send_fd;
 
     /* */
@@ -272,7 +272,7 @@ session_watcher_session_data_test (void **state)
     session_manager_t *manager = data->manager;
     tab_t *tab = data->tab;
     DataMessage *msg;
-    session_data_t *session;
+    SessionData *session;
     gint ret, receive_fd, send_fd;
 
     session = session_data_new (&receive_fd, &send_fd, 5);

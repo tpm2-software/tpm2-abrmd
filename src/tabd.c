@@ -68,7 +68,7 @@ on_handle_create_connection (Tab                   *skeleton,
                              gpointer               user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
-    session_data_t *session = NULL;
+    SessionData *session = NULL;
     gint client_fds[2] = { 0, 0 }, ret = 0;
     GVariant *response_variants[2], *response_tuple;
     GUnixFDList *fd_list = NULL;
@@ -113,7 +113,7 @@ on_handle_cancel (Tab                   *skeleton,
                   gpointer               user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
-    session_data_t *session;
+    SessionData *session = NULL;
     GVariant *uint32_variant, *tuple_variant;
 
     g_info ("on_handle_cancel for id 0x%x", id);
@@ -142,7 +142,7 @@ on_handle_set_locality (Tab                   *skeleton,
                         gpointer               user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
-    session_data_t *session;
+    SessionData *session = NULL;
     GVariant *uint32_variant, *tuple_variant;
 
     g_info ("on_handle_set_locality for id 0x%x", id);

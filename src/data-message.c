@@ -49,7 +49,7 @@ data_message_get_type (void)
 }
 
 DataMessage*
-data_message_new (session_data_t  *session,
+data_message_new (SessionData     *session,
                   guint8          *data,
                   size_t           size)
 {
