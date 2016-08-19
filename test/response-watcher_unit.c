@@ -6,6 +6,7 @@
 #include "session-manager.h"
 #include "tab.h"
 #include "response-watcher.h"
+#include "tcti-echo.h"
 
 /* response_watcher_allocate_test begin
  * Test to allcoate and destroy a response_watcher_t.
@@ -25,10 +26,11 @@ response_watcher_allocate_test (void **state)
 static void
 response_watcher_allocate_setup (void **state)
 {
+    TctiEcho *tcti = NULL;
     tab_t *tab = NULL;
 
-    /* this is a hack, we need a mock TCTI */
-    tab = tab_new (NULL);
+    tcti = tcti_echo_new (TCTI_ECHO_MIN_BUF);
+    tab = tab_new ((Tcti*)tcti);
     *state = tab;
 }
 
@@ -80,9 +82,9 @@ response_watcher_start_stop_test (void **state)
 static void
 response_watcher_start_stop_setup (void **state)
 {
-
+    TctiEcho *tcti_echo = tcti_echo_new (TCTI_ECHO_MIN_BUF);
     start_stop_data_t *data = calloc (1, sizeof (start_stop_data_t));
-    data->tab = tab_new (NULL);
+    data->tab = tab_new ((Tcti*)tcti_echo);
     data->watcher = response_watcher_new (data->tab);
     *state = data;
 }

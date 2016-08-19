@@ -119,6 +119,7 @@ test_response_watcher_unit_SOURCES = \
     src/session-data.c \
     src/session-manager.c \
     src/tab.c \
+    src/tcti-echo.c \
     src/tcti-interface.c \
     test/response-watcher_unit.c
 
