@@ -6,8 +6,143 @@
 
 #define TAB_TIMEOUT_DEQUEUE 1e6
 
+static gpointer tab_parent_class = NULL;
+
+enum {
+    PROP_0,
+    PROP_QUEUE_IN,
+    PROP_QUEUE_OUT,
+    PROP_TCTI,
+    N_PROPERTIES
+};
+static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
+
+static void
+tab_set_property (GObject        *object,
+                  guint           property_id,
+                  GValue const   *value,
+                  GParamSpec     *pspec)
+{
+    Tab *self = TAB (object);
+
+    g_debug ("tab_set_property: 0x%x", self);
+    switch (property_id) {
+    case PROP_QUEUE_IN:
+        self->in_queue = g_value_get_object (value);
+        g_debug ("  in_queue: 0x%x", self->in_queue);
+        break;
+    case PROP_QUEUE_OUT:
+        self->out_queue = g_value_get_object (value);
+        g_debug ("  out_queue: 0x%x", self->out_queue);
+        break;
+    case PROP_TCTI:
+        self->tcti = g_value_get_object (value);
+        g_debug ("  tcti: 0x%x", self->tcti);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+tab_get_property (GObject     *object,
+                  guint        property_id,
+                  GValue      *value,
+                  GParamSpec  *pspec)
+{
+    Tab *self = TAB (object);
+
+    g_debug ("tab_get_property: 0x%x", self);
+    switch (property_id) {
+    case PROP_QUEUE_IN:
+        g_value_set_object (value, self->in_queue);
+        break;
+    case PROP_QUEUE_OUT:
+        g_value_set_object (value, self->out_queue);
+        break;
+    case PROP_TCTI:
+        g_value_set_object (value, self->tcti);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+/**
+ * Bring down the TAB as gracefully as we can.
+ */
+static void
+tab_finalize (GObject *obj)
+{
+    Tab *tab = TAB (obj);
+
+    g_debug ("tab_finalize: 0x%x", tab);
+    if (tab == NULL)
+        g_error ("tab_free passed NULL Tab pointer");
+    if (tab->thread != 0)
+        g_error ("tab_free called with thread running, cancel thread first");
+    g_object_unref (tab->in_queue);
+    g_object_unref (tab->out_queue);
+    if (tab->tcti)
+        g_object_unref (tab->tcti);
+    if (tab_parent_class)
+        G_OBJECT_CLASS (tab_parent_class)->finalize (obj);
+}
+
+static void
+tab_class_init (gpointer klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    if (tab_parent_class == NULL)
+        tab_parent_class = g_type_class_peek_parent (klass);
+    object_class->finalize     = tab_finalize;
+    object_class->get_property = tab_get_property;
+    object_class->set_property = tab_set_property;
+
+    obj_properties [PROP_QUEUE_IN] =
+        g_param_spec_object ("queue-in",
+                             "input queue",
+                             "Input queue for messages.",
+                             G_TYPE_OBJECT,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_QUEUE_OUT] =
+        g_param_spec_object ("queue-out",
+                             "Output queue",
+                             "Output message queue.",
+                             G_TYPE_OBJECT,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_TCTI] =
+        g_param_spec_object ("tcti",
+                             "Tcti object",
+                             "Tcti for communication with TPM",
+                             TYPE_TCTI,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    g_object_class_install_properties (object_class,
+                                       N_PROPERTIES,
+                                       obj_properties);
+}
+
+GType
+tab_get_type (void)
+{
+    static GType type = 0;
+
+    if (type == 0) {
+        type = g_type_register_static_simple (G_TYPE_OBJECT,
+                                              "Tab",
+                                              sizeof (TabClass),
+                                              (GClassInitFunc) tab_class_init,
+                                              sizeof (Tab),
+                                              NULL,
+                                              0);
+    }
+    return type;
+}
+
 ssize_t
-tab_process_data_message (tab_t        *tab,
+tab_process_data_message (Tab          *tab,
                           DataMessage  *msg)
 {
     TSS2_RC rc;
@@ -30,7 +165,7 @@ tab_process_data_message (tab_t        *tab,
 gpointer
 cmd_runner (gpointer data)
 {
-    tab_t  *tab  = (tab_t*)data;
+    Tab         *tab = TAB (data);
     GObject     *obj = NULL;
 
     g_debug ("cmd_runner start");
@@ -49,58 +184,36 @@ cmd_runner (gpointer data)
 
 /** Create new TPM access broker (TAB) object
  */
-tab_t*
+Tab*
 tab_new (Tcti *tcti)
 {
-    tab_t *tab = NULL;
-    gint ret = 0;
-
     if (tcti == NULL)
         g_error ("tab_new passed NULL Tcti");
-    tab = calloc (1, sizeof (tab_t));
-    tab->in_queue  = message_queue_new ("TAB in queue");
-    tab->out_queue = message_queue_new ("TAB out queue");
-    tab->tcti      = tcti;
-
-    return tab;
-}
-/** Bring down the TAB as gracefully as we can.
- */
-void
-tab_free (tab_t *tab)
-{
-    gint ret = 0;
-
-    g_debug ("tab_free: 0x%x", tab);
-    if (tab == NULL)
-        g_error ("tab_free passed NULL tab_t pointer");
-    if (tab->thread != 0)
-        g_error ("tab_free called with thread running, cancel thread first");
-    g_object_unref (tab->in_queue);
-    g_object_unref (tab->out_queue);
-    if (tab->tcti)
-        g_object_unref (tab->tcti);
-    free (tab);
+    return TAB (g_object_new (TYPE_TAB,
+                              "queue-in",  message_queue_new ("TAB in queue"),
+                              "queue-out", message_queue_new ("TAB out queue"),
+                              "tcti",      tcti,
+                              NULL));
 }
 gint
-tab_start (tab_t *tab)
+tab_start (Tab *tab)
 {
     if (tab == NULL)
-        g_error ("tab_start passed NULL tab_t");
+        g_error ("tab_start passed NULL Tab");
     if (tab->thread != 0)
-        g_error ("tab_t cmd_runner thread already running");
+        g_error ("Tab cmd_runner thread already running");
     return  pthread_create (&tab->thread, NULL, cmd_runner, tab);
 }
 gint
-tab_cancel (tab_t *tab)
+tab_cancel (Tab *tab)
 {
     gint ret;
     ControlMessage *msg;
 
     if (tab == NULL)
-        g_error ("tab_cancel passed NULL tab_t");
+        g_error ("tab_cancel passed NULL Tab");
     if (tab->thread == 0)
-        g_error ("tab_t not running, cannot cancel");
+        g_error ("Tab not running, cannot cancel");
     /* cancel our internal thread before we unblock it */
     ret = pthread_cancel (tab->thread);
     /* Let anything blocked on the in_queue know that they should check to
@@ -117,14 +230,14 @@ tab_cancel (tab_t *tab)
     return ret;
 }
 gint
-tab_join (tab_t *tab)
+tab_join (Tab *tab)
 {
     gint ret;
 
     if (tab == NULL)
-        g_error ("tab_join passed NULL tab_t");
+        g_error ("tab_join passed NULL Tab");
     if (tab->thread == 0)
-        g_error ("tab_t not running, cannot join");
+        g_error ("Tab not running, cannot join");
     ret = pthread_join (tab->thread, NULL);
     tab->thread = 0;
 
@@ -136,10 +249,10 @@ tab_join (tab_t *tab)
  * we return true, an error will return false.
  */
 void
-tab_send_command (tab_t       *tab,
+tab_send_command (Tab         *tab,
                   GObject     *obj)
 {
-    g_debug ("tab_send_command: tab_t: 0x%x obj: 0x%x", tab, obj);
+    g_debug ("tab_send_command: Tab: 0x%x obj: 0x%x", tab, obj);
     /* The TAB takes ownership of this object */
     g_object_ref (obj);
     message_queue_enqueue (tab->in_queue, obj);
@@ -150,19 +263,19 @@ tab_send_command (tab_t       *tab,
  * The returned object is owned by the caller, we do not unref it.
  */
 GObject*
-tab_get_timeout_response (tab_t    *tab,
+tab_get_timeout_response (Tab     *tab,
                           guint64  timeout)
 {
-    g_debug ("tab_get_timeout_response: tab_t: 0x%x", tab);
+    g_debug ("tab_get_timeout_response: Tab: 0x%x", tab);
     return message_queue_timeout_dequeue (tab->out_queue, timeout);
 }
 /** Get the next response from this TAB.
  * Block indefinitely waiting for a message to come from the TAB.
  */
 GObject*
-tab_get_response (tab_t *tab)
+tab_get_response (Tab *tab)
 {
-    g_debug ("tab_get_response: tab_t: 0x%x", tab);
+    g_debug ("tab_get_response: Tab: 0x%x", tab);
     return message_queue_dequeue (tab->out_queue);
 }
 /** Cancel pending commands for a session in the TAB
@@ -172,7 +285,7 @@ tab_get_response (tab_t *tab)
  * occurs.
  */
 gint
-tab_cancel_commands (tab_t          *tab,
+tab_cancel_commands (Tab            *tab,
                      SessionData    *session)
 {
     g_error ("tab_cancel_commands: unimplemented");

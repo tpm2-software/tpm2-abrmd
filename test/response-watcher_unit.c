@@ -14,7 +14,7 @@
 static void
 response_watcher_allocate_test (void **state)
 {
-    tab_t *tab = (tab_t*)*state;
+    Tab *tab = TAB (*state);
     response_watcher_t *watcher = NULL;
 
     watcher = response_watcher_new (tab);
@@ -27,19 +27,20 @@ static void
 response_watcher_allocate_setup (void **state)
 {
     TctiEcho *tcti = NULL;
-    tab_t *tab = NULL;
+    Tab      *tab  = NULL;
 
     tcti = tcti_echo_new (TCTI_ECHO_MIN_BUF);
-    tab = tab_new ((Tcti*)tcti);
+    assert_non_null (tcti);
+    tab = tab_new (TCTI (tcti));
     *state = tab;
 }
 
 static void
 response_watcher_allocate_teardown (void **state)
 {
-    tab_t *tab = (tab_t*)*state;
+    Tab *tab = TAB (*state);
 
-    tab_free (tab);
+    g_object_unref (tab);
 }
 /* response_watcher_allocate end */
 
@@ -47,7 +48,7 @@ response_watcher_allocate_teardown (void **state)
  */
 typedef struct start_stop_data {
     response_watcher_t  *watcher;
-    tab_t               *tab;
+    Tab                 *tab;
 } start_stop_data_t;
 
 void *
@@ -93,7 +94,7 @@ response_watcher_start_stop_teardown (void **state)
 {
     start_stop_data_t *data = (start_stop_data_t*)*state;
     response_watcher_free (data->watcher);
-    tab_free (data->tab);
+    g_object_unref (data->tab);
     free (data);
 }
 

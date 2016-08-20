@@ -40,7 +40,7 @@ session_watcher_thread_cleanup (void *data)
 gboolean
 session_watcher_session_responder (session_watcher_t *watcher,
                                    gint               fd,
-                                   tab_t             *tab)
+                                   Tab               *tab)
 {
     DataMessage *msg;
     SessionData *session;
@@ -129,17 +129,18 @@ session_watcher_thread (void *data)
 session_watcher_t*
 session_watcher_new (session_manager_t *session_manager,
                      gint wakeup_receive_fd,
-                     tab_t             *tab)
+                     Tab               *tab)
 {
     session_watcher_t *watcher;
 
     if (session_manager == NULL)
         g_error ("session_watcher_new passed NULL session_manager_t");
     if (tab == NULL)
-        g_error ("session_watcher_new passed NULL tab_t");
+        g_error ("session_watcher_new passed NULL Tab");
     watcher = calloc (1, sizeof (session_watcher_t));
     if (watcher == NULL)
         g_error ("failed to allocate session_watcher_t: %s", strerror (errno));
+    g_object_ref (tab);
     watcher->session_manager = session_manager;
     watcher->wakeup_receive_fd = wakeup_receive_fd;
     watcher->running = FALSE;
@@ -155,6 +156,7 @@ session_watcher_free (session_watcher_t *watcher)
 {
     if (watcher == NULL)
         return;
+    g_object_unref (watcher->tab);
     free (watcher);
 }
 gint

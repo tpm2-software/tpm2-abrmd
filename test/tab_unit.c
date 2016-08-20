@@ -11,41 +11,45 @@
 static void
 tab_allocate_deallocate_test (void **state)
 {
-    Tcti*tcti = (Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF);
-    tab_t *tab;
-    tab = tab_new (tcti);
-    tab_free (tab);
+    Tcti *tcti;
+    Tab  *tab;
+
+    tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    tab  = tab_new (tcti);
+    g_object_unref (tab);
 }
 static void
 tab_start_stop_test_setup (void **state)
 {
-    Tcti *tcti = (Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF);
-    tab_t *tab;
+    Tcti *tcti;
+    Tab  *tab;
 
-    tab = tab_new (tcti);
+    tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    tab  = tab_new (tcti);
     *state = tab;
 }
 static void
 tab_start_stop_test_teardown (void **state)
 {
-    tab_t *tab = *state;
+    Tab *tab = *state;
 
     tab_cancel (tab);
     tab_join (tab);
-    tab_free (tab);
+    g_object_unref (tab);
 }
 static void
 tab_start_stop_test (void **state)
 {
-    tab_t *tab = *state;
+    Tab *tab = *state;
     tab_start (tab);
 }
 static void
 tab_add_no_remove_test_setup (void **state)
 {
-    Tcti *tcti = (Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF);
-    tab_t *tab = *state;
+    Tcti *tcti;
+    Tab  *tab  = *state;
 
+    tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
     tab = tab_new (tcti);
     tab_start (tab);
     *state = tab;
@@ -57,7 +61,7 @@ static void
 tab_add_no_remove_test (void **state)
 {
     DataMessage *msg = NULL;
-    tab_t *tab = *state;
+    Tab         *tab = *state;
 
     msg = data_message_new (NULL, NULL, 0);
     tab_send_command (tab, G_OBJECT (msg));
@@ -66,7 +70,7 @@ tab_add_no_remove_test (void **state)
 static void
 tab_add_remove_test (void **state)
 {
-    tab_t *tab = *state;
+    Tab *tab = *state;
     DataMessage *msg_in = NULL, *msg_out = NULL;
     GObject *obj_out = NULL;
     char *data = malloc(5);

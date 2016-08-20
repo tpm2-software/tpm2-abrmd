@@ -23,13 +23,13 @@ typedef struct session_watcher {
     gint wakeup_receive_fd;
     gboolean running;
     fd_set session_fdset;
-    tab_t *tab;
+    Tab  *tab;
 } session_watcher_t;
 
 session_watcher_t*
 session_watcher_new (session_manager_t *connection_manager,
                      gint wakeup_receive_fd,
-                     tab_t             *tab);
+                     Tab               *tab);
 gint session_watcher_start (session_watcher_t *watcher);
 gint session_watcher_cancel (session_watcher_t *watcher);
 gint session_watcher_join (session_watcher_t *watcher);

@@ -15,6 +15,7 @@
 #include "session-watcher.h"
 #include "session-data.h"
 #include "response-watcher.h"
+#include "tab.h"
 #include "tabd-generated.h"
 #include "tcti-options.h"
 
@@ -32,7 +33,7 @@ typedef struct gmain_data {
     session_manager_t *manager;
     session_watcher_t *session_watcher;
     response_watcher_t *response_watcher;
-    tab_t *tab;
+    Tab *tab;
     gint wakeup_send_fd;
     struct drand48_data rand_data;
     GMutex init_mutex;
@@ -302,7 +303,7 @@ init_thread_func (gpointer user_data)
     data->tab = tab_new (tcti);
     ret = tab_start (data->tab);
     if (ret != 0)
-        g_error ("failed to start tab_t: %s", strerror (errno));
+        g_error ("failed to start Tab: %s", strerror (errno));
     data->session_watcher =
         session_watcher_new (data->manager, wakeup_fds [0], data->tab);
     data->response_watcher =
@@ -414,6 +415,6 @@ main (int argc, char *argv[])
   session_manager_free (gmain_data.manager);
   g_object_unref (options.tcti_options);
   tab_join (gmain_data.tab);
-  tab_free (gmain_data.tab);
+  g_object_unref (gmain_data.tab);
   return 0;
 }

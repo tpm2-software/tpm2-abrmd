@@ -9,16 +9,17 @@
 #define RESPONSE_WATCHER_TIMEOUT 1e6
 
 response_watcher_t*
-response_watcher_new (tab_t             *tab)
+response_watcher_new (Tab             *tab)
 {
     response_watcher_t *watcher = NULL;
 
     if (tab == NULL)
-        g_error ("response_watcher_new passed NULL tab_t");
+        g_error ("response_watcher_new passed NULL Tab");
     watcher = calloc (1, sizeof (response_watcher_t));
     if (watcher == NULL)
         g_error ("failed to allocate response_watcher_t: %s",
                  strerror (errno));
+    g_object_ref (tab);
     watcher->tab = tab;
 
     return watcher;
@@ -30,6 +31,7 @@ response_watcher_free (response_watcher_t *watcher)
     g_debug ("response_watcher_free");
     if (watcher == NULL)
         g_error ("response_watcher_free passed NULL pointer");
+    g_object_unref (watcher->tab);
     free (watcher);
 }
 

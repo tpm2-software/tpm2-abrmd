@@ -22,7 +22,7 @@ typedef struct watcher_test_data {
     session_manager_t *manager;
     session_watcher_t *watcher;
     SessionData *session;
-    tab_t *tab;
+    Tab  *tab;
     Tcti *tcti;
     gint wakeup_send_fd;
     gboolean match;
@@ -61,7 +61,7 @@ session_watcher_allocate_teardown (void **state)
     watcher_test_data_t *data = (watcher_test_data_t*)*state;
 
     session_manager_free (data->manager);
-    tab_free (data->tab);
+    g_object_unref (data->tab);
     free (data);
 }
 /* session_watcher_allocate end */
@@ -117,7 +117,7 @@ session_watcher_start_teardown (void **state)
     close (data->wakeup_send_fd);
     session_watcher_free (data->watcher);
     session_manager_free (data->manager);
-    tab_free (data->tab);
+    g_object_unref (data->tab);
     free (data);
 }
 /* session_watcher_start_test end */
@@ -260,7 +260,7 @@ session_watcher_session_data_teardown (void **state)
     tab_join (data->tab);
 
     session_watcher_free (data->watcher);
-    tab_free (data->tab);
+    g_object_unref (data->tab);
     session_manager_free (data->manager);
     free (data);
 }
@@ -270,7 +270,7 @@ session_watcher_session_data_test (void **state)
     struct watcher_test_data *data = (struct watcher_test_data*)*state;
     session_watcher_t *watcher = data->watcher;
     session_manager_t *manager = data->manager;
-    tab_t *tab = data->tab;
+    Tab               *tab     = data->tab;
     DataMessage *msg;
     SessionData *session;
     gint ret, receive_fd, send_fd;

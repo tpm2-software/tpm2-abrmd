@@ -10,12 +10,12 @@
  * to access the structure directly you probably need to update the API.
  */
 typedef struct response_watcher {
-    tab_t             *tab;
+    Tab               *tab;
     pthread_t          thread;
 } response_watcher_t;
 
 response_watcher_t*
-response_watcher_new     (tab_t               *tab);
+response_watcher_new     (Tab                 *tab);
 gint
 response_watcher_start   (response_watcher_t  *watcher);
 gint
