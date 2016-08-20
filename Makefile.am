@@ -7,7 +7,6 @@ noinst_PROGRAMS = test/tcti-tabd_read-write
 check_PROGRAMS  = \
     test/data-message_unit \
     test/message-queue_unit \
-    test/msg_unit \
     test/response-watcher_unit \
     test/session-data_unit \
     test/session-manager_unit \
@@ -157,14 +156,6 @@ test_tab_unit_SOURCES = \
     src/tcti-echo.c \
     src/tcti-interface.c \
     test/tab_unit.c
-
-# message tests
-test_msg_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
-test_msg_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
-test_msg_unit_SOURCES = \
-    src/msg.c \
-    src/session-data.c \
-    test/msg_unit.c
 
 if TCTI_DEVICE
 test_tcti_device_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(AM_CFLAGS)
