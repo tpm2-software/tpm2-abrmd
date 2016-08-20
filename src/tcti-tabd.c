@@ -95,11 +95,11 @@ tss2_tcti_tabd_cancel (TSS2_TCTI_CONTEXT *tcti_context)
     gboolean cancel_ret;
 
     g_info("tss2_tcti_tabd_cancel: id 0x%x", TSS2_TCTI_TABD_ID (tcti_context));
-    cancel_ret = tab_call_cancel_sync (TSS2_TCTI_TABD_PROXY (tcti_context),
-                                       TSS2_TCTI_TABD_ID (tcti_context),
-                                       &ret,
-                                       NULL,
-                                       &error);
+    cancel_ret = tpm2_access_broker_call_cancel_sync (TSS2_TCTI_TABD_PROXY (tcti_context),
+                                                      TSS2_TCTI_TABD_ID (tcti_context),
+                                                      &ret,
+                                                      NULL,
+                                                      &error);
     if (cancel_ret == FALSE) {
         g_warning ("cancel command failed: %s", error->message);
         g_error_free (error);
@@ -126,12 +126,12 @@ tss2_tcti_tabd_set_locality (TSS2_TCTI_CONTEXT *tcti_context,
     GError *error = NULL;
 
     g_info ("tss2_tcti_tabd_set_locality: id 0x%x", TSS2_TCTI_TABD_ID (tcti_context));
-    status = tab_call_set_locality_sync (TSS2_TCTI_TABD_PROXY (tcti_context),
-                                         TSS2_TCTI_TABD_ID (tcti_context),
-                                         locality,
-                                         &ret,
-                                         NULL,
-                                         &error);
+    status = tpm2_access_broker_call_set_locality_sync (TSS2_TCTI_TABD_PROXY (tcti_context),
+                                                        TSS2_TCTI_TABD_ID (tcti_context),
+                                                        locality,
+                                                        &ret,
+                                                        NULL,
+                                                        &error);
 
     if (status == FALSE) {
         g_warning ("set locality command failed: %s", error->message);
@@ -245,12 +245,12 @@ init_function_pointers (TSS2_TCTI_CONTEXT *tcti_context)
 }
 
 static gboolean
-tab_call_create_connection_sync_fdlist (Tab           *proxy,
-                                        GVariant     **out_fds,
-                                        guint64       *out_id,
-                                        GUnixFDList  **out_fd_list,
-                                        GCancellable  *cancellable,
-                                        GError       **error)
+tpm2_access_broker_call_create_connection_sync_fdlist (Tpm2AccessBroker   *proxy,
+                                                       GVariant     **out_fds,
+                                                       guint64       *out_id,
+                                                       GUnixFDList  **out_fd_list,
+                                                       GCancellable  *cancellable,
+                                                       GError       **error)
 {
     GVariant *_ret;
     _ret = g_dbus_proxy_call_with_unix_fd_list_sync (G_DBUS_PROXY (proxy),
@@ -292,16 +292,17 @@ tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
         g_error ("Failed to initialize initialization mutex: %s",
                  strerror (errno));
 
-    TSS2_TCTI_TABD_PROXY (tcti_context) = tab_proxy_new_for_bus_sync (
-        G_BUS_TYPE_SESSION,
-        G_DBUS_PROXY_FLAGS_NONE,
-        TAB_DBUS_NAME,              /* bus name */
-        TAB_DBUS_PATH, /* object */
-        NULL,                          /* GCancellable* */
-        &error);
+    TSS2_TCTI_TABD_PROXY (tcti_context) =
+        tpm2_access_broker_proxy_new_for_bus_sync (
+            G_BUS_TYPE_SESSION,
+            G_DBUS_PROXY_FLAGS_NONE,
+            TAB_DBUS_NAME,              /* bus name */
+            TAB_DBUS_PATH, /* object */
+            NULL,                          /* GCancellable* */
+            &error);
     if (TSS2_TCTI_TABD_PROXY (tcti_context) == NULL)
         g_error ("failed to allocate dbus proxy object: %s", error->message);
-    call_ret = tab_call_create_connection_sync_fdlist (
+    call_ret = tpm2_access_broker_call_create_connection_sync_fdlist (
         TSS2_TCTI_TABD_PROXY (tcti_context),
         &fds_variant,
         &id,

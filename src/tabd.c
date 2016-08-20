@@ -28,7 +28,7 @@
  */
 typedef struct gmain_data {
     GMainLoop *loop;
-    Tab *skeleton;
+    Tpm2AccessBroker *skeleton;
     session_manager_t *manager;
     session_watcher_t *session_watcher;
     response_watcher_t *response_watcher;
@@ -63,7 +63,7 @@ handle_array_variant_from_fdlist (GUnixFDList *fdlist)
 }
 
 static gboolean
-on_handle_create_connection (Tab                   *skeleton,
+on_handle_create_connection (Tpm2AccessBroker      *skeleton,
                              GDBusMethodInvocation *invocation,
                              gpointer               user_data)
 {
@@ -107,7 +107,7 @@ on_handle_create_connection (Tab                   *skeleton,
 }
 
 static gboolean
-on_handle_cancel (Tab                   *skeleton,
+on_handle_cancel (Tpm2AccessBroker      *skeleton,
                   GDBusMethodInvocation *invocation,
                   gint64                 id,
                   gpointer               user_data)
@@ -135,7 +135,7 @@ on_handle_cancel (Tab                   *skeleton,
 }
 
 static gboolean
-on_handle_set_locality (Tab                   *skeleton,
+on_handle_set_locality (Tpm2AccessBroker      *skeleton,
                         GDBusMethodInvocation *invocation,
                         gint64                 id,
                         guint8                 locality,
@@ -187,7 +187,7 @@ on_name_acquired (GDBusConnection *connection,
         g_error ("bus_acquired but user_data is NULL");
     gmain_data = (gmain_data_t*)user_data;
     if (gmain_data->skeleton == NULL)
-        gmain_data->skeleton = tab_skeleton_new ();
+        gmain_data->skeleton = tpm2_access_broker_skeleton_new ();
     g_signal_connect (gmain_data->skeleton,
                       "handle-create-connection",
                       G_CALLBACK (on_handle_create_connection),

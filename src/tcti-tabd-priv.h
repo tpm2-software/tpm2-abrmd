@@ -34,7 +34,7 @@ typedef struct {
     guint watcher_id;
     pthread_mutex_t mutex;
     int pipe_fds[2];
-    Tab *proxy;
+    Tpm2AccessBroker *proxy;
 } TSS2_TCTI_TABD_CONTEXT;
 
 #endif /* TSS2TCTI_TABD_PRIV_H */
