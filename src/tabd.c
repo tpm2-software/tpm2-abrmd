@@ -30,7 +30,7 @@
 typedef struct gmain_data {
     GMainLoop *loop;
     Tpm2AccessBroker *skeleton;
-    session_manager_t *manager;
+    SessionManager        *manager;
     session_watcher_t *session_watcher;
     response_watcher_t *response_watcher;
     Tab *tab;
@@ -412,7 +412,7 @@ main (int argc, char *argv[])
   response_watcher_join (gmain_data.response_watcher);
   response_watcher_free (gmain_data.response_watcher);
   /* clean up what remains */
-  session_manager_free (gmain_data.manager);
+  g_object_unref (gmain_data.manager);
   g_object_unref (options.tcti_options);
   tab_join (gmain_data.tab);
   g_object_unref (gmain_data.tab);

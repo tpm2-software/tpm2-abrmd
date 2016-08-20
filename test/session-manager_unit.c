@@ -19,34 +19,35 @@
 static void
 session_manager_allocate_test (void **state)
 {
-    session_manager_t *manager = NULL;
+    SessionManager *manager = NULL;
 
     manager = session_manager_new ();
     assert_non_null (manager);
-    session_manager_free (manager);
+    g_object_unref (manager);
 }
 
 static void
 session_manager_setup (void **state)
 {
-    session_manager_t *manager = NULL;
+    SessionManager *manager = NULL;
 
     manager = session_manager_new ();
+    assert_non_null (manager);
     *state = manager;
 }
 
 static void
 session_manager_teardown (void **state)
 {
-    session_manager_t *manager = (session_manager_t*)*state;
+    SessionManager *manager = SESSION_MANAGER (*state);
 
-    session_manager_free (manager);
+    g_object_unref (manager);
 }
 
 static void
 session_manager_insert_test (void **state)
 {
-    session_manager_t *manager = (session_manager_t*)*state;
+    SessionManager *manager = SESSION_MANAGER (*state);
     SessionData *session = NULL;
     gint ret, receive_fd, send_fd;
 
@@ -58,7 +59,7 @@ session_manager_insert_test (void **state)
 static void
 session_manager_lookup_fd_test (void **state)
 {
-    session_manager_t *manager = (session_manager_t*)*state;
+    SessionManager *manager = SESSION_MANAGER (*state);
     SessionData *session = NULL, *session_lookup = NULL;
     gint ret, receive_fd, send_fd;
 
@@ -71,7 +72,7 @@ session_manager_lookup_fd_test (void **state)
 static void
 session_manager_lookup_id_test (void **state)
 {
-    session_manager_t *manager = (session_manager_t*)*state;
+    SessionManager *manager = SESSION_MANAGER (*state);
     SessionData *session = NULL, *session_lookup = NULL;
     gint ret, receive_fd, send_fd;
 
@@ -84,7 +85,7 @@ session_manager_lookup_id_test (void **state)
 static void
 session_manager_remove_test (void **state)
 {
-    session_manager_t *manager = (session_manager_t*)*state;
+    SessionManager *manager = SESSION_MANAGER (*state);
     SessionData *session = NULL;
     gint ret_int, receive_fd, send_fd;
     gboolean ret_bool;
@@ -99,7 +100,7 @@ session_manager_remove_test (void **state)
 static void
 session_manager_set_fds_test (void **state)
 {
-    session_manager_t *manager = (session_manager_t*)*state;
+    SessionManager *manager = SESSION_MANAGER (*state);
     SessionData *first_session = NULL, *second_session = NULL;
     gint ret_int, receive_fd0, send_fd0, receive_fd1, send_fd1;
     fd_set manager_fds = { 0 };

@@ -19,7 +19,7 @@
 #include "tcti-echo.h"
 
 typedef struct watcher_test_data {
-    session_manager_t *manager;
+    SessionManager *manager;
     session_watcher_t *watcher;
     SessionData *session;
     Tab  *tab;
@@ -60,7 +60,7 @@ session_watcher_allocate_teardown (void **state)
 {
     watcher_test_data_t *data = (watcher_test_data_t*)*state;
 
-    session_manager_free (data->manager);
+    g_object_unref (data->manager);
     g_object_unref (data->tab);
     free (data);
 }
@@ -116,7 +116,7 @@ session_watcher_start_teardown (void **state)
 
     close (data->wakeup_send_fd);
     session_watcher_free (data->watcher);
-    session_manager_free (data->manager);
+    g_object_unref (data->manager);
     g_object_unref (data->tab);
     free (data);
 }
@@ -189,7 +189,7 @@ session_watcher_session_insert_test (void **state)
 {
     struct watcher_test_data *data = (struct watcher_test_data*)*state;
     session_watcher_t *watcher = data->watcher;
-    session_manager_t *manager = data->manager;
+    SessionManager *manager = data->manager;
     SessionData *session;
     gint ret, receive_fd, send_fd;
 
@@ -261,7 +261,7 @@ session_watcher_session_data_teardown (void **state)
 
     session_watcher_free (data->watcher);
     g_object_unref (data->tab);
-    session_manager_free (data->manager);
+    g_object_unref (data->manager);
     free (data);
 }
 static void
@@ -269,7 +269,7 @@ session_watcher_session_data_test (void **state)
 {
     struct watcher_test_data *data = (struct watcher_test_data*)*state;
     session_watcher_t *watcher = data->watcher;
-    session_manager_t *manager = data->manager;
+    SessionManager    *manager = data->manager;
     Tab               *tab     = data->tab;
     DataMessage *msg;
     SessionData *session;

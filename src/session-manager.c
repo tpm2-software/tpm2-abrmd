@@ -7,15 +7,15 @@
 #include <string.h>
 #include "session-manager.h"
 
-session_manager_t*
+static gpointer session_manager_parent_class = NULL;
+
+SessionManager*
 session_manager_new (void)
 {
-    session_manager_t *session_manager = NULL;
+    SessionManager *session_manager;
 
-    session_manager = calloc (1, sizeof (session_manager_t));
-    if (session_manager == NULL)
-        g_error ("Failed to allocate memory for session_manager_t: %s",
-                 strerror (errno));
+    session_manager = SESSION_MANAGER (g_object_new (TYPE_SESSION_MANAGER,
+                                                     NULL));
     if (pthread_mutex_init (&session_manager->mutex, NULL) != 0)
         g_error ("Failed to initialize session _manager mutex: %s",
                  strerror (errno));
@@ -39,12 +39,12 @@ session_manager_new (void)
     return session_manager;
 }
 
-void
-session_manager_free (session_manager_t *manager)
+static void
+session_manager_finalize (GObject *obj)
 {
     gint ret;
-    if (manager == NULL)
-        return;
+    SessionManager *manager = SESSION_MANAGER (obj);
+
     ret = pthread_mutex_lock (&manager->mutex);
     if (ret != 0)
         g_error ("Error locking session_manager mutex: %s",
@@ -59,11 +59,36 @@ session_manager_free (session_manager_t *manager)
     if (ret != 0)
         g_error ("Error destroying session_manager mutex: %s",
                  strerror (errno));
-    free (manager);
 }
 
+static void
+session_manager_class_init (gpointer klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    if (session_manager_parent_class == NULL)
+        session_manager_parent_class = g_type_class_peek_parent (klass);
+    object_class->finalize = session_manager_finalize;
+}
+
+GType
+session_manager_get_type (void)
+{
+    static GType type = 0;
+
+    if (type == 0) {
+        type = g_type_register_static_simple (G_TYPE_OBJECT,
+                                              "SessionManager",
+                                              sizeof (SessionManagerClass),
+                                              (GClassInitFunc) session_manager_class_init,
+                                              sizeof (SessionManager),
+                                              NULL,
+                                              0);
+    }
+    return type;
+}
 gint
-session_manager_insert (session_manager_t *manager,
+session_manager_insert (SessionManager    *manager,
                         SessionData       *session)
 {
     gint ret;
@@ -86,7 +111,7 @@ session_manager_insert (session_manager_t *manager,
 }
 
 SessionData*
-session_manager_lookup_fd (session_manager_t *manager,
+session_manager_lookup_fd (SessionManager *manager,
                            gint fd_in)
 {
     SessionData *session;
@@ -100,7 +125,7 @@ session_manager_lookup_fd (session_manager_t *manager,
 }
 
 SessionData*
-session_manager_lookup_id (session_manager_t *manager,
+session_manager_lookup_id (SessionManager   *manager,
                            gint64 id)
 {
     SessionData *session;
@@ -117,7 +142,7 @@ session_manager_lookup_id (session_manager_t *manager,
 }
 
 gboolean
-session_manager_remove (session_manager_t *manager,
+session_manager_remove (SessionManager    *manager,
                         SessionData       *session)
 {
     gboolean ret;
@@ -153,7 +178,7 @@ set_fd (gpointer key,
 }
 
 void
-session_manager_set_fds (session_manager_t *manager,
+session_manager_set_fds (SessionManager   *manager,
                          fd_set *fds)
 {
     pthread_mutex_lock (&manager->mutex);
@@ -164,7 +189,7 @@ session_manager_set_fds (session_manager_t *manager,
 }
 
 guint
-session_manager_size (session_manager_t *manager)
+session_manager_size (SessionManager   *manager)
 {
     return g_hash_table_size (manager->session_from_fd_table);
 }

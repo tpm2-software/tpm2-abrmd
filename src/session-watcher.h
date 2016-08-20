@@ -18,7 +18,7 @@
 #define WAKEUP_SIZE 2
 
 typedef struct session_watcher {
-    session_manager_t *session_manager;
+    SessionManager   *session_manager;
     pthread_t thread;
     gint wakeup_receive_fd;
     gboolean running;
@@ -27,7 +27,7 @@ typedef struct session_watcher {
 } session_watcher_t;
 
 session_watcher_t*
-session_watcher_new (session_manager_t *connection_manager,
+session_watcher_new (SessionManager   *session_manager,
                      gint wakeup_receive_fd,
                      Tab               *tab);
 gint session_watcher_start (session_watcher_t *watcher);
