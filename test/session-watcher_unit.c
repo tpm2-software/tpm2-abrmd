@@ -20,7 +20,7 @@
 
 typedef struct watcher_test_data {
     SessionManager *manager;
-    session_watcher_t *watcher;
+    SessionWatcher *watcher;
     SessionData *session;
     Tab  *tab;
     Tcti *tcti;
@@ -29,17 +29,17 @@ typedef struct watcher_test_data {
 } watcher_test_data_t;
 
 /* session_watcher_allocate_test begin
- * Test to allcoate and destroy a session_watcher_t.
+ * Test to allcoate and destroy a SessionWatcher.
  */
 static void
 session_watcher_allocate_test (void **state)
 {
     watcher_test_data_t *data = (watcher_test_data_t *)*state;
-    session_watcher_t *watcher = NULL;
+    SessionWatcher *watcher = NULL;
 
     watcher = session_watcher_new (data->manager, 0, data->tab);
     assert_non_null (watcher);
-    session_watcher_free (watcher);
+    g_object_unref (watcher);
 }
 
 static void
@@ -115,7 +115,7 @@ session_watcher_start_teardown (void **state)
     watcher_test_data_t *data = (watcher_test_data_t*)*state;
 
     close (data->wakeup_send_fd);
-    session_watcher_free (data->watcher);
+    g_object_unref (data->watcher);
     g_object_unref (data->manager);
     g_object_unref (data->tab);
     free (data);
@@ -188,7 +188,7 @@ static void
 session_watcher_session_insert_test (void **state)
 {
     struct watcher_test_data *data = (struct watcher_test_data*)*state;
-    session_watcher_t *watcher = data->watcher;
+    SessionWatcher *watcher = data->watcher;
     SessionManager *manager = data->manager;
     SessionData *session;
     gint ret, receive_fd, send_fd;
@@ -244,7 +244,7 @@ session_watcher_session_data_setup (void **state)
 
     ret = session_watcher_start (data->watcher);
     if (ret != 0)
-        g_error ("failed to start session_watcher_t");
+        g_error ("failed to start SessionWatcher");
 
     *state = data;
 }
@@ -259,7 +259,7 @@ session_watcher_session_data_teardown (void **state)
     tab_cancel (data->tab);
     tab_join (data->tab);
 
-    session_watcher_free (data->watcher);
+    g_object_unref (data->watcher);
     g_object_unref (data->tab);
     g_object_unref (data->manager);
     free (data);
@@ -268,7 +268,7 @@ static void
 session_watcher_session_data_test (void **state)
 {
     struct watcher_test_data *data = (struct watcher_test_data*)*state;
-    session_watcher_t *watcher = data->watcher;
+    SessionWatcher *watcher = data->watcher;
     SessionManager    *manager = data->manager;
     Tab               *tab     = data->tab;
     DataMessage *msg;

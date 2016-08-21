@@ -9,6 +9,135 @@
 #include "session-watcher.h"
 #include "tab.h"
 #include "util.h"
+
+static gpointer session_watcher_parent_class = NULL;
+
+enum {
+    PROP_0,
+    PROP_SESSION_MANAGER,
+    PROP_TAB,
+    PROP_WAKEUP_RECEIVE_FD,
+    N_PROPERTIES
+};
+static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
+
+static void
+session_watcher_set_property (GObject       *object,
+                              guint          property_id,
+                              GValue const  *value,
+                              GParamSpec    *pspec)
+{
+    SessionWatcher *self = SESSION_WATCHER (object);
+
+    g_debug ("session_watcher_set_properties: 0x%x", self);
+    switch (property_id) {
+    case PROP_SESSION_MANAGER:
+        self->session_manager = SESSION_MANAGER (g_value_get_object (value));
+        break;
+    case PROP_TAB:
+        self->tab = TAB (g_value_get_object (value));
+        g_debug ("  tab: 0x%x", self->tab);
+        break;
+    case PROP_WAKEUP_RECEIVE_FD:
+        self->wakeup_receive_fd = g_value_get_int (value);
+        g_debug ("  wakeup_receive_fd: %d", self->wakeup_receive_fd);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+session_watcher_get_property (GObject      *object,
+                              guint         property_id,
+                              GValue       *value,
+                              GParamSpec   *pspec)
+{
+    SessionWatcher *self = SESSION_WATCHER (object);
+
+    g_debug ("session_watcher_get_properties: 0x%x", self);
+    switch (property_id) {
+    case PROP_SESSION_MANAGER:
+        g_value_set_object (value, self->session_manager);
+        break;
+    case PROP_TAB:
+        g_value_set_object (value, self->tab);
+        break;
+    case PROP_WAKEUP_RECEIVE_FD:
+        g_value_set_int (value, self->wakeup_receive_fd);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+/* Not doing any sanity checks here. Be sure to shut things downon your own
+ * first.
+ */
+static void
+session_watcher_finalize (GObject  *object)
+{
+    SessionWatcher *watcher = SESSION_WATCHER (object);
+
+    g_object_unref (watcher->tab);
+    g_object_unref (watcher->session_manager);
+}
+
+static void
+session_watcher_class_init (gpointer klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    g_debug ("session_watcher_class_init");
+    if (session_watcher_parent_class == NULL)
+        session_watcher_parent_class = g_type_class_peek_parent (klass);
+
+    object_class->finalize     = session_watcher_finalize;
+    object_class->get_property = session_watcher_get_property;
+    object_class->set_property = session_watcher_set_property;
+
+    obj_properties [PROP_SESSION_MANAGER] =
+        g_param_spec_object ("session-manager",
+                             "SessionManager object",
+                             "SessionManager instance.",
+                             TYPE_SESSION_MANAGER,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_WAKEUP_RECEIVE_FD] =
+        g_param_spec_int ("wakeup-receive-fd",
+                          "wakeup file descriptor",
+                          "File descriptor to receive wakeup signal.",
+                          0,
+                          INT_MAX,
+                          0,
+                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_TAB] =
+        g_param_spec_object ("tab",
+                             "Tab object",
+                             "Tab instance.",
+                             TYPE_TAB,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    g_object_class_install_properties (object_class,
+                                       N_PROPERTIES,
+                                       obj_properties);
+}
+GType
+session_watcher_get_type (void)
+{
+    static GType type = 0;
+
+    g_debug ("session_watcher_get_type");
+    if (type == 0)
+        type = g_type_register_static_simple (G_TYPE_OBJECT,
+                                              "SessionWatcher",
+                                              sizeof (SessionWatcherClass),
+                                              (GClassInitFunc) session_watcher_class_init,
+                                              sizeof (SessionWatcher),
+                                              NULL,
+                                              0);
+    return type;
+}
+
 DataMessage*
 data_message_from_fd (SessionData     *session,
                       gint             fd)
@@ -32,13 +161,13 @@ data_message_from_fd (SessionData     *session,
 void
 session_watcher_thread_cleanup (void *data)
 {
-    session_watcher_t *watcher = (session_watcher_t*)data;
+    SessionWatcher *watcher = SESSION_WATCHER (data);
 
     watcher->running = FALSE;
 }
 
 gboolean
-session_watcher_session_responder (session_watcher_t *watcher,
+session_watcher_session_responder (SessionWatcher    *watcher,
                                    gint               fd,
                                    Tab               *tab)
 {
@@ -70,7 +199,7 @@ session_watcher_session_responder (session_watcher_t *watcher,
 }
 
 int
-wakeup_responder (session_watcher_t *watcher)
+wakeup_responder (SessionWatcher *watcher)
 {
     g_debug ("Got new session, updating fd_set");
     char buf[3] = { 0 };
@@ -91,17 +220,16 @@ wakeup_responder (session_watcher_t *watcher)
 void*
 session_watcher_thread (void *data)
 {
-    session_watcher_t *watcher;
+    SessionWatcher *watcher;
     gint ret, i;
 
-    watcher = (session_watcher_t*)data;
+    watcher = SESSION_WATCHER (data);
     pthread_cleanup_push (session_watcher_thread_cleanup, watcher);
     do {
         FD_ZERO (&watcher->session_fdset);
         session_manager_set_fds (watcher->session_manager,
                                  &watcher->session_fdset);
         FD_SET (watcher->wakeup_receive_fd, &watcher->session_fdset);
-        g_debug ("session_watcher_thread: selecting session_fdset");
         ret = select (FD_SETSIZE, &watcher->session_fdset, NULL, NULL, NULL);
         if (ret == -1) {
             g_debug ("Error selecting on pipes: %s", strerror (errno));
@@ -122,47 +250,33 @@ session_watcher_thread (void *data)
             }
         }
     } while (TRUE);
-    g_info ("session_watcher function exiting");
     pthread_cleanup_pop (1);
 }
 
-session_watcher_t*
+SessionWatcher*
 session_watcher_new (SessionManager    *session_manager,
                      gint wakeup_receive_fd,
                      Tab               *tab)
 {
-    session_watcher_t *watcher;
+    SessionWatcher *watcher;
 
     if (session_manager == NULL)
         g_error ("session_watcher_new passed NULL SessionManager");
     if (tab == NULL)
         g_error ("session_watcher_new passed NULL Tab");
-    watcher = calloc (1, sizeof (session_watcher_t));
-    if (watcher == NULL)
-        g_error ("failed to allocate session_watcher_t: %s", strerror (errno));
     g_object_ref (tab);
     g_object_ref (session_manager);
-    watcher->session_manager = session_manager;
-    watcher->wakeup_receive_fd = wakeup_receive_fd;
+    watcher = SESSION_WATCHER (g_object_new (TYPE_SESSION_WATCHER,
+                                             "session-manager", session_manager,
+                                             "tab", tab,
+                                             "wakeup-receive-fd", wakeup_receive_fd,
+                                             NULL));
     watcher->running = FALSE;
-    watcher->tab = tab;
     return watcher;
 }
 
-/* Not doing any sanity checks here. Be sure to shut things downon your own
- * first.
- */
-void
-session_watcher_free (session_watcher_t *watcher)
-{
-    if (watcher == NULL)
-        return;
-    g_object_unref (watcher->tab);
-    g_object_unref (watcher->session_manager);
-    free (watcher);
-}
 gint
-session_watcher_start (session_watcher_t *watcher)
+session_watcher_start (SessionWatcher *watcher)
 {
     if (watcher->thread != 0) {
         g_warning ("session_watcher already started");
@@ -173,7 +287,7 @@ session_watcher_start (session_watcher_t *watcher)
 }
 
 gint
-session_watcher_cancel (session_watcher_t *watcher)
+session_watcher_cancel (SessionWatcher *watcher)
 {
     if (watcher == NULL) {
         g_warning ("session_watcher_cancel passed NULL watcher");
@@ -183,7 +297,7 @@ session_watcher_cancel (session_watcher_t *watcher)
 }
 
 gint
-session_watcher_join (session_watcher_t *watcher)
+session_watcher_join (SessionWatcher *watcher)
 {
     if (watcher == NULL) {
         g_warning ("session_watcher_join passed null watcher");

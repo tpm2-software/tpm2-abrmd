@@ -31,7 +31,7 @@ typedef struct gmain_data {
     GMainLoop *loop;
     Tpm2AccessBroker *skeleton;
     SessionManager        *manager;
-    session_watcher_t *session_watcher;
+    SessionWatcher *session_watcher;
     response_watcher_t *response_watcher;
     Tab *tab;
     gint wakeup_send_fd;
@@ -408,7 +408,7 @@ main (int argc, char *argv[])
   tab_cancel (gmain_data.tab);
   /* The threads that block on the TAB queues can now be joined and freed */
   session_watcher_join (gmain_data.session_watcher);
-  session_watcher_free (gmain_data.session_watcher);
+  g_object_unref (gmain_data.session_watcher);
   response_watcher_join (gmain_data.response_watcher);
   response_watcher_free (gmain_data.response_watcher);
   /* clean up what remains */
