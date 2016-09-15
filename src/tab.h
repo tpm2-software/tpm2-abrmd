@@ -16,10 +16,11 @@ typedef struct _TabClass {
 } TabClass;
 
 typedef struct _Tab {
-    GObject       parent_instance;
-    MessageQueue *in_queue, *out_queue;
-    pthread_t thread;
-    Tcti      *tcti;
+    GObject           parent_instance;
+    MessageQueue     *in_queue;
+    MessageQueue     *out_queue;
+    pthread_t         thread;
+    Tcti             *tcti;
 } Tab;
 
 #define TYPE_TAB              (tab_get_type ())
