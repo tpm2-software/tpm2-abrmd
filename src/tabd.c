@@ -29,15 +29,15 @@
  */
 typedef struct gmain_data {
     GMainLoop *loop;
-    Tpm2AccessBroker *skeleton;
-    SessionManager        *manager;
-    SessionWatcher *session_watcher;
-    response_watcher_t *response_watcher;
-    Tab *tab;
-    gint wakeup_send_fd;
-    struct drand48_data rand_data;
-    GMutex init_mutex;
-    TctiOptions *tcti_options;
+    Tpm2AccessBroker       *skeleton;
+    SessionManager         *manager;
+    SessionWatcher         *session_watcher;
+    response_watcher_t     *response_watcher;
+    Tab                    *tab;
+    gint                    wakeup_send_fd;
+    struct drand48_data     rand_data;
+    GMutex                  init_mutex;
+    TctiOptions            *tcti_options;
 } gmain_data_t;
 
 /* This global pointer to the GMainLoop is necessary so that we can react to
