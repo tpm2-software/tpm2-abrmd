@@ -63,6 +63,21 @@ handle_array_variant_from_fdlist (GUnixFDList *fdlist)
     return tuple;
 }
 
+/**
+ * This is a signal handler for the handle-create-connection signal from
+ * the Tpm2AccessBroker DBus interface. This signal is triggered by a
+ * request from a client to create a new connection with the tabd. This
+ * requires a few things be done:
+ * - Create a new ID (uint64) for the connection.
+ * - Create a new SessionData object getting the FDs that must be returned
+ *   to the client.
+ * - Build up a dbus response to the client with their session ID and
+ *   send / receive FDs.
+ * - Send the response message back to the client.
+ * - Insert the new SessionData object into the SessionManager.
+ * - Notify the SessionWatcher of the new SessionData that it needs to
+ *   watch by writing a magic value to the wakeup_send_fd.
+ */
 static gboolean
 on_handle_create_connection (Tpm2AccessBroker      *skeleton,
                              GDBusMethodInvocation *invocation,
