@@ -16,7 +16,9 @@ enum {
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
-
+/**
+ * GObject property setter.
+ */
 static void
 tab_set_property (GObject        *object,
                   guint           property_id,
@@ -44,7 +46,9 @@ tab_set_property (GObject        *object,
         break;
     }
 }
-
+/**
+ * GObject property getter.
+ */
 static void
 tab_get_property (GObject     *object,
                   guint        property_id,
@@ -89,7 +93,12 @@ tab_finalize (GObject *obj)
     if (tab_parent_class)
         G_OBJECT_CLASS (tab_parent_class)->finalize (obj);
 }
-
+/**
+ * GObject class initialization function. This function boils down to:
+ * - Setting up the parent class.
+ * - Set finalize, property get/set.
+ * - Install properties.
+ */
 static void
 tab_class_init (gpointer klass)
 {
@@ -123,7 +132,9 @@ tab_class_init (gpointer klass)
                                        N_PROPERTIES,
                                        obj_properties);
 }
-
+/**
+ * GObject boilerplate get_type.
+ */
 GType
 tab_get_type (void)
 {
@@ -140,7 +151,16 @@ tab_get_type (void)
     }
     return type;
 }
-
+/**
+ * This function is invoked in response to the receipt of a DataMessage.
+ * This is the place where we send data out of the tabd "down-stream"
+ * and then get a response that we send back to the client. The flow is
+ * roughly:
+ * - Get TSS2_TCTI_CONTEXT from the Tcti object.
+ * - Send the data from the message out: tss2_tcti_transmit.
+ * - Receive the response from downstream: tss2_tcti_receive.
+ * - Enqueue the response in the out_queue.
+ */
 ssize_t
 tab_process_data_message (Tab          *tab,
                           DataMessage  *msg)
@@ -161,7 +181,14 @@ tab_process_data_message (Tab          *tab,
 
     message_queue_enqueue (tab->out_queue, G_OBJECT (msg));
 }
-
+/**
+ * This function acts as a thread. It simply:
+ * - Blocks on the in_queue. Then wakes up and
+ * - Dequeues a message from the in_queue.
+ * - Processes the message (depending on TYPE)
+ * - Checks to see if it has been canceled.
+ * - Does it all over again.
+ */
 gpointer
 cmd_runner (gpointer data)
 {
@@ -182,7 +209,9 @@ cmd_runner (gpointer data)
     }
 }
 
-/** Create new TPM access broker (TAB) object
+/**
+ * Create new TPM access broker (TAB) object. This includes the private
+ * input / output queues.
  */
 Tab*
 tab_new (Tcti *tcti)
@@ -195,6 +224,9 @@ tab_new (Tcti *tcti)
                               "tcti",      tcti,
                               NULL));
 }
+/**
+ * Thread creation / start function.
+ */
 gint
 tab_start (Tab *tab)
 {
@@ -204,6 +236,13 @@ tab_start (Tab *tab)
         g_error ("Tab cmd_runner thread already running");
     return  pthread_create (&tab->thread, NULL, cmd_runner, tab);
 }
+/**
+ * Cancel the internal tab thread. This requires not just calling the
+ * pthread_cancel function, but also waking up the thread by creating
+ * a new ControlMessage and enquing it in the in_queue. We do the same
+ * for the out_queue as a way to kill off the response watcher (assuming
+ * that some higher power has already called it for us).
+ */
 gint
 tab_cancel (Tab *tab)
 {
@@ -229,6 +268,9 @@ tab_cancel (Tab *tab)
 
     return ret;
 }
+/**
+ * Simple wrapper around pthread_join and the internal thread.
+ */
 gint
 tab_join (Tab *tab)
 {
@@ -243,7 +285,8 @@ tab_join (Tab *tab)
 
     return ret;
 }
-/** Send a command to the TAB.
+/**
+ * Send a command to the TAB.
  * The command originated with the session-data object provided. The command
  * itself is in the cmd_buf parameter. If successfully added to the tab queue
  * we return true, an error will return false.
@@ -257,7 +300,8 @@ tab_send_command (Tab         *tab,
     g_object_ref (obj);
     message_queue_enqueue (tab->in_queue, obj);
 }
-/** Get the next response from the TAB.
+/**
+ * Get the next response from the TAB.
  * Block for timeout microseconds waiting for the next resonse to a TPM
  * command. The caller is responsible for freeing the returned buffer.
  * The returned object is owned by the caller, we do not unref it.
@@ -269,7 +313,8 @@ tab_get_timeout_response (Tab     *tab,
     g_debug ("tab_get_timeout_response: Tab: 0x%x", tab);
     return message_queue_timeout_dequeue (tab->out_queue, timeout);
 }
-/** Get the next response from this TAB.
+/**
+ * Get the next response from this TAB.
  * Block indefinitely waiting for a message to come from the TAB.
  */
 GObject*
@@ -278,7 +323,8 @@ tab_get_response (Tab *tab)
     g_debug ("tab_get_response: Tab: 0x%x", tab);
     return message_queue_dequeue (tab->out_queue);
 }
-/** Cancel pending commands for a session in the TAB
+/**
+ * Cancel pending commands for a session in the TAB.
  * Cancel each pending command associated with the given session in the TAB
  * provided. The number of commands canceled is returned to the caller. If
  * there are no pending commands, 0 is returned. -1 is returned when an error
