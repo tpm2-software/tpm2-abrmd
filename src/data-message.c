@@ -1,12 +1,14 @@
 #include "data-message.h"
 
-/* Boiler-plate gobject code.
+/**
+ * Boiler-plate gobject code.
  * NOTE: I tried to use the G_DEFINE_TYPE macro to take care of this boiler
  * plate for us but ended up with weird segfaults in the type checking macros.
  * Going back to doing this by hand resolved the issue thankfully.
  */
 static gpointer data_message_parent_class = NULL;
-/* override the parent finalize method so we can free the data associated with
+/**
+ * override the parent finalize method so we can free the data associated with
  * the DataMessage instance.
  */
 static void
@@ -18,7 +20,9 @@ data_message_finalize (GObject *obj)
         g_free (msg->data);
     G_OBJECT_CLASS (data_message_parent_class)->finalize (obj);
 }
-/* When the class is initialized we set the pointer to our finalize function.
+/**
+ * Boilerplate GObject initialization. Get a pointer to the parent class,
+ * setup a finalize function.
  */
 static void
 data_message_class_init (gpointer klass)
@@ -29,7 +33,8 @@ data_message_class_init (gpointer klass)
         data_message_parent_class = g_type_class_peek_parent (klass);
     object_class->finalize = data_message_finalize;
 }
-/* Upon first call to *_get_type we register the type with the GType system.
+/**
+ * Upon first call to *_get_type we register the type with the GType system.
  * We keep a static GType around to speed up future calls.
  */
 GType
@@ -47,7 +52,9 @@ data_message_get_type (void)
     }
     return type;
 }
-
+/**
+ * Boilerplate constructor, but some GObject properties would be nice.
+ */
 DataMessage*
 data_message_new (SessionData     *session,
                   guint8          *data,
@@ -62,7 +69,9 @@ data_message_new (SessionData     *session,
 
     return msg;
 }
-
+/**
+ * Debug wrapper.
+ */
 void
 data_message_print (DataMessage *message)
 {
