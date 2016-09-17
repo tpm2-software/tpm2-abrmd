@@ -6,8 +6,17 @@
 
 G_DEFINE_TYPE (MessageQueue, message_queue, G_TYPE_OBJECT);
 
+/**
+ * The init function is a noop but it's required by the G_DEFINE_TYPE
+ * macro.
+ */
 static void
 message_queue_init (MessageQueue *self) {}
+/**
+ * The dispose function is invoked by the GObject system as part of the
+ * object distruction process. For the MessageQueue we need only to free
+ * the internal GAsyncQueue object.
+ */
 static void
 message_queue_dispose (GObject *obj)
 {
@@ -15,6 +24,9 @@ message_queue_dispose (GObject *obj)
 
     g_clear_pointer (&message_queue->queue, g_async_queue_unref);
 }
+/**
+ * Boilerplate GObject class init with custom dispose function.
+ */
 static void
 message_queue_class_init (MessageQueueClass *klass)
 {
@@ -22,8 +34,11 @@ message_queue_class_init (MessageQueueClass *klass)
 
     object_class->dispose = message_queue_dispose;
 }
-/** Allocate a new message_queue_t object.
- * The caller owns the returned pointer and must free it.
+/**
+ * Allocate a new message_queue_t object.
+ * The caller owns the returned object reference and must unref it.
+ * When the MessageQueue object is destroyed each object in its internal
+ * queue will be unref'd as well.
  */
 gpointer
 message_queue_new (const char *name)
@@ -40,7 +55,8 @@ message_queue_new (const char *name)
 
     return message_queue;
 }
-/** Enqueue a blob in the blob_queue_t.
+/**
+ * Enqueue a blob in the blob_queue_t.
  * This function is a thin wrapper around the GQueue. When we enqueue blobs
  * we push them to the head of the queue.
  */
@@ -52,7 +68,8 @@ message_queue_enqueue (MessageQueue  *message_queue,
     g_debug ("message_queue_enqueue 0x%x: message 0x%x", message_queue, object);
     g_async_queue_push (message_queue->queue, object);
 }
-/** Dequeue a blob from the blob_queue_t.
+/**
+ * Dequeue a blob from the blob_queue_t.
  * This function is a thin wrapper around the GQueue. When we dequeue blobs
  * we pop them from the tail of the queue.
  */
@@ -67,6 +84,11 @@ message_queue_dequeue (MessageQueue *message_queue)
     g_debug ("  got obj: 0x%x", obj);
     return obj;
 }
+/**
+ * Dequeue a message from the message queue.
+ * This is a thin wrapper around the GAsyncQueue g_async_queue_timeout_pop
+ * function.
+ */
 GObject*
 message_queue_timeout_dequeue (MessageQueue *message_queue,
                                guint64       timeout)
