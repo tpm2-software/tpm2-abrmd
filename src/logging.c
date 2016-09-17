@@ -4,7 +4,10 @@
 #define LOG_LEVEL_ALL \
      (G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING | \
       G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG)
-
+/**
+ * This function that implements the GLogFunc prototype. It is intended
+ * for use as a log handler function for glib logging.
+ */
 static void
 syslog_log_handler (const char     *log_domain,
                     GLogLevelFlags  log_level,
@@ -37,7 +40,9 @@ syslog_log_handler (const char     *log_domain,
         syslog (LOG_INFO, message);
     }
 }
-
+/**
+ * Convenience function to set logger for GLog.
+ */
 gint
 set_logger (gchar *name)
 {
