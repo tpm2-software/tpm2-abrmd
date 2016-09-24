@@ -36,6 +36,10 @@ CLEANFILES = \
     src/tabd-generated.c \
     src/tabd-generated.h \
     dist/*.service
+
+pkgconfigdir          = $(libdir)/pkgconfig
+nodist_pkgconfig_DATA = lib/tcti-tabrmd.pc
+
 @VALGRIND_CHECK_RULES@
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
 VALGRIND_memcheck_FLAGS = --show-leak-kinds=definite,indirect
@@ -105,6 +109,11 @@ endif
 
 dist/%.service : dist/%.service.in
 	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
+
+%.pc : %.pc.in
+	if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@); fi
+	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g; \
+                s,[@]includedir[@],$(includedir),g;" $^ > $@
 
 test_response_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
 test_response_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \

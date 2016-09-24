@@ -1,0 +1,7 @@
+Name: tcti-tabrmd
+Description: TCTI library for communicating with the TPM2 access broker / resource manager daemon (tabrmd).
+URL: https://github.com/01org/??
+Version: @VERSION@
+Requires: sapi
+Cflags: -I@includedir@/tss2
+Libs: -ltcti-tabd
