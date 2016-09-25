@@ -63,8 +63,13 @@ tcti_socket_get_property (GObject    *object,
 static void
 tcti_socket_finalize (GObject *obj)
 {
-    TctiSocket *tcti_socket = TCTI_SOCKET (obj);
+    TctiSocket    *tcti_socket = TCTI_SOCKET (obj);
+    TctiInterface *tcti_iface  = TCTI_GET_INTERFACE (obj);
 
+    if (tcti_iface->tcti_context) {
+        tss2_tcti_finalize (tcti_iface->tcti_context);
+        g_free (tcti_iface->tcti_context);
+    }
     g_free (tcti_socket->address);
     if (tcti_socket_parent_class)
         G_OBJECT_CLASS (tcti_socket_parent_class)->finalize (obj);
@@ -76,6 +81,7 @@ tcti_socket_class_init (gpointer klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+    g_debug ("tcti_socket_class_init");
     if (tcti_socket_parent_class == NULL)
         tcti_socket_parent_class = g_type_class_peek_parent (klass);
 
@@ -105,8 +111,8 @@ tcti_socket_class_init (gpointer klass)
 static void
 tcti_socket_interface_init (gpointer g_iface)
 {
+    g_debug ("tcti_socket_interface_init");
     TctiInterface *tcti_interface = (TctiInterface*)g_iface;
-    tcti_interface->get_context   = tcti_socket_get_context;
     tcti_interface->initialize    = tcti_socket_initialize;
 }
 /* Upon first call to *_get_type we register the type with the GType system.
@@ -133,21 +139,35 @@ tcti_socket_get_type (void)
     }
     return type;
 }
+/**
+ * Allocate a new TctiSocket object and initialize the 'tcti_context'
+ * variable to NULL.
+ */
 TctiSocket*
 tcti_socket_new (const gchar *address,
                  guint16      port)
 {
-    return TCTI_SOCKET (g_object_new (TYPE_TCTI_SOCKET,
+    TctiInterface *iface;
+    TctiSocket *tcti;
+
+    tcti = TCTI_SOCKET (g_object_new (TYPE_TCTI_SOCKET,
                                       "address", address,
                                       "port", port,
                                       NULL));
+    iface = TCTI_GET_INTERFACE (tcti);
+    iface->tcti_context = NULL;
+    return tcti;
 }
+/**
+ * Initialize an instance of a TSS2_TCTI_CONTEXT for the socket Tcti.
+ */
 TSS2_RC
 tcti_socket_initialize (Tcti *tcti)
 {
-    TSS2_RC rc = TSS2_RC_SUCCESS;
+    TctiSocket    *self  = TCTI_SOCKET (tcti);
+    TctiInterface *iface = TCTI_GET_INTERFACE (tcti);
+    TSS2_RC        rc    = TSS2_RC_SUCCESS;
     size_t ctx_size;
-    TctiSocket *self = TCTI_SOCKET (tcti);
 
     TCTI_SOCKET_CONF config = {
         .hostname          = self->address,
@@ -157,28 +177,25 @@ tcti_socket_initialize (Tcti *tcti)
         .logData           = NULL,
     };
 
-    if (self->tcti_context == NULL) {
-        rc = InitSocketTcti (NULL, &ctx_size, NULL, 0);
-        if (rc != TSS2_RC_SUCCESS)
-            goto out;
-        self->tcti_context = g_malloc0 (ctx_size);
-        rc = InitSocketTcti (self->tcti_context, &ctx_size, &config, 0);
-        if (rc != TSS2_RC_SUCCESS)
-            g_free (self->tcti_context);
+    if (iface->tcti_context != NULL)
+        goto out;
+    rc = InitSocketTcti (NULL, &ctx_size, NULL, 0);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("failed to get size for socket TCTI context structure: ",
+                   "0x%x", rc);
+        goto out;
+    }
+    iface->tcti_context = g_malloc0 (ctx_size);
+    if (iface->tcti_context == NULL) {
+        g_warning ("Failed to allocate memory");
+        goto out;
+    }
+    rc = InitSocketTcti (iface->tcti_context, &ctx_size, &config, 0);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("failed to initialize socket TCTI context: 0x%x", rc);
+        g_free (iface->tcti_context);
+        iface->tcti_context = NULL;
     }
 out:
-    return rc;
-}
-/* Create and expose the internal TCTI context needed by the TSS / SAPI */
-TSS2_RC
-tcti_socket_get_context (Tcti               *tcti,
-                         TSS2_TCTI_CONTEXT **ctx)
-{
-    TSS2_RC rc;
-    TctiSocket *self = TCTI_SOCKET (tcti);
-
-    if (self->tcti_context == NULL)
-        rc = tcti_socket_initialize (tcti);
-    *ctx = self->tcti_context;
     return rc;
 }

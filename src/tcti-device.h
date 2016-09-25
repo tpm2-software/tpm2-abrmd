@@ -17,7 +17,6 @@ typedef struct _TctiDevice
 {
     GObject            parent_instance;
     gchar             *filename;
-    TSS2_TCTI_CONTEXT *tcti_context;
 } TctiDevice;
 
 #define TYPE_TCTI_DEVICE             (tcti_device_get_type       ())
@@ -29,8 +28,6 @@ typedef struct _TctiDevice
 
 GType                tcti_device_get_type       (void);
 TctiDevice*          tcti_device_new            (const gchar *filename);
-TSS2_RC              tcti_device_get_context    (Tcti               *tcti,
-                                                 TSS2_TCTI_CONTEXT **);
 TSS2_RC              tcti_device_initialize     (Tcti               *tcti);
 
 G_END_DECLS

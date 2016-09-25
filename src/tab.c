@@ -166,16 +166,13 @@ tab_process_data_message (Tab          *tab,
                           DataMessage  *msg)
 {
     TSS2_RC rc;
-    TSS2_TCTI_CONTEXT *tcti_context;
-
-    g_debug ("tab process_data_message: 0x%x, object", tab->out_queue, msg);
-    rc = tcti_get_context (tab->tcti, &tcti_context);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("tcti_get_context failed: 0x%x", rc);
-    rc = tss2_tcti_transmit (tcti_context, msg->size, msg->data);
+    rc = tcti_transmit (tab->tcti, msg->size, msg->data);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_transmit returned error: 0x%x", rc);
-    rc = tss2_tcti_receive (tcti_context, &msg->size, msg->data, 0);
+    rc = tcti_receive (tab->tcti,
+                       &msg->size,
+                       msg->data,
+                       TSS2_TCTI_TIMEOUT_BLOCK);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_receive returned error: 0x%x", rc);
 

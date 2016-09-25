@@ -54,8 +54,13 @@ tcti_device_get_property (GObject    *object,
 static void
 tcti_device_finalize (GObject *obj)
 {
-    TctiDevice *tcti_device = TCTI_DEVICE (obj);
+    TctiDevice    *tcti_device = TCTI_DEVICE (obj);
+    TctiInterface *tcti_iface  = TCTI_GET_INTERFACE (obj);
 
+    if (tcti_iface->tcti_context) {
+        tss2_tcti_finalize (tcti_iface->tcti_context);
+        g_free (tcti_iface->tcti_context);
+    }
     g_free (tcti_device->filename);
     if (tcti_device_parent_class)
         G_OBJECT_CLASS (tcti_device_parent_class)->finalize (obj);
@@ -89,7 +94,6 @@ static void
 tcti_device_interface_init (gpointer g_iface)
 {
     TctiInterface *tcti_interface = (TctiInterface*)g_iface;
-    tcti_interface->get_context = tcti_device_get_context;
     tcti_interface->initialize = tcti_device_initialize;
 }
 /* Upon first call to *_get_type we register the type with the GType system.
@@ -116,20 +120,33 @@ tcti_device_get_type (void)
     }
     return type;
 }
+/**
+ * Allocate a new TctiDevice object and initialize the 'tcti_context'
+ * variable to NULL.
+ */
 TctiDevice*
 tcti_device_new (const gchar *filename)
 {
-    return TCTI_DEVICE (g_object_new (TYPE_TCTI_DEVICE,
+    TctiInterface *iface;
+    TctiDevice    *tcti;
+
+    tcti = TCTI_DEVICE (g_object_new (TYPE_TCTI_DEVICE,
                                       "filename", filename,
                                       NULL));
+    iface = TCTI_GET_INTERFACE (tcti);
+    iface->tcti_context = NULL;
+    return tcti;
 }
-
+/**
+ * Initialize an instance of a TSS2_TCTI_CONTEXT for the device TCTI.
+ */
 TSS2_RC
 tcti_device_initialize (Tcti *tcti)
 {
-    TSS2_RC rc;
-    size_t ctx_size;
-    TctiDevice *self = TCTI_DEVICE (tcti);
+    TctiDevice    *self     = TCTI_DEVICE (tcti);
+    TctiInterface *iface    = TCTI_GET_INTERFACE (tcti);
+    TSS2_RC        rc       = TSS2_RC_SUCCESS;
+    size_t         ctx_size;
 
     TCTI_DEVICE_CONF config = {
         .device_path = self->filename,
@@ -137,28 +154,25 @@ tcti_device_initialize (Tcti *tcti)
         .logData     = NULL,
     };
 
-    if (self->tcti_context == NULL) {
-        rc = InitDeviceTcti (NULL, &ctx_size, NULL);
-        if (rc != TSS2_RC_SUCCESS)
-            g_error ("failed to get size for device TCTI contexxt structure: "
-                     "0x%x", rc);
-        self->tcti_context = g_malloc0 (ctx_size);
-        rc = InitDeviceTcti (self->tcti_context, &ctx_size, &config);
-        if (rc != TSS2_RC_SUCCESS)
-            g_free (self->tcti_context);
-        return rc;
+    if (iface->tcti_context != NULL)
+        goto out;
+    rc = InitDeviceTcti (NULL, &ctx_size, NULL);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("failed to get size for device TCTI contexxt structure: "
+                   "0x%x", rc);
+        goto out;
     }
-}
-/* Create and expose the internal TCTI context needed by the TSS / SAPI */
-TSS2_RC
-tcti_device_get_context (Tcti               *tcti,
-                         TSS2_TCTI_CONTEXT **ctx)
-{
-    TSS2_RC rc = TSS2_RC_SUCCESS;
-    TctiDevice *self = TCTI_DEVICE (tcti);
-
-    if (self->tcti_context == NULL)
-        rc = tcti_device_initialize (tcti);
-    *ctx = self->tcti_context;
+    iface->tcti_context = g_malloc0 (ctx_size);
+    if (iface->tcti_context == NULL) {
+        g_warning ("failed to allocate memory");
+        goto out;
+    }
+    rc = InitDeviceTcti (iface->tcti_context, &ctx_size, &config);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("failed to initialize device TCTI context: 0x%x", rc);
+        g_free (iface->tcti_context);
+        iface->tcti_context = NULL;
+    }
+out:
     return rc;
 }

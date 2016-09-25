@@ -14,16 +14,23 @@ typedef struct _TctiInterface TctiInterface;
 
 /* type for function pointer defined by interface */
 typedef TSS2_RC (*TctiInit)       (Tcti *self);
-typedef TSS2_RC (*TctiGetContext) (Tcti *self, TSS2_TCTI_CONTEXT **ctx);
 
 struct _TctiInterface {
-    GTypeInterface    parent;
-    TctiInit          initialize;
-    TctiGetContext    get_context;
+    GTypeInterface      parent;
+    TSS2_TCTI_CONTEXT  *tcti_context;
+    TctiInit            initialize;
 };
 
-GType              tcti_get_type    (void);
-TSS2_RC tcti_get_context (Tcti *self, TSS2_TCTI_CONTEXT **ctx);
-TSS2_RC tcti_init        (Tcti *self);
+TSS2_RC            tcti_init             (Tcti                *self);
+TSS2_RC            tcti_transmit         (Tcti                *self,
+                                          size_t               size,
+                                          uint8_t             *command);
+TSS2_RC            tcti_receive          (Tcti                *self,
+                                          size_t              *size,
+                                          uint8_t             *response,
+                                          int32_t              timeout);
+TSS2_RC            tcti_cancel           (Tcti                *self);
+TSS2_RC            tcti_set_locality     (Tcti                *self,
+                                          uint8_t              locality);
 
 #endif /* TCTI_INTERFACE_H */

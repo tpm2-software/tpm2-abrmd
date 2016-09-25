@@ -185,7 +185,12 @@ static void
 tcti_echo_finalize_gobject (GObject *obj)
 {
     TctiEcho *tcti_echo = TCTI_ECHO (obj);
+    TctiInterface *tcti_iface = TCTI_GET_INTERFACE (obj);
 
+    if (tcti_iface->tcti_context) {
+        tss2_tcti_finalize (tcti_iface->tcti_context);
+        g_free (tcti_iface->tcti_context);
+    }
     if (tcti_echo_parent_class)
         G_OBJECT_CLASS (tcti_echo_parent_class)->finalize (obj);
 }
@@ -220,7 +225,6 @@ static void
 tcti_echo_interface_init (gpointer g_iface)
 {
     TctiInterface *tcti_interface = (TctiInterface*)g_iface;
-    tcti_interface->get_context = tcti_echo_get_context;
     tcti_interface->initialize  = tcti_echo_initialize;
 }
 /* Upon first call to *_get_type we register the type with the GType system.
@@ -258,37 +262,24 @@ tcti_echo_new (guint size)
 TSS2_RC
 tcti_echo_initialize (Tcti *tcti)
 {
-    TSS2_RC rc = TSS2_RC_SUCCESS;
-    size_t ctx_size;
-    TctiEcho *self = TCTI_ECHO (tcti);
+    TctiEcho      *self  = TCTI_ECHO (tcti);
+    TctiInterface *iface = TCTI_GET_INTERFACE (tcti);
+    TSS2_RC        rc    = TSS2_RC_SUCCESS;
+    size_t         ctx_size;
 
-    if (self->tcti_context)
+    if (iface->tcti_context)
         goto out;
     rc = tcti_echo_init (NULL, &ctx_size, self->size);
     if (rc != TSS2_RC_SUCCESS)
         goto out;
     g_debug ("allocating tcti_context: 0x%x", ctx_size);
-    self->tcti_context = g_malloc0 (ctx_size);
-    rc = tcti_echo_init (self->tcti_context, &ctx_size, self->size);
+    iface->tcti_context = g_malloc0 (ctx_size);
+    rc = tcti_echo_init (iface->tcti_context, &ctx_size, self->size);
     if (rc != TSS2_RC_SUCCESS)
-        g_free (self->tcti_context);
+        g_free (iface->tcti_context);
 out:
     return rc;
 
-}
-/* Create and expose the internal TCTI context needed by the TSS / SAPI */
-TSS2_RC
-tcti_echo_get_context (Tcti               *tcti,
-                       TSS2_TCTI_CONTEXT **ctx)
-{
-    TSS2_RC rc = TSS2_RC_SUCCESS;
-    TctiEcho *self = TCTI_ECHO (tcti);
-
-    g_debug ("tcti_echo_get_context");
-    if (self->tcti_context == NULL)
-        rc = tcti_echo_initialize (tcti);
-    *ctx = self->tcti_context;
-    return rc;
 }
 /**
  * End GObject code

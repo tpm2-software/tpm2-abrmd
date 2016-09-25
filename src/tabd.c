@@ -37,7 +37,7 @@ typedef struct gmain_data {
     gint                    wakeup_send_fd;
     struct drand48_data     rand_data;
     GMutex                  init_mutex;
-    TctiOptions            *tcti_options;
+    Tcti                   *tcti;
 } gmain_data_t;
 
 /* This global pointer to the GMainLoop is necessary so that we can react to
@@ -392,12 +392,11 @@ init_thread_func (gpointer user_data)
      * this isn't strictly necessary but it allows us to detect a failure in
      * the TCTI before we start communicating with clients
      */
-    tcti = tcti_options_get_tcti (data->tcti_options);
-    rc = tcti_initialize (tcti);
+    rc = tcti_initialize (data->tcti);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize TCTI: 0x%x", rc);
 
-    data->tab = tab_new (tcti);
+    data->tab = tab_new (data->tcti);
     ret = tab_start (data->tab);
     if (ret != 0)
         g_error ("failed to start Tab: %s", strerror (errno));
@@ -492,7 +491,10 @@ main (int argc, char *argv[])
 
   if (parse_opts (argc, argv, &options) != 0)
       return 1;
-  gmain_data.tcti_options = options.tcti_options;
+  gmain_data.tcti = tcti_options_get_tcti (options.tcti_options);
+  if (gmain_data.tcti == NULL)
+      g_error ("Failed to get TCTI object from TctiOptions");
+
   g_mutex_init (&gmain_data.init_mutex);
   g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);
   /* Initialize program data on a separate thread. The main thread needs to

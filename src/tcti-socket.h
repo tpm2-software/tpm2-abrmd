@@ -19,7 +19,6 @@ typedef struct _TctiSocket
     GObject            parent_instance;
     gchar             *address;
     guint16            port;
-    TSS2_TCTI_CONTEXT *tcti_context;
 } TctiSocket;
 
 #define TYPE_TCTI_SOCKET             (tcti_socket_get_type       ())
@@ -30,10 +29,9 @@ typedef struct _TctiSocket
 #define TCTI_SOCKET_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TCTI_SOCKET, TctiSocketClass))
 
 GType                tcti_socket_get_type       (void);
-TctiSocket*          tcti_socket_new            (const gchar *address, guint16 port);
-TSS2_RC              tcti_socket_get_context    (Tcti                  *tcti,
-                                                 TSS2_TCTI_CONTEXT    **ctx);
-TSS2_RC              tcti_socket_initialize     (Tcti                  *tcti);
+TctiSocket*          tcti_socket_new            (gchar const   *address,
+                                                 guint16        port);
+TSS2_RC              tcti_socket_initialize     (Tcti          *tcti);
 
 G_END_DECLS
 

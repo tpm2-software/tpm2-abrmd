@@ -362,11 +362,7 @@ tcti_options_get_tcti (TctiOptions *self)
 #ifdef HAVE_TCTI_SOCKET
     case TCTI_TYPE_SOCKET:
         g_assert (self->socket_address);
-        TctiSocket *tcti_socket;
-        tcti_socket = tcti_socket_new (self->socket_address,
-                                       self->socket_port);
-
-        return TCTI (tcti_socket);
+        return TCTI (tcti_socket_new (self->socket_address, self->socket_port));
 #endif
     default:
         g_error ("unsupported TCTI type");
