@@ -168,7 +168,8 @@ test_tab_unit_SOURCES = \
 
 if TCTI_DEVICE
 test_tcti_device_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(AM_CFLAGS)
-test_tcti_device_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TCTI_DEVICE_LIBS)
+test_tcti_device_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_tcti_device_unit_LDFLAGS  = -Wl,--wrap=InitDeviceTcti
 test_tcti_device_unit_SOURCES  = \
     src/tcti-device.c \
     src/tcti-interface.c \
@@ -177,7 +178,8 @@ endif
 
 if TCTI_SOCKET
 test_tcti_socket_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAGS) $(TCTI_SOCKET_CFLAGS) $(AM_CFLAGS)
-test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TCTI_SOCKET_LIBS)
+test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_tcti_socket_unit_LDFLAGS  = -Wl,--wrap=InitSocketTcti
 test_tcti_socket_unit_SOURCES  = \
     src/tcti-socket.c \
     src/tcti-interface.c \
