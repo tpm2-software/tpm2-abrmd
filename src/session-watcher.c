@@ -142,20 +142,15 @@ DataMessage*
 data_message_from_fd (SessionData     *session,
                       gint             fd)
 {
-    guint8 *buf = NULL;
+    guint8 *command_buf = NULL;
     DataMessage *msg;
-    ssize_t bytes_read;
-    size_t  bytes_total = 0;
+    UINT32 command_size = 0;
 
     g_debug ("data_message_from_fd: %d", fd);
-    bytes_read = read_till_block (fd, &buf, &bytes_total);
-    if (bytes_read == -1) {
-        g_info ("read_till_block: error, or connection closed");
-        if (buf)
-            free (buf);
+    command_buf = read_tpm_command_from_fd (fd, &command_size);
+    if (command_buf == NULL)
         return NULL;
-    }
-    return data_message_new (session, buf, bytes_total);
+    return data_message_new (session, command_buf, command_size);
 }
 
 void

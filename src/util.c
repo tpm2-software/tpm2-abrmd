@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "util.h"
+#include "tpm2-header.h"
 
 /** Write as many of the size bytes from buf to fd as possible.
  */
@@ -109,4 +110,101 @@ process_control_message (ControlMessage *msg)
     default:
         break;
     }
+}
+/**
+ * Read a TPM command header from the parameter 'fd'. Command headers are
+ * a fixed size so the buf_size is largely a formality: it's just a way to
+ * be sure the caller understands that the buffer must be at least
+ * TPM_COMMAND_HEADER_SIZE bytes.
+ */
+uint8_t*
+read_tpm_command_header_from_fd (int fd, uint8_t *buf, size_t buf_size)
+{
+    int num_read = 0;
+
+    g_debug ("read_tpm_command_header_from_fd");
+    if (buf_size < TPM_COMMAND_HEADER_SIZE) {
+        g_error ("buffer size too small for tpm command header");
+        return NULL;
+    }
+
+    num_read = read (fd, buf, TPM_COMMAND_HEADER_SIZE);
+    switch (num_read) {
+    case TPM_COMMAND_HEADER_SIZE:
+        return buf;
+    case -1:
+        g_warning ("error reading from fd %d: %s", fd, strerror (errno));
+        return NULL;
+    case 0:
+        g_warning ("EOF trying to read tpm command header from fd: %d", fd);
+        return NULL;
+    default:
+        g_warning ("read %d bytes on fd %d, expecting %d",
+                   num_read, fd, TPM_COMMAND_HEADER_SIZE);
+        return NULL;
+    }
+}
+/**
+ * Read the body of a TPM command buffer from the provided file descriptor
+ * 'fd'. The command body will be written to the buffer provided in 'buf'.
+ * The caller specifies the size of the command body in the 'body_size'
+ * parameter.
+ */
+uint8_t*
+read_tpm_command_body_from_fd (int fd, uint8_t *buf, size_t body_size)
+{
+    int num_read = 0;
+
+    g_debug ("read_tpm_command_body_from_fd");
+    num_read = read (fd, buf, body_size);
+    if (num_read == body_size)
+        return buf;
+    switch (num_read) {
+    case -1:
+        g_warning ("error reading from fd %d: %s", fd, strerror (errno));
+        return NULL;
+    case 0:
+        g_warning ("EOF trying to read TPM command body from fd: %d", fd);
+        return NULL;
+    default:
+        g_warning ("read %d bytes on fd %d, expecting %d",
+                   num_read, fd, body_size);
+        return NULL;
+    }
+}
+/**
+ * Read a TPM command from the provided file descriptor. The size of the
+ * command is returned in the 'command_size' parameter. The return value
+ * is a pointer to the newly allocated buffer holding the command.
+ * The caller must deallocate the command buffer.
+ */
+uint8_t*
+read_tpm_command_from_fd (int fd, UINT32 *command_size)
+{
+    size_t header_size = TPM_COMMAND_HEADER_SIZE;
+    uint8_t header[TPM_COMMAND_HEADER_SIZE] = { 0, };
+    uint8_t *tpm_command = NULL, *tmp = NULL;
+
+    g_debug ("read_tpm_commad_from_fd");
+    if (read_tpm_command_header_from_fd (fd, header, header_size) == NULL)
+        return NULL;
+    *command_size = get_command_size (header);
+    if (*command_size > UTIL_BUF_MAX) {
+        g_warning ("received TPM command larger than %d", UTIL_BUF_MAX);
+        return NULL;
+    }
+    tpm_command = g_malloc0 (*command_size);
+    if (tpm_command == NULL) {
+        g_error ("g_malloc0 failed to allocate buffer for TPM command");
+        return NULL;
+    }
+    memcpy (tpm_command, header, header_size);
+    tmp = read_tpm_command_body_from_fd (fd,
+                                         tpm_command + header_size,
+                                         *command_size - header_size);
+    if (tmp == NULL) {
+        g_free (tpm_command);
+        return NULL;
+    }
+    return tpm_command;
 }

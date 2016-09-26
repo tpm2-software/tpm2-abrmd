@@ -44,16 +44,17 @@ nodist_pkgconfig_DATA = lib/tcti-tabrmd.pc
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
 VALGRIND_memcheck_FLAGS = --show-leak-kinds=definite,indirect
 
-src_libutil_a_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) -fPIC
-src_libutil_a_SOURCES = src/util.c
+src_libutil_a_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(SAPI_CFLAGS) -fPIC
+src_libutil_a_SOURCES = src/tpm2-header.c src/util.c
 
-src_libtcti_tabd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
-src_libtcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
+src_libtcti_tabd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
+    $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
+src_libtcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
+    $(PTHREAD_LIBS) $(noinst_LIBRARIES)
 src_libtcti_tabd_la_LDFLAGS = -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabd.map
 src_libtcti_tabd_la_SOURCES = \
     src/tabd-generated.c \
-    src/tcti-tabd.c \
-    src/util.c
+    src/tcti-tabd.c
 
 src_libtcti_echo_la_CFLAGS  = -fPIC $(GLIB_CFLAGS) $(AM_CFLAGS)
 src_libtcti_echo_la_SOURCES = src/tcti-interface.c src/tcti-echo.c
