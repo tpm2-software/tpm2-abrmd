@@ -208,3 +208,43 @@ read_tpm_command_from_fd (int fd, UINT32 *command_size)
     }
     return tpm_command;
 }
+/**
+ * This is a wrapper around g_debug to dump a binary buffer in a human
+ * readable format. Since g_debug appends a new line to each string that
+ * it builds we dump a single line at a time. Each line is indented by
+ * 'indent' spaces. The 'width' parameter determines how many bytes are
+ * output on each line.
+ */
+void
+g_debug_bytes (uint8_t const *byte_array,
+               size_t         array_size,
+               size_t         width,
+               size_t         indent)
+{
+    int byte_ctr;
+    int indent_ctr;
+    size_t line_length = indent + width * 3 + 1;
+    uint8_t line [line_length];
+    uint8_t *line_position = line;
+
+    line [line_length - 1] = '\0';
+    for (byte_ctr = 0; byte_ctr < array_size; ++byte_ctr) {
+        /* index into line where next byte is written */
+        line_position = line + indent + (byte_ctr % width) * 3;
+        /* detect the beginning of a line, pad indent spaces */
+        if (byte_ctr % width == 0)
+            for (indent_ctr = 0; indent_ctr < indent; ++indent_ctr)
+                line [indent_ctr] = ' ';
+        sprintf (line_position, "%02x", byte_array [byte_ctr]);
+        /**
+         *  If we're not width bytes into the array AND we're not at the end
+         *  of the byte array: print a space. This is padding between the
+         *  current byte and the next.
+         */
+        if (byte_ctr % width != width - 1 && byte_ctr != array_size - 1) {
+            sprintf (line_position + 2, " ");
+        } else {
+            g_debug (line);
+        }
+    }
+}
