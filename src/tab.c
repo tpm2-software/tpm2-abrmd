@@ -178,6 +178,52 @@ tab_process_data_message (Tab          *tab,
 
     message_queue_enqueue (tab->out_queue, G_OBJECT (msg));
 }
+static TSS2_SYS_CONTEXT*
+sapi_context_init (TSS2_TCTI_CONTEXT *tcti_ctx)
+{
+    TSS2_SYS_CONTEXT *sapi_ctx;
+    TSS2_RC rc;
+    size_t size;
+    TSS2_ABI_VERSION abi_version = {
+        .tssCreator = TSSWG_INTEROP,
+        .tssFamily  = TSS_SAPI_FIRST_FAMILY,
+        .tssLevel   = TSS_SAPI_FIRST_LEVEL,
+        .tssVersion = TSS_SAPI_FIRST_VERSION,
+    };
+
+    size = Tss2_Sys_GetContextSize (0);
+    sapi_ctx = (TSS2_SYS_CONTEXT*)g_malloc0 (size);
+    if (sapi_ctx == NULL) {
+        g_error ("Failed to allocate 0x%zx bytes for the SAPI context\n",
+                 size);
+        return NULL;
+    }
+    rc = Tss2_Sys_Initialize (sapi_ctx, size, tcti_ctx, &abi_version);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_error ("Failed to initialize SAPI context: 0x%x\n", rc);
+        return NULL;
+    }
+    return sapi_ctx;
+}
+static void
+send_tpm_startup (Tab *tab)
+{
+    TSS2_TCTI_CONTEXT *tcti_context;
+    TSS2_SYS_CONTEXT *sapi_context;
+    TSS2_RC rc;
+
+    tcti_context = tcti_peek_context (tab->tcti);
+    if (tcti_context == NULL)
+        g_error ("  NULL TCTI context");
+    sapi_context = sapi_context_init (tcti_context);
+    if (sapi_context == NULL)
+        g_error ("  NULL SAPI context");
+    rc = Tss2_Sys_Startup (sapi_context, TPM_SU_CLEAR);
+    if (rc != TSS2_RC_SUCCESS && rc != TPM_RC_INITIALIZE)
+        g_error ("Tss2_Sys_Startup returned unexpected RC: 0x%x", rc);
+    Tss2_Sys_Finalize (sapi_context);
+    g_free (sapi_context);
+}
 /**
  * This function acts as a thread. It simply:
  * - Blocks on the in_queue. Then wakes up and
@@ -193,6 +239,7 @@ cmd_runner (gpointer data)
     GObject     *obj = NULL;
 
     g_debug ("cmd_runner start");
+    send_tpm_startup (tab);
     while (TRUE) {
         obj = message_queue_dequeue (tab->in_queue);
         g_debug ("cmd_runner message_queue_dequeue got obj: 0x%x", obj);
