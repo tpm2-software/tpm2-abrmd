@@ -7,7 +7,12 @@ tcti_default_init (TctiInterface *iface)
 {
 /* noop, required by G_DEFINE_INTERFACE */
 }
-
+/**
+ * AFAIK this is boilerplate for 'interface' / abstract objects. All we do
+ * is get a reference to the interface for the parameter object 'self',
+ * check to be sure it's set to something non-NULL, then we call it and
+ * return the result.
+ */
 TSS2_RC
 tcti_initialize (Tcti *self)
 {
@@ -20,6 +25,22 @@ tcti_initialize (Tcti *self)
 
     return iface->initialize (self);
 }
+/**
+ * This function should be used carefully. It breaks the encapsulation of
+ * the Tcti object and may cause weird side effects if the TSS2_TCTI_CONTEXT
+ * structure and the Tcti object end up being used in different places or
+ * threads.
+ */
+TSS2_TCTI_CONTEXT*
+tcti_peek_context (Tcti *self)
+{
+    return TCTI_GET_INTERFACE (self)->tcti_context;
+}
+/**
+ * The rest of these functions are just wrappers around the macros provided
+ * by the TSS for calling the TCTI functions. There's no implementation for
+ * 'getPollHandles' yet since I've got no need for it yet.
+ */
 TSS2_RC
 tcti_transmit (Tcti      *self,
                size_t     size,

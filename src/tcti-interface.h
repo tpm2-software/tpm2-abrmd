@@ -34,5 +34,6 @@ TSS2_RC            tcti_receive          (Tcti                *self,
 TSS2_RC            tcti_cancel           (Tcti                *self);
 TSS2_RC            tcti_set_locality     (Tcti                *self,
                                           uint8_t              locality);
+TSS2_TCTI_CONTEXT* tcti_peek_context     (Tcti                *self);
 
 #endif /* TCTI_INTERFACE_H */
