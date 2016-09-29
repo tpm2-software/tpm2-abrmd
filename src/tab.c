@@ -166,17 +166,29 @@ tab_process_data_message (Tab          *tab,
                           DataMessage  *msg)
 {
     TSS2_RC rc;
+    SessionData  *session = msg->session;
+    DataMessage  *response;
+    uint8_t      *data;
+    size_t        size = 4096;
+
     rc = tcti_transmit (tab->tcti, msg->size, msg->data);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_transmit returned error: 0x%x", rc);
+    g_object_unref (msg);
+
+    data = g_malloc0 (size);
+    response = data_message_new (session, data, size);
+    if (response == NULL)
+        g_error ("failed to create response message");
+
     rc = tcti_receive (tab->tcti,
-                       &msg->size,
-                       msg->data,
+                       &response->size,
+                       response->data,
                        TSS2_TCTI_TIMEOUT_BLOCK);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_receive returned error: 0x%x", rc);
 
-    message_queue_enqueue (tab->out_queue, G_OBJECT (msg));
+    message_queue_enqueue (tab->out_queue, G_OBJECT (response));
 }
 static TSS2_SYS_CONTEXT*
 sapi_context_init (TSS2_TCTI_CONTEXT *tcti_ctx)
