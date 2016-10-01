@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -7,6 +8,46 @@
 #include "util.h"
 #include "tpm2-header.h"
 
+/**
+ * This is a wrapper around g_debug to dump a binary buffer in a human
+ * readable format. Since g_debug appends a new line to each string that
+ * it builds we dump a single line at a time. Each line is indented by
+ * 'indent' spaces. The 'width' parameter determines how many bytes are
+ * output on each line.
+ */
+void
+g_debug_bytes (uint8_t const *byte_array,
+               size_t         array_size,
+               size_t         width,
+               size_t         indent)
+{
+    int byte_ctr;
+    int indent_ctr;
+    size_t line_length = indent + width * 3 + 1;
+    uint8_t line [line_length];
+    uint8_t *line_position = line;
+
+    line [line_length - 1] = '\0';
+    for (byte_ctr = 0; byte_ctr < array_size; ++byte_ctr) {
+        /* index into line where next byte is written */
+        line_position = line + indent + (byte_ctr % width) * 3;
+        /* detect the beginning of a line, pad indent spaces */
+        if (byte_ctr % width == 0)
+            for (indent_ctr = 0; indent_ctr < indent; ++indent_ctr)
+                line [indent_ctr] = ' ';
+        sprintf (line_position, "%02x", byte_array [byte_ctr]);
+        /**
+         *  If we're not width bytes into the array AND we're not at the end
+         *  of the byte array: print a space. This is padding between the
+         *  current byte and the next.
+         */
+        if (byte_ctr % width != width - 1 && byte_ctr != array_size - 1) {
+            sprintf (line_position + 2, " ");
+        } else {
+            g_debug (line);
+        }
+    }
+}
 /** Write as many of the size bytes from buf to fd as possible.
  */
 ssize_t
@@ -18,7 +59,7 @@ write_all (const gint    fd,
     size_t written_total = 0;
 
     do {
-        g_debug ("writing %d bytes starting at 0x%x to fd %d",
+        g_debug ("writing 0x%x bytes starting at 0x%x to fd %d",
                  size - written_total,
                  buf + written_total,
                  fd);
@@ -131,6 +172,8 @@ read_tpm_command_header_from_fd (int fd, uint8_t *buf, size_t buf_size)
     num_read = read (fd, buf, TPM_COMMAND_HEADER_SIZE);
     switch (num_read) {
     case TPM_COMMAND_HEADER_SIZE:
+        g_debug ("  read 0x%x bytes", num_read);
+        g_debug_bytes (buf, num_read, 16, 4);
         return buf;
     case -1:
         g_warning ("error reading from fd %d: %s", fd, strerror (errno));
@@ -157,17 +200,20 @@ read_tpm_command_body_from_fd (int fd, uint8_t *buf, size_t body_size)
 
     g_debug ("read_tpm_command_body_from_fd");
     num_read = read (fd, buf, body_size);
-    if (num_read == body_size)
+    if (num_read == body_size) {
+        g_debug ("  read 0x%x bytes as expected", num_read);
+        g_debug_bytes (buf, body_size, 8, 4);
         return buf;
+    }
     switch (num_read) {
     case -1:
-        g_warning ("error reading from fd %d: %s", fd, strerror (errno));
+        g_warning ("  error reading from fd %d: %s", fd, strerror (errno));
         return NULL;
     case 0:
-        g_warning ("EOF trying to read TPM command body from fd: %d", fd);
+        g_warning ("  EOF reading TPM command body from fd: %d", fd);
         return NULL;
     default:
-        g_warning ("read %d bytes on fd %d, expecting %d",
+        g_warning ("  read %d bytes on fd %d, expecting %d",
                    num_read, fd, body_size);
         return NULL;
     }
@@ -189,6 +235,7 @@ read_tpm_command_from_fd (int fd, UINT32 *command_size)
     if (read_tpm_command_header_from_fd (fd, header, header_size) == NULL)
         return NULL;
     *command_size = get_command_size (header);
+    g_debug ("  reading command_size: 0x%x", *command_size);
     if (*command_size > UTIL_BUF_MAX) {
         g_warning ("received TPM command larger than %d", UTIL_BUF_MAX);
         return NULL;
@@ -206,45 +253,6 @@ read_tpm_command_from_fd (int fd, UINT32 *command_size)
         g_free (tpm_command);
         return NULL;
     }
-    return tpm_command;
-}
-/**
- * This is a wrapper around g_debug to dump a binary buffer in a human
- * readable format. Since g_debug appends a new line to each string that
- * it builds we dump a single line at a time. Each line is indented by
- * 'indent' spaces. The 'width' parameter determines how many bytes are
- * output on each line.
- */
-void
-g_debug_bytes (uint8_t const *byte_array,
-               size_t         array_size,
-               size_t         width,
-               size_t         indent)
-{
-    int byte_ctr;
-    int indent_ctr;
-    size_t line_length = indent + width * 3 + 1;
-    uint8_t line [line_length];
-    uint8_t *line_position = line;
 
-    line [line_length - 1] = '\0';
-    for (byte_ctr = 0; byte_ctr < array_size; ++byte_ctr) {
-        /* index into line where next byte is written */
-        line_position = line + indent + (byte_ctr % width) * 3;
-        /* detect the beginning of a line, pad indent spaces */
-        if (byte_ctr % width == 0)
-            for (indent_ctr = 0; indent_ctr < indent; ++indent_ctr)
-                line [indent_ctr] = ' ';
-        sprintf (line_position, "%02x", byte_array [byte_ctr]);
-        /**
-         *  If we're not width bytes into the array AND we're not at the end
-         *  of the byte array: print a space. This is padding between the
-         *  current byte and the next.
-         */
-        if (byte_ctr % width != width - 1 && byte_ctr != array_size - 1) {
-            sprintf (line_position + 2, " ");
-        } else {
-            g_debug (line);
-        }
-    }
+    return tpm_command;
 }

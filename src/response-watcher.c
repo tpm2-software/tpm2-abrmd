@@ -41,6 +41,9 @@ response_watcher_write_response (const gint fd,
 {
     ssize_t written = 0;
 
+    g_debug ("response_watcher_write_response");
+    g_debug ("  writing 0x%x bytes", msg->size);
+    g_debug_bytes (msg->data, msg->size, 16, 4);
     written = write_all (fd, msg->data, msg->size);
     if (written <= 0)
         g_warning ("write failed (%d) on fd %d for session 0x%x: %s",

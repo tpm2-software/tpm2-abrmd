@@ -171,6 +171,10 @@ tab_process_data_message (Tab          *tab,
     uint8_t      *data;
     size_t        size = 4096;
 
+
+    g_debug ("tab_process_data_message");
+    g_debug ("  transmitting:");
+    g_debug_bytes (msg->data, msg->size, 16, 4);
     rc = tcti_transmit (tab->tcti, msg->size, msg->data);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_transmit returned error: 0x%x", rc);
@@ -187,6 +191,8 @@ tab_process_data_message (Tab          *tab,
                        TSS2_TCTI_TIMEOUT_BLOCK);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_receive returned error: 0x%x", rc);
+    g_debug ("  received:");
+    g_debug_bytes (response->data, response->size, 16, 4);
 
     message_queue_enqueue (tab->out_queue, G_OBJECT (response));
 }
