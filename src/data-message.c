@@ -18,6 +18,8 @@ data_message_finalize (GObject *obj)
 
     if (msg->data)
         g_free (msg->data);
+    if (msg->session)
+        g_object_unref (msg->session);
     G_OBJECT_CLASS (data_message_parent_class)->finalize (obj);
 }
 /**
@@ -64,6 +66,7 @@ data_message_new (SessionData     *session,
 
     msg = DATA_MESSAGE (g_object_new (TYPE_DATA_MESSAGE, NULL));
     msg->session = session;
+    g_object_ref (session);
     msg->data    = data;
     msg->size    = size;
 
