@@ -23,8 +23,7 @@ check_PROGRAMS += test/tcti-socket_unit
 endif
 
 lib_LTLIBRARIES = src/libtcti-tabd.la
-noinst_LTLIBRARIES = src/libtcti-echo.la
-noinst_LIBRARIES = src/libutil.a
+noinst_LTLIBRARIES = src/libtcti-echo.la src/libutil.la
 man8_MANS = man/tabd.8
 TESTS = $(check_PROGRAMS)
 
@@ -44,13 +43,13 @@ nodist_pkgconfig_DATA = lib/tcti-tabrmd.pc
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
 VALGRIND_memcheck_FLAGS = --show-leak-kinds=definite,indirect
 
-src_libutil_a_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(SAPI_CFLAGS) -fPIC
-src_libutil_a_SOURCES = src/tpm2-header.c src/util.c
+src_libutil_la_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(SAPI_CFLAGS) -fPIC
+src_libutil_la_SOURCES = src/tpm2-header.c src/util.c
 
 src_libtcti_tabd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
     $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
 src_libtcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
-    $(PTHREAD_LIBS) $(noinst_LIBRARIES) $(SAPI_LIBS)
+    $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(SAPI_LIBS)
 src_libtcti_tabd_la_LDFLAGS = -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabd.map
 src_libtcti_tabd_la_SOURCES = \
     src/tabd-generated.c \
@@ -62,7 +61,7 @@ src_libtcti_echo_la_SOURCES = src/tcti-interface.c src/tcti-echo.c
 src_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
     $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
 src_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(SAPI_LIBS) $(noinst_LTLIBRARIES) $(noinst_LIBRARIES)
+    $(SAPI_LIBS) $(noinst_LTLIBRARIES) $(noinst_LTLIBRARIES)
 src_tabd_SOURCES = \
     src/control-message.c \
     src/data-message.c \
@@ -118,7 +117,7 @@ dist/%.service : dist/%.service.in
 
 test_response_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
 test_response_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
-    $(PTHREAD_LIBS) $(noinst_LIBRARIES) $(GOBJECT_LIBS)
+    $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(GOBJECT_LIBS)
 test_response_watcher_unit_LDFLAGS = -Wl,--wrap=response_watcher_start
 test_response_watcher_unit_SOURCES = \
     src/control-message.c \
@@ -141,7 +140,7 @@ test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c test/session-manager_unit.c
 
 test_session_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
-test_session_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LIBRARIES)
+test_session_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_session_watcher_unit_SOURCES = \
     src/control-message.c \
     src/data-message.c \
@@ -157,7 +156,7 @@ test_session_watcher_unit_SOURCES = \
 test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) \
     $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
 test_tab_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
-    $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LIBRARIES)
+    $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_tab_unit_SOURCES = \
     src/control-message.c \
     src/data-message.c \
@@ -211,12 +210,12 @@ test_tcti_tabd_read_write_LDADD   = $(GLIB_LIBS) src/libtcti-tabd.la
 test_tcti_tabd_read_write_SOURCES = test/tcti-tabd_read-write.c
 
 test_util_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
-test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LIBRARIES)
+test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_util_unit_LDFLAGS = -Wl,--wrap=read,--wrap=write
 test_util_unit_SOURCES = test/util_unit.c
 
 test_util_mock_realloc_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
-test_util_mock_realloc_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LIBRARIES)
+test_util_mock_realloc_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_util_mock_realloc_unit_LDFLAGS = -Wl,--wrap=realloc
 test_util_mock_realloc_unit_SOURCES = test/util-mock-realloc_unit.c
 
