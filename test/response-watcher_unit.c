@@ -8,47 +8,29 @@
 #include "response-watcher.h"
 #include "tcti-echo.h"
 
-/* response_watcher_allocate_test begin
- * Test to allcoate and destroy a response_watcher_t.
+/**
+ * Test to allcoate and destroy a ResponseWatcher.
  */
 static void
 response_watcher_allocate_test (void **state)
 {
-    Tab *tab = TAB (*state);
-    response_watcher_t *watcher = NULL;
+    Tcti *tcti;
+    Tab  *tab;
+    ResponseWatcher *watcher;
 
+    tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    tab = tab_new (tcti);
     watcher = response_watcher_new (tab);
-    assert_non_null (watcher);
-    assert_int_equal (tab, watcher->tab);
-    response_watcher_free (watcher);
+
+    g_object_unref (watcher);
 }
-
-static void
-response_watcher_allocate_setup (void **state)
-{
-    TctiEcho *tcti = NULL;
-    Tab      *tab  = NULL;
-
-    tcti = tcti_echo_new (TCTI_ECHO_MIN_BUF);
-    assert_non_null (tcti);
-    tab = tab_new (TCTI (tcti));
-    *state = tab;
-}
-
-static void
-response_watcher_allocate_teardown (void **state)
-{
-    Tab *tab = TAB (*state);
-
-    g_object_unref (tab);
-}
-/* response_watcher_allocate end */
 
 /* response_watcher_start_stop_test begin
  */
 typedef struct start_stop_data {
-    response_watcher_t  *watcher;
-    Tab                 *tab;
+    ResponseWatcher  *watcher;
+    Tab              *tab;
+    Tcti             *tcti;
 } start_stop_data_t;
 
 void *
@@ -56,11 +38,12 @@ not_response_watcher_thread (void *data)
 {
     while (TRUE) {
         sleep (1);
+        pthread_testcancel ();
     }
 }
 
 gint
-__wrap_response_watcher_start (response_watcher_t *watcher)
+__wrap_response_watcher_start (ResponseWatcher *watcher)
 {
     if (watcher->thread != 0)
         g_error ("response_watcher already started");
@@ -83,21 +66,22 @@ response_watcher_start_stop_test (void **state)
 static void
 response_watcher_start_stop_setup (void **state)
 {
-    TctiEcho *tcti_echo = tcti_echo_new (TCTI_ECHO_MIN_BUF);
     start_stop_data_t *data = calloc (1, sizeof (start_stop_data_t));
-    data->tab = tab_new ((Tcti*)tcti_echo);
+
+    data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    data->tab  = tab_new (TCTI (data->tcti));
     data->watcher = response_watcher_new (data->tab);
+
     *state = data;
 }
 static void
 response_watcher_start_stop_teardown (void **state)
 {
     start_stop_data_t *data = (start_stop_data_t*)*state;
-    response_watcher_free (data->watcher);
-    g_object_unref (data->tab);
-    free (data);
-}
 
+    g_object_unref (data->watcher);
+    g_free (data);
+}
 /* response_watcher_start_stop end */
 
 int
@@ -105,9 +89,7 @@ main (int argc,
       char* argv[])
 {
     const UnitTest tests[] = {
-        unit_test_setup_teardown (response_watcher_allocate_test,
-                                  response_watcher_allocate_setup,
-                                  response_watcher_allocate_teardown),
+        unit_test (response_watcher_allocate_test),
         unit_test_setup_teardown (response_watcher_start_stop_test,
                                   response_watcher_start_stop_setup,
                                   response_watcher_start_stop_teardown),

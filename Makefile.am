@@ -50,7 +50,7 @@ src_libutil_a_SOURCES = src/tpm2-header.c src/util.c
 src_libtcti_tabd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
     $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
 src_libtcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
-    $(PTHREAD_LIBS) $(noinst_LIBRARIES)
+    $(PTHREAD_LIBS) $(noinst_LIBRARIES) $(SAPI_LIBS)
 src_libtcti_tabd_la_LDFLAGS = -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabd.map
 src_libtcti_tabd_la_SOURCES = \
     src/tabd-generated.c \

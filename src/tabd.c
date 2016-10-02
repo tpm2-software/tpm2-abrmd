@@ -32,7 +32,7 @@ typedef struct gmain_data {
     Tpm2AccessBroker       *skeleton;
     SessionManager         *manager;
     SessionWatcher         *session_watcher;
-    response_watcher_t     *response_watcher;
+    ResponseWatcher        *response_watcher;
     Tab                    *tab;
     gint                    wakeup_send_fd;
     struct drand48_data     rand_data;
@@ -532,7 +532,7 @@ main (int argc, char *argv[])
   session_watcher_join (gmain_data.session_watcher);
   g_object_unref (gmain_data.session_watcher);
   response_watcher_join (gmain_data.response_watcher);
-  response_watcher_free (gmain_data.response_watcher);
+  g_object_unref (gmain_data.response_watcher);
   /* clean up what remains */
   g_object_unref (gmain_data.manager);
   g_object_unref (options.tcti_options);
