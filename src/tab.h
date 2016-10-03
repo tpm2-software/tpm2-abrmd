@@ -5,7 +5,9 @@
 #include <glib-object.h>
 #include <pthread.h>
 #include <sapi/tpm20.h>
+
 #include "message-queue.h"
+#include "response-watcher.h"
 #include "session-data.h"
 #include "tcti-interface.h"
 
@@ -18,8 +20,8 @@ typedef struct _TabClass {
 typedef struct _Tab {
     GObject           parent_instance;
     MessageQueue     *in_queue;
-    MessageQueue     *out_queue;
     pthread_t         thread;
+    ResponseWatcher  *watcher;
     Tcti             *tcti;
 } Tab;
 
@@ -31,13 +33,11 @@ typedef struct _Tab {
 #define TAB_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TAB, TabClass))
 
 GType       tab_get_type               (void);
-Tab*        tab_new                    (Tcti              *tcti);
+Tab*        tab_new                    (Tcti              *tcti,
+                                        ResponseWatcher   *watcher);
 void        tab_send_command           (Tab               *tab,
                                         GObject           *obj);
 GObject*    tab_get_timeout_command    (Tab               *tab,
-                                        guint64            timeout);
-GObject*    tab_get_response           (Tab               *tab);
-GObject*    tab_get_timeout_response   (Tab               *tab,
                                         guint64            timeout);
 gint        tab_cancel_commands        (Tab               *tab,
                                         SessionData       *session);

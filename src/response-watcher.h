@@ -6,7 +6,6 @@
 #include <pthread.h>
 
 #include "message-queue.h"
-#include "tab.h"
 
 G_BEGIN_DECLS
 
@@ -21,7 +20,7 @@ typedef struct _ResponseWatcherClass {
  */
 typedef struct _ResponseWatcher {
     GObject            parent_instance;
-    Tab               *tab;
+    MessageQueue      *in_queue;
     pthread_t          thread;
 } ResponseWatcher;
 
@@ -33,10 +32,12 @@ typedef struct _ResponseWatcher {
 #define RESPONSE_WATCHER_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_RESPONSE_WATCHER, ResponseWatcherClass))
 
 GType               response_watcher_get_type    (void);
-ResponseWatcher*    response_watcher_new         (Tab               *tab);
+ResponseWatcher*    response_watcher_new         (void);
 gint                response_watcher_start       (ResponseWatcher   *watcher);
 gint                response_watcher_cancel      (ResponseWatcher   *watcher);
 gint                response_watcher_join        (ResponseWatcher   *watcher);
+void                response_watcher_enqueue     (ResponseWatcher   *watcher,
+                                                  GObject           *obj);
 
 G_END_DECLS
 #endif /* RESPONSE_WATCHER_H */

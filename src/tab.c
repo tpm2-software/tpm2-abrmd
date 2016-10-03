@@ -11,7 +11,7 @@ static gpointer tab_parent_class = NULL;
 enum {
     PROP_0,
     PROP_QUEUE_IN,
-    PROP_QUEUE_OUT,
+    PROP_RESPONSE_WATCHER,
     PROP_TCTI,
     N_PROPERTIES
 };
@@ -33,9 +33,9 @@ tab_set_property (GObject        *object,
         self->in_queue = g_value_get_object (value);
         g_debug ("  in_queue: 0x%x", self->in_queue);
         break;
-    case PROP_QUEUE_OUT:
-        self->out_queue = g_value_get_object (value);
-        g_debug ("  out_queue: 0x%x", self->out_queue);
+    case PROP_RESPONSE_WATCHER:
+        self->watcher = RESPONSE_WATCHER (g_value_get_object (value));
+        g_debug ("  watcher: 0x%x", self->watcher);
         break;
     case PROP_TCTI:
         self->tcti = g_value_get_object (value);
@@ -62,8 +62,8 @@ tab_get_property (GObject     *object,
     case PROP_QUEUE_IN:
         g_value_set_object (value, self->in_queue);
         break;
-    case PROP_QUEUE_OUT:
-        g_value_set_object (value, self->out_queue);
+    case PROP_RESPONSE_WATCHER:
+        g_value_set_object (value, self->watcher);
         break;
     case PROP_TCTI:
         g_value_set_object (value, self->tcti);
@@ -87,7 +87,10 @@ tab_finalize (GObject *obj)
     if (tab->thread != 0)
         g_error ("tab_free called with thread running, cancel thread first");
     g_object_unref (tab->in_queue);
-    g_object_unref (tab->out_queue);
+    if (tab->watcher) {
+        g_object_unref (tab->watcher);
+        tab->watcher = NULL;
+    }
     if (tab->tcti)
         g_object_unref (tab->tcti);
     if (tab_parent_class)
@@ -116,10 +119,10 @@ tab_class_init (gpointer klass)
                              "Input queue for messages.",
                              G_TYPE_OBJECT,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties [PROP_QUEUE_OUT] =
-        g_param_spec_object ("queue-out",
-                             "Output queue",
-                             "Output message queue.",
+    obj_properties [PROP_RESPONSE_WATCHER] =
+        g_param_spec_object ("response-watcher",
+                             "ResponseWatcher",
+                             "Reference to object we pass messages to.",
                              G_TYPE_OBJECT,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_TCTI] =
@@ -194,7 +197,8 @@ tab_process_data_message (Tab          *tab,
     g_debug ("  received:");
     g_debug_bytes (response->data, response->size, 16, 4);
 
-    message_queue_enqueue (tab->out_queue, G_OBJECT (response));
+    if (tab->watcher)
+        response_watcher_enqueue (tab->watcher, G_OBJECT (response));
 }
 static TSS2_SYS_CONTEXT*
 sapi_context_init (TSS2_TCTI_CONTEXT *tcti_ctx)
@@ -276,14 +280,17 @@ cmd_runner (gpointer data)
  * input / output queues.
  */
 Tab*
-tab_new (Tcti *tcti)
+tab_new (Tcti             *tcti,
+         ResponseWatcher   *watcher)
 {
     if (tcti == NULL)
         g_error ("tab_new passed NULL Tcti");
+    MessageQueue *queue = message_queue_new ("TAB input queue");
+    g_object_ref (watcher);
     return TAB (g_object_new (TYPE_TAB,
-                              "queue-in",  message_queue_new ("TAB in queue"),
-                              "queue-out", message_queue_new ("TAB out queue"),
-                              "tcti",      tcti,
+                              "queue-in",         queue,
+                              "response-watcher", watcher,
+                              "tcti",             tcti,
                               NULL));
 }
 /**
@@ -323,10 +330,6 @@ tab_cancel (Tab *tab)
     msg = control_message_new (CHECK_CANCEL);
     g_debug ("tab_cancel: enqueuing ControlMessage: 0x%x", msg);
     message_queue_enqueue (tab->in_queue, G_OBJECT (msg));
-    /* Same for the out_queue. */
-    msg = control_message_new (CHECK_CANCEL);
-    g_debug ("tab_cancel: enqueuing ControlMessage: 0x%x", msg);
-    message_queue_enqueue (tab->out_queue, G_OBJECT (msg));
 
     return ret;
 }
@@ -361,29 +364,6 @@ tab_send_command (Tab         *tab,
     /* The TAB takes ownership of this object */
     g_object_ref (obj);
     message_queue_enqueue (tab->in_queue, obj);
-}
-/**
- * Get the next response from the TAB.
- * Block for timeout microseconds waiting for the next resonse to a TPM
- * command. The caller is responsible for freeing the returned buffer.
- * The returned object is owned by the caller, we do not unref it.
- */
-GObject*
-tab_get_timeout_response (Tab     *tab,
-                          guint64  timeout)
-{
-    g_debug ("tab_get_timeout_response: Tab: 0x%x", tab);
-    return message_queue_timeout_dequeue (tab->out_queue, timeout);
-}
-/**
- * Get the next response from this TAB.
- * Block indefinitely waiting for a message to come from the TAB.
- */
-GObject*
-tab_get_response (Tab *tab)
-{
-    g_debug ("tab_get_response: Tab: 0x%x", tab);
-    return message_queue_dequeue (tab->out_queue);
 }
 /**
  * Cancel pending commands for a session in the TAB.

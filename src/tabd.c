@@ -396,14 +396,22 @@ init_thread_func (gpointer user_data)
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize TCTI: 0x%x", rc);
 
-    data->tab = tab_new (data->tcti);
+    /**
+     * The TPM2 command processing pipeline gets built from sink back to
+     * source. We start with the resonse watcher, then build the tab, then
+     * finally the SessionWatcher.
+     */
+    data->response_watcher = response_watcher_new ();
+    g_debug ("response watcher: 0x%x", data->response_watcher);
+    data->tab = tab_new (data->tcti, data->response_watcher);
+    g_debug ("tab: 0x%x", data->tab);
+    data->session_watcher =
+        session_watcher_new (data->manager, wakeup_fds [0], data->tab);
+    g_debug ("session watcher: 0x%x", data->session_watcher);
+
     ret = tab_start (data->tab);
     if (ret != 0)
         g_error ("failed to start Tab: %s", strerror (errno));
-    data->session_watcher =
-        session_watcher_new (data->manager, wakeup_fds [0], data->tab);
-    data->response_watcher =
-        response_watcher_new (data->tab);
 
     ret = session_watcher_start (data->session_watcher);
     if (ret != 0)

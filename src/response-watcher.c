@@ -12,7 +12,7 @@ static gpointer response_watcher_parent_class = NULL;
 
 enum {
     PROP_0,
-    PROP_TAB,
+    PROP_IN_QUEUE,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -29,9 +29,9 @@ response_watcher_set_property (GObject        *object,
 
     g_debug ("response_watcher_set_property");
     switch (property_id) {
-    case PROP_TAB:
-        self->tab = TAB (g_value_get_object (value));
-        g_debug ("  tab: 0x%x", self->tab);
+    case PROP_IN_QUEUE:
+        g_debug ("  setting PROP_IN_QUEUE");
+        self->in_queue = g_value_get_object (value);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -51,8 +51,8 @@ response_watcher_get_property (GObject     *object,
 
     g_debug ("response_watcher_get_property: 0x%x", self);
     switch (property_id) {
-    case PROP_TAB:
-        g_value_set_object (value, self->tab);
+    case PROP_IN_QUEUE:
+        g_value_set_object (value, self->in_queue);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -72,8 +72,8 @@ response_watcher_finalize (GObject *obj)
         g_error ("  response_watcher_free passed NULL pointer");
     if (watcher->thread != 0)
         g_error ("  response_watcher finalized with running thread, cancel first");
-    if (watcher->tab)
-        g_object_unref (watcher->tab);
+    if (watcher->in_queue)
+        g_object_unref (watcher->in_queue);
     if (response_watcher_parent_class)
         G_OBJECT_CLASS (response_watcher_parent_class)->finalize (obj);
 }
@@ -94,10 +94,10 @@ response_watcher_class_init (gpointer klass)
     object_class->get_property = response_watcher_get_property;
     object_class->set_property = response_watcher_set_property;
 
-    obj_properties [PROP_TAB] =
-        g_param_spec_object ("tab",
-                             "Tab",
-                             "TPM2 Access Broker.",
+    obj_properties [PROP_IN_QUEUE] =
+        g_param_spec_object ("in-queue",
+                             "MessageQueeu",
+                             "Input MessageQueue.",
                              G_TYPE_OBJECT,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_properties (object_class,
@@ -126,12 +126,11 @@ response_watcher_get_type (void)
 /**
  */
 ResponseWatcher*
-response_watcher_new (Tab             *tab)
+response_watcher_new ()
 {
-    if (tab == NULL)
-        g_error ("response_watcher_new passed NULL Tab");
+    MessageQueue *in_queue = message_queue_new ("in-queue");
     return RESPONSE_WATCHER (g_object_new (TYPE_RESPONSE_WATCHER,
-                                           "tab", tab,
+                                           "in-queue", in_queue,
                                            NULL));
 }
 
@@ -178,9 +177,9 @@ response_watcher_thread (void *data)
     GObject *obj;
 
     do {
-        g_debug ("response_watcher_thread waiting for response on tab: 0x%x",
-                 watcher->tab);
-        obj = tab_get_response (watcher->tab);
+        g_debug ("response_watcher_thread blocking on input queue: 0x%x",
+                 watcher->in_queue);
+        obj = message_queue_dequeue (watcher->in_queue);
         g_debug ("response_watcher_thread got obj: 0x%x", obj);
         if (IS_CONTROL_MESSAGE (obj))
             process_control_message (CONTROL_MESSAGE (obj));
@@ -188,6 +187,18 @@ response_watcher_thread (void *data)
             response_watcher_process_data_message (DATA_MESSAGE (obj));
         g_object_unref (obj);
     } while (TRUE);
+}
+
+void
+response_watcher_enqueue (ResponseWatcher *watcher,
+                          GObject         *obj)
+{
+    g_debug ("response_watcher_enqueue:");
+    if (watcher == NULL)
+        g_error ("  passed NULL watcher");
+    if (obj == NULL)
+        g_error ("  passed NULL object");
+    message_queue_enqueue (watcher->in_queue, obj);
 }
 
 gint
@@ -202,11 +213,19 @@ response_watcher_start (ResponseWatcher *watcher)
 gint
 response_watcher_cancel (ResponseWatcher *watcher)
 {
+    gint ret;
+    ControlMessage *msg;
+
     if (watcher == NULL)
         g_error ("response_watcher_cancel passed NULL watcher");
     if (watcher->thread == 0)
         g_error ("response_watcher_cancel: cannot cancel thread with id 0");
-    return pthread_cancel (watcher->thread);
+    ret = pthread_cancel (watcher->thread);
+    msg = control_message_new (CHECK_CANCEL);
+    g_debug ("response_watcher_cancel enqueuing ControlMessage: 0x%x", msg);
+    message_queue_enqueue (watcher->in_queue, G_OBJECT (msg));
+
+    return ret;
 }
 gint
 response_watcher_join (ResponseWatcher *watcher)
