@@ -69,6 +69,7 @@ src_tabd_SOURCES = \
     src/tabd.c \
     src/tabd-generated.c \
     src/logging.c \
+    src/thread-interface.c \
     src/session-watcher.c \
     src/session-manager.c \
     src/session-data.c \
@@ -122,6 +123,7 @@ test_response_watcher_unit_LDFLAGS = -Wl,--wrap=response_watcher_start
 test_response_watcher_unit_SOURCES = \
     src/control-message.c \
     src/data-message.c \
+    src/thread-interface.c \
     src/message-queue.c \
     src/response-watcher.c \
     src/session-data.c \

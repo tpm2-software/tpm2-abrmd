@@ -2,6 +2,7 @@
 #include <glib.h>
 #include <pthread.h>
 
+#include "thread-interface.h"
 #include "response-watcher.h"
 #include "control-message.h"
 #include "data-message.h"
@@ -16,6 +17,13 @@ enum {
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
+/**
+ * Forward declare the functions for the thread interface. We need this
+ * for the type registration in _get_type.
+ */
+gint response_watcher_cancel (Thread *self);
+gint response_watcher_join   (Thread *self);
+gint response_watcher_start  (Thread *self);
 /**
  * GObject property setter.
  */
@@ -105,6 +113,16 @@ response_watcher_class_init (gpointer klass)
                                        obj_properties);
 }
 /**
+ * Boilerplate code to register functions with the ThreadInterface.
+ */
+static void
+response_watcher_interface_init (gpointer g_iface)
+{
+    ThreadInterface *thread_interface = (ThreadInterface*)g_iface;
+    thread_interface->cancel = response_watcher_cancel;
+    thread_interface->join   = response_watcher_join;
+    thread_interface->start  = response_watcher_start;
+}/**
  * GObject boilerplate get_type.
  */
 GType
@@ -120,6 +138,12 @@ response_watcher_get_type (void)
                                               sizeof (ResponseWatcher),
                                               NULL,
                                               0);
+        const GInterfaceInfo interface_info = {
+            (GInterfaceInitFunc) response_watcher_interface_init,
+            NULL,
+            NULL
+        };
+        g_type_add_interface_static (type, TYPE_THREAD, &interface_info);
     }
     return type;
 }
@@ -200,10 +224,14 @@ response_watcher_enqueue (ResponseWatcher *watcher,
         g_error ("  passed NULL object");
     message_queue_enqueue (watcher->in_queue, obj);
 }
-
+/**
+ * The remaining functions implement the ThreadInterface.
+ */
 gint
-response_watcher_start (ResponseWatcher *watcher)
+response_watcher_start (Thread *self)
 {
+    ResponseWatcher *watcher = RESPONSE_WATCHER (self);
+
     if (watcher == NULL)
         g_error ("response_watcher_start: passed NULL watcher");
     if (watcher->thread != 0)
@@ -211,8 +239,9 @@ response_watcher_start (ResponseWatcher *watcher)
     return pthread_create (&watcher->thread, NULL, response_watcher_thread, watcher);
 }
 gint
-response_watcher_cancel (ResponseWatcher *watcher)
+response_watcher_cancel (Thread *self)
 {
+    ResponseWatcher *watcher = RESPONSE_WATCHER (self);
     gint ret;
     ControlMessage *msg;
 
@@ -228,8 +257,9 @@ response_watcher_cancel (ResponseWatcher *watcher)
     return ret;
 }
 gint
-response_watcher_join (ResponseWatcher *watcher)
+response_watcher_join (Thread *self)
 {
+    ResponseWatcher *watcher = RESPONSE_WATCHER (self);
     gint ret;
 
     if (watcher == NULL)

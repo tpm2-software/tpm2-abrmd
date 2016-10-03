@@ -33,9 +33,6 @@ typedef struct _ResponseWatcher {
 
 GType               response_watcher_get_type    (void);
 ResponseWatcher*    response_watcher_new         (void);
-gint                response_watcher_start       (ResponseWatcher   *watcher);
-gint                response_watcher_cancel      (ResponseWatcher   *watcher);
-gint                response_watcher_join        (ResponseWatcher   *watcher);
 void                response_watcher_enqueue     (ResponseWatcher   *watcher,
                                                   GObject           *obj);
 
