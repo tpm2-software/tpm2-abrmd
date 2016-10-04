@@ -6,12 +6,12 @@
 
 #include "data-message.h"
 #include "session-data.h"
-#include "session-watcher.h"
+#include "command-source.h"
 #include "tab.h"
 #include "thread-interface.h"
 #include "util.h"
 
-static gpointer session_watcher_parent_class = NULL;
+static gpointer command_source_parent_class = NULL;
 
 enum {
     PROP_0,
@@ -24,19 +24,19 @@ static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
 /**
  * Forward declare the functions for the ThreadInterface.
  */
-gint session_watcher_cancel (Thread *self);
-gint session_watcher_join   (Thread *self);
-gint session_watcher_start  (Thread *self);
+gint command_source_cancel (Thread *self);
+gint command_source_join   (Thread *self);
+gint command_source_start  (Thread *self);
 
 static void
-session_watcher_set_property (GObject       *object,
+command_source_set_property (GObject       *object,
                               guint          property_id,
                               GValue const  *value,
                               GParamSpec    *pspec)
 {
-    SessionWatcher *self = SESSION_WATCHER (object);
+    CommandSource *self = COMMAND_SOURCE (object);
 
-    g_debug ("session_watcher_set_properties: 0x%x", self);
+    g_debug ("command_source_set_properties: 0x%x", self);
     switch (property_id) {
     case PROP_SESSION_MANAGER:
         self->session_manager = SESSION_MANAGER (g_value_get_object (value));
@@ -56,14 +56,14 @@ session_watcher_set_property (GObject       *object,
 }
 
 static void
-session_watcher_get_property (GObject      *object,
+command_source_get_property (GObject      *object,
                               guint         property_id,
                               GValue       *value,
                               GParamSpec   *pspec)
 {
-    SessionWatcher *self = SESSION_WATCHER (object);
+    CommandSource *self = COMMAND_SOURCE (object);
 
-    g_debug ("session_watcher_get_properties: 0x%x", self);
+    g_debug ("command_source_get_properties: 0x%x", self);
     switch (property_id) {
     case PROP_SESSION_MANAGER:
         g_value_set_object (value, self->session_manager);
@@ -83,26 +83,26 @@ session_watcher_get_property (GObject      *object,
  * first.
  */
 static void
-session_watcher_finalize (GObject  *object)
+command_source_finalize (GObject  *object)
 {
-    SessionWatcher *watcher = SESSION_WATCHER (object);
+    CommandSource *source = COMMAND_SOURCE (object);
 
-    g_object_unref (watcher->tab);
-    g_object_unref (watcher->session_manager);
+    g_object_unref (source->tab);
+    g_object_unref (source->session_manager);
 }
 
 static void
-session_watcher_class_init (gpointer klass)
+command_source_class_init (gpointer klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    g_debug ("session_watcher_class_init");
-    if (session_watcher_parent_class == NULL)
-        session_watcher_parent_class = g_type_class_peek_parent (klass);
+    g_debug ("command_source_class_init");
+    if (command_source_parent_class == NULL)
+        command_source_parent_class = g_type_class_peek_parent (klass);
 
-    object_class->finalize     = session_watcher_finalize;
-    object_class->get_property = session_watcher_get_property;
-    object_class->set_property = session_watcher_set_property;
+    object_class->finalize     = command_source_finalize;
+    object_class->get_property = command_source_get_property;
+    object_class->set_property = command_source_set_property;
 
     obj_properties [PROP_SESSION_MANAGER] =
         g_param_spec_object ("session-manager",
@@ -131,29 +131,29 @@ session_watcher_class_init (gpointer klass)
 /**
  */
 static void
-session_watcher_interface_init (gpointer g_iface)
+command_source_interface_init (gpointer g_iface)
 {
     ThreadInterface *thread = (ThreadInterface*)g_iface;
-    thread->cancel = session_watcher_cancel;
-    thread->join   = session_watcher_join;
-    thread->start  = session_watcher_start;
+    thread->cancel = command_source_cancel;
+    thread->join   = command_source_join;
+    thread->start  = command_source_start;
 }
 GType
-session_watcher_get_type (void)
+command_source_get_type (void)
 {
     static GType type = 0;
 
-    g_debug ("session_watcher_get_type");
+    g_debug ("command_source_get_type");
     if (type == 0) {
         type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "SessionWatcher",
-                                              sizeof (SessionWatcherClass),
-                                              (GClassInitFunc) session_watcher_class_init,
-                                              sizeof (SessionWatcher),
+                                              "CommandSource",
+                                              sizeof (CommandSourceClass),
+                                              (GClassInitFunc) command_source_class_init,
+                                              sizeof (CommandSource),
                                               NULL,
                                               0);
         const GInterfaceInfo interface_info = {
-            (GInterfaceInitFunc) session_watcher_interface_init,
+            (GInterfaceInitFunc) command_source_interface_init,
             NULL,
             NULL
         };
@@ -178,15 +178,15 @@ data_message_from_fd (SessionData     *session,
 }
 
 void
-session_watcher_thread_cleanup (void *data)
+command_source_thread_cleanup (void *data)
 {
-    SessionWatcher *watcher = SESSION_WATCHER (data);
+    CommandSource *source = COMMAND_SOURCE (data);
 
-    watcher->running = FALSE;
+    source->running = FALSE;
 }
 
 gboolean
-session_watcher_session_responder (SessionWatcher    *watcher,
+command_source_session_responder (CommandSource    *source,
                                    gint               fd,
                                    Tab               *tab)
 {
@@ -194,8 +194,8 @@ session_watcher_session_responder (SessionWatcher    *watcher,
     SessionData *session;
     gint ret;
 
-    g_debug ("session_watcher_session_responder 0x%x", watcher);
-    session = session_manager_lookup_fd (watcher->session_manager, fd);
+    g_debug ("command_source_session_responder 0x%x", source);
+    session = session_manager_lookup_fd (source->session_manager, fd);
     if (session == NULL)
         g_error ("failed to get session associated with fd: %d", fd);
     else
@@ -206,8 +206,8 @@ session_watcher_session_responder (SessionWatcher    *watcher,
          * In either case we remove the session and free it.
          */
         g_debug ("removing session 0x%x from session_manager 0x%x",
-                 session, watcher->session_manager);
-        session_manager_remove (watcher->session_manager,
+                 session, source->session_manager);
+        session_manager_remove (source->session_manager,
                                 session);
         return TRUE;
     }
@@ -218,11 +218,11 @@ session_watcher_session_responder (SessionWatcher    *watcher,
 }
 
 int
-wakeup_responder (SessionWatcher *watcher)
+wakeup_responder (CommandSource *source)
 {
     g_debug ("Got new session, updating fd_set");
     char buf[3] = { 0 };
-    gint ret = read (watcher->wakeup_receive_fd, buf, WAKEUP_SIZE);
+    gint ret = read (source->wakeup_receive_fd, buf, WAKEUP_SIZE);
     if (ret != WAKEUP_SIZE)
         g_error ("read on wakeup_receive_fd returned %d, was expecting %d",
                  ret, WAKEUP_SIZE);
@@ -232,101 +232,101 @@ wakeup_responder (SessionWatcher *watcher)
 /* This function is run as a separate thread dedicated to monitoring the
  * active sessions with clients. It also monitors an additional file
  * descriptor that we call the wakeup_receive_fd. This pipe is the mechanism used
- * by the code that handles dbus calls to notify the session_watcher that
+ * by the code that handles dbus calls to notify the command_source that
  * it's added a new session to the session_manager. When this happens the
- * session_watcher will begin to watch for data from this new session.
+ * command_source will begin to watch for data from this new session.
  */
 void*
-session_watcher_thread (void *data)
+command_source_thread (void *data)
 {
-    SessionWatcher *watcher;
+    CommandSource *source;
     gint ret, i;
 
-    watcher = SESSION_WATCHER (data);
-    pthread_cleanup_push (session_watcher_thread_cleanup, watcher);
+    source = COMMAND_SOURCE (data);
+    pthread_cleanup_push (command_source_thread_cleanup, source);
     do {
-        FD_ZERO (&watcher->session_fdset);
-        session_manager_set_fds (watcher->session_manager,
-                                 &watcher->session_fdset);
-        FD_SET (watcher->wakeup_receive_fd, &watcher->session_fdset);
-        ret = select (FD_SETSIZE, &watcher->session_fdset, NULL, NULL, NULL);
+        FD_ZERO (&source->session_fdset);
+        session_manager_set_fds (source->session_manager,
+                                 &source->session_fdset);
+        FD_SET (source->wakeup_receive_fd, &source->session_fdset);
+        ret = select (FD_SETSIZE, &source->session_fdset, NULL, NULL, NULL);
         if (ret == -1) {
             g_debug ("Error selecting on pipes: %s", strerror (errno));
             break;
         }
         for (i = 0; i < FD_SETSIZE; ++i) {
-            if (FD_ISSET (i, &watcher->session_fdset) &&
-                i != watcher->wakeup_receive_fd)
+            if (FD_ISSET (i, &source->session_fdset) &&
+                i != source->wakeup_receive_fd)
             {
                 g_debug ("data ready on session fd: %d", i);
-                session_watcher_session_responder (watcher, i, watcher->tab);
+                command_source_session_responder (source, i, source->tab);
             }
-            if (FD_ISSET (i, &watcher->session_fdset) &&
-                i == watcher->wakeup_receive_fd)
+            if (FD_ISSET (i, &source->session_fdset) &&
+                i == source->wakeup_receive_fd)
             {
                 g_debug ("data ready on wakeup_receive_fd");
-                wakeup_responder (watcher);
+                wakeup_responder (source);
             }
         }
     } while (TRUE);
     pthread_cleanup_pop (1);
 }
 
-SessionWatcher*
-session_watcher_new (SessionManager    *session_manager,
+CommandSource*
+command_source_new (SessionManager    *session_manager,
                      gint wakeup_receive_fd,
                      Tab               *tab)
 {
-    SessionWatcher *watcher;
+    CommandSource *source;
 
     if (session_manager == NULL)
-        g_error ("session_watcher_new passed NULL SessionManager");
+        g_error ("command_source_new passed NULL SessionManager");
     if (tab == NULL)
-        g_error ("session_watcher_new passed NULL Tab");
+        g_error ("command_source_new passed NULL Tab");
     g_object_ref (tab);
     g_object_ref (session_manager);
-    watcher = SESSION_WATCHER (g_object_new (TYPE_SESSION_WATCHER,
+    source = COMMAND_SOURCE (g_object_new (TYPE_COMMAND_SOURCE,
                                              "session-manager", session_manager,
                                              "tab", tab,
                                              "wakeup-receive-fd", wakeup_receive_fd,
                                              NULL));
-    watcher->running = FALSE;
-    return watcher;
+    source->running = FALSE;
+    return source;
 }
 
 gint
-session_watcher_start (Thread *self)
+command_source_start (Thread *self)
 {
-    SessionWatcher *watcher = SESSION_WATCHER (self);
+    CommandSource *source = COMMAND_SOURCE (self);
 
-    if (watcher->thread != 0) {
-        g_warning ("session_watcher already started");
+    if (source->thread != 0) {
+        g_warning ("command_source already started");
         return -1;
     }
-    watcher->running = TRUE;
-    return pthread_create (&watcher->thread, NULL, session_watcher_thread, watcher);
+    source->running = TRUE;
+    return pthread_create (&source->thread, NULL, command_source_thread, source);
 }
 
 gint
-session_watcher_cancel (Thread *self)
+command_source_cancel (Thread *self)
 {
-    SessionWatcher *watcher = SESSION_WATCHER (self);
+    CommandSource *source = COMMAND_SOURCE (self);
 
-    if (watcher == NULL) {
-        g_warning ("session_watcher_cancel passed NULL watcher");
+    if (source == NULL) {
+        g_warning ("command_source_cancel passed NULL source");
         return -1;
     }
-    return pthread_cancel (watcher->thread);
+    return pthread_cancel (source->thread);
 }
 
 gint
-session_watcher_join (Thread *self)
+command_source_join (Thread *self)
 {
-    SessionWatcher *watcher = SESSION_WATCHER (self);
+    CommandSource *source = COMMAND_SOURCE (self);
 
-    if (watcher == NULL) {
-        g_warning ("session_watcher_join passed null watcher");
+    if (source == NULL) {
+        g_warning ("command_source_join passed null source");
         return -1;
     }
-    return pthread_join (watcher->thread, NULL);
+    return pthread_join (source->thread, NULL);
 }

@@ -10,7 +10,7 @@ check_PROGRAMS  = \
     test/response-sink_unit \
     test/session-data_unit \
     test/session-manager_unit \
-    test/session-watcher_unit \
+    test/command-source_unit \
     test/tab_unit \
     test/tcti-options_unit \
     test/util_unit \
@@ -70,7 +70,7 @@ src_tabd_SOURCES = \
     src/tabd-generated.c \
     src/logging.c \
     src/thread-interface.c \
-    src/session-watcher.c \
+    src/command-source.c \
     src/session-manager.c \
     src/session-data.c \
     src/response-sink.c \
@@ -141,19 +141,19 @@ test_session_manager_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS) 
 test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c test/session-manager_unit.c
 
-test_session_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
-test_session_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
-test_session_watcher_unit_SOURCES = \
+test_command_source_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
+test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
+test_command_source_unit_SOURCES = \
     src/control-message.c \
     src/data-message.c \
     src/message-queue.c \
-    src/session-watcher.c \
+    src/command-source.c \
     src/session-manager.c \
     src/session-data.c \
     src/tab.c \
     src/tcti-echo.c \
     src/tcti-interface.c \
-    test/session-watcher_unit.c
+    test/command-source_unit.c
 
 test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) \
     $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)

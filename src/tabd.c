@@ -13,7 +13,7 @@
 #include "data-message.h"
 #include "thread-interface.h"
 #include "session-manager.h"
-#include "session-watcher.h"
+#include "command-source.h"
 #include "session-data.h"
 #include "response-sink.h"
 #include "tab.h"
@@ -32,7 +32,7 @@ typedef struct gmain_data {
     GMainLoop *loop;
     Tpm2AccessBroker       *skeleton;
     SessionManager         *manager;
-    SessionWatcher         *session_watcher;
+    CommandSource         *command_source;
     ResponseSink           *response_sink;
     Tab                    *tab;
     gint                    wakeup_send_fd;
@@ -81,7 +81,7 @@ handle_array_variant_from_fdlist (GUnixFDList *fdlist)
  *   send / receive FDs.
  * - Send the response message back to the client.
  * - Insert the new SessionData object into the SessionManager.
- * - Notify the SessionWatcher of the new SessionData that it needs to
+ * - Notify the CommandSource of the new SessionData that it needs to
  *   watch by writing a magic value to the wakeup_send_fd.
  */
 static gboolean
@@ -123,7 +123,7 @@ on_handle_create_connection (Tpm2AccessBroker      *skeleton,
         g_error ("Failed to add new session to session_manager.");
     ret = write (data->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
     if (ret < 1)
-        g_error ("failed to wakeup watcher");
+        g_error ("failed to wakeup source");
 
     return TRUE;
 }
@@ -357,11 +357,11 @@ seed_rand_data (const char *fname, struct drand48_data *rand_data)
  * - Registers a handler for UNIX signals for SIGINT and SIGTERM.
  * - Seeds the RNG state from an entropy source.
  * - Creates the SessionManager.
- * - Creates the FDs used to signal the SessionWatcher.
+ * - Creates the FDs used to signal the CommandSource.
  * - Creates the TCTI instance used by the Tab.
  * - Creates the Tab object passing it the TCTI.
  * - Starts the Tab thread.
- * - Creates the SessionWatcher object and starts its thread.
+ * - Creates the CommandSource object and starts its thread.
  * - Creates the ResponseWatcher object and starts its thread.
  * - Unlocks the init_mutex.
  */
@@ -399,28 +399,28 @@ init_thread_func (gpointer user_data)
 
     /**
      * The TPM2 command processing pipeline gets built from sink back to
-     * source. We start with the resonse watcher, then build the tab, then
-     * finally the SessionWatcher.
+     * source. We start with the resonse source, then build the tab, then
+     * finally the CommandSource.
      */
     data->response_sink = response_sink_new ();
-    g_debug ("response watcher: 0x%x", data->response_sink);
+    g_debug ("response source: 0x%x", data->response_sink);
     data->tab = tab_new (data->tcti, data->response_sink);
     g_debug ("tab: 0x%x", data->tab);
-    data->session_watcher =
-        session_watcher_new (data->manager, wakeup_fds [0], data->tab);
-    g_debug ("session watcher: 0x%x", data->session_watcher);
+    data->command_source =
+        command_source_new (data->manager, wakeup_fds [0], data->tab);
+    g_debug ("session source: 0x%x", data->command_source);
 
     ret = thread_start (THREAD (data->tab));
     if (ret != 0)
         g_error ("failed to start Tab: %s", strerror (errno));
 
-    ret = thread_start (THREAD (data->session_watcher));
+    ret = thread_start (THREAD (data->command_source));
     if (ret != 0)
-        g_error ("failed to start connection_watcher");
+        g_error ("failed to start connection_source");
 
     ret = thread_start (THREAD (data->response_sink));
     if (ret != 0)
-        g_error ("failed to start response_watcher");
+        g_error ("failed to start response_source");
 
     g_mutex_unlock (&data->init_mutex);
     g_info ("init_thread_func done");
@@ -536,13 +536,13 @@ main (int argc, char *argv[])
   if (gmain_data.skeleton != NULL)
       g_object_unref (gmain_data.skeleton);
   /* tear down the command processing pipeline */
-  thread_cancel (THREAD (gmain_data.session_watcher));
+  thread_cancel (THREAD (gmain_data.command_source));
   thread_cancel (THREAD (gmain_data.tab));
   thread_cancel (THREAD (gmain_data.response_sink));
-  thread_join (THREAD (gmain_data.session_watcher));
+  thread_join (THREAD (gmain_data.command_source));
   thread_join (THREAD (gmain_data.tab));
   thread_join (THREAD (gmain_data.response_sink));
-  g_object_unref (gmain_data.session_watcher);
+  g_object_unref (gmain_data.command_source);
   g_object_unref (gmain_data.tab);
   g_object_unref (gmain_data.response_sink);
   /* clean up what remains */
