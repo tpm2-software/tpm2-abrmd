@@ -7,7 +7,7 @@ noinst_PROGRAMS = test/tcti-tabd_read-write
 check_PROGRAMS  = \
     test/data-message_unit \
     test/message-queue_unit \
-    test/response-watcher_unit \
+    test/response-sink_unit \
     test/session-data_unit \
     test/session-manager_unit \
     test/session-watcher_unit \
@@ -73,7 +73,7 @@ src_tabd_SOURCES = \
     src/session-watcher.c \
     src/session-manager.c \
     src/session-data.c \
-    src/response-watcher.c \
+    src/response-sink.c \
     src/tab.c \
     src/tcti-interface.c \
     src/tcti-options.c \
@@ -116,22 +116,22 @@ dist/%.service : dist/%.service.in
 	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g; \
                 s,[@]includedir[@],$(includedir),g;" $^ > $@
 
-test_response_watcher_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
-test_response_watcher_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
+test_response_sink_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
+test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(GOBJECT_LIBS)
-test_response_watcher_unit_LDFLAGS = -Wl,--wrap=response_watcher_start
-test_response_watcher_unit_SOURCES = \
+test_response_sink_unit_LDFLAGS = -Wl,--wrap=response_sink_start
+test_response_sink_unit_SOURCES = \
     src/control-message.c \
     src/data-message.c \
     src/thread-interface.c \
     src/message-queue.c \
-    src/response-watcher.c \
+    src/response-sink.c \
     src/session-data.c \
     src/session-manager.c \
     src/tab.c \
     src/tcti-echo.c \
     src/tcti-interface.c \
-    test/response-watcher_unit.c
+    test/response-sink_unit.c
 
 test_session_data_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
 test_session_data_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)

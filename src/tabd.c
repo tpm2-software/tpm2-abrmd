@@ -15,7 +15,7 @@
 #include "session-manager.h"
 #include "session-watcher.h"
 #include "session-data.h"
-#include "response-watcher.h"
+#include "response-sink.h"
 #include "tab.h"
 #include "tabd-generated.h"
 #include "tcti-options.h"
@@ -33,7 +33,7 @@ typedef struct gmain_data {
     Tpm2AccessBroker       *skeleton;
     SessionManager         *manager;
     SessionWatcher         *session_watcher;
-    ResponseWatcher        *response_watcher;
+    ResponseSink           *response_sink;
     Tab                    *tab;
     gint                    wakeup_send_fd;
     struct drand48_data     rand_data;
@@ -402,9 +402,9 @@ init_thread_func (gpointer user_data)
      * source. We start with the resonse watcher, then build the tab, then
      * finally the SessionWatcher.
      */
-    data->response_watcher = response_watcher_new ();
-    g_debug ("response watcher: 0x%x", data->response_watcher);
-    data->tab = tab_new (data->tcti, data->response_watcher);
+    data->response_sink = response_sink_new ();
+    g_debug ("response watcher: 0x%x", data->response_sink);
+    data->tab = tab_new (data->tcti, data->response_sink);
     g_debug ("tab: 0x%x", data->tab);
     data->session_watcher =
         session_watcher_new (data->manager, wakeup_fds [0], data->tab);
@@ -418,7 +418,7 @@ init_thread_func (gpointer user_data)
     if (ret != 0)
         g_error ("failed to start connection_watcher");
 
-    ret = thread_start (THREAD (data->response_watcher));
+    ret = thread_start (THREAD (data->response_sink));
     if (ret != 0)
         g_error ("failed to start response_watcher");
 
@@ -538,13 +538,13 @@ main (int argc, char *argv[])
   /* tear down the command processing pipeline */
   thread_cancel (THREAD (gmain_data.session_watcher));
   thread_cancel (THREAD (gmain_data.tab));
-  thread_cancel (THREAD (gmain_data.response_watcher));
+  thread_cancel (THREAD (gmain_data.response_sink));
   thread_join (THREAD (gmain_data.session_watcher));
   thread_join (THREAD (gmain_data.tab));
-  thread_join (THREAD (gmain_data.response_watcher));
+  thread_join (THREAD (gmain_data.response_sink));
   g_object_unref (gmain_data.session_watcher);
   g_object_unref (gmain_data.tab);
-  g_object_unref (gmain_data.response_watcher);
+  g_object_unref (gmain_data.response_sink);
   /* clean up what remains */
   g_object_unref (gmain_data.manager);
   g_object_unref (options.tcti_options);
