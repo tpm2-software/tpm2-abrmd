@@ -535,22 +535,18 @@ main (int argc, char *argv[])
   g_bus_unown_name (owner_id);
   if (gmain_data.skeleton != NULL)
       g_object_unref (gmain_data.skeleton);
-  /* cancel the session watcher and the response watcher threads */
+  /* tear down the command processing pipeline */
   thread_cancel (THREAD (gmain_data.session_watcher));
-  thread_cancel (THREAD (gmain_data.response_watcher));
-  /* cancel the TAB thread, this will cause the treads blocked on the queues
-   * in the TAB to be unblocked.
-   */
   thread_cancel (THREAD (gmain_data.tab));
-  /* The threads that block on the TAB queues can now be joined and freed */
-  thread_cancel (THREAD (gmain_data.session_watcher));
-  g_object_unref (gmain_data.session_watcher);
+  thread_cancel (THREAD (gmain_data.response_watcher));
+  thread_join (THREAD (gmain_data.session_watcher));
+  thread_join (THREAD (gmain_data.tab));
   thread_join (THREAD (gmain_data.response_watcher));
+  g_object_unref (gmain_data.session_watcher);
+  g_object_unref (gmain_data.tab);
   g_object_unref (gmain_data.response_watcher);
   /* clean up what remains */
   g_object_unref (gmain_data.manager);
   g_object_unref (options.tcti_options);
-  thread_join (THREAD (gmain_data.tab));
-  g_object_unref (gmain_data.tab);
   return 0;
 }
