@@ -3,6 +3,7 @@
 #include "control-message.h"
 #include "message-queue.h"
 #include "tab.h"
+#include "thread-interface.h"
 
 #define TAB_TIMEOUT_DEQUEUE 1e6
 
@@ -16,6 +17,13 @@ enum {
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
+/**
+ * Forward declare the functions for the thread interface. We need this
+ * for the type registration in _get_type.
+ */
+gint tab_cancel (Thread *self);
+gint tab_join   (Thread *self);
+gint tab_start  (Thread *self);
 /**
  * GObject property setter.
  */
@@ -136,6 +144,17 @@ tab_class_init (gpointer klass)
                                        obj_properties);
 }
 /**
+ * Boilerplate code to register function s with the ThreadInterface.
+ */
+static void
+tab_interface_init (gpointer g_iface)
+{
+    ThreadInterface *thread = (ThreadInterface*)g_iface;
+    thread->cancel = tab_cancel;
+    thread->join   = tab_join;
+    thread->start  = tab_start;
+}
+/**
  * GObject boilerplate get_type.
  */
 GType
@@ -151,6 +170,12 @@ tab_get_type (void)
                                               sizeof (Tab),
                                               NULL,
                                               0);
+        const GInterfaceInfo interface_info = {
+            (GInterfaceInitFunc) tab_interface_init,
+            NULL,
+            NULL
+        };
+        g_type_add_interface_static (type, TYPE_THREAD, &interface_info);
     }
     return type;
 }
@@ -297,8 +322,10 @@ tab_new (Tcti             *tcti,
  * Thread creation / start function.
  */
 gint
-tab_start (Tab *tab)
+tab_start (Thread *self)
 {
+    Tab *tab = TAB (self);
+
     if (tab == NULL)
         g_error ("tab_start passed NULL Tab");
     if (tab->thread != 0)
@@ -313,10 +340,11 @@ tab_start (Tab *tab)
  * that some higher power has already called it for us).
  */
 gint
-tab_cancel (Tab *tab)
+tab_cancel (Thread *self)
 {
     gint ret;
     ControlMessage *msg;
+    Tab *tab = TAB (self);
 
     if (tab == NULL)
         g_error ("tab_cancel passed NULL Tab");
@@ -337,9 +365,10 @@ tab_cancel (Tab *tab)
  * Simple wrapper around pthread_join and the internal thread.
  */
 gint
-tab_join (Tab *tab)
+tab_join (Thread *self)
 {
     gint ret;
+    Tab *tab = TAB (self);
 
     if (tab == NULL)
         g_error ("tab_join passed NULL Tab");
