@@ -414,7 +414,7 @@ init_thread_func (gpointer user_data)
     if (ret != 0)
         g_error ("failed to start Tab: %s", strerror (errno));
 
-    ret = session_watcher_start (data->session_watcher);
+    ret = thread_start (THREAD (data->session_watcher));
     if (ret != 0)
         g_error ("failed to start connection_watcher");
 
@@ -536,14 +536,14 @@ main (int argc, char *argv[])
   if (gmain_data.skeleton != NULL)
       g_object_unref (gmain_data.skeleton);
   /* cancel the session watcher and the response watcher threads */
-  session_watcher_cancel (gmain_data.session_watcher);
+  thread_cancel (THREAD (gmain_data.session_watcher));
   thread_cancel (THREAD (gmain_data.response_watcher));
   /* cancel the TAB thread, this will cause the treads blocked on the queues
    * in the TAB to be unblocked.
    */
   thread_cancel (THREAD (gmain_data.tab));
   /* The threads that block on the TAB queues can now be joined and freed */
-  session_watcher_join (gmain_data.session_watcher);
+  thread_cancel (THREAD (gmain_data.session_watcher));
   g_object_unref (gmain_data.session_watcher);
   thread_join (THREAD (gmain_data.response_watcher));
   g_object_unref (gmain_data.response_watcher);

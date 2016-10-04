@@ -8,6 +8,7 @@
 #include "session-data.h"
 #include "session-watcher.h"
 #include "tab.h"
+#include "thread-interface.h"
 #include "util.h"
 
 static gpointer session_watcher_parent_class = NULL;
@@ -20,6 +21,12 @@ enum {
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
+/**
+ * Forward declare the functions for the ThreadInterface.
+ */
+gint session_watcher_cancel (Thread *self);
+gint session_watcher_join   (Thread *self);
+gint session_watcher_start  (Thread *self);
 
 static void
 session_watcher_set_property (GObject       *object,
@@ -121,13 +128,23 @@ session_watcher_class_init (gpointer klass)
                                        N_PROPERTIES,
                                        obj_properties);
 }
+/**
+ */
+static void
+session_watcher_interface_init (gpointer g_iface)
+{
+    ThreadInterface *thread = (ThreadInterface*)g_iface;
+    thread->cancel = session_watcher_cancel;
+    thread->join   = session_watcher_join;
+    thread->start  = session_watcher_start;
+}
 GType
 session_watcher_get_type (void)
 {
     static GType type = 0;
 
     g_debug ("session_watcher_get_type");
-    if (type == 0)
+    if (type == 0) {
         type = g_type_register_static_simple (G_TYPE_OBJECT,
                                               "SessionWatcher",
                                               sizeof (SessionWatcherClass),
@@ -135,6 +152,13 @@ session_watcher_get_type (void)
                                               sizeof (SessionWatcher),
                                               NULL,
                                               0);
+        const GInterfaceInfo interface_info = {
+            (GInterfaceInitFunc) session_watcher_interface_init,
+            NULL,
+            NULL
+        };
+        g_type_add_interface_static (type, TYPE_THREAD, &interface_info);
+    }
     return type;
 }
 
@@ -271,8 +295,10 @@ session_watcher_new (SessionManager    *session_manager,
 }
 
 gint
-session_watcher_start (SessionWatcher *watcher)
+session_watcher_start (Thread *self)
 {
+    SessionWatcher *watcher = SESSION_WATCHER (self);
+
     if (watcher->thread != 0) {
         g_warning ("session_watcher already started");
         return -1;
@@ -282,8 +308,10 @@ session_watcher_start (SessionWatcher *watcher)
 }
 
 gint
-session_watcher_cancel (SessionWatcher *watcher)
+session_watcher_cancel (Thread *self)
 {
+    SessionWatcher *watcher = SESSION_WATCHER (self);
+
     if (watcher == NULL) {
         g_warning ("session_watcher_cancel passed NULL watcher");
         return -1;
@@ -292,8 +320,10 @@ session_watcher_cancel (SessionWatcher *watcher)
 }
 
 gint
-session_watcher_join (SessionWatcher *watcher)
+session_watcher_join (Thread *self)
 {
+    SessionWatcher *watcher = SESSION_WATCHER (self);
+
     if (watcher == NULL) {
         g_warning ("session_watcher_join passed null watcher");
         return -1;

@@ -45,9 +45,6 @@ GType            session_watcher_get_type (void);
 SessionWatcher*  session_watcher_new      (SessionManager     *session_manager,
                                            gint                wakeup_receive_fd,
                                            Tab                *tab);
-gint             session_watcher_start    (SessionWatcher     *watcher);
-gint             session_watcher_cancel   (SessionWatcher     *watcher);
-gint             session_watcher_join     (SessionWatcher     *watcher);
 void             session_watcher_free     (SessionWatcher     *watcher);
 
 G_END_DECLS
