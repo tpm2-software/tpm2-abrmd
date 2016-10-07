@@ -1,13 +1,17 @@
-The specifications that define the TPM2 Software Stack (TSS2) described the
-TPM Access Broker (TAB) as a mechanism to synchronize multi-process access to
-the TPM. The TPM Command Transmission Interface (TCTI) is the API client
-applications use to send commands to the TAB.
+This is a system daemon implementing the TPM2 access broker (TAB) & Resource
+Manager (RM) spec from the TCG. The daemon is implemented using Glib and the
+GObject system.
 
-This repository contains an implementation of the TAB as a Linux daemon. We
-call it 'tabd' per the Unix daemon convention. A TCTI for communicating with
-the tabd is also provided. Clients should use this TCTI along with a SAPI
-implementation when writing TPM2 Linux applications.
+Communication between the daemon and clients using the TPM is done with a
+combination of DBus and Unix pipes. DBus is used for discovery, session
+management and the 'cancel', 'setLocality', and 'getPollHandles' API calls
+(mostly these aren't yet implemented). Pipes are used to send and receive
+TPM commands and responses (respectively) between client and server.
+
+The client library for interacting with this daemon (libtcti-abrmd) is also
+provided in this repository. It is intended for use with the SAPI library
+(libsapi) like any other TCTI.
 
 See:
-http://www.trustedcomputinggroup.org/files/static_page_files/5029F40E-1A4B-B294-D020357ED57D3D99/TSS%20TAB%20and%20Resource%20Manager%2000%2091-PublicReview.pdf
-http://www.trustedcomputinggroup.org/files/static_page_files/28CE28FA-1A4B-B294-D0A965038809FE9B/TSS%20system%20API%2001.pdf
+http://www.trustedcomputinggroup.org/wp-content/uploads/TSS-TAB-and-Resource-Manager-00-91-PublicReview.pdf
+http://www.trustedcomputinggroup.org/wp-content/uploads/TSS-system-API-01.pdf
