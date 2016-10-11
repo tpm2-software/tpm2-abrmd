@@ -4,6 +4,8 @@
 #include <sapi/tpm20.h>
 #include <glib-object.h>
 
+G_BEGIN_DECLS
+
 #define TCTI_BUFFER_MAX 4096
 
 #define TYPE_TCTI                (tcti_get_type ())
@@ -36,4 +38,5 @@ TSS2_RC            tcti_set_locality     (Tcti                *self,
                                           uint8_t              locality);
 TSS2_TCTI_CONTEXT* tcti_peek_context     (Tcti                *self);
 
+G_END_DECLS
 #endif /* TCTI_INTERFACE_H */

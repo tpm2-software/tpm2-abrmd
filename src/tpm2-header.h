@@ -6,7 +6,6 @@
 
 #define TPM_COMMAND_HEADER_SIZE (sizeof (TPMI_ST_COMMAND_TAG) + sizeof (UINT32) + sizeof (TPM_CC))
 
-
 TPMI_ST_COMMAND_TAG    get_command_tag        (uint8_t      *command_header);
 UINT32                 get_command_size       (uint8_t      *command_header);
 TPM_CC                 get_command_code       (uint8_t      *command_header);

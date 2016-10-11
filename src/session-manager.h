@@ -9,7 +9,7 @@
 G_BEGIN_DECLS
 
 typedef struct _SessionManagerClass {
-    GObjectClass parent;
+    GObjectClass      parent;
 } SessionManagerClass;
 
 typedef struct _SessionManager {

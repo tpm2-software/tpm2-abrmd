@@ -14,7 +14,7 @@
 G_BEGIN_DECLS
 
 typedef struct _TabClass {
-    GObjectClass parent;
+    GObjectClass      parent;
 } TabClass;
 
 typedef struct _Tab {

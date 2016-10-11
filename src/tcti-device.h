@@ -10,7 +10,7 @@
 G_BEGIN_DECLS
 
 typedef struct _TctiDeviceClass {
-    GObjectClass parent;
+    GObjectClass       parent;
 } TctiDeviceClass;
 
 typedef struct _TctiDevice
@@ -27,9 +27,8 @@ typedef struct _TctiDevice
 #define TCTI_DEVICE_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TCTI_DEVICE, TctiDeviceClass))
 
 GType                tcti_device_get_type       (void);
-TctiDevice*          tcti_device_new            (const gchar *filename);
-TSS2_RC              tcti_device_initialize     (Tcti               *tcti);
+TctiDevice*          tcti_device_new            (gchar const      *filename);
+TSS2_RC              tcti_device_initialize     (Tcti             *tcti);
 
 G_END_DECLS
-
 #endif /* TABD_TCTI_DEVICE_H */

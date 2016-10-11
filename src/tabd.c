@@ -273,9 +273,9 @@ on_name_acquired (GDBusConnection *connection,
 static void
 main_loop_quit (GMainLoop *loop)
 {
-  g_info ("main_loop_quit");
-  if (loop && g_main_loop_is_running (loop))
-    g_main_loop_quit (loop);
+    g_info ("main_loop_quit");
+    if (loop && g_main_loop_is_running (loop))
+        g_main_loop_quit (loop);
 }
 /**
  * This is a signal handler of type GBusNameLostCallback. It is
@@ -288,10 +288,10 @@ on_name_lost (GDBusConnection *connection,
               const gchar     *name,
               gpointer         user_data)
 {
-  g_info ("on_name_lost: %s", name);
+    g_info ("on_name_lost: %s", name);
 
-  gmain_data_t *data = (gmain_data_t*)user_data;
-  main_loop_quit (data->loop);
+    gmain_data_t *data = (gmain_data_t*)user_data;
+    main_loop_quit (data->loop);
 }
 /**
  * This is a very poorly named signal handling function. It is invoked in
@@ -301,9 +301,9 @@ on_name_lost (GDBusConnection *connection,
 static void
 signal_handler (int signum)
 {
-  g_info ("handling signal");
-  /* this is the only place the global poiner to the GMainLoop is accessed */
-  main_loop_quit (g_loop);
+    g_info ("handling signal");
+    /* this is the only place the global poiner to the GMainLoop is accessed */
+    main_loop_quit (g_loop);
 }
 /**
  * This function seeds the parameter 'rand_data' (state object for the
@@ -487,60 +487,61 @@ out:
 int
 main (int argc, char *argv[])
 {
-  g_info ("tabd startup");
-  guint owner_id;
-  gmain_data_t gmain_data = { 0 };
-  GThread *init_thread;
-  tabd_options_t options = { 0 };
+    guint owner_id;
+    gmain_data_t gmain_data = { 0 };
+    GThread *init_thread;
+    tabd_options_t options = { 0 };
 
-  if (parse_opts (argc, argv, &options) != 0)
-      return 1;
-  gmain_data.tcti = tcti_options_get_tcti (options.tcti_options);
-  if (gmain_data.tcti == NULL)
-      g_error ("Failed to get TCTI object from TctiOptions");
+    g_info ("tabd startup");
+    if (parse_opts (argc, argv, &options) != 0)
+        return 1;
+    gmain_data.tcti = tcti_options_get_tcti (options.tcti_options);
+    if (gmain_data.tcti == NULL)
+        g_error ("Failed to get TCTI object from TctiOptions");
 
-  g_mutex_init (&gmain_data.init_mutex);
-  g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);
-  /* Initialize program data on a separate thread. The main thread needs to
-   * acquire the dbus name and get into the GMainLoop ASAP to be responsive to
-   * bus clients.
-   */
-  init_thread = g_thread_new (TABD_INIT_THREAD_NAME,
-                              init_thread_func,
-                              &gmain_data);
-  owner_id = g_bus_own_name (options.bus,
-                             TAB_DBUS_NAME,
-                             G_BUS_NAME_OWNER_FLAGS_NONE,
-                             on_bus_acquired,
-                             on_name_acquired,
-                             on_name_lost,
-                             &gmain_data,
-                             NULL);
-  /**
-   * If we call this for the first time from a thread other than the main
-   * thread we get a segfault. Not sure why.
-   */
-  thread_get_type ();
-  g_info ("entering g_main_loop");
-  g_main_loop_run (gmain_data.loop);
-  g_info ("g_main_loop_run done, cleaning up");
-  g_thread_join (init_thread);
-  /* cleanup glib stuff first so we stop getting events */
-  g_bus_unown_name (owner_id);
-  if (gmain_data.skeleton != NULL)
-      g_object_unref (gmain_data.skeleton);
-  /* tear down the command processing pipeline */
-  thread_cancel (THREAD (gmain_data.command_source));
-  thread_cancel (THREAD (gmain_data.tab));
-  thread_cancel (THREAD (gmain_data.response_sink));
-  thread_join (THREAD (gmain_data.command_source));
-  thread_join (THREAD (gmain_data.tab));
-  thread_join (THREAD (gmain_data.response_sink));
-  g_object_unref (gmain_data.command_source);
-  g_object_unref (gmain_data.tab);
-  g_object_unref (gmain_data.response_sink);
-  /* clean up what remains */
-  g_object_unref (gmain_data.manager);
-  g_object_unref (options.tcti_options);
-  return 0;
+    g_mutex_init (&gmain_data.init_mutex);
+    g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);
+    /**
+     * Initialize program data on a separate thread. The main thread needs to
+     * acquire the dbus name and get into the GMainLoop ASAP to be responsive to
+     * bus clients.
+     */
+    init_thread = g_thread_new (TABD_INIT_THREAD_NAME,
+                                init_thread_func,
+                                &gmain_data);
+    owner_id = g_bus_own_name (options.bus,
+                               TAB_DBUS_NAME,
+                               G_BUS_NAME_OWNER_FLAGS_NONE,
+                               on_bus_acquired,
+                               on_name_acquired,
+                               on_name_lost,
+                               &gmain_data,
+                               NULL);
+    /**
+     * If we call this for the first time from a thread other than the main
+     * thread we get a segfault. Not sure why.
+     */
+    thread_get_type ();
+    g_info ("entering g_main_loop");
+    g_main_loop_run (gmain_data.loop);
+    g_info ("g_main_loop_run done, cleaning up");
+    g_thread_join (init_thread);
+    /* cleanup glib stuff first so we stop getting events */
+    g_bus_unown_name (owner_id);
+    if (gmain_data.skeleton != NULL)
+        g_object_unref (gmain_data.skeleton);
+    /* tear down the command processing pipeline */
+    thread_cancel (THREAD (gmain_data.command_source));
+    thread_cancel (THREAD (gmain_data.tab));
+    thread_cancel (THREAD (gmain_data.response_sink));
+    thread_join (THREAD (gmain_data.command_source));
+    thread_join (THREAD (gmain_data.tab));
+    thread_join (THREAD (gmain_data.response_sink));
+    g_object_unref (gmain_data.command_source);
+    g_object_unref (gmain_data.tab);
+    g_object_unref (gmain_data.response_sink);
+    /* clean up what remains */
+    g_object_unref (gmain_data.manager);
+    g_object_unref (options.tcti_options);
+    return 0;
 }

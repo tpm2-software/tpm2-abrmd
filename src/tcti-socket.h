@@ -11,7 +11,7 @@
 G_BEGIN_DECLS
 
 typedef struct _TctiSocketClass {
-    GObjectClass parent;
+    GObjectClass       parent;
 } TctiSocketClass;
 
 typedef struct _TctiSocket
@@ -34,5 +34,4 @@ TctiSocket*          tcti_socket_new            (gchar const   *address,
 TSS2_RC              tcti_socket_initialize     (Tcti          *tcti);
 
 G_END_DECLS
-
 #endif /* TABD_TCTI_SOCKET_H */

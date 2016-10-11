@@ -24,16 +24,12 @@ typedef struct _MessageQueue {
 #define IS_MESSAGE_QUEUE_CLASS(cls)  (G_TYPE_CHECK_CLASS_TYPE    ((cls), TYPE_MESSAGE_QUEUE))
 #define MESSAGE_QUEUE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS  ((obj), TYPE_MESSAGE_QUEUE, MessageQueueClass))
 
-gpointer
-message_queue_new              (const gchar   *name);
-void
-message_queue_enqueue          (MessageQueue  *message_queue,
-                                GObject       *obj);
-GObject*
-message_queue_dequeue          (MessageQueue  *message_queue);
-GObject*
-message_queue_timeout_dequeue  (MessageQueue  *message_queue,
-                                guint64        timeout);
+gpointer    message_queue_new              (const gchar    *name);
+void        message_queue_enqueue          (MessageQueue   *message_queue,
+                                            GObject        *obj);
+GObject*    message_queue_dequeue          (MessageQueue   *message_queue);
+GObject*    message_queue_timeout_dequeue  (MessageQueue   *message_queue,
+                                            guint64         timeout);
 
 G_END_DECLS
 #endif /* MESSAGE_QUEUE_H */

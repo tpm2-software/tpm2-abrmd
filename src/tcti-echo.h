@@ -13,7 +13,7 @@ G_BEGIN_DECLS
 #define TCTI_ECHO_MAX_BUF 16384
 
 typedef struct _TctiEchoClass {
-    GObjectClass parent;
+    GObjectClass       parent;
 } TctiEchoClass;
 
 typedef struct _TctiEcho
@@ -31,8 +31,7 @@ typedef struct _TctiEcho
 
 GType                tcti_echo_get_type       (void);
 TctiEcho*            tcti_echo_new            (guint        size);
-TSS2_RC              tcti_echo_initialize     (Tcti               *tcti);
+TSS2_RC              tcti_echo_initialize     (Tcti        *tcti);
 
 G_END_DECLS
-
 #endif /* TABD_TCTI_ECHO_H */

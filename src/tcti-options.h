@@ -8,7 +8,7 @@
 G_BEGIN_DECLS
 
 typedef struct _TctiOptionsClass {
-    GObjectClass parent;
+    GObjectClass     parent;
 } TctiOptionsClass;
 
 typedef struct _TctiOptions

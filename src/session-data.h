@@ -7,14 +7,14 @@
 G_BEGIN_DECLS
 
 typedef struct _SessionDataClass {
-    GObjectClass parent;
+    GObjectClass        parent;
 } SessionDataClass;
 
 typedef struct _SessionData {
-    GObject   parent_instance;
-    gint      receive_fd;
-    gint      send_fd;
-    guint64   id;
+    GObject             parent_instance;
+    gint                receive_fd;
+    gint                send_fd;
+    guint64             id;
 } SessionData;
 
 #define TYPE_SESSION_DATA              (session_data_get_type ())
@@ -25,17 +25,17 @@ typedef struct _SessionData {
 #define SESSION_DATA_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj), TYPE_SESSION_DATA, SessionDataClass))
 
 GType            session_data_get_type     (void);
-SessionData*     session_data_new          (gint     *receive_fd,
-                                            gint     *send_fd,
-                                            guint64   id);
-gboolean         session_data_equal_fd  (gconstpointer   a,
-                                         gconstpointer   b);
-gboolean         session_data_equal_id  (gconstpointer   a,
-                                         gconstpointer   b);
-gpointer         session_data_key_fd       (SessionData  *session);
-gpointer         session_data_key_id       (SessionData  *session);
-gint             session_data_receive_fd   (SessionData  *session);
-gint             session_data_send_fd      (SessionData  *session);
-void             session_data_free         (SessionData  *session);
+SessionData*     session_data_new          (gint             *receive_fd,
+                                            gint             *send_fd,
+                                            guint64           id);
+gboolean         session_data_equal_fd     (gconstpointer     a,
+                                            gconstpointer     b);
+gboolean         session_data_equal_id     (gconstpointer     a,
+                                            gconstpointer     b);
+gpointer         session_data_key_fd       (SessionData      *session);
+gpointer         session_data_key_id       (SessionData      *session);
+gint             session_data_receive_fd   (SessionData      *session);
+gint             session_data_send_fd      (SessionData      *session);
+void             session_data_free         (SessionData      *session);
 
 #endif /* SESSION_H */

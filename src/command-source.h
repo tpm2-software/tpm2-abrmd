@@ -40,10 +40,9 @@ typedef struct _CommandSource {
 #define IS_COMMAND_SOURCE_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE    ((klass), TYPE_COMMAND_SOURCE))
 #define COMMAND_SOURCE_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_COMMAND_SOURCE, CommandSourceClass))
 
-GType            command_source_get_type (void);
-CommandSource*   command_source_new      (SessionManager     *session_manager,
-                                          Tab                *tab);
-void             command_source_free     (CommandSource     *watcher);
+GType           command_source_get_type       (void);
+CommandSource*  command_source_new            (SessionManager  *session_manager,
+                                               Tab             *tab);
 gint            command_source_on_new_session (SessionManager  *session_manager,
                                                SessionData     *session_data,
                                                CommandSource   *command_source);

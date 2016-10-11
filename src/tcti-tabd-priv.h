@@ -29,12 +29,12 @@
  * for the details.
  */
 typedef struct {
-    TSS2_TCTI_CONTEXT_COMMON_V1 common;
-    guint64 id;
-    guint watcher_id;
-    pthread_mutex_t mutex;
-    int pipe_fds[2];
-    Tpm2AccessBroker *proxy;
+    TSS2_TCTI_CONTEXT_COMMON_V1    common;
+    guint64                        id;
+    guint                          watcher_id;
+    pthread_mutex_t                mutex;
+    int                            pipe_fds[2];
+    Tpm2AccessBroker              *proxy;
 } TSS2_TCTI_TABD_CONTEXT;
 
 #endif /* TSS2TCTI_TABD_PRIV_H */

@@ -10,7 +10,7 @@
 G_BEGIN_DECLS
 
 typedef struct _ResponseSinkClass {
-    GObjectClass parent;
+    GObjectClass       parent;
 } ResponseSinkClass;
 
 /** DON'T TOUCH!
@@ -33,7 +33,7 @@ typedef struct _ResponseSink {
 
 GType               response_sink_get_type    (void);
 ResponseSink*       response_sink_new         (void);
-void                response_sink_enqueue     (ResponseSink   *sink,
+void                response_sink_enqueue     (ResponseSink      *sink,
                                                GObject           *obj);
 
 G_END_DECLS

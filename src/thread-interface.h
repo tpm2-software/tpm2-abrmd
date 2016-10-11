@@ -3,6 +3,8 @@
 
 #include <glib-object.h>
 
+G_BEGIN_DECLS
+
 #define TYPE_THREAD                (thread_get_type ())
 #define THREAD(obj)                (G_TYPE_CHECK_INSTANCE_CAST ((obj), TYPE_THREAD, Thread))
 #define IS_THREAD(obj)             (G_TYPE_CHECK_INSTANCE_TYPE ((obj), TYPE_THREAD))
@@ -18,9 +20,9 @@ typedef gint     (*ThreadStart)        (Thread        *self);
 
 struct _ThreadInterface {
     GTypeInterface      parent;
-    ThreadCancel       cancel;
-    ThreadJoin         join;
-    ThreadStart        start;
+    ThreadCancel        cancel;
+    ThreadJoin          join;
+    ThreadStart         start;
 };
 
 /**
@@ -31,4 +33,5 @@ gint            thread_cancel       (Thread            *self);
 gint            thread_join         (Thread            *self);
 gint            thread_start        (Thread            *self);
 
+G_END_DECLS
 #endif /* THREAD_INTERFACE_H */
