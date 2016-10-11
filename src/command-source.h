@@ -17,8 +17,6 @@ G_BEGIN_DECLS
  * command larger than this size will be closed.
  */
 #define BUF_MAX  4*BUF_SIZE
-#define WAKEUP_DATA "hi"
-#define WAKEUP_SIZE 2
 
 typedef struct _CommandSourceClass {
     GObjectClass       parent;
@@ -29,6 +27,7 @@ typedef struct _CommandSource {
     SessionManager    *session_manager;
     pthread_t          thread;
     gint               wakeup_receive_fd;
+    gint               wakeup_send_fd;
     gboolean           running;
     fd_set             session_fdset;
     Tab               *tab;
@@ -43,9 +42,11 @@ typedef struct _CommandSource {
 
 GType            command_source_get_type (void);
 CommandSource*   command_source_new      (SessionManager     *session_manager,
-                                          gint                wakeup_receive_fd,
                                           Tab                *tab);
 void             command_source_free     (CommandSource     *watcher);
+gint            command_source_on_new_session (SessionManager  *session_manager,
+                                               SessionData     *session_data,
+                                               CommandSource   *command_source);
 
 G_END_DECLS
 #endif /* COMMAND_SOURCE_H */

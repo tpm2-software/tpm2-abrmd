@@ -35,7 +35,6 @@ typedef struct gmain_data {
     CommandSource         *command_source;
     ResponseSink           *response_sink;
     Tab                    *tab;
-    gint                    wakeup_send_fd;
     struct drand48_data     rand_data;
     GMutex                  init_mutex;
     Tcti                   *tcti;
@@ -117,13 +116,10 @@ on_handle_create_connection (Tpm2AccessBroker      *skeleton,
         response_tuple,
         fd_list);
     g_object_unref (fd_list);
-    /* add session to manager and signal manager to wakeup! */
+    /* add session to manager */
     ret = session_manager_insert (data->manager, session);
     if (ret != 0)
         g_error ("Failed to add new session to session_manager.");
-    ret = write (data->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
-    if (ret < 1)
-        g_error ("failed to wakeup source");
 
     return TRUE;
 }
@@ -369,7 +365,7 @@ static gpointer
 init_thread_func (gpointer user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
-    gint wakeup_fds[2] = { 0 }, ret;
+    gint ret;
     Tcti *tcti;
     TSS2_RC rc;
 
@@ -385,9 +381,7 @@ init_thread_func (gpointer user_data)
     data->manager = session_manager_new();
     if (data->manager == NULL)
         g_error ("failed to allocate connection_manager");
-    if (pipe2 (wakeup_fds, O_CLOEXEC) != 0)
-        g_error ("failed to make wakeup socket: %s", strerror (errno));
-    data->wakeup_send_fd = wakeup_fds [1];
+    g_debug ("SessionManager: 0x%x", data->manager);
 
     /**
      * this isn't strictly necessary but it allows us to detect a failure in
@@ -407,7 +401,7 @@ init_thread_func (gpointer user_data)
     data->tab = tab_new (data->tcti, data->response_sink);
     g_debug ("tab: 0x%x", data->tab);
     data->command_source =
-        command_source_new (data->manager, wakeup_fds [0], data->tab);
+        command_source_new (data->manager, data->tab);
     g_debug ("session source: 0x%x", data->command_source);
 
     ret = thread_start (THREAD (data->tab));

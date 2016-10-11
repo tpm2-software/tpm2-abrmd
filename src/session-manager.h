@@ -19,6 +19,11 @@ typedef struct _SessionManager {
     GHashTable       *session_from_id_table;
 } SessionManager;
 
+/* type for callbacks registered with the 'new-session' signal*/
+typedef gint (*new_session_callback)(SessionManager *session_manager,
+                                     SessionData    *session_data,
+                                     gpointer       *data);
+
 #define TYPE_SESSION_MANAGER              (session_manager_get_type   ())
 #define SESSION_MANAGER(obj)              (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_SESSION_MANAGER, SessionManager))
 #define SESSION_MANAGER_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST    ((klass), TYPE_SESSION_MANAGER, SessionManagerClass))

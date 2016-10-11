@@ -9,6 +9,14 @@
 
 static gpointer session_manager_parent_class = NULL;
 
+enum {
+    SIGNAL_0,
+    SIGNAL_NEW_SESSION,
+    N_SIGNALS,
+};
+
+static guint signals [N_SIGNALS] = { 0, };
+
 SessionManager*
 session_manager_new (void)
 {
@@ -60,7 +68,13 @@ session_manager_finalize (GObject *obj)
         g_error ("Error destroying session_manager mutex: %s",
                  strerror (errno));
 }
-
+/**
+ * Boilerplate GObject class init function. The only interesting thing that
+ * we do here is creating / registering the 'new-session'signal. This signal
+ * invokes callbacks with the new_session_callback type (see header). This
+ * signal is emitted by the session_manager_insert function which is where
+ * we add new sessions to those tracked by the SessionManager.
+ */
 static void
 session_manager_class_init (gpointer klass)
 {
@@ -69,6 +83,17 @@ session_manager_class_init (gpointer klass)
     if (session_manager_parent_class == NULL)
         session_manager_parent_class = g_type_class_peek_parent (klass);
     object_class->finalize = session_manager_finalize;
+    signals [SIGNAL_NEW_SESSION] =
+        g_signal_new ("new-session",
+                      G_TYPE_FROM_CLASS (object_class),
+                      G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                      0,
+                      NULL,
+                      NULL,
+                      NULL,
+                      G_TYPE_INT,
+                      1,
+                      TYPE_SESSION_DATA);
 }
 
 GType
@@ -107,6 +132,8 @@ session_manager_insert (SessionManager    *manager,
     if (ret != 0)
         g_error ("Error unlocking session_manager mutex: %s",
                  strerror (errno));
+    /* not sure what to do about reference count on SEssionData obj */
+    g_signal_emit (manager, signals [SIGNAL_NEW_SESSION], 0, session, &ret);
     return ret;
 }
 

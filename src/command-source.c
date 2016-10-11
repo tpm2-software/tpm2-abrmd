@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <fcntl.h>
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +12,9 @@
 #include "thread-interface.h"
 #include "util.h"
 
+#define WAKEUP_DATA "hi"
+#define WAKEUP_SIZE 2
+
 static gpointer command_source_parent_class = NULL;
 
 enum {
@@ -18,6 +22,7 @@ enum {
     PROP_SESSION_MANAGER,
     PROP_TAB,
     PROP_WAKEUP_RECEIVE_FD,
+    PROP_WAKEUP_SEND_FD,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -49,6 +54,10 @@ command_source_set_property (GObject       *object,
         self->wakeup_receive_fd = g_value_get_int (value);
         g_debug ("  wakeup_receive_fd: %d", self->wakeup_receive_fd);
         break;
+    case PROP_WAKEUP_SEND_FD:
+        self->wakeup_send_fd = g_value_get_int (value);
+        g_debug ("  wakeup_send_fd: %d", self->wakeup_send_fd);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -74,11 +83,40 @@ command_source_get_property (GObject      *object,
     case PROP_WAKEUP_RECEIVE_FD:
         g_value_set_int (value, self->wakeup_receive_fd);
         break;
+    case PROP_WAKEUP_SEND_FD:
+        g_value_set_int (value, self->wakeup_send_fd);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
     }
 }
+gint
+command_source_on_new_session (SessionManager   *session_manager,
+                               SessionData      *session_data,
+                               CommandSource    *command_source)
+{
+    gint ret;
+
+    if (!IS_SESSION_MANAGER (session_manager))
+        g_error ("command_source_on_new_session: first parameter 0x%x is "
+                 "*not* a SessionManager!", session_manager);
+    if (!IS_SESSION_DATA (session_data))
+        g_error ("command_source_on_new_session: second parameter 0x%x is "
+                 "*not* a SessionData!", session_data);
+    if (!IS_COMMAND_SOURCE (command_source))
+        g_error ("command_source_on_new_session: third parameter 0x%x is "
+                 "*not* a CommandSource!");
+
+    g_debug ("command_source_on_new_session: writing \"%s\" to fd: %d",
+             WAKEUP_DATA, command_source->wakeup_send_fd);
+    ret = write (command_source->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
+    if (ret < 1)
+        g_error ("failed to send wakeup signal");
+
+    return 0;
+}
+
 /* Not doing any sanity checks here. Be sure to shut things downon your own
  * first.
  */
@@ -89,6 +127,8 @@ command_source_finalize (GObject  *object)
 
     g_object_unref (source->tab);
     g_object_unref (source->session_manager);
+    close (source->wakeup_send_fd);
+    close (source->wakeup_receive_fd);
 }
 
 static void
@@ -112,8 +152,16 @@ command_source_class_init (gpointer klass)
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_WAKEUP_RECEIVE_FD] =
         g_param_spec_int ("wakeup-receive-fd",
-                          "wakeup file descriptor",
+                          "wakeup receive file descriptor",
                           "File descriptor to receive wakeup signal.",
+                          0,
+                          INT_MAX,
+                          0,
+                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_WAKEUP_SEND_FD] =
+        g_param_spec_int ("wakeup-send-fd",
+                          "wakeup send file descriptor",
+                          "File descriptor to send wakeup signal.",
                           0,
                           INT_MAX,
                           0,
@@ -274,10 +322,10 @@ command_source_thread (void *data)
 
 CommandSource*
 command_source_new (SessionManager    *session_manager,
-                     gint wakeup_receive_fd,
                      Tab               *tab)
 {
     CommandSource *source;
+    gint wakeup_fds [2] = { 0, };
 
     if (session_manager == NULL)
         g_error ("command_source_new passed NULL SessionManager");
@@ -285,12 +333,19 @@ command_source_new (SessionManager    *session_manager,
         g_error ("command_source_new passed NULL Tab");
     g_object_ref (tab);
     g_object_ref (session_manager);
+    if (pipe2 (wakeup_fds, O_CLOEXEC) != 0)
+        g_error ("failed to make wakeup pipe: %s", strerror (errno));
     source = COMMAND_SOURCE (g_object_new (TYPE_COMMAND_SOURCE,
                                              "session-manager", session_manager,
                                              "tab", tab,
-                                             "wakeup-receive-fd", wakeup_receive_fd,
+                                             "wakeup-receive-fd", wakeup_fds [0],
+                                             "wakeup-send-fd", wakeup_fds [1],
                                              NULL));
     source->running = FALSE;
+    g_signal_connect (session_manager,
+                      "new-session",
+                      (GCallback) command_source_on_new_session,
+                      source);
     return source;
 }
 
