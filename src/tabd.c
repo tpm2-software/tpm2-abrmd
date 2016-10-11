@@ -469,6 +469,13 @@ out:
     g_option_context_free (ctx);
     return ret;
 }
+void
+thread_cleanup (Thread *thread)
+{
+    thread_cancel (thread);
+    thread_join (thread);
+    g_object_unref (thread);
+}
 /**
  * This is the entry point for the TPM2 Access Broker and Resource Manager
  * daemon. It is responsible for the top most initialization and
@@ -531,15 +538,9 @@ main (int argc, char *argv[])
     if (gmain_data.skeleton != NULL)
         g_object_unref (gmain_data.skeleton);
     /* tear down the command processing pipeline */
-    thread_cancel (THREAD (gmain_data.command_source));
-    thread_cancel (THREAD (gmain_data.tab));
-    thread_cancel (THREAD (gmain_data.response_sink));
-    thread_join (THREAD (gmain_data.command_source));
-    thread_join (THREAD (gmain_data.tab));
-    thread_join (THREAD (gmain_data.response_sink));
-    g_object_unref (gmain_data.command_source);
-    g_object_unref (gmain_data.tab);
-    g_object_unref (gmain_data.response_sink);
+    thread_cleanup (THREAD (gmain_data.command_source));
+    thread_cleanup (THREAD (gmain_data.tab));
+    thread_cleanup (THREAD (gmain_data.response_sink));
     /* clean up what remains */
     g_object_unref (gmain_data.manager);
     g_object_unref (options.tcti_options);
