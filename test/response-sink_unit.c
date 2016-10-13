@@ -19,10 +19,11 @@ response_sink_allocate_test (void **state)
     ResponseSink *sink;
 
     tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
-    tab = tab_new (tcti);
-    sink = response_sink_new (tab);
+    sink = response_sink_new ();
+    tab = tab_new (tcti, sink);
 
     g_object_unref (sink);
+    g_object_unref (tab);
 }
 
 /* response_sink_start_stop_test begin
@@ -69,8 +70,8 @@ response_sink_start_stop_setup (void **state)
     start_stop_data_t *data = calloc (1, sizeof (start_stop_data_t));
 
     data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
-    data->tab  = tab_new (TCTI (data->tcti));
-    data->sink = response_sink_new (data->tab);
+    data->sink = response_sink_new ();
+    data->tab  = tab_new (data->tcti, data->sink);
 
     *state = data;
 }
