@@ -18,13 +18,16 @@
 #include "command-source.h"
 #include "tcti-echo.h"
 
+#define TEST_MSG "test"
+#define TEST_MSG_SIZE 5
+
 typedef struct source_test_data {
     SessionManager *manager;
     CommandSource *source;
     SessionData *session;
     Tab  *tab;
     Tcti *tcti;
-    gint wakeup_send_fd;
+    ResponseSink *sink;
     gboolean match;
 } source_test_data_t;
 
@@ -37,7 +40,7 @@ command_source_allocate_test (void **state)
     source_test_data_t *data = (source_test_data_t *)*state;
     CommandSource *source = NULL;
 
-    source = command_source_new (data->manager, 0, data->tab);
+    source = command_source_new (data->manager, data->tab);
     assert_non_null (source);
     g_object_unref (source);
 }
@@ -50,7 +53,8 @@ command_source_allocate_setup (void **state)
     data = calloc (1, sizeof (source_test_data_t));
     data->manager = session_manager_new ();
     data->tcti = (Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF);
-    data->tab = tab_new (data->tcti);
+    data->sink = response_sink_new ();
+    data->tab = tab_new (data->tcti, data->sink);
 
     *state = data;
 }
@@ -92,17 +96,14 @@ command_source_start_setup (void **state)
     source_test_data_t *data;
     gint ret, fds[2] = { 0 };
 
-    ret = pipe2 (fds, O_CLOEXEC);
-    if (ret == -1)
-        g_error ("pipe2 failed w/ errno: %d %s", errno, strerror (errno));
     data = calloc (1, sizeof (source_test_data_t));
-    data->wakeup_send_fd = fds[1];
     data->manager = session_manager_new ();
     if (data->manager == NULL)
         g_error ("failed to allocate new session_manager");
-    data->tcti = (Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF);
-    data->tab = tab_new (data->tcti);
-    data->source = command_source_new (data->manager, fds[0], data->tab);
+    data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    data->sink = response_sink_new ();
+    data->tab = tab_new (data->tcti, data->sink);
+    data->source = command_source_new (data->manager, data->tab);
     if (data->source == NULL)
         g_error ("failed to allocate new command_source");
 
@@ -114,7 +115,6 @@ command_source_start_teardown (void **state)
 {
     source_test_data_t *data = (source_test_data_t*)*state;
 
-    close (data->wakeup_send_fd);
     g_object_unref (data->source);
     g_object_unref (data->manager);
     g_object_unref (data->tab);
@@ -122,59 +122,6 @@ command_source_start_teardown (void **state)
 }
 /* command_source_start_test end */
 
-/* command_source_wakeup_test
- * Here we test the command_source wakeup mechanism. We do all of the
- * necessary setup to get the session source thread running and then write
- * a bit of data to it. This causes it to run the wakeup callback that we
- * provided. We get an indication that this callback was run through the
- * user_data provided, namely the wokeup gboolean from the source_test_data
- * structure.
-*/
-static void
-command_source_wakeup_setup (void **state)
-{
-    source_test_data_t *data;
-    int fds[2] = { 0 }, ret;
-
-    data = calloc (1, sizeof (source_test_data_t));
-    data->manager = session_manager_new ();
-    if (data->manager == NULL)
-        g_error ("failed to allocate new session_manager");
-    ret = pipe2 (fds, O_CLOEXEC);
-    if (ret != 0)
-        g_error ("failed to get pipe2s");
-    data->tab = tab_new ((Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF));
-    data->source = command_source_new (data->manager,
-                                        fds[0],
-                                        data->tab);
-    data->wakeup_send_fd = fds[1];
-    if (data->source == NULL)
-        g_error ("failed to allocate new command_source");
-
-    *state = data;
-}
-static void
-command_source_wakeup_test (void **state)
-{
-    source_test_data_t *data;
-    gint ret;
-
-    data = (source_test_data_t*)*state;
-    /* This string is arbitrary. */
-    ret = command_source_start (data->source);
-    assert_int_equal (ret, 0);
-    ret = write (data->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
-    sleep (1);
-    assert_true (ret != -1);
-   /* sleep here to give the source thread time to react to the data we've
-     * sent over the wakeup_send_fd.
-     */
-    ret = command_source_cancel (data->source);
-    assert_int_equal (ret, 0);
-    ret = command_source_join (data->source);
-    assert_int_equal (ret, 0);
-}
-/* command_source_wakeup_test end */
 /* command_source_session_insert_test begin
  * In this test we create a session source and all that that entails. We then
  * create a new session and insert it into the session manager. We then signal
@@ -184,6 +131,21 @@ command_source_wakeup_test (void **state)
  * session pipe is set. This is how we know that the source is now watching
  * for data from the new session.
  */
+static void
+command_source_wakeup_setup (void **state)
+{
+    source_test_data_t *data;
+
+    data = calloc (1, sizeof (source_test_data_t));
+    data->manager = session_manager_new ();
+    data->tcti    = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    data->sink    = response_sink_new ();
+    data->tab     = tab_new (data->tcti, data->sink);
+    data->source  = command_source_new (data->manager, data->tab);
+
+    *state = data;
+}
+
 static void
 command_source_session_insert_test (void **state)
 {
@@ -199,8 +161,6 @@ command_source_session_insert_test (void **state)
     ret = command_source_start(source);
     assert_int_equal (ret, 0);
     session_manager_insert (data->manager, session);
-    ret = write (data->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
-    assert_true (ret > 0);
     sleep (1);
     assert_true (FD_ISSET (session->receive_fd, &source->session_fdset));
     session_manager_remove (data->manager, session);
@@ -228,20 +188,21 @@ command_source_session_data_setup (void **state)
     data->manager = session_manager_new ();
     if (data->manager == NULL)
         g_error ("failed to allocate new session_manager");
-    ret = pipe2 (fds, O_CLOEXEC);
-    if (ret != 0)
-        g_error ("failed to get pipe2s");
-    data->tab = tab_new ((Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    data->sink = response_sink_new ();
+    if (data->sink == NULL)
+        g_error ("failed to allocate new response_sink");
+    data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    if (data->tcti == NULL)
+        g_error ("failed to allcoate new tcti_echo");
+    data->tab = tab_new (data->tcti, data->sink);
+
+    data->source = command_source_new (data->manager, data->tab);
+
     ret = tab_start (data->tab);
     if (ret != 0)
         g_error ("failed to start tab");
     data->source = command_source_new (data->manager,
-                                        fds[0],
                                         data->tab);
-    data->wakeup_send_fd = fds[1];
-    if (data->source == NULL)
-        g_error ("failed to allocate new command_source");
-
     ret = command_source_start (data->source);
     if (ret != 0)
         g_error ("failed to start CommandSource");
@@ -253,7 +214,6 @@ command_source_session_data_teardown (void **state)
 {
     source_test_data_t *data = (source_test_data_t*)*state;
 
-    close (data->wakeup_send_fd);
     command_source_cancel (data->source);
     command_source_join (data->source);
     tab_cancel (data->tab);
@@ -271,29 +231,25 @@ command_source_session_data_test (void **state)
     CommandSource *source = data->source;
     SessionManager    *manager = data->manager;
     Tab               *tab     = data->tab;
-    DataMessage *msg;
     SessionData *session;
     gint ret, receive_fd, send_fd;
+    guint8 data_out [TEST_MSG_SIZE] = { 0, };
 
     session = session_data_new (&receive_fd, &send_fd, 5);
     assert_false (FD_ISSET (session->receive_fd, &source->session_fdset));
     session_manager_insert (data->manager, session);
-    ret = write (data->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
-    assert_true (ret > 0);
     sleep (1);
     assert_true (FD_ISSET (session->receive_fd, &source->session_fdset));
 
     g_debug ("writing to send_fd");
-    ret = write (send_fd, WAKEUP_DATA, WAKEUP_SIZE);
+    ret = write (send_fd, TEST_MSG, TEST_MSG_SIZE);
     assert_true (ret > 0);
-    g_debug ("calling tab_get_timeout_response\n");
-    msg = DATA_MESSAGE (tab_get_timeout_response (tab, 1e6));
 
+    ret = read (receive_fd, data_out, TEST_MSG_SIZE);
+    assert_true (ret > 0);
     g_debug ("I got this message back:");
-    data_message_print (msg);
-    assert_memory_equal (WAKEUP_DATA, msg->data, WAKEUP_SIZE);
+    assert_memory_equal (TEST_MSG, data_out, TEST_MSG_SIZE);
     session_manager_remove (data->manager, session);
-    g_object_unref (msg);
 }
 /* command_source_session_data_test end */
 int
@@ -306,9 +262,6 @@ main (int argc,
                                   command_source_allocate_teardown),
         unit_test_setup_teardown (command_source_start_test,
                                   command_source_start_setup,
-                                  command_source_start_teardown),
-        unit_test_setup_teardown (command_source_wakeup_test,
-                                  command_source_wakeup_setup,
                                   command_source_start_teardown),
         unit_test_setup_teardown (command_source_session_insert_test,
                                   command_source_wakeup_setup,

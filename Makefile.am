@@ -11,7 +11,6 @@ check_PROGRAMS  = \
     test/session-data_unit \
     test/session-manager_unit \
     test/command-source_unit \
-    test/tab_unit \
     test/tcti-options_unit \
     test/util_unit \
     test/util-mock-realloc_unit
@@ -142,17 +141,19 @@ test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c test/session-manager_unit.c
 
 test_command_source_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
-test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
+test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_command_source_unit_SOURCES = \
     src/control-message.c \
     src/data-message.c \
     src/message-queue.c \
     src/command-source.c \
+    src/response-sink.c \
     src/session-manager.c \
     src/session-data.c \
     src/tab.c \
     src/tcti-echo.c \
     src/tcti-interface.c \
+    src/thread-interface.c \
     test/command-source_unit.c
 
 test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) \
@@ -163,9 +164,12 @@ test_tab_unit_SOURCES = \
     src/control-message.c \
     src/data-message.c \
     src/message-queue.c \
+    src/response-sink.c \
+    src/session-data.c \
     src/tab.c \
     src/tcti-echo.c \
     src/tcti-interface.c \
+    src/thread-interface.c \
     test/tab_unit.c
 
 if TCTI_DEVICE
@@ -180,7 +184,7 @@ endif
 
 if TCTI_SOCKET
 test_tcti_socket_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAGS) $(TCTI_SOCKET_CFLAGS) $(AM_CFLAGS)
-test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TCTI_SOCKET_LIBS) $(GOBJECT_LIBS)
 test_tcti_socket_unit_LDFLAGS  = -Wl,--wrap=InitSocketTcti
 test_tcti_socket_unit_SOURCES  = \
     src/tcti-socket.c \
@@ -211,12 +215,12 @@ test_tcti_tabd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_tcti_tabd_read_write_LDADD   = $(GLIB_LIBS) src/libtcti-tabd.la
 test_tcti_tabd_read_write_SOURCES = test/tcti-tabd_read-write.c
 
-test_util_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
+test_util_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_util_unit_LDFLAGS = -Wl,--wrap=read,--wrap=write
 test_util_unit_SOURCES = test/util_unit.c
 
-test_util_mock_realloc_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
+test_util_mock_realloc_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 test_util_mock_realloc_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_util_mock_realloc_unit_LDFLAGS = -Wl,--wrap=realloc
 test_util_mock_realloc_unit_SOURCES = test/util-mock-realloc_unit.c
