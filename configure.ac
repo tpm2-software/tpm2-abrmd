@@ -32,14 +32,14 @@ AC_DEFUN([MY_ARG_WITH],
                       [use_[]$1=$withval],
                       [use_[]$1=$2])
          ])
-MY_ARG_WITH([tcti_device], [no])
+MY_ARG_WITH([tcti_device], [yes])
 AS_IF([test "x$use_tcti_device" != xno],
       [PKG_CHECK_MODULES([TCTI_DEVICE],
                          [tcti-device],
                          [AC_DEFINE([HAVE_TCTI_DEVICE],
                                     [1])])])
 AM_CONDITIONAL([TCTI_DEVICE], [test "x$use_tcti_device" != xno])
-MY_ARG_WITH([tcti_socket], [no])
+MY_ARG_WITH([tcti_socket], [yes])
 AS_IF([test "x$use_tcti_socket" != xno],
       [PKG_CHECK_MODULES([TCTI_SOCKET],
                          [tcti-socket],
