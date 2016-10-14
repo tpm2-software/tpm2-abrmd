@@ -275,8 +275,11 @@ tcti_echo_initialize (Tcti *tcti)
     g_debug ("allocating tcti_context: 0x%x", ctx_size);
     iface->tcti_context = g_malloc0 (ctx_size);
     rc = tcti_echo_init (iface->tcti_context, &ctx_size, self->size);
-    if (rc != TSS2_RC_SUCCESS)
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("failed to initialize echo TCTI context: 0x%x", rc);
         g_free (iface->tcti_context);
+        iface->tcti_context;
+    }
 out:
     return rc;
 
