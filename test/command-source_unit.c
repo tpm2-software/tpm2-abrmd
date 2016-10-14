@@ -52,7 +52,9 @@ command_source_allocate_setup (void **state)
 
     data = calloc (1, sizeof (source_test_data_t));
     data->manager = session_manager_new ();
-    data->tcti = (Tcti*)tcti_echo_new (TCTI_ECHO_MIN_BUF);
+    data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
+        g_error ("failed to initialize echo TCTI");
     data->sink = response_sink_new ();
     data->tab = tab_new (data->tcti, data->sink);
 
@@ -101,6 +103,8 @@ command_source_start_setup (void **state)
     if (data->manager == NULL)
         g_error ("failed to allocate new session_manager");
     data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
+        g_error ("failed to initialize echo TCTI");
     data->sink = response_sink_new ();
     data->tab = tab_new (data->tcti, data->sink);
     data->source = command_source_new (data->manager, data->tab);
@@ -139,6 +143,8 @@ command_source_wakeup_setup (void **state)
     data = calloc (1, sizeof (source_test_data_t));
     data->manager = session_manager_new ();
     data->tcti    = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
+        g_error ("failed to initialize echo TCTI");
     data->sink    = response_sink_new ();
     data->tab     = tab_new (data->tcti, data->sink);
     data->source  = command_source_new (data->manager, data->tab);
@@ -194,6 +200,8 @@ command_source_session_data_setup (void **state)
     data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
     if (data->tcti == NULL)
         g_error ("failed to allcoate new tcti_echo");
+    if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
+        g_error ("failed to initialize echo TCTI");
     data->tab = tab_new (data->tcti, data->sink);
 
     data->source = command_source_new (data->manager, data->tab);
