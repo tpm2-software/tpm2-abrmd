@@ -196,15 +196,6 @@ tcti_socket_initialize (Tcti *tcti)
         g_free (iface->tcti_context);
         iface->tcti_context = NULL;
     }
-    /* this should be done by the socket TCTI */
-    rc = PlatformCommand (iface->tcti_context, MS_SIM_POWER_ON);
-    if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("Failed to power on the TPM simulator: 0x%x\n", rc);
-        goto out;
-    }
-    rc = PlatformCommand (iface->tcti_context, MS_SIM_NV_ON);
-    if (rc != TSS2_RC_SUCCESS)
-        g_warning ("Failed to enable NV RAM on the TPM simulator: 0x%x\n", rc);
 out:
     return rc;
 }
