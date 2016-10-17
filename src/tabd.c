@@ -401,7 +401,7 @@ init_thread_func (gpointer user_data)
     data->tab = tab_new (data->tcti, data->response_sink);
     g_debug ("tab: 0x%x", data->tab);
     data->command_source =
-        command_source_new (data->manager, data->tab);
+        command_source_new (data->manager, SINK (data->tab));
     g_debug ("session source: 0x%x", data->command_source);
 
     ret = thread_start (THREAD (data->tab));

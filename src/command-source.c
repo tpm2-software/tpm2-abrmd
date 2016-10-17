@@ -8,7 +8,6 @@
 #include "data-message.h"
 #include "session-data.h"
 #include "command-source.h"
-#include "tab.h"
 #include "thread-interface.h"
 #include "util.h"
 
@@ -20,7 +19,7 @@ static gpointer command_source_parent_class = NULL;
 enum {
     PROP_0,
     PROP_SESSION_MANAGER,
-    PROP_TAB,
+    PROP_SINK,
     PROP_WAKEUP_RECEIVE_FD,
     PROP_WAKEUP_SEND_FD,
     N_PROPERTIES
@@ -46,9 +45,9 @@ command_source_set_property (GObject       *object,
     case PROP_SESSION_MANAGER:
         self->session_manager = SESSION_MANAGER (g_value_get_object (value));
         break;
-    case PROP_TAB:
-        self->tab = TAB (g_value_get_object (value));
-        g_debug ("  tab: 0x%x", self->tab);
+    case PROP_SINK:
+        self->sink = SINK (g_value_get_object (value));
+        g_debug ("  sink: 0x%x", self->sink);
         break;
     case PROP_WAKEUP_RECEIVE_FD:
         self->wakeup_receive_fd = g_value_get_int (value);
@@ -77,8 +76,8 @@ command_source_get_property (GObject      *object,
     case PROP_SESSION_MANAGER:
         g_value_set_object (value, self->session_manager);
         break;
-    case PROP_TAB:
-        g_value_set_object (value, self->tab);
+    case PROP_SINK:
+        g_value_set_object (value, self->sink);
         break;
     case PROP_WAKEUP_RECEIVE_FD:
         g_value_set_int (value, self->wakeup_receive_fd);
@@ -125,7 +124,7 @@ command_source_finalize (GObject  *object)
 {
     CommandSource *source = COMMAND_SOURCE (object);
 
-    g_object_unref (source->tab);
+    g_object_unref (source->sink);
     g_object_unref (source->session_manager);
     close (source->wakeup_send_fd);
     close (source->wakeup_receive_fd);
@@ -150,6 +149,12 @@ command_source_class_init (gpointer klass)
                              "SessionManager instance.",
                              TYPE_SESSION_MANAGER,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_SINK] =
+        g_param_spec_object ("sink",
+                             "Sink",
+                             "Reference to a Sink object.",
+                             G_TYPE_OBJECT,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_WAKEUP_RECEIVE_FD] =
         g_param_spec_int ("wakeup-receive-fd",
                           "wakeup receive file descriptor",
@@ -166,12 +171,6 @@ command_source_class_init (gpointer klass)
                           INT_MAX,
                           0,
                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties [PROP_TAB] =
-        g_param_spec_object ("tab",
-                             "Tab object",
-                             "Tab instance.",
-                             TYPE_TAB,
-                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
@@ -234,9 +233,9 @@ command_source_thread_cleanup (void *data)
 }
 
 gboolean
-command_source_session_responder (CommandSource    *source,
-                                   gint               fd,
-                                   Tab               *tab)
+command_source_session_responder (CommandSource      *source,
+                                  gint                fd,
+                                  Sink               *sink)
 {
     DataMessage *msg;
     SessionData *session;
@@ -259,8 +258,8 @@ command_source_session_responder (CommandSource    *source,
                                 session);
         return TRUE;
     }
-    tab_send_command (tab, G_OBJECT (msg));
-    /* the tab now owns this message */
+    sink_enqueue (sink, G_OBJECT (msg));
+    /* the sink now owns this message */
     g_object_unref (msg);
     return TRUE;
 }
@@ -307,7 +306,7 @@ command_source_thread (void *data)
                 i != source->wakeup_receive_fd)
             {
                 g_debug ("data ready on session fd: %d", i);
-                command_source_session_responder (source, i, source->tab);
+                command_source_session_responder (source, i, source->sink);
             }
             if (FD_ISSET (i, &source->session_fdset) &&
                 i == source->wakeup_receive_fd)
@@ -322,22 +321,22 @@ command_source_thread (void *data)
 
 CommandSource*
 command_source_new (SessionManager    *session_manager,
-                     Tab               *tab)
+                    Sink              *sink)
 {
     CommandSource *source;
     gint wakeup_fds [2] = { 0, };
 
     if (session_manager == NULL)
         g_error ("command_source_new passed NULL SessionManager");
-    if (tab == NULL)
+    if (sink == NULL)
         g_error ("command_source_new passed NULL Tab");
-    g_object_ref (tab);
+    g_object_ref (sink);
     g_object_ref (session_manager);
     if (pipe2 (wakeup_fds, O_CLOEXEC) != 0)
         g_error ("failed to make wakeup pipe: %s", strerror (errno));
     source = COMMAND_SOURCE (g_object_new (TYPE_COMMAND_SOURCE,
                                              "session-manager", session_manager,
-                                             "tab", tab,
+                                             "sink", sink,
                                              "wakeup-receive-fd", wakeup_fds [0],
                                              "wakeup-send-fd", wakeup_fds [1],
                                              NULL));

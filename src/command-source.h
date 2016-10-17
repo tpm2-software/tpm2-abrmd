@@ -7,7 +7,7 @@
 #include <sys/select.h>
 
 #include "session-manager.h"
-#include "tab.h"
+#include "sink-interface.h"
 
 G_BEGIN_DECLS
 
@@ -30,7 +30,7 @@ typedef struct _CommandSource {
     gint               wakeup_send_fd;
     gboolean           running;
     fd_set             session_fdset;
-    Tab               *tab;
+    Sink              *sink;
 } CommandSource;
 
 #define TYPE_COMMAND_SOURCE              (command_source_get_type   ())
@@ -42,7 +42,7 @@ typedef struct _CommandSource {
 
 GType           command_source_get_type       (void);
 CommandSource*  command_source_new            (SessionManager  *session_manager,
-                                               Tab             *tab);
+                                               Sink            *sink);
 gint            command_source_on_new_session (SessionManager  *session_manager,
                                                SessionData     *session_data,
                                                CommandSource   *command_source);
