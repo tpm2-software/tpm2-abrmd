@@ -2,6 +2,7 @@
 #include <glib.h>
 #include <pthread.h>
 
+#include "sink-interface.h"
 #include "thread-interface.h"
 #include "response-sink.h"
 #include "control-message.h"
@@ -24,6 +25,22 @@ static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
 gint response_sink_cancel (Thread *self);
 gint response_sink_join   (Thread *self);
 gint response_sink_start  (Thread *self);
+/**
+ * enqueue function to implement Sink interface.
+ */
+void
+response_sink_enqueue (Sink            *self,
+                       GObject         *obj)
+{
+    ResponseSink *sink = RESPONSE_SINK (self);
+
+    g_debug ("response_sink_enqueue:");
+    if (sink == NULL)
+        g_error ("  passed NULL sink");
+    if (obj == NULL)
+        g_error ("  passed NULL object");
+    message_queue_enqueue (sink->in_queue, obj);
+}
 /**
  * GObject property setter.
  */
@@ -116,13 +133,23 @@ response_sink_class_init (gpointer klass)
  * Boilerplate code to register functions with the ThreadInterface.
  */
 static void
-response_sink_interface_init (gpointer g_iface)
+response_sink_thread_interface_init (gpointer g_iface)
 {
     ThreadInterface *thread_interface = (ThreadInterface*)g_iface;
     thread_interface->cancel = response_sink_cancel;
     thread_interface->join   = response_sink_join;
     thread_interface->start  = response_sink_start;
-}/**
+}
+/**
+ * Boilerplate code to register functions with the SinkInterface.
+ */
+static void
+response_sink_sink_interface_init (gpointer g_iface)
+{
+    SinkInterface *sink_interface = (SinkInterface*)g_iface;
+    sink_interface->enqueue = response_sink_enqueue;
+}
+/**
  * GObject boilerplate get_type.
  */
 GType
@@ -138,12 +165,20 @@ response_sink_get_type (void)
                                               sizeof (ResponseSink),
                                               NULL,
                                               0);
-        const GInterfaceInfo interface_info = {
-            (GInterfaceInitFunc) response_sink_interface_init,
+        /* Register interfaces implemented */
+        const GInterfaceInfo interface_info_thread = {
+            (GInterfaceInitFunc) response_sink_thread_interface_init,
             NULL,
             NULL
         };
-        g_type_add_interface_static (type, TYPE_THREAD, &interface_info);
+        g_type_add_interface_static (type, TYPE_THREAD, &interface_info_thread);
+
+        const GInterfaceInfo interface_info_sink = {
+            (GInterfaceInitFunc) response_sink_sink_interface_init,
+            NULL,
+            NULL,
+        };
+        g_type_add_interface_static (type, TYPE_SINK, &interface_info_sink);
     }
     return type;
 }
@@ -211,18 +246,6 @@ response_sink_thread (void *data)
             response_sink_process_data_message (DATA_MESSAGE (obj));
         g_object_unref (obj);
     } while (TRUE);
-}
-
-void
-response_sink_enqueue (ResponseSink *sink,
-                          GObject         *obj)
-{
-    g_debug ("response_sink_enqueue:");
-    if (sink == NULL)
-        g_error ("  passed NULL sink");
-    if (obj == NULL)
-        g_error ("  passed NULL object");
-    message_queue_enqueue (sink->in_queue, obj);
 }
 /**
  * The remaining functions implement the ThreadInterface.

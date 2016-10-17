@@ -33,8 +33,6 @@ typedef struct _ResponseSink {
 
 GType               response_sink_get_type    (void);
 ResponseSink*       response_sink_new         (void);
-void                response_sink_enqueue     (ResponseSink      *sink,
-                                               GObject           *obj);
 
 G_END_DECLS
 #endif /* RESPONSE_SINK_H */

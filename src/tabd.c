@@ -529,6 +529,7 @@ main (int argc, char *argv[])
      * thread we get a segfault. Not sure why.
      */
     thread_get_type ();
+    sink_get_type ();
     g_info ("entering g_main_loop");
     g_main_loop_run (gmain_data.loop);
     g_info ("g_main_loop_run done, cleaning up");

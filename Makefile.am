@@ -74,6 +74,7 @@ src_tabd_SOURCES = \
     src/session-manager.c \
     src/session-data.c \
     src/response-sink.c \
+    src/sink-interface.c \
     src/tab.c \
     src/tcti-interface.c \
     src/tcti-options.c \
@@ -126,6 +127,7 @@ test_response_sink_unit_SOURCES = \
     src/thread-interface.c \
     src/message-queue.c \
     src/response-sink.c \
+    src/sink-interface.c \
     src/session-data.c \
     src/session-manager.c \
     src/tab.c \
@@ -151,6 +153,7 @@ test_command_source_unit_SOURCES = \
     src/response-sink.c \
     src/session-manager.c \
     src/session-data.c \
+    src/sink-interface.c \
     src/tab.c \
     src/tcti-echo.c \
     src/tcti-interface.c \
@@ -167,6 +170,7 @@ test_tab_unit_SOURCES = \
     src/message-queue.c \
     src/response-sink.c \
     src/session-data.c \
+    src/sink-interface.c \
     src/tab.c \
     src/tcti-echo.c \
     src/tcti-interface.c \
