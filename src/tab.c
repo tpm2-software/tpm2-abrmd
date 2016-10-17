@@ -30,12 +30,12 @@ gint tab_start  (Thread *self);
  * new messages / commands get into the Tab.
  */
 void
-tab_send_command (Sink        *sink,
-                  GObject     *obj)
+tab_enqueue (Sink        *sink,
+             GObject     *obj)
 {
     Tab *tab = TAB (sink);
 
-    g_debug ("tab_send_command: Tab: 0x%x obj: 0x%x", tab, obj);
+    g_debug ("tab_enqueue: Tab: 0x%x obj: 0x%x", tab, obj);
     /* The TAB takes ownership of this object */
     g_object_ref (obj);
     message_queue_enqueue (tab->in_queue, obj);
@@ -177,7 +177,7 @@ static void
 tab_sink_interface_init (gpointer g_iface)
 {
     SinkInterface *sink = (SinkInterface*)g_iface;
-    sink->enqueue = tab_send_command;
+    sink->enqueue = tab_enqueue;
 }
 /**
  * GObject boilerplate get_type.
