@@ -2,6 +2,7 @@
 
 #include "control-message.h"
 #include "message-queue.h"
+#include "sink-interface.h"
 #include "tab.h"
 #include "thread-interface.h"
 
@@ -24,6 +25,21 @@ static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
 gint tab_cancel (Thread *self);
 gint tab_join   (Thread *self);
 gint tab_start  (Thread *self);
+/**
+ * Implement the 'enqueue' function from the Sink interface. This is how
+ * new messages / commands get into the Tab.
+ */
+void
+tab_send_command (Sink        *sink,
+                  GObject     *obj)
+{
+    Tab *tab = TAB (sink);
+
+    g_debug ("tab_send_command: Tab: 0x%x obj: 0x%x", tab, obj);
+    /* The TAB takes ownership of this object */
+    g_object_ref (obj);
+    message_queue_enqueue (tab->in_queue, obj);
+}
 /**
  * GObject property setter.
  */
@@ -147,12 +163,21 @@ tab_class_init (gpointer klass)
  * Boilerplate code to register function s with the ThreadInterface.
  */
 static void
-tab_interface_init (gpointer g_iface)
+tab_thread_interface_init (gpointer g_iface)
 {
     ThreadInterface *thread = (ThreadInterface*)g_iface;
     thread->cancel = tab_cancel;
     thread->join   = tab_join;
     thread->start  = tab_start;
+}
+/**
+ * Boilerplate code to register function with the SinkInterface.
+ */
+static void
+tab_sink_interface_init (gpointer g_iface)
+{
+    SinkInterface *sink = (SinkInterface*)g_iface;
+    sink->enqueue = tab_send_command;
 }
 /**
  * GObject boilerplate get_type.
@@ -170,12 +195,19 @@ tab_get_type (void)
                                               sizeof (Tab),
                                               NULL,
                                               0);
-        const GInterfaceInfo interface_info = {
-            (GInterfaceInitFunc) tab_interface_init,
+        const GInterfaceInfo interface_info_thread = {
+            (GInterfaceInitFunc) tab_thread_interface_init,
             NULL,
             NULL
         };
-        g_type_add_interface_static (type, TYPE_THREAD, &interface_info);
+        g_type_add_interface_static (type, TYPE_THREAD, &interface_info_thread);
+
+        const GInterfaceInfo interface_info_sink = {
+            (GInterfaceInitFunc) tab_sink_interface_init,
+            NULL,
+            NULL
+        };
+        g_type_add_interface_static (type, TYPE_SINK, &interface_info_sink);
     }
     return type;
 }
@@ -378,21 +410,6 @@ tab_join (Thread *self)
     tab->thread = 0;
 
     return ret;
-}
-/**
- * Send a command to the TAB.
- * The command originated with the session-data object provided. The command
- * itself is in the cmd_buf parameter. If successfully added to the tab queue
- * we return true, an error will return false.
- */
-void
-tab_send_command (Tab         *tab,
-                  GObject     *obj)
-{
-    g_debug ("tab_send_command: Tab: 0x%x obj: 0x%x", tab, obj);
-    /* The TAB takes ownership of this object */
-    g_object_ref (obj);
-    message_queue_enqueue (tab->in_queue, obj);
 }
 /**
  * Cancel pending commands for a session in the TAB.

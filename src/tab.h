@@ -35,8 +35,6 @@ typedef struct _Tab {
 GType       tab_get_type               (void);
 Tab*        tab_new                    (Tcti              *tcti,
                                         Sink              *sink);
-void        tab_send_command           (Tab               *tab,
-                                        GObject           *obj);
 GObject*    tab_get_timeout_command    (Tab               *tab,
                                         guint64            timeout);
 gint        tab_cancel_commands        (Tab               *tab,
