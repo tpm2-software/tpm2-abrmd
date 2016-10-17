@@ -33,7 +33,7 @@ typedef struct gmain_data {
     Tpm2AccessBroker       *skeleton;
     SessionManager         *manager;
     CommandSource         *command_source;
-    ResponseSink           *response_sink;
+    Sink                   *response_sink;
     Tab                    *tab;
     struct drand48_data     rand_data;
     GMutex                  init_mutex;
@@ -396,7 +396,7 @@ init_thread_func (gpointer user_data)
      * source. We start with the resonse source, then build the tab, then
      * finally the CommandSource.
      */
-    data->response_sink = response_sink_new ();
+    data->response_sink = SINK (response_sink_new ());
     g_debug ("response source: 0x%x", data->response_sink);
     data->tab = tab_new (data->tcti, data->response_sink);
     g_debug ("tab: 0x%x", data->tab);

@@ -7,8 +7,8 @@
 #include <sapi/tpm20.h>
 
 #include "message-queue.h"
-#include "response-sink.h"
 #include "session-data.h"
+#include "sink-interface.h"
 #include "tcti-interface.h"
 
 G_BEGIN_DECLS
@@ -21,7 +21,7 @@ typedef struct _Tab {
     GObject           parent_instance;
     MessageQueue     *in_queue;
     pthread_t         thread;
-    ResponseSink     *sink;
+    Sink             *sink;
     Tcti             *tcti;
 } Tab;
 
@@ -34,7 +34,7 @@ typedef struct _Tab {
 
 GType       tab_get_type               (void);
 Tab*        tab_new                    (Tcti              *tcti,
-                                        ResponseSink      *sink);
+                                        Sink              *sink);
 void        tab_send_command           (Tab               *tab,
                                         GObject           *obj);
 GObject*    tab_get_timeout_command    (Tab               *tab,

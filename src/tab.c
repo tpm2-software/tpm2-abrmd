@@ -12,7 +12,7 @@ static gpointer tab_parent_class = NULL;
 enum {
     PROP_0,
     PROP_QUEUE_IN,
-    PROP_RESPONSE_SINK,
+    PROP_SINK,
     PROP_TCTI,
     N_PROPERTIES
 };
@@ -41,8 +41,8 @@ tab_set_property (GObject        *object,
         self->in_queue = g_value_get_object (value);
         g_debug ("  in_queue: 0x%x", self->in_queue);
         break;
-    case PROP_RESPONSE_SINK:
-        self->sink = RESPONSE_SINK (g_value_get_object (value));
+    case PROP_SINK:
+        self->sink = SINK (g_value_get_object (value));
         g_debug ("  sink: 0x%x", self->sink);
         break;
     case PROP_TCTI:
@@ -70,7 +70,7 @@ tab_get_property (GObject     *object,
     case PROP_QUEUE_IN:
         g_value_set_object (value, self->in_queue);
         break;
-    case PROP_RESPONSE_SINK:
+    case PROP_SINK:
         g_value_set_object (value, self->sink);
         break;
     case PROP_TCTI:
@@ -127,10 +127,10 @@ tab_class_init (gpointer klass)
                              "Input queue for messages.",
                              G_TYPE_OBJECT,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties [PROP_RESPONSE_SINK] =
-        g_param_spec_object ("response-sink",
-                             "ResponseSink",
-                             "Reference to object we pass messages to.",
+    obj_properties [PROP_SINK] =
+        g_param_spec_object ("sink",
+                             "Sink",
+                             "Reference to a Sink object that we pass messages to.",
                              G_TYPE_OBJECT,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_TCTI] =
@@ -223,7 +223,7 @@ tab_process_data_message (Tab          *tab,
     g_debug_bytes (response->data, response->size, 16, 4);
 
     if (tab->sink)
-        response_sink_enqueue (tab->sink, G_OBJECT (response));
+        sink_enqueue (tab->sink, G_OBJECT (response));
 }
 static TSS2_SYS_CONTEXT*
 sapi_context_init (TSS2_TCTI_CONTEXT *tcti_ctx)
@@ -306,7 +306,7 @@ cmd_runner (gpointer data)
  */
 Tab*
 tab_new (Tcti             *tcti,
-         ResponseSink   *sink)
+         Sink             *sink)
 {
     if (tcti == NULL)
         g_error ("tab_new passed NULL Tcti");
@@ -314,7 +314,7 @@ tab_new (Tcti             *tcti,
     g_object_ref (sink);
     return TAB (g_object_new (TYPE_TAB,
                               "queue-in",         queue,
-                              "response-sink", sink,
+                              "sink",             sink,
                               "tcti",             tcti,
                               NULL));
 }
