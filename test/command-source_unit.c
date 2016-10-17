@@ -13,8 +13,10 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include "response-sink.h"
 #include "tab.h"
 #include "session-manager.h"
+#include "sink-interface.h"
 #include "command-source.h"
 #include "tcti-echo.h"
 
@@ -40,7 +42,7 @@ command_source_allocate_test (void **state)
     source_test_data_t *data = (source_test_data_t *)*state;
     CommandSource *source = NULL;
 
-    source = command_source_new (data->manager, data->tab);
+    source = command_source_new (data->manager, SINK (data->tab));
     assert_non_null (source);
     g_object_unref (source);
 }
@@ -147,7 +149,7 @@ command_source_wakeup_setup (void **state)
         g_error ("failed to initialize echo TCTI");
     data->sink    = response_sink_new ();
     data->tab     = tab_new (data->tcti, data->sink);
-    data->source  = command_source_new (data->manager, data->tab);
+    data->source  = command_source_new (data->manager, SINK (data->tab));
 
     *state = data;
 }
