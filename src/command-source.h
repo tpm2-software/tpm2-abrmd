@@ -41,8 +41,7 @@ typedef struct _CommandSource {
 #define COMMAND_SOURCE_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_COMMAND_SOURCE, CommandSourceClass))
 
 GType           command_source_get_type       (void);
-CommandSource*  command_source_new            (SessionManager  *session_manager,
-                                               Sink            *sink);
+CommandSource*  command_source_new            (SessionManager  *session_manager);
 gint            command_source_on_new_session (SessionManager  *session_manager,
                                                SessionData     *session_data,
                                                CommandSource   *command_source);

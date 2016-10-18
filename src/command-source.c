@@ -8,6 +8,7 @@
 #include "data-message.h"
 #include "session-data.h"
 #include "command-source.h"
+#include "source-interface.h"
 #include "thread-interface.h"
 #include "util.h"
 
@@ -31,6 +32,24 @@ static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
 gint command_source_cancel (Thread *self);
 gint command_source_join   (Thread *self);
 gint command_source_start  (Thread *self);
+/**
+ * Function implementing the Source interface. Adds a sink for the source
+ * to pass data to.
+ */
+void
+command_source_add_sink (Source      *self,
+                         Sink        *sink)
+{
+    CommandSource *src = COMMAND_SOURCE (self);
+    GValue value = G_VALUE_INIT;
+
+    g_debug ("command_soruce_add_sink: CommandSource: 0x%x, Sink: 0x%x",
+             src, sink);
+    g_value_init (&value, G_TYPE_OBJECT);
+    g_value_set_object (&value, sink);
+    g_object_set_property (G_OBJECT (src), "sink", &value);
+    g_value_unset (&value);
+}
 
 static void
 command_source_set_property (GObject       *object,
@@ -46,7 +65,13 @@ command_source_set_property (GObject       *object,
         self->session_manager = SESSION_MANAGER (g_value_get_object (value));
         break;
     case PROP_SINK:
+        /* be rigid intially, add flexiblity later if we need it */
+        if (self->sink != NULL) {
+            g_warning ("  sink already set");
+            break;
+        }
         self->sink = SINK (g_value_get_object (value));
+        g_object_ref (self->sink);
         g_debug ("  sink: 0x%x", self->sink);
         break;
     case PROP_WAKEUP_RECEIVE_FD:
@@ -154,7 +179,7 @@ command_source_class_init (gpointer klass)
                              "Sink",
                              "Reference to a Sink object.",
                              G_TYPE_OBJECT,
-                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+                             G_PARAM_READWRITE);
     obj_properties [PROP_WAKEUP_RECEIVE_FD] =
         g_param_spec_int ("wakeup-receive-fd",
                           "wakeup receive file descriptor",
@@ -178,12 +203,18 @@ command_source_class_init (gpointer klass)
 /**
  */
 static void
-command_source_interface_init (gpointer g_iface)
+command_source_thread_interface_init (gpointer g_iface)
 {
     ThreadInterface *thread = (ThreadInterface*)g_iface;
     thread->cancel = command_source_cancel;
     thread->join   = command_source_join;
     thread->start  = command_source_start;
+}
+static void
+command_source_source_interface_init (gpointer g_iface)
+{
+    SourceInterface *source = (SourceInterface*)g_iface;
+    source->add_sink = command_source_add_sink;
 }
 GType
 command_source_get_type (void)
@@ -199,12 +230,19 @@ command_source_get_type (void)
                                               sizeof (CommandSource),
                                               NULL,
                                               0);
-        const GInterfaceInfo interface_info = {
-            (GInterfaceInitFunc) command_source_interface_init,
+        const GInterfaceInfo interface_info_thread = {
+            (GInterfaceInitFunc) command_source_thread_interface_init,
             NULL,
             NULL
         };
-        g_type_add_interface_static (type, TYPE_THREAD, &interface_info);
+        g_type_add_interface_static (type, TYPE_THREAD, &interface_info_thread);
+
+        const GInterfaceInfo interface_info_source = {
+            (GInterfaceInitFunc) command_source_source_interface_init,
+            NULL,
+            NULL,
+        };
+        g_type_add_interface_static (type, TYPE_SOURCE, &interface_info_source);
     }
     return type;
 }
@@ -320,23 +358,18 @@ command_source_thread (void *data)
 }
 
 CommandSource*
-command_source_new (SessionManager    *session_manager,
-                    Sink              *sink)
+command_source_new (SessionManager    *session_manager)
 {
     CommandSource *source;
     gint wakeup_fds [2] = { 0, };
 
     if (session_manager == NULL)
         g_error ("command_source_new passed NULL SessionManager");
-    if (sink == NULL)
-        g_error ("command_source_new passed NULL Tab");
-    g_object_ref (sink);
     g_object_ref (session_manager);
     if (pipe2 (wakeup_fds, O_CLOEXEC) != 0)
         g_error ("failed to make wakeup pipe: %s", strerror (errno));
     source = COMMAND_SOURCE (g_object_new (TYPE_COMMAND_SOURCE,
                                              "session-manager", session_manager,
-                                             "sink", sink,
                                              "wakeup-receive-fd", wakeup_fds [0],
                                              "wakeup-send-fd", wakeup_fds [1],
                                              NULL));

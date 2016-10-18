@@ -16,6 +16,7 @@
 #include "command-source.h"
 #include "session-data.h"
 #include "response-sink.h"
+#include "source-interface.h"
 #include "tab.h"
 #include "tabd-generated.h"
 #include "tcti-options.h"
@@ -401,8 +402,10 @@ init_thread_func (gpointer user_data)
     data->tab = tab_new (data->tcti, data->response_sink);
     g_debug ("tab: 0x%x", data->tab);
     data->command_source =
-        command_source_new (data->manager, SINK (data->tab));
+        command_source_new (data->manager);
     g_debug ("session source: 0x%x", data->command_source);
+    source_add_sink (SOURCE (data->command_source),
+                     SINK   (data->tab));
 
     ret = thread_start (THREAD (data->tab));
     if (ret != 0)
@@ -530,6 +533,7 @@ main (int argc, char *argv[])
      */
     thread_get_type ();
     sink_get_type ();
+    source_get_type ();
     g_info ("entering g_main_loop");
     g_main_loop_run (gmain_data.loop);
     g_info ("g_main_loop_run done, cleaning up");

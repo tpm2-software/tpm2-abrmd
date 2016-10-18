@@ -75,6 +75,7 @@ src_tabd_SOURCES = \
     src/session-data.c \
     src/response-sink.c \
     src/sink-interface.c \
+    src/source-interface.c \
     src/tab.c \
     src/tcti-interface.c \
     src/tcti-options.c \
@@ -154,6 +155,7 @@ test_command_source_unit_SOURCES = \
     src/session-manager.c \
     src/session-data.c \
     src/sink-interface.c \
+    src/source-interface.c \
     src/tab.c \
     src/tcti-echo.c \
     src/tcti-interface.c \
