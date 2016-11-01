@@ -11,7 +11,6 @@ check_PROGRAMS  = \
     test/session-data_unit \
     test/session-manager_unit \
     test/command-source_unit \
-    test/tab_unit \
     test/tcti-options_unit \
     test/util_unit \
     test/util-mock-realloc_unit
