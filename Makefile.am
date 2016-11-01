@@ -131,6 +131,7 @@ test_response_sink_unit_SOURCES = \
     src/sink-interface.c \
     src/session-data.c \
     src/session-manager.c \
+    src/source-interface.c \
     src/tab.c \
     src/tcti-echo.c \
     src/tcti-interface.c \
@@ -173,6 +174,7 @@ test_tab_unit_SOURCES = \
     src/response-sink.c \
     src/session-data.c \
     src/sink-interface.c \
+    src/source-interface.c \
     src/tab.c \
     src/tcti-echo.c \
     src/tcti-interface.c \

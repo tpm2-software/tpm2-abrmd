@@ -103,11 +103,12 @@ command_source_start_setup (void **state)
     if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
         g_error ("failed to initialize echo TCTI");
     data->sink = response_sink_new ();
-    data->tab = tab_new (data->tcti, SINK (data->sink));
+    data->tab = tab_new (data->tcti);
     data->source = command_source_new (data->manager);
     if (data->source == NULL)
         g_error ("failed to allocate new command_source");
     source_add_sink (SOURCE (data->source), SINK (data->tab));
+    source_add_sink (SOURCE (data->tab), SINK (data->sink));
 
     *state = data;
 }
@@ -144,10 +145,10 @@ command_source_wakeup_setup (void **state)
     if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
         g_error ("failed to initialize echo TCTI");
     data->sink    = response_sink_new ();
-    data->tab     = tab_new (data->tcti, SINK (data->sink));
+    data->tab     = tab_new (data->tcti);
     data->source  = command_source_new (data->manager);
     source_add_sink (SOURCE (data->source), SINK (data->tab));
-
+    source_add_sink (SOURCE (data->tab), SINK (data->sink));
     *state = data;
 }
 
@@ -201,7 +202,8 @@ command_source_session_data_setup (void **state)
         g_error ("failed to allcoate new tcti_echo");
     if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
         g_error ("failed to initialize echo TCTI");
-    data->tab = tab_new (data->tcti, SINK (data->sink));
+    data->tab = tab_new (data->tcti);
+    source_add_sink (SOURCE (data->tab), SINK (data->sink));
 
     data->source = command_source_new (data->manager);
     source_add_sink (SOURCE (data->source), SINK (data->tab));

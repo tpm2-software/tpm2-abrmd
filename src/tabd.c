@@ -354,12 +354,10 @@ seed_rand_data (const char *fname, struct drand48_data *rand_data)
  * - Registers a handler for UNIX signals for SIGINT and SIGTERM.
  * - Seeds the RNG state from an entropy source.
  * - Creates the SessionManager.
- * - Creates the FDs used to signal the CommandSource.
  * - Creates the TCTI instance used by the Tab.
- * - Creates the Tab object passing it the TCTI.
- * - Starts the Tab thread.
- * - Creates the CommandSource object and starts its thread.
- * - Creates the ResponseWatcher object and starts its thread.
+ * - Creates and wires up the objects that make up the TPM command
+ *   processing pipeline.
+ * - Starts all of the threads in the command processing pipeline.
  * - Unlocks the init_mutex.
  */
 static gpointer
@@ -393,28 +391,34 @@ init_thread_func (gpointer user_data)
         g_error ("failed to initialize TCTI: 0x%x", rc);
 
     /**
-     * The TPM2 command processing pipeline gets built from sink back to
-     * source. We start with the resonse source, then build the tab, then
-     * finally the CommandSource.
+     * Instantiate and the objects that make up the TPM command processing
+     * pipeline.
      */
-    data->response_sink = SINK (response_sink_new ());
-    g_debug ("response source: 0x%x", data->response_sink);
-    data->tab = tab_new (data->tcti, data->response_sink);
-    g_debug ("tab: 0x%x", data->tab);
     data->command_source =
         command_source_new (data->manager);
-    g_debug ("session source: 0x%x", data->command_source);
+    g_debug ("created session source: 0x%x", data->command_source);
+    data->tab = tab_new (data->tcti);
+    g_debug ("created tab: 0x%x", data->tab);
+    data->response_sink = SINK (response_sink_new ());
+    g_debug ("created response source: 0x%x", data->response_sink);
+    /**
+     * Wire up the TPM command processing pipeline. TPM command buffers
+     * flow from the CommandSource, to the Tab then finally back to the
+     * caller through the ResponseSink.
+     */
     source_add_sink (SOURCE (data->command_source),
                      SINK   (data->tab));
-
-    ret = thread_start (THREAD (data->tab));
-    if (ret != 0)
-        g_error ("failed to start Tab: %s", strerror (errno));
-
+    source_add_sink (SOURCE (data->tab),
+                     SINK   (data->response_sink));
+    /**
+     * Start the TPM command processing pipeline.
+     */
     ret = thread_start (THREAD (data->command_source));
     if (ret != 0)
         g_error ("failed to start connection_source");
-
+    ret = thread_start (THREAD (data->tab));
+    if (ret != 0)
+        g_error ("failed to start Tab: %s", strerror (errno));
     ret = thread_start (THREAD (data->response_sink));
     if (ret != 0)
         g_error ("failed to start response_source");

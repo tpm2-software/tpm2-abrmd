@@ -3,6 +3,7 @@
 #include "control-message.h"
 #include "message-queue.h"
 #include "sink-interface.h"
+#include "source-interface.h"
 #include "tab.h"
 #include "thread-interface.h"
 
@@ -41,6 +42,24 @@ tab_enqueue (Sink        *sink,
     message_queue_enqueue (tab->in_queue, obj);
 }
 /**
+ * Implement the 'add_sink' function from the SourceInterface. This adds a
+ * reference to an object that implements the SinkInterface to this objects
+ * internal structure. We pass it data.
+ */
+void
+tab_add_sink (Source *self,
+              Sink   *sink)
+{
+    Tab *src = TAB (self);
+    GValue value = G_VALUE_INIT;
+
+    g_debug ("tab_add_sink: Tab: 0x%x, Sink: 0x%x", src, sink);
+    g_value_init (&value, G_TYPE_OBJECT);
+    g_value_set_object (&value, sink);
+    g_object_set_property (G_OBJECT (src), "sink", &value);
+    g_value_unset (&value);
+}
+/**
  * GObject property setter.
  */
 static void
@@ -58,7 +77,12 @@ tab_set_property (GObject        *object,
         g_debug ("  in_queue: 0x%x", self->in_queue);
         break;
     case PROP_SINK:
+        if (self->sink != NULL) {
+            g_warning ("  sink already set");
+            break;
+        }
         self->sink = SINK (g_value_get_object (value));
+        g_object_ref (self->sink);
         g_debug ("  sink: 0x%x", self->sink);
         break;
     case PROP_TCTI:
@@ -148,7 +172,7 @@ tab_class_init (gpointer klass)
                              "Sink",
                              "Reference to a Sink object that we pass messages to.",
                              G_TYPE_OBJECT,
-                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+                             G_PARAM_READWRITE);
     obj_properties [PROP_TCTI] =
         g_param_spec_object ("tcti",
                              "Tcti object",
@@ -169,6 +193,15 @@ tab_thread_interface_init (gpointer g_iface)
     thread->cancel = tab_cancel;
     thread->join   = tab_join;
     thread->start  = tab_start;
+}
+/**
+ * Boilerplate code to register functions with the SourceInterface.
+ */
+static void
+tab_source_interface_init (gpointer g_iface)
+{
+    SourceInterface *source = (SourceInterface*)g_iface;
+    source->add_sink = tab_add_sink;
 }
 /**
  * Boilerplate code to register function with the SinkInterface.
@@ -208,6 +241,13 @@ tab_get_type (void)
             NULL
         };
         g_type_add_interface_static (type, TYPE_SINK, &interface_info_sink);
+
+        const GInterfaceInfo interface_info_source = {
+            (GInterfaceInitFunc) tab_source_interface_init,
+            NULL,
+            NULL
+        };
+        g_type_add_interface_static (type, TYPE_SOURCE, &interface_info_source);
     }
     return type;
 }
@@ -337,16 +377,13 @@ cmd_runner (gpointer data)
  * input / output queues.
  */
 Tab*
-tab_new (Tcti             *tcti,
-         Sink             *sink)
+tab_new (Tcti             *tcti)
 {
     if (tcti == NULL)
         g_error ("tab_new passed NULL Tcti");
     MessageQueue *queue = message_queue_new ("TAB input queue");
-    g_object_ref (sink);
     return TAB (g_object_new (TYPE_TAB,
                               "queue-in",         queue,
-                              "sink",             sink,
                               "tcti",             tcti,
                               NULL));
 }

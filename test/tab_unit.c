@@ -5,6 +5,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include "source-interface.h"
 #include "response-sink.h"
 #include "tcti-echo.h"
 #include "tab.h"
@@ -18,7 +19,8 @@ tab_allocate_deallocate_test (void **state)
 
     sink = response_sink_new ();
     tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
-    tab  = tab_new (tcti, SINK (sink));
+    tab  = tab_new (tcti);
+    source_add_sink (SOURCE (tab), SINK (sink));
     g_object_unref (tab);
 }
 static void
@@ -30,7 +32,8 @@ tab_start_stop_test_setup (void **state)
 
     sink = response_sink_new ();
     tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
-    tab  = tab_new (tcti, SINK (sink));
+    tab  = tab_new (tcti);
+    source_add_sink (SOURCE (tab), SINK (sink));
 
     *state = tab;
 }
@@ -58,7 +61,8 @@ tab_add_no_remove_test_setup (void **state)
 
     sink = response_sink_new ();
     tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
-    tab = tab_new (tcti, SINK (sink));
+    tab = tab_new (tcti);
+    source_add_sink (SOURCE (tab), SINK (sink)); 
     tab_start (tab);
     *state = tab;
 }

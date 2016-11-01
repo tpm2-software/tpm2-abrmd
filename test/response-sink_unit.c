@@ -4,6 +4,7 @@
 #include <cmocka.h>
 
 #include "session-manager.h"
+#include "source-interface.h"
 #include "tab.h"
 #include "response-sink.h"
 #include "tcti-echo.h"
@@ -20,7 +21,8 @@ response_sink_allocate_test (void **state)
 
     tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
     sink = response_sink_new ();
-    tab = tab_new (tcti, SINK (sink));
+    tab = tab_new (tcti);
+    source_add_sink (SOURCE (tab), SINK (sink));
 
     g_object_unref (sink);
     g_object_unref (tab);
@@ -71,7 +73,8 @@ response_sink_start_stop_setup (void **state)
 
     data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
     data->sink = response_sink_new ();
-    data->tab  = tab_new (data->tcti, SINK (data->sink));
+    data->tab  = tab_new (data->tcti);
+    source_add_sink (SOURCE (data->tab), SINK (data->sink));
 
     *state = data;
 }
