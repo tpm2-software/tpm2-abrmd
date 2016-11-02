@@ -11,13 +11,11 @@ tpm2_command_new_unref_test (void **state)
 {
     Tpm2Command     *cmd     = NULL;
     guint8          *buffer  = NULL;
-    guint32          size    = 0;
     SessionData     *session = NULL;
 
-    cmd = tpm2_command_new (session, size, buffer);
+    cmd = tpm2_command_new (session, buffer);
     assert_int_equal (session, cmd->session);
     assert_int_equal (buffer,  cmd->buffer);
-    assert_int_equal (size,    cmd->size);
 
     g_object_unref (cmd);
 }
@@ -27,16 +25,13 @@ tpm2_command_new_unref_with_buffer_test (void **state)
 {
     Tpm2Command     *cmd     = NULL;
     guint8          *buffer  = NULL;
-    guint32          size    = 0;
     SessionData     *session = NULL;
 
-    size = 10;
-    buffer = calloc (1, size);
+    buffer = calloc (1, 10);
 
-    cmd = tpm2_command_new (session, size, buffer);
+    cmd = tpm2_command_new (session, buffer);
     assert_int_equal (session, cmd->session);
     assert_int_equal (buffer,  cmd->buffer);
-    assert_int_equal (size,    cmd->size);
 
     g_object_unref (cmd);
 }
@@ -46,15 +41,13 @@ tpm2_command_new_unref_with_session_test (void **state)
 {
     Tpm2Command *cmd     = NULL;
     guint8      *buffer  = NULL;
-    guint32      size    = 0;
     gint         fds[2]  = { 0, };
     SessionData *session = NULL;
 
     session = session_data_new (&fds[0], &fds[1], 0);
-    cmd = tpm2_command_new (session, size, buffer);
+    cmd = tpm2_command_new (session, buffer);
     assert_int_equal (session, cmd->session);
     assert_int_equal (buffer,  cmd->buffer);
-    assert_int_equal (size,    cmd->size);
 
     g_object_unref (cmd);
 }
@@ -65,10 +58,9 @@ tpm2_command_type_check_test (void **state)
     GObject         *obj     = NULL;
     Tpm2Command     *cmd     = NULL;
     guint8          *buffer  = NULL;
-    size_t           size    = 0;
     SessionData     *session = NULL;
 
-    cmd = tpm2_command_new (session, size, buffer);
+    cmd = tpm2_command_new (session, buffer);
     assert_true (IS_TPM2_COMMAND (cmd));
     assert_true (G_IS_OBJECT (cmd));
     obj = G_OBJECT (cmd);
@@ -89,7 +81,7 @@ tpm2_command_get_buffer_test (void **state)
 
     buffer = calloc (1, size);
 
-    cmd = tpm2_command_new (session, size, buffer);
+    cmd = tpm2_command_new (session, buffer);
     buffer_ret = tpm2_command_get_buffer (cmd);
     assert_int_equal (buffer,  buffer_ret);
 
@@ -110,7 +102,7 @@ tpm2_command_get_tag_test (void **state)
     buffer[0] = 0x80;
     buffer[1] = 0x02;
 
-    cmd = tpm2_command_new (session, size, buffer);
+    cmd = tpm2_command_new (session, buffer);
     tag_ret = tpm2_command_get_tag (cmd);
     assert_int_equal (tag_ret, TPM_ST_SESSIONS);
 
@@ -135,7 +127,7 @@ tpm2_command_get_size_test (void **state)
     buffer[4] = 0x00;
     buffer[5] = 0x06;
 
-    cmd = tpm2_command_new (session, size, buffer);
+    cmd = tpm2_command_new (session, buffer);
     size_ret = tpm2_command_get_size (cmd);
     assert_int_equal (size_ret, size);
 
@@ -167,7 +159,7 @@ tpm2_command_get_code_test (void **state)
     buffer[8] = 0x01;
     buffer[9] = 0x7a;
 
-    cmd = tpm2_command_new (session, size, buffer);
+    cmd = tpm2_command_new (session, buffer);
     command_code = tpm2_command_get_code (cmd);
     assert_int_equal (command_code, TPM_CC_GetCapability);
 

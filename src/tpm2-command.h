@@ -16,7 +16,6 @@ typedef struct _Tpm2Command {
     GObject         parent_instance;
     SessionData    *session;
     guint8         *buffer;
-    guint32         size;
 } Tpm2Command;
 
 #define TYPE_TPM2_COMMAND            (tpm2_command_get_type      ())
@@ -28,7 +27,6 @@ typedef struct _Tpm2Command {
 
 GType                 tpm2_command_get_type        (void);
 Tpm2Command*          tpm2_command_new             (SessionData      *session,
-                                                    guint32           size,
                                                     guint8           *buffer);
 guint8*               tpm2_command_get_buffer      (Tpm2Command      *command);
 TPM_CC                tpm2_command_get_code        (Tpm2Command      *command);

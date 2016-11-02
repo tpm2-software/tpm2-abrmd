@@ -12,7 +12,6 @@ enum {
     PROP_0,
     PROP_SESSION,
     PROP_BUFFER,
-    PROP_SIZE,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -42,10 +41,6 @@ tpm2_command_set_property (GObject        *object,
         }
         self->session = g_value_get_object (value);
         break;
-    case PROP_SIZE:
-        self->size = g_value_get_uint (value);
-        g_debug ("  size: 0x%x", self->size);
-        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -69,9 +64,6 @@ tpm2_command_get_property (GObject     *object,
         break;
     case PROP_SESSION:
         g_value_set_object (value, self->session);
-        break;
-    case PROP_SIZE:
-        g_value_set_uint (value, self->size);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -120,14 +112,6 @@ tpm2_command_class_init (gpointer klass)
                              "The Session object that sent the command",
                              TYPE_SESSION_DATA,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties [PROP_SIZE] =
-        g_param_spec_uint ("size",
-                           "Size of the command",
-                           "The Size of the TPM2 command buffer",
-                           0,
-                           G_MAXUINT32,
-                           0,
-                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
@@ -156,13 +140,11 @@ tpm2_command_get_type (void)
  */
 Tpm2Command*
 tpm2_command_new (SessionData     *session,
-                  guint32          size,
                   guint8          *buffer)
 {
     return TPM2_COMMAND (g_object_new (TYPE_TPM2_COMMAND,
                                        "buffer",  buffer,
                                        "session", session,
-                                       "size",    size,
                                        NULL));
 }
 /**
