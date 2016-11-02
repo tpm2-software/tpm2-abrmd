@@ -28,7 +28,7 @@ uint8_t*    read_tpm_command_body_from_fd   (int               fd,
 uint8_t*    read_tpm_command_from_fd        (int               fd,
                                              UINT32           *command_size);
 
-void        g_log_bytes                     (uint8_t const    *byte_array,
+void        g_debug_bytes                   (uint8_t const    *byte_array,
                                              size_t            array_size,
                                              size_t            width,
                                              size_t            indent);
