@@ -5,10 +5,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "data-message.h"
 #include "session-data.h"
 #include "command-source.h"
 #include "source-interface.h"
+#include "tpm2-command.h"
 #include "thread-interface.h"
 #include "util.h"
 
@@ -247,19 +247,18 @@ command_source_get_type (void)
     return type;
 }
 
-DataMessage*
-data_message_from_fd (SessionData     *session,
-                      gint             fd)
+Tpm2Command*
+tpm2_command_from_fd (SessionData *session,
+                      gint         fd)
 {
     guint8 *command_buf = NULL;
-    DataMessage *msg;
     UINT32 command_size = 0;
 
-    g_debug ("data_message_from_fd: %d", fd);
+    g_debug ("tpm2_command_from_fd: %d", fd);
     command_buf = read_tpm_command_from_fd (fd, &command_size);
     if (command_buf == NULL)
         return NULL;
-    return data_message_new (session, command_buf, command_size);
+    return tpm2_command_new (session, command_buf);
 }
 
 void
@@ -275,7 +274,7 @@ command_source_session_responder (CommandSource      *source,
                                   gint                fd,
                                   Sink               *sink)
 {
-    DataMessage *msg;
+    Tpm2Command *command;
     SessionData *session;
     gint ret;
 
@@ -285,9 +284,9 @@ command_source_session_responder (CommandSource      *source,
         g_error ("failed to get session associated with fd: %d", fd);
     else
         g_debug ("session_manager_lookup_fd for fd %d: 0x%x", fd, session);
-    msg = data_message_from_fd (session, fd);
-    if (msg == NULL) {
-        /* msg will be NULL when read error on fd, or fd is closed (EOF)
+    command = tpm2_command_from_fd (session, fd);
+    if (command == NULL) {
+        /* command will be NULL when read error on fd, or fd is closed (EOF)
          * In either case we remove the session and free it.
          */
         g_debug ("removing session 0x%x from session_manager 0x%x",
@@ -296,9 +295,9 @@ command_source_session_responder (CommandSource      *source,
                                 session);
         return TRUE;
     }
-    sink_enqueue (sink, G_OBJECT (msg));
+    sink_enqueue (sink, G_OBJECT (command));
     /* the sink now owns this message */
-    g_object_unref (msg);
+    g_object_unref (command);
     return TRUE;
 }
 

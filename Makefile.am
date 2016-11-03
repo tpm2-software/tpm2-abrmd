@@ -80,7 +80,8 @@ src_tabd_SOURCES = \
     src/tcti-interface.c \
     src/tcti-options.c \
     src/tcti-echo.c \
-    src/tcti-type-enum.c
+    src/tcti-type-enum.c \
+    src/tpm2-command.c
 if TCTI_DEVICE
 src_tabd_CFLAGS += $(TCTI_DEVICE_CFLAGS)
 src_tabd_LDADD += $(TCTI_DEVICE_LIBS)

@@ -5,6 +5,7 @@
 #include "sink-interface.h"
 #include "source-interface.h"
 #include "tab.h"
+#include "tpm2-command.h"
 #include "thread-interface.h"
 
 #define TAB_TIMEOUT_DEQUEUE 1e6
@@ -252,38 +253,46 @@ tab_get_type (void)
     return type;
 }
 /**
- * This function is invoked in response to the receipt of a DataMessage.
- * This is the place where we send data out of the tabd "down-stream"
- * and then get a response that we send back to the client. The flow is
- * roughly:
- * - Get TSS2_TCTI_CONTEXT from the Tcti object.
- * - Send the data from the message out: tss2_tcti_transmit.
+ * This function is invoked in response to the receipt of a Tpm2Command.
+ * This is the place where we send the command buffer out of the tabd
+ * "down-stream" TCTI and then get a response that we send back to the
+ * client. The flow is roughly:
+ * - Send the data from the Tpm2Command out: tss2_tcti_transmit.
+ * - Create a response message with the same session as the command.
  * - Receive the response from downstream: tss2_tcti_receive.
  * - Enqueue the response in the out_queue.
  */
 ssize_t
-tab_process_data_message (Tab          *tab,
-                          DataMessage  *msg)
+tab_process_tpm2_command (Tab          *tab,
+                          Tpm2Command  *command)
 {
     TSS2_RC rc;
-    SessionData  *session = msg->session;
     DataMessage  *response;
     uint8_t      *data;
     size_t        size = 4096;
 
 
-    g_debug ("tab_process_data_message");
+    g_debug ("tab_process_tpm2_command");
     g_debug ("  transmitting:");
-    g_debug_bytes (msg->data, msg->size, 16, 4);
-    rc = tcti_transmit (tab->tcti, msg->size, msg->data);
+    g_debug_bytes (tpm2_command_get_buffer (command),
+                   tpm2_command_get_size (command),
+                   16,
+                   4);
+    /* send the command */
+    rc = tcti_transmit (tab->tcti,
+                        tpm2_command_get_size (command),
+                        tpm2_command_get_buffer (command));
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_transmit returned error: 0x%x", rc);
-    g_object_unref (msg);
-
+    /* create response object passing it the same session as the command */
     data = g_malloc0 (size);
-    response = data_message_new (session, data, size);
+    response = data_message_new (tpm2_command_get_session (command),
+                                 data,
+                                 size);
     if (response == NULL)
         g_error ("failed to create response message");
+    /* we're done with the command, unref it and get the response */
+    g_object_unref (command);
 
     rc = tcti_receive (tab->tcti,
                        &response->size,
@@ -294,6 +303,7 @@ tab_process_data_message (Tab          *tab,
     g_debug ("  received:");
     g_debug_bytes (response->data, response->size, 16, 4);
 
+    /* send the response to the sink */
     if (tab->sink)
         sink_enqueue (tab->sink, G_OBJECT (response));
 }
@@ -362,8 +372,8 @@ cmd_runner (gpointer data)
     while (TRUE) {
         obj = message_queue_dequeue (tab->in_queue);
         g_debug ("cmd_runner message_queue_dequeue got obj: 0x%x", obj);
-        if (IS_DATA_MESSAGE (obj))
-            tab_process_data_message (tab, DATA_MESSAGE (obj));
+        if (IS_TPM2_COMMAND (obj))
+            tab_process_tpm2_command (tab, TPM2_COMMAND (obj));
         if (IS_CONTROL_MESSAGE (obj))
             process_control_message (CONTROL_MESSAGE (obj));
         if (obj == NULL)
