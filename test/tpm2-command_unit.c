@@ -6,119 +6,99 @@
 
 #include "tpm2-command.h"
 
+typedef struct {
+    Tpm2Command *command;
+    guint8      *buffer;
+    SessionData *session;
+} test_data_t;
+/**
+ * This is the minimum work required to instantiate a Tpm2Command. It needs
+ * a data buffer to hold the command and a SessionData object. We also
+ * allocate a structure to hold these things so that we can free them in
+ * the teardown.
+ */
 static void
-tpm2_command_new_unref_test (void **state)
+tpm2_command_setup (void **state)
 {
-    Tpm2Command     *cmd     = NULL;
-    guint8          *buffer  = NULL;
-    SessionData     *session = NULL;
+    test_data_t *data   = NULL;
+    gint         fds[2] = { 0, };
 
-    cmd = tpm2_command_new (session, buffer);
-    assert_int_equal (session, cmd->session);
-    assert_int_equal (buffer,  cmd->buffer);
+    data = calloc (1, sizeof (test_data_t));
+    /* allocate a buffer large enough to hold a TPM2 header */
+    data->buffer = calloc (1, 10);
+    data->session = session_data_new (&fds[0], &fds[1], 0);
+    data->command = tpm2_command_new (data->session, data->buffer);
 
-    g_object_unref (cmd);
+    *state = data;
+}
+/**
+ * Tear down all of the data from the setup function. We don't have to
+ * free the data buffer (data->buffer) since the Tpm2Command frees it as
+ * part of its finalize function.
+ */
+static void
+tpm2_command_teardown (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    g_object_unref (data->session);
+    g_object_unref (data->command);
+    free (data);
+}
+/**
+ * This is a test for memory management / reference counting. The setup
+ * function does exactly that so when we get the Tpm2Command object we just
+ * check to be sure it's a GObject and then we unref it. This test will
+ * probably only fail when run under valgrind if the reference counting is
+ * off.
+ */
+static void
+tpm2_command_type_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    assert_true (G_IS_OBJECT (data->command));
+    assert_true (IS_TPM2_COMMAND (data->command));
 }
 
 static void
-tpm2_command_new_unref_with_buffer_test (void **state)
+tpm2_command_get_session_test (void **state)
 {
-    Tpm2Command     *cmd     = NULL;
-    guint8          *buffer  = NULL;
-    SessionData     *session = NULL;
+    test_data_t *data = (test_data_t*)*state;
 
-    buffer = calloc (1, 10);
-
-    cmd = tpm2_command_new (session, buffer);
-    assert_int_equal (session, cmd->session);
-    assert_int_equal (buffer,  cmd->buffer);
-
-    g_object_unref (cmd);
-}
-
-static void
-tpm2_command_new_unref_with_session_test (void **state)
-{
-    Tpm2Command *cmd     = NULL;
-    guint8      *buffer  = NULL;
-    gint         fds[2]  = { 0, };
-    SessionData *session = NULL;
-
-    session = session_data_new (&fds[0], &fds[1], 0);
-    cmd = tpm2_command_new (session, buffer);
-    assert_int_equal (session, cmd->session);
-    assert_int_equal (buffer,  cmd->buffer);
-
-    g_object_unref (cmd);
-}
-
-static void
-tpm2_command_type_check_test (void **state)
-{
-    GObject         *obj     = NULL;
-    Tpm2Command     *cmd     = NULL;
-    guint8          *buffer  = NULL;
-    SessionData     *session = NULL;
-
-    cmd = tpm2_command_new (session, buffer);
-    assert_true (IS_TPM2_COMMAND (cmd));
-    assert_true (G_IS_OBJECT (cmd));
-    obj = G_OBJECT (cmd);
-    assert_true (G_IS_OBJECT (obj));
-    assert_true (IS_TPM2_COMMAND (obj));
-    assert_int_equal (cmd, obj);
-
-    g_object_unref (cmd);
+    assert_int_equal (data->session, tpm2_command_get_session (data->command));
 }
 
 static void
 tpm2_command_get_buffer_test (void **state)
 {
-    Tpm2Command     *cmd     = NULL;
-    guint8          *buffer  = NULL, *buffer_ret = NULL;
-    guint32          size    = 10;
-    SessionData     *session = NULL;
+    test_data_t *data = (test_data_t*)*state;
 
-    buffer = calloc (1, size);
-
-    cmd = tpm2_command_new (session, buffer);
-    buffer_ret = tpm2_command_get_buffer (cmd);
-    assert_int_equal (buffer,  buffer_ret);
-
-    g_object_unref (cmd);
+    assert_int_equal (data->buffer, tpm2_command_get_buffer (data->command));
 }
 
 static void
 tpm2_command_get_tag_test (void **state)
 {
-    Tpm2Command         *cmd       = NULL;
-    guint32              size      = 2;
-    SessionData         *session   = NULL;
-    guint8              *buffer    = NULL;
+    test_data_t         *data   = (test_data_t*)*state;
+    guint8              *buffer = tpm2_command_get_buffer (data->command);
     TPMI_ST_COMMAND_TAG  tag_ret;
 
-    buffer = calloc (1, size);
     /* this is tpm_st_sessions in network byte order */
     buffer[0] = 0x80;
     buffer[1] = 0x02;
 
-    cmd = tpm2_command_new (session, buffer);
-    tag_ret = tpm2_command_get_tag (cmd);
+    tag_ret = tpm2_command_get_tag (data->command);
     assert_int_equal (tag_ret, TPM_ST_SESSIONS);
-
-    g_object_unref (cmd);
 }
 
 static void
 tpm2_command_get_size_test (void **state)
 {
-    Tpm2Command         *cmd       = NULL;
-    guint32              size      = 6, size_ret = 0;
-    SessionData         *session   = NULL;
-    /* this is TPM_ST_SESSIONS + a size of 0x6 in network byte order */
-    guint8              *buffer    = NULL;
+    test_data_t *data     = (test_data_t*)*state;
+    guint8      *buffer   = tpm2_command_get_buffer (data->command);
+    guint32      size_ret = 0;
 
-    buffer = calloc (1, size);
     /* this is tpm_st_sessions in network byte order */
     buffer[0] = 0x80;
     buffer[1] = 0x02;
@@ -127,23 +107,17 @@ tpm2_command_get_size_test (void **state)
     buffer[4] = 0x00;
     buffer[5] = 0x06;
 
-    cmd = tpm2_command_new (session, buffer);
-    size_ret = tpm2_command_get_size (cmd);
-    assert_int_equal (size_ret, size);
-
-    g_object_unref (cmd);
+    size_ret = tpm2_command_get_size (data->command);
+    assert_int_equal (0x6, size_ret);
 }
 
 static void
 tpm2_command_get_code_test (void **state)
 {
-    Tpm2Command    *cmd       = NULL;
-    guint32         size      = 10;
-    SessionData    *session   = NULL;
-    guint8         *buffer    = NULL;
-    TPM_CC         command_code;
+    test_data_t *data     = (test_data_t*)*state;
+    guint8      *buffer   = tpm2_command_get_buffer (data->command);
+    TPM_CC       command_code;
 
-    buffer = calloc (1, size);
     /**
      * This is TPM_ST_SESSIONS + a size of 0x0a + the command code for
      * GetCapability in network byte order
@@ -153,18 +127,14 @@ tpm2_command_get_code_test (void **state)
     buffer[2] = 0x00;
     buffer[3] = 0x00;
     buffer[4] = 0x00;
-    buffer[5] = 0x06;
+    buffer[5] = 0x0a;
     buffer[6] = 0x00;
     buffer[7] = 0x00;
     buffer[8] = 0x01;
     buffer[9] = 0x7a;
 
-    cmd = tpm2_command_new (session, buffer);
-    command_code = tpm2_command_get_code (cmd);
+    command_code = tpm2_command_get_code (data->command);
     assert_int_equal (command_code, TPM_CC_GetCapability);
-
-    g_object_unref (cmd);
-
 }
 
 gint
@@ -172,14 +142,24 @@ main (gint    argc,
       gchar  *argv[])
 {
     const UnitTest tests[] = {
-        unit_test (tpm2_command_new_unref_test),
-        unit_test (tpm2_command_new_unref_with_buffer_test),
-        unit_test (tpm2_command_new_unref_with_session_test),
-        unit_test (tpm2_command_type_check_test),
-        unit_test (tpm2_command_get_buffer_test),
-        unit_test (tpm2_command_get_tag_test),
-        unit_test (tpm2_command_get_size_test),
-        unit_test (tpm2_command_get_code_test),
+        unit_test_setup_teardown (tpm2_command_type_test,
+                                  tpm2_command_setup,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_get_session_test,
+                                  tpm2_command_setup,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_get_buffer_test,
+                                  tpm2_command_setup,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_get_tag_test,
+                                  tpm2_command_setup,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_get_size_test,
+                                  tpm2_command_setup,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_get_code_test,
+                                  tpm2_command_setup,
+                                  tpm2_command_teardown),
     };
     return run_tests (tests);
 }

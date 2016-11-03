@@ -32,6 +32,7 @@ guint8*               tpm2_command_get_buffer      (Tpm2Command      *command);
 TPM_CC                tpm2_command_get_code        (Tpm2Command      *command);
 guint32               tpm2_command_get_size        (Tpm2Command      *command);
 TPMI_ST_COMMAND_TAG   tpm2_command_get_tag         (Tpm2Command      *command);
+SessionData*          tpm2_command_get_session     (Tpm2Command      *command);
 
 G_END_DECLS
 

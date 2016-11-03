@@ -40,6 +40,7 @@ tpm2_command_set_property (GObject        *object,
             break;
         }
         self->session = g_value_get_object (value);
+        g_object_ref (self->session);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -177,4 +178,9 @@ TPMI_ST_COMMAND_TAG
 tpm2_command_get_tag (Tpm2Command *command)
 {
     return be16toh (*(TPMI_ST_COMMAND_TAG*)(command->buffer));
+}
+SessionData*
+tpm2_command_get_session (Tpm2Command *command)
+{
+    return command->session;
 }
