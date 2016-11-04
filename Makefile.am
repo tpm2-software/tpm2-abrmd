@@ -13,6 +13,7 @@ check_PROGRAMS  = \
     test/command-source_unit \
     test/tcti-options_unit \
     test/tpm2-command_unit \
+    test/tpm2-response_unit \
     test/util_unit \
     test/util-mock-realloc_unit
 if TCTI_DEVICE
@@ -231,6 +232,13 @@ test_tpm2_command_unit_SOURCES = \
     src/tpm2-command.c \
     src/session-data.c \
     test/tpm2-command_unit.c
+
+test_tpm2_response_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CLFAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
+test_tpm2_response_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
+test_tpm2_response_unit_SOURCES = \
+    src/tpm2-response.c \
+    src/session-data.c \
+    test/tpm2-response_unit.c
 
 test_util_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
