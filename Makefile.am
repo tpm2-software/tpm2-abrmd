@@ -65,7 +65,6 @@ src_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(noinst_LTLIBRARIES) $(noinst_LTLIBRARIES)
 src_tabd_SOURCES = \
     src/control-message.c \
-    src/data-message.c \
     src/message-queue.c \
     src/tabd.c \
     src/tabd-generated.c \
@@ -82,7 +81,8 @@ src_tabd_SOURCES = \
     src/tcti-options.c \
     src/tcti-echo.c \
     src/tcti-type-enum.c \
-    src/tpm2-command.c
+    src/tpm2-command.c \
+    src/tpm2-response.c
 if TCTI_DEVICE
 src_tabd_CFLAGS += $(TCTI_DEVICE_CFLAGS)
 src_tabd_LDADD += $(TCTI_DEVICE_LIBS)

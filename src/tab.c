@@ -6,6 +6,7 @@
 #include "source-interface.h"
 #include "tab.h"
 #include "tpm2-command.h"
+#include "tpm2-response.h"
 #include "thread-interface.h"
 
 #define TAB_TIMEOUT_DEQUEUE 1e6
@@ -267,7 +268,7 @@ tab_process_tpm2_command (Tab          *tab,
                           Tpm2Command  *command)
 {
     TSS2_RC rc;
-    DataMessage  *response;
+    Tpm2Response *response;
     uint8_t      *data;
     size_t        size = 4096;
 
@@ -286,22 +287,21 @@ tab_process_tpm2_command (Tab          *tab,
         g_error ("tss2_tcti_transmit returned error: 0x%x", rc);
     /* create response object passing it the same session as the command */
     data = g_malloc0 (size);
-    response = data_message_new (tpm2_command_get_session (command),
-                                 data,
-                                 size);
+    response = tpm2_response_new (tpm2_command_get_session (command),
+                                  data);
     if (response == NULL)
         g_error ("failed to create response message");
     /* we're done with the command, unref it and get the response */
     g_object_unref (command);
 
     rc = tcti_receive (tab->tcti,
-                       &response->size,
-                       response->data,
+                       &size,
+                       tpm2_response_get_buffer (response),
                        TSS2_TCTI_TIMEOUT_BLOCK);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("tss2_tcti_receive returned error: 0x%x", rc);
     g_debug ("  received:");
-    g_debug_bytes (response->data, response->size, 16, 4);
+    g_debug_bytes (tpm2_response_get_buffer (response), size, 16, 4);
 
     /* send the response to the sink */
     if (tab->sink)

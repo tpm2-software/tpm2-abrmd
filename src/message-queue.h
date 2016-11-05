@@ -2,8 +2,7 @@
 #define MESSAGE_QUEUE_H
 
 #include <glib.h>
-
-#include "data-message.h"
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 

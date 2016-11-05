@@ -6,7 +6,7 @@
 #include "thread-interface.h"
 #include "response-sink.h"
 #include "control-message.h"
-#include "data-message.h"
+#include "tpm2-response.h"
 
 #define RESPONSE_SINK_TIMEOUT 1e6
 
@@ -193,41 +193,26 @@ response_sink_new ()
                                            NULL));
 }
 
-gint
-response_sink_write_response (const gint fd,
-                                 const DataMessage *msg)
+ssize_t
+response_sink_process_response (Tpm2Response *response)
 {
-    ssize_t written = 0;
+    ssize_t      written = 0;
+    guint32      size    = tpm2_response_get_size (response);
+    guint8      *buffer  = tpm2_response_get_buffer (response);
+    SessionData *session = tpm2_response_get_session (response);
+    guint        fd      = session_data_send_fd (session);
 
-    g_debug ("response_sink_write_response");
-    g_debug ("  writing 0x%x bytes", msg->size);
-    g_debug_bytes (msg->data, msg->size, 16, 4);
-    written = write_all (fd, msg->data, msg->size);
+    g_debug ("response_sink_thread got response: 0x%x size %d",
+             response, size);
+    g_debug ("  writing 0x%x bytes", size);
+    g_debug_bytes (buffer, size, 16, 4);
+    written = write_all (fd, buffer, size);
     if (written <= 0)
         g_warning ("write failed (%d) on fd %d for session 0x%x: %s",
-                   written, fd, msg->session, strerror (errno));
+                   written, fd, session, strerror (errno));
 
     return written;
 }
-
-ssize_t
-response_sink_process_data_message (DataMessage *msg)
-{
-    gint fd;
-    ssize_t written;
-
-    g_debug ("response_sink_thread got response message: 0x%x size %d",
-             msg, msg->size);
-    fd = session_data_send_fd (msg->session);
-    written = response_sink_write_response (fd, msg);
-    if (written <= 0) {
-        /* should have a reference to the session manager so we can remove
-         * session after an error like this
-         */
-        g_warning ("Failed to write response to fd: %d", fd);
-    }
-}
-
 
 void*
 response_sink_thread (void *data)
@@ -242,8 +227,8 @@ response_sink_thread (void *data)
         g_debug ("response_sink_thread got obj: 0x%x", obj);
         if (IS_CONTROL_MESSAGE (obj))
             process_control_message (CONTROL_MESSAGE (obj));
-        if (IS_DATA_MESSAGE (obj))
-            response_sink_process_data_message (DATA_MESSAGE (obj));
+        if (IS_TPM2_RESPONSE (obj))
+            response_sink_process_response (TPM2_RESPONSE (obj));
         g_object_unref (obj);
     } while (TRUE);
 }
