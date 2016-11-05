@@ -5,7 +5,6 @@ AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
 sbin_PROGRAMS   = src/tabd
 noinst_PROGRAMS = test/tcti-tabd_read-write
 check_PROGRAMS  = \
-    test/data-message_unit \
     test/message-queue_unit \
     test/response-sink_unit \
     test/session-data_unit \
@@ -126,7 +125,6 @@ test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
 test_response_sink_unit_LDFLAGS = -Wl,--wrap=response_sink_start
 test_response_sink_unit_SOURCES = \
     src/control-message.c \
-    src/data-message.c \
     src/thread-interface.c \
     src/message-queue.c \
     src/response-sink.c \
@@ -137,6 +135,8 @@ test_response_sink_unit_SOURCES = \
     src/tab.c \
     src/tcti-echo.c \
     src/tcti-interface.c \
+    src/tpm2-command.c \
+    src/tpm2-response.c \
     test/response-sink_unit.c
 
 test_session_data_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
@@ -151,7 +151,6 @@ test_command_source_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS
 test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_command_source_unit_SOURCES = \
     src/control-message.c \
-    src/data-message.c \
     src/message-queue.c \
     src/command-source.c \
     src/response-sink.c \
@@ -163,6 +162,8 @@ test_command_source_unit_SOURCES = \
     src/tcti-echo.c \
     src/tcti-interface.c \
     src/thread-interface.c \
+    src/tpm2-command.c \
+    src/tpm2-response.c \
     test/command-source_unit.c
 
 test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) \
@@ -171,7 +172,6 @@ test_tab_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
     $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_tab_unit_SOURCES = \
     src/control-message.c \
-    src/data-message.c \
     src/message-queue.c \
     src/response-sink.c \
     src/session-data.c \
@@ -250,16 +250,9 @@ test_util_mock_realloc_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS)
 test_util_mock_realloc_unit_LDFLAGS = -Wl,--wrap=realloc
 test_util_mock_realloc_unit_SOURCES = test/util-mock-realloc_unit.c
 
-test_data_message_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
-test_data_message_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
-test_data_message_unit_SOURCES = \
-    src/data-message.c \
-    src/session-data.c \
-    test/data-message_unit.c
-
 test_message_queue_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
 test_message_queue_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_message_queue_unit_SOURCES = \
-    src/data-message.c \
     src/message-queue.c \
+    src/session-data.c \
     test/message-queue_unit.c

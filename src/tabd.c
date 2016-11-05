@@ -10,7 +10,6 @@
 #include <tabd.h>
 #include "tabd-priv.h"
 #include "logging.h"
-#include "data-message.h"
 #include "thread-interface.h"
 #include "session-manager.h"
 #include "command-source.h"

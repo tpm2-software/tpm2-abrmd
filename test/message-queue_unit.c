@@ -5,6 +5,7 @@
 #include <cmocka.h>
 
 #include "message-queue.h"
+#include "session-data.h"
 
 typedef struct msgq_test_data {
     MessageQueue *queue;
@@ -42,13 +43,14 @@ message_queue_enqueue_dequeue_test (void **state)
 {
     msgq_test_data_t *data = (msgq_test_data_t*)*state;
     MessageQueue *queue = data->queue;
-    DataMessage *data_message_in, *data_message_out;
+    SessionData  *obj_in, *obj_out;
+    gint          fds[2] = { 0, };
 
-    data_message_in = data_message_new (NULL, NULL, 0);
-    message_queue_enqueue (queue, G_OBJECT (data_message_in));
-    data_message_out = DATA_MESSAGE (message_queue_dequeue (queue));
+    obj_in = session_data_new (&fds[0], &fds[1], 0);
+    message_queue_enqueue (queue, G_OBJECT (obj_in));
+    obj_out = SESSION_DATA (message_queue_dequeue (queue));
     /* ptr != int but they're the same size usually? */
-    assert_int_equal (data_message_in, data_message_out);
+    assert_int_equal (obj_in, obj_out);
 }
 
 static void
@@ -56,25 +58,26 @@ message_queue_dequeue_order_test (void **state)
 {
     msgq_test_data_t *data = (msgq_test_data_t*)*state;
     MessageQueue *queue = data->queue;
-    DataMessage *data_message_0, *data_message_1, *data_message_2, *data_message_tmp;
+    SessionData *obj_0, *obj_1, *obj_2, *obj_tmp;
+    gint fds[2] = { 0, };
 
-    data_message_0 = data_message_new (NULL, NULL, 0);
-    data_message_1 = data_message_new (NULL, NULL, 0);
-    data_message_2 = data_message_new (NULL, NULL, 0);
+    obj_0 = session_data_new (&fds[0], &fds[1], 0);
+    obj_1 = session_data_new (&fds[0], &fds[1], 0);
+    obj_2 = session_data_new (&fds[0], &fds[1], 0);
 
-    message_queue_enqueue (queue, G_OBJECT (data_message_0));
-    message_queue_enqueue (queue, G_OBJECT (data_message_1));
-    message_queue_enqueue (queue, G_OBJECT (data_message_2));
+    message_queue_enqueue (queue, G_OBJECT (obj_0));
+    message_queue_enqueue (queue, G_OBJECT (obj_1));
+    message_queue_enqueue (queue, G_OBJECT (obj_2));
 
-    data_message_tmp = DATA_MESSAGE (message_queue_dequeue (queue));
-    assert_int_equal (data_message_tmp, data_message_0);
-    data_message_tmp = DATA_MESSAGE (message_queue_dequeue (queue));
-    assert_int_equal (data_message_tmp, data_message_1);
-    data_message_tmp = DATA_MESSAGE (message_queue_dequeue (queue));
-    assert_int_equal (data_message_tmp, data_message_2);
-    g_object_unref (data_message_0);
-    g_object_unref (data_message_1);
-    g_object_unref (data_message_2);
+    obj_tmp = SESSION_DATA (message_queue_dequeue (queue));
+    assert_int_equal (obj_tmp, obj_0);
+    obj_tmp = SESSION_DATA (message_queue_dequeue (queue));
+    assert_int_equal (obj_tmp, obj_1);
+    obj_tmp = SESSION_DATA (message_queue_dequeue (queue));
+    assert_int_equal (obj_tmp, obj_2);
+    g_object_unref (obj_0);
+    g_object_unref (obj_1);
+    g_object_unref (obj_2);
 }
 
 static void
