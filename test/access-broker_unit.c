@@ -1,0 +1,344 @@
+#include <glib.h>
+#include <unistd.h>
+
+#include <setjmp.h>
+#include <cmocka.h>
+
+#include "access-broker.h"
+#include "tcti-echo.h"
+#include "tpm2-response.h"
+
+#define MAX_COMMAND_VALUE 2048
+#define MAX_RESPONSE_VALUE 1024
+
+typedef struct test_data {
+    AccessBroker *broker;
+    SessionData  *session;
+    TctiEcho     *tcti;
+    Tpm2Command  *command;
+    Tpm2Response *response;
+    gboolean      acquired_lock;
+} test_data_t;
+/**
+ * The access broker initialize function calls the Startup function so we
+ * must mock it here.
+ */
+TSS2_RC
+__wrap_Tss2_Sys_Startup (TSS2_SYS_CONTEXT *sapi_context,
+                         TPM_SU            startup_type)
+{
+    TSS2_RC rc;
+
+    rc = (TSS2_RC)mock ();
+    g_debug ("__wrap_Tss2_Sys_Startup returning: 0x%x", rc);
+    return rc;
+}
+/**
+ * The AccessBroker initialize function calls the GetCapability function to
+ * get fixed TPM properties. The only ones it cares about are the MAX sizes
+ * for command / response buffers. Hardcode those here.
+ */
+TSS2_RC
+__wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
+                               TSS2_SYS_CMD_AUTHS const *cmdAuthsArray,
+                               TPM_CAP                   capability,
+                               UINT32                    property,
+                               UINT32                    propertyCount,
+                               TPMI_YES_NO              *moreData,
+                               TPMS_CAPABILITY_DATA     *capabilityData,
+                               TSS2_SYS_RSP_AUTHS       *rspAuthsArray)
+
+{
+    TSS2_RC rc;
+
+    capabilityData->capability = TPM_CAP_TPM_PROPERTIES;
+    capabilityData->data.tpmProperties.tpmProperty[0].property = TPM_PT_MAX_COMMAND_SIZE;
+    capabilityData->data.tpmProperties.tpmProperty[0].value    = (guint32)mock ();
+    capabilityData->data.tpmProperties.tpmProperty[1].property = TPM_PT_MAX_RESPONSE_SIZE;
+    capabilityData->data.tpmProperties.tpmProperty[1].value    = (guint32)mock ();
+    capabilityData->data.tpmProperties.count = 2;
+    
+    rc = (TSS2_RC)mock ();
+    g_debug ("__wrap_Tss2_Sys_GetCapability returning: 0x%x", rc);
+    return rc;
+}
+TSS2_RC
+__wrap_tcti_echo_transmit (TSS2_TCTI_CONTEXT *tcti_context,
+                           size_t             size,
+                           uint8_t           *command)
+{
+    TSS2_RC rc;
+
+    rc = (TSS2_RC)mock ();
+    g_debug ("__wrap_tcti_echo_transmit returning: 0x%x", rc);
+
+    return rc;
+}
+TSS2_RC
+__wrap_tcti_echo_receive (TSS2_TCTI_CONTEXT *tcti_context,
+                          size_t            *size,
+                          uint8_t           *response,
+                          int32_t            timeout)
+{
+    TSS2_RC rc;
+    
+    rc = (TSS2_RC)mock ();
+    g_debug ("__wrap_tcti_echo_receive returning: 0x%x", rc);
+
+    return rc;
+}
+/**
+ * Do the minimum setup required by the AccessBroker object. This does not
+ * call the access_broker_init function intentionally. We test that function
+ * in a separate test.
+ */
+static void
+access_broker_setup (void **state)
+{
+    test_data_t *data;
+    Tcti        *tcti;
+    TSS2_RC      rc;
+
+    tcti = TCTI (tcti_echo_new (MAX_COMMAND_VALUE));
+    rc = tcti_echo_initialize (tcti);
+    if (rc != TSS2_RC_SUCCESS)
+        g_error ("failed to initialize the echo TCTI");
+    data = calloc (1, sizeof (test_data_t));
+    data->broker = access_broker_new (tcti);
+
+    *state = data;
+}
+static void
+access_broker_setup_with_init (void **state)
+{
+    test_data_t *data;
+    TSS2_RC      rc;
+    TSS2_TCTI_CONTEXT *ctx;
+
+    data = calloc (1, sizeof (test_data_t));
+    data->tcti = tcti_echo_new (MAX_COMMAND_VALUE);
+    rc = tcti_echo_initialize (TCTI (data->tcti));
+    if (rc != TSS2_RC_SUCCESS)
+        g_error ("failed to initialize the echo TCTI");
+    data->broker = access_broker_new (TCTI (data->tcti));
+    /* can't wrap the tss2_tcti_transmit using linker tricks */
+    TSS2_TCTI_RECEIVE  (tcti_peek_context (TCTI (data->tcti))) = __wrap_tcti_echo_receive;
+    TSS2_TCTI_TRANSMIT (tcti_peek_context (TCTI (data->tcti))) = __wrap_tcti_echo_transmit;
+
+    will_return (__wrap_Tss2_Sys_Startup, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Sys_GetCapability, MAX_COMMAND_VALUE);
+    will_return (__wrap_Tss2_Sys_GetCapability, MAX_RESPONSE_VALUE);
+    will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
+    access_broker_init (data->broker);
+
+    *state = data;
+}
+static void
+access_broker_teardown (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    g_object_unref (data->broker);
+    if (G_IS_OBJECT (data->session))
+        g_object_unref (data->session);
+    if (G_IS_OBJECT (data->command))
+        g_object_unref (data->command);
+    if (G_IS_OBJECT (data->response))
+        g_object_unref (data->response);
+    free (data);
+}
+/**
+ * Test to ensure that the GObject type system gives us back the type that
+ * we expect.
+ */
+static void
+access_broker_type_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    assert_true (IS_ACCESS_BROKER (data->broker));
+}
+/**
+ * Test the initialization route for the AccessBroker. A successful call
+ * to the init functhion should return TSS2_RC_SUCCESS and the 'initialized'
+ * flag should be set to 'true'.
+ */
+static void
+access_broker_init_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_Startup, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Sys_GetCapability, MAX_COMMAND_VALUE);
+    will_return (__wrap_Tss2_Sys_GetCapability, MAX_RESPONSE_VALUE);
+    will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
+    assert_int_equal (access_broker_init (data->broker), TSS2_RC_SUCCESS);
+    assert_true (data->broker->initialized);
+}
+
+static void
+access_broker_get_max_command_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    guint32 value;
+
+    assert_int_equal (access_broker_get_max_command (data->broker, &value),
+                      TSS2_RC_SUCCESS);
+    assert_int_equal (value, MAX_COMMAND_VALUE);
+}
+
+static void
+access_broker_get_max_response_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    guint32 value;
+
+    assert_int_equal (access_broker_get_max_response (data->broker, &value),
+                      TSS2_RC_SUCCESS);
+    assert_int_equal (value, MAX_RESPONSE_VALUE);
+}
+
+static void*
+lock_thread (void *param)
+{
+    test_data_t *data = (test_data_t*)param;
+
+    assert_int_equal (access_broker_lock (data->broker), 0);
+    data->acquired_lock = TRUE;
+    assert_int_equal (access_broker_unlock (data->broker), 0);
+}
+
+static void
+access_broker_lock_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    pthread_t thread_id;
+
+    data->acquired_lock = FALSE;
+    assert_int_equal (access_broker_lock (data->broker), 0);
+    assert_int_equal (pthread_create (&thread_id, NULL, lock_thread, data),
+                      0);
+    sleep (1);
+    assert_false (data->acquired_lock);
+    assert_int_equal (access_broker_unlock (data->broker), 0);
+}
+/**
+ * Here we're testing the internals of the 'access_broker_send_command'
+ * function. We're wrapping the tcti_transmit command in the TCTI that
+ * the access broker is using. This test causes the TCTI transmit
+ * function to return an arbitrary respose code. In this case we should
+ * receive a NULL pointer back in place of the Tpm2Response and the 
+ * out parameter RC is set to the RC value.
+ */
+static void
+access_broker_send_command_tcti_transmit_fail_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    gint fds [2] = { 0, };
+    guint8 *buffer;
+    SessionData  *session = NULL;
+    TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = 99;
+    Tpm2Command  *command  = NULL;
+    Tpm2Response *response = NULL;
+
+    buffer = calloc (1, rc_expected);
+    will_return (__wrap_tcti_echo_transmit, rc_expected);
+    data->session = session_data_new (&fds[0], &fds[1], 0);
+    data->command = tpm2_command_new (data->session, buffer);
+    data->response = access_broker_send_command (data->broker, data->command, &rc);
+    /* the response code should be the one we passed to __wrap_tcti_echo_transmit */
+    assert_int_equal (rc, rc_expected);
+    /* the Tpm2Response object we get back should have the same RC */
+    assert_int_equal (tpm2_response_get_code (data->response), rc_expected);
+    /**
+     * the Tpm2Response object we get back should have the same session as
+     * the Tpm2Command we tried to send.
+     */
+    assert_int_equal (tpm2_response_get_session (data->response),
+                      data->session);
+}
+
+static void
+access_broker_send_command_tcti_receive_fail_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    gint fds [2] = { 0, };
+    guint8 *buffer;
+    TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = 99;
+
+    buffer = calloc (1, rc_expected);
+    will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
+    will_return (__wrap_tcti_echo_receive, rc_expected);
+    data->session = session_data_new (&fds[0], &fds[1], 0);
+    data->command = tpm2_command_new (data->session, buffer);
+    data->response = access_broker_send_command (data->broker, data->command, &rc);
+    /* the response code should be the one we passed to __wrap_tcti_echo_receive */
+    assert_int_equal (rc, rc_expected);
+    /* the Tpm2Response object we get back should have the same RC */
+    assert_int_equal (tpm2_response_get_code (data->response), rc_expected);
+    /**
+     * the Tpm2Response object we get back should have the same session as
+     * the Tpm2Command we tried to send.
+     */
+    assert_int_equal (tpm2_response_get_session (data->response),
+                      data->session);
+}
+
+static void
+access_broker_send_command_success (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    gint fds [2] = { 0, };
+    guint8 *buffer;
+    TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = TSS2_RC_SUCCESS;
+
+    buffer = calloc (1, rc_expected);
+    will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
+    will_return (__wrap_tcti_echo_receive,  rc_expected);
+    data->session = session_data_new (&fds[0], &fds[1], 0);
+    data->command = tpm2_command_new (data->session, buffer);
+    data->response = access_broker_send_command (data->broker, data->command, &rc);
+    /* the response code should be the one we passed to __wrap_tcti_echo_receive */
+    assert_int_equal (rc, rc_expected);
+    /* the Tpm2Response object we get back should have the same RC */
+    assert_int_equal (tpm2_response_get_code (data->response), rc_expected);
+    /**
+     * the Tpm2Response object we get back should have the same session as
+     * the Tpm2Command we tried to send.
+     */
+    assert_int_equal (tpm2_response_get_session (data->response),
+                      data->session);
+}
+
+int
+main (int   argc,
+      char *argv[])
+{
+    const UnitTest tests[] = {
+        unit_test_setup_teardown (access_broker_type_test,
+                                  access_broker_setup,
+                                  access_broker_teardown),
+        unit_test_setup_teardown (access_broker_init_test,
+                                  access_broker_setup,
+                                  access_broker_teardown),
+        unit_test_setup_teardown (access_broker_get_max_command_test,
+                                  access_broker_setup_with_init,
+                                  access_broker_teardown),
+        unit_test_setup_teardown (access_broker_get_max_response_test,
+                                  access_broker_setup_with_init,
+                                  access_broker_teardown),
+        unit_test_setup_teardown (access_broker_lock_test,
+                                  access_broker_setup_with_init,
+                                  access_broker_teardown),
+        unit_test_setup_teardown (access_broker_send_command_tcti_transmit_fail_test,
+                                  access_broker_setup_with_init,
+                                  access_broker_teardown),
+        unit_test_setup_teardown (access_broker_send_command_tcti_receive_fail_test,
+                                  access_broker_setup_with_init,
+                                  access_broker_teardown),
+        unit_test_setup_teardown (access_broker_send_command_success,
+                                  access_broker_setup_with_init,
+                                  access_broker_teardown),
+    };
+    return run_tests (tests);
+}

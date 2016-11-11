@@ -5,6 +5,7 @@ AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
 sbin_PROGRAMS   = src/tabd
 noinst_PROGRAMS = test/tcti-tabd_read-write
 check_PROGRAMS  = \
+    test/access-broker_unit \
     test/message-queue_unit \
     test/response-sink_unit \
     test/session-data_unit \
@@ -256,3 +257,15 @@ test_message_queue_unit_SOURCES = \
     src/message-queue.c \
     src/session-data.c \
     test/message-queue_unit.c
+
+test_access_broker_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
+test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_GetCapability,--wrap=tcti_echo_transmit
+test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS)
+test_access_broker_unit_SOURCES = \
+    src/access-broker.c \
+    src/session-data.c \
+    src/tcti-interface.c \
+    src/tcti-echo.c \
+    src/tpm2-command.c \
+    src/tpm2-response.c \
+    test/access-broker_unit.c
