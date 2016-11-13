@@ -11,6 +11,7 @@ check_PROGRAMS  = \
     test/session-data_unit \
     test/session-manager_unit \
     test/command-source_unit \
+    test/test-skeleton_unit \
     test/tcti-options_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
@@ -119,6 +120,10 @@ dist/%.service : dist/%.service.in
 	if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@); fi
 	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g; \
                 s,[@]includedir[@],$(includedir),g;" $^ > $@
+
+test_test_skeleton_unit_CFLAGS  = $(CMOCKA_CFLAGS)
+test_test_skeleton_unit_LDADD   = $(CMOCKA_LIBS)
+test_test_skeleton_unit_SOURCES = test/test-skeleton_unit.c
 
 test_response_sink_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
 test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
