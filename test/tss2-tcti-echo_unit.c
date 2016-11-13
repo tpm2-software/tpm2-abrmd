@@ -1,0 +1,493 @@
+#include <stdarg.h>
+#include <stdlib.h>
+
+#include <setjmp.h>
+#include <cmocka.h>
+
+#include "tss2-tcti-echo.h"
+#include "tss2-tcti-echo-priv.h"
+
+typedef struct test_data {
+    TSS2_TCTI_CONTEXT *tcti_context;
+} test_data_t;
+/**
+ * Test setup function: allocate structure to hold test data, initialize
+ * some value in said structure.
+ */
+static void
+tss2_tcti_echo_setup (void **state)
+{
+    test_data_t *data;
+
+    data = calloc (1, sizeof (test_data_t));
+
+    *state = data;
+}
+/**
+ * Test teardown function: deallocate whatever resources are allocated in
+ * the setup and test functions.
+ */
+static void
+tss2_tcti_echo_teardown (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    free (data);
+
+    *state = NULL;
+}
+/**
+ * A test: verify that something functioned properly.
+ */
+static void
+tss2_tcti_echo_get_size_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+    size_t  size = 0;
+
+    rc = tss2_tcti_echo_init (NULL, &size, TSS2_TCTI_ECHO_MAX_BUF);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_true (size > 0);
+}
+/**
+ * A test: Verify that a NULL tcti_context and 'size' parameter produce a
+ * TSS2_TCTI_RC_BAD_VALUE RC.
+ */
+static void
+tss2_tcti_echo_null_ctx_and_size_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+
+    rc = tss2_tcti_echo_init (NULL, NULL, TSS2_TCTI_ECHO_MAX_BUF);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
+}
+/**
+ * A test: Verify that a request for a buffer less than the minimum results
+ * in a TSS2_TCTI_RC_BAD_VALUE RC.
+ */
+static void
+tss2_tcti_echo_init_buf_lt_min_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+    size_t size = 0;
+
+    rc = tss2_tcti_echo_init (NULL, &size, TSS2_TCTI_ECHO_MIN_BUF - 1);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
+}
+/**
+ * A test: Verify that a request for a buffer greater than the maximum
+ * results in a TSS2_TCTI_RC_BAD_VALUE RC.
+ */
+static void
+tss2_tcti_echo_init_buf_gt_max_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+    size_t size = 0;
+
+    rc = tss2_tcti_echo_init (NULL, &size, TSS2_TCTI_ECHO_MAX_BUF + 1);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
+}
+/**
+ * A test: Successful initialization of the echo TCTI.
+ */
+static void
+tss2_tcti_echo_init_success_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+    size_t size = 0;
+
+    rc = tss2_tcti_echo_init (NULL, &size, TSS2_TCTI_ECHO_MAX_BUF);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+
+    data->tcti_context = calloc (1, size);
+    assert_non_null (data->tcti_context);
+
+    rc = tss2_tcti_echo_init (data->tcti_context,
+                              &size,
+                              TSS2_TCTI_ECHO_MAX_BUF);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    free (data->tcti_context);
+}
+/**
+ * Test initialization routine that additionally initializes the echo TCTI.
+ * This should only be used after the initialization tests have passed.
+ */
+static void
+tss2_tcti_echo_init_setup (void **state)
+{
+    test_data_t *data;
+    TSS2_RC rc;
+    size_t size = 0;
+
+    data = calloc (1, sizeof (test_data_t));
+    assert_non_null (data);
+
+    rc = tss2_tcti_echo_init (NULL, &size, TSS2_TCTI_ECHO_MAX_BUF);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+
+    data->tcti_context = calloc (1, size);
+    assert_non_null (data->tcti_context);
+
+    rc = tss2_tcti_echo_init (data->tcti_context,
+                              &size,
+                              TSS2_TCTI_ECHO_MAX_BUF);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+
+    *state = data;
+}
+/**
+ * Test teardown function to finalize and free the echo TCTI context as
+ * well as the test data structure.
+ */
+static void
+tss2_tcti_echo_init_teardown (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    tss2_tcti_finalize (data->tcti_context);
+    free (data->tcti_context);
+    free (data);
+
+    *state = NULL;
+}
+/**
+ * A test: Cancel a command sent to the Echo TCTI. This is currently
+ * unimplemented but we put this here so that if it ever is implemented
+ * then this test will fail and prompt a proper test to be written.
+ */
+static void
+tss2_tcti_echo_cancel_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+
+    rc = tss2_tcti_cancel (data->tcti_context);
+    assert_int_equal (rc, TSS2_TCTI_RC_NOT_IMPLEMENTED);
+}
+/**
+ * A test: get_poll_handles a command sent to the Echo TCTI. This is
+ * currently unimplemented but we put this here so that if it ever is
+ * implemented then this test will fail and prompt a proper test to be
+ * written.
+ */
+static void
+tss2_tcti_echo_get_poll_handles_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+    TSS2_TCTI_POLL_HANDLE handles[3] = { 0, };
+    size_t  num_handles = 3;
+
+    rc = tss2_tcti_get_poll_handles (data->tcti_context,
+                                     handles,
+                                     &num_handles);
+    assert_int_equal (rc, TSS2_TCTI_RC_NOT_IMPLEMENTED);
+}
+/**
+ * A test: set_locality a command sent to the Echo TCTI. This is currently
+ * unimplemented but we put this here so that if it ever is implemented
+ * then this test will fail and prompt a proper test to be written.
+ */
+static void
+tss2_tcti_echo_set_locality_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+    uint8_t locality = 0;
+
+    rc = tss2_tcti_set_locality (data->tcti_context, locality);
+    assert_int_equal (rc, TSS2_TCTI_RC_NOT_IMPLEMENTED);
+}
+/**
+ * A test: Call transmit with a NULL context. Ensure we get the right error
+ * code back. According to the spec this value would be
+ * TSS2_TCTI_RC_BAD_REFERENCE but it currently returns
+ * TSS2_TCTI_RC_BAD_CONTEXT.
+ */
+static void
+tss2_tcti_echo_transmit_null_context_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+
+    rc = tss2_tcti_transmit (NULL, 0, NULL);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+/**
+ * A test: Call transmit with a NULL command buffer. Ensure we get the
+ * right error code back.
+ */
+static void
+tss2_tcti_echo_transmit_null_command_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+
+    rc = tss2_tcti_transmit (data->tcti_context, 5, NULL);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
+}
+/**
+ * A test: Call transmit with a size less than 0. Ensure we get the
+ * right error code back.
+ */
+static void
+tss2_tcti_echo_transmit_negative_size_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+    uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0, };
+
+    rc = tss2_tcti_transmit (data->tcti_context, -1, buffer);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
+}
+/**
+ * A test: Call transmit with an invalid size. Ensure we get the
+ * right error code back.
+ */
+static void
+tss2_tcti_echo_transmit_size_gt_max_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+    uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0, };
+
+    rc = tss2_tcti_transmit (data->tcti_context,
+                             TSS2_TCTI_ECHO_MAX_BUF + 1,
+                             buffer);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
+}
+/**
+ * A test: Call transmit with the context state machine in the wrong state.
+ * Ensure that we get the right error code back. This requires that we
+ * muck around in the private TCTI context structure.
+ */
+static void
+tss2_tcti_echo_transmit_bad_sequence_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TCTI_ECHO_CONTEXT *echo_context = (TCTI_ECHO_CONTEXT*)data->tcti_context;
+    uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0, };
+    TSS2_RC rc;
+
+    echo_context->state = CAN_RECEIVE;
+    rc = tss2_tcti_transmit (data->tcti_context,
+                             TSS2_TCTI_ECHO_MAX_BUF,
+                             buffer);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
+}
+/**
+ * A test: Test the proper functioning of the transmit call. We transmit
+ * a buffer with the maximum data. We then ensure that we get the right
+ * return code, that the memory transmitted was copied into the echo TCTI
+ * context blob properly, that the echo TCTI 'data_size' member is set to
+ * the same size as the data we passed in, and that the 'state' member
+ * reflects that data has been sent.
+ */
+static void
+tss2_tcti_echo_transmit_success_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TCTI_ECHO_CONTEXT *echo_context = (TCTI_ECHO_CONTEXT*)data->tcti_context;
+    uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0xde, 0xad, 0xbe, 0xef, 0x0 };
+    TSS2_RC rc;
+
+    rc = tss2_tcti_transmit (data->tcti_context,
+                             TSS2_TCTI_ECHO_MAX_BUF,
+                             buffer);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_memory_equal (buffer, echo_context->buf, echo_context->buf_size);
+    assert_int_equal (echo_context->data_size, TSS2_TCTI_ECHO_MAX_BUF);
+    assert_int_equal (echo_context->state, CAN_RECEIVE);
+}
+/**
+ * A test: Call receive with a NULL context. Ensure we get the right error
+ * code back. According to the spec this value would be
+ * TSS2_TCTI_RC_BAD_REFERENCE but it currently returns
+ * TSS2_TCTI_RC_BAD_CONTEXT.
+ */
+static void
+tss2_tcti_echo_receive_null_context_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+
+    rc = tss2_tcti_receive (NULL, NULL, NULL, 0);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+/**
+ * A test: Call receive with a NULL size. Ensure we get the right error
+ * code back.
+ */
+static void
+tss2_tcti_echo_receive_null_size_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TCTI_ECHO_CONTEXT *echo_context = (TCTI_ECHO_CONTEXT*)data->tcti_context;
+    TSS2_RC rc;
+
+    echo_context->state = CAN_RECEIVE;
+    rc = tss2_tcti_receive (data->tcti_context, NULL, NULL, 0);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
+}
+/**
+ * A test: Call the receive function while passing it a 'size' parameter that
+ * indicates the buffer passed in is only 5 bytes in size. We trick the
+ * echo tcti into thinking it has TCTI_ECHO_MAX_BUF bytes to return to the
+ * caller so it should reply indicating that the callers resonse buffer is
+ * too small. It should also set the size to the buffer size required to
+ * hold the resonse.
+ */
+static void
+tss2_tcti_echo_receive_insufficient_size_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TCTI_ECHO_CONTEXT *echo_context = (TCTI_ECHO_CONTEXT*)data->tcti_context;
+    TSS2_RC rc;
+    size_t size = 5;
+
+    echo_context->data_size = TSS2_TCTI_ECHO_MAX_BUF;
+    echo_context->state = CAN_RECEIVE;
+    rc = tss2_tcti_receive (data->tcti_context,
+                            &size,
+                            NULL,
+                            TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_INSUFFICIENT_BUFFER);
+    assert_int_equal (size, echo_context->data_size);
+}
+/**
+ * A test: Call receive with a NULL response buffer. Ensure we get the right
+ * error code back.
+ */
+static void
+tss2_tcti_echo_receive_null_response_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TCTI_ECHO_CONTEXT *echo_context = (TCTI_ECHO_CONTEXT*)data->tcti_context;
+    TSS2_RC rc;
+    size_t size = TSS2_TCTI_ECHO_MAX_BUF;
+
+    echo_context->state = CAN_RECEIVE;
+    rc = tss2_tcti_receive (data->tcti_context, &size, NULL, 0);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
+}
+/**
+ * A test: Call receive with a "bad" timeout value. Ensure we get the right
+ * error code back.
+ */
+static void
+tss2_tcti_echo_receive_negative_timeout_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TCTI_ECHO_CONTEXT *echo_context = (TCTI_ECHO_CONTEXT*)data->tcti_context;
+    TSS2_RC rc;
+    size_t size = 5;
+    uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0, };
+
+    echo_context->state = CAN_RECEIVE;
+    rc = tss2_tcti_receive (data->tcti_context, &size, buffer, -99);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
+}
+/**
+ * A test: Call receive with a "bad" timeout value. Ensure we get the right
+ * error code back.
+ */
+static void
+tss2_tcti_echo_receive_success_unit (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TCTI_ECHO_CONTEXT *echo_context = (TCTI_ECHO_CONTEXT*)data->tcti_context;
+    TSS2_RC rc;
+    size_t size = TSS2_TCTI_ECHO_MAX_BUF;
+    uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0, };
+
+    echo_context->state = CAN_RECEIVE;
+    echo_context->data_size = 4;
+    echo_context->buf[0] = 0xde;
+    echo_context->buf[1] = 0xad;
+    echo_context->buf[2] = 0xbe;
+    echo_context->buf[3] = 0xef;
+
+    rc = tss2_tcti_receive (data->tcti_context,
+                            &size,
+                            buffer,
+                            TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_memory_equal (buffer, echo_context->buf, 4);
+    assert_int_equal (size, 4);
+}
+/**
+ * Test driver.
+ */
+int
+main (int     argc,
+      char   *argv[])
+{
+    const UnitTest tests[] = {
+        unit_test_setup_teardown (tss2_tcti_echo_get_size_unit,
+                                  tss2_tcti_echo_setup,
+                                  tss2_tcti_echo_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_null_ctx_and_size_unit,
+                                  tss2_tcti_echo_setup,
+                                  tss2_tcti_echo_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_init_buf_lt_min_unit,
+                                  tss2_tcti_echo_setup,
+                                  tss2_tcti_echo_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_init_buf_gt_max_unit,
+                                  tss2_tcti_echo_setup,
+                                  tss2_tcti_echo_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_init_success_unit,
+                                  tss2_tcti_echo_setup,
+                                  tss2_tcti_echo_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_cancel_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_get_poll_handles_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_set_locality_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_transmit_null_context_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_transmit_null_command_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_transmit_negative_size_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_transmit_size_gt_max_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_transmit_bad_sequence_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_transmit_success_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_receive_null_context_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_receive_null_size_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_receive_insufficient_size_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_receive_null_response_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_receive_negative_timeout_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+        unit_test_setup_teardown (tss2_tcti_echo_receive_success_unit,
+                                  tss2_tcti_echo_init_setup,
+                                  tss2_tcti_echo_init_teardown),
+    };
+    return run_tests (tests);
+}

@@ -15,6 +15,7 @@ check_PROGRAMS  = \
     test/tcti-options_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
+    test/tss2-tcti-echo_unit \
     test/util_unit \
     test/util-mock-realloc_unit
 if TCTI_DEVICE
@@ -274,3 +275,9 @@ test_access_broker_unit_SOURCES = \
     src/tpm2-command.c \
     src/tpm2-response.c \
     test/access-broker_unit.c
+
+test_tss2_tcti_echo_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
+test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS)
+test_tss2_tcti_echo_unit_SOURCES = \
+    src/tss2-tcti-echo.c \
+    test/tss2-tcti-echo_unit.c
