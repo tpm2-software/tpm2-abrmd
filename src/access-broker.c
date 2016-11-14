@@ -331,6 +331,10 @@ access_broker_get_max_response (AccessBroker *broker,
  * 'rc' out parameter.
  * The caller MUST NOT hold the lock when calling. This function will take
  * the lock for itself.
+ * Additionally this function *WILL ONLY* return a NULL Tpm2Response
+ * pointer if it's unable to allocate memory for the object. In all other
+ * error cases this function will create a Tpm2Response object with the
+ * appropriate RC populated.
  */
 Tpm2Response*
 access_broker_send_command (AccessBroker  *broker,
