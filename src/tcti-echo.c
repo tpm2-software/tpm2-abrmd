@@ -1,7 +1,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include "tcti-interface.h"
 #include "tcti-echo.h"
 #include "tss2-tcti-echo.h"
 
@@ -61,12 +60,11 @@ tcti_echo_get_property (GObject    *object,
 static void
 tcti_echo_finalize (GObject *obj)
 {
-    TctiEcho *tcti_echo = TCTI_ECHO (obj);
-    TctiInterface *tcti_iface = TCTI_GET_INTERFACE (obj);
+    Tcti *tcti = TCTI (obj);
 
-    if (tcti_iface->tcti_context != NULL) {
-        tss2_tcti_finalize (tcti_iface->tcti_context);
-        //g_free (tcti_iface->tcti_context);
+    if (tcti->tcti_context != NULL) {
+        tss2_tcti_finalize (tcti->tcti_context);
+        g_free (tcti->tcti_context);
     }
     if (tcti_echo_parent_class)
         G_OBJECT_CLASS (tcti_echo_parent_class)->finalize (obj);
@@ -76,7 +74,8 @@ tcti_echo_finalize (GObject *obj)
 static void
 tcti_echo_class_init (gpointer klass)
 {
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    GObjectClass  *object_class = G_OBJECT_CLASS  (klass);
+    TctiClass *base_class   = TCTI_CLASS (klass);
 
     if (tcti_echo_parent_class == NULL)
         tcti_echo_parent_class = g_type_class_peek_parent (klass);
@@ -84,6 +83,8 @@ tcti_echo_class_init (gpointer klass)
     object_class->finalize     = tcti_echo_finalize;
     object_class->get_property = tcti_echo_get_property;
     object_class->set_property = tcti_echo_set_property;
+
+    base_class->initialize     = (TctiInitFunc)tcti_echo_initialize;
 
     obj_properties[PROP_SIZE] =
         g_param_spec_uint ("size",
@@ -98,12 +99,6 @@ tcti_echo_class_init (gpointer klass)
                                        obj_properties);
 }
 
-static void
-tcti_echo_interface_init (gpointer g_iface)
-{
-    TctiInterface *tcti_interface = (TctiInterface*)g_iface;
-    tcti_interface->initialize  = tcti_echo_initialize;
-}
 /* Upon first call to *_get_type we register the type with the GType system.
  * We keep a static GType around to speed up future calls.
  */
@@ -112,19 +107,13 @@ tcti_echo_get_type (void)
 {
     static GType type = 0;
     if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
+        type = g_type_register_static_simple (TYPE_TCTI,
                                               "TctiEcho",
                                               sizeof (TctiEchoClass),
                                               (GClassInitFunc) tcti_echo_class_init,
                                               sizeof (TctiEcho),
                                               NULL,
                                               0);
-        const GInterfaceInfo tcti_info = {
-            (GInterfaceInitFunc) tcti_echo_interface_init,
-            NULL,
-            NULL
-        };
-        g_type_add_interface_static (type, TYPE_TCTI, &tcti_info);
     }
     return type;
 }
@@ -137,25 +126,24 @@ tcti_echo_new (guint size)
                                     NULL));
 }
 TSS2_RC
-tcti_echo_initialize (Tcti *tcti)
+tcti_echo_initialize (TctiEcho *tcti_echo)
 {
-    TctiEcho      *self  = TCTI_ECHO (tcti);
-    TctiInterface *iface = TCTI_GET_INTERFACE (tcti);
+    Tcti          *tcti  = TCTI (tcti_echo);
     TSS2_RC        rc    = TSS2_RC_SUCCESS;
     size_t         ctx_size;
 
-    if (iface->tcti_context)
+    if (tcti->tcti_context)
         goto out;
-    rc = tss2_tcti_echo_init (NULL, &ctx_size, self->size);
+    rc = tss2_tcti_echo_init (NULL, &ctx_size, tcti_echo->size);
     if (rc != TSS2_RC_SUCCESS)
         goto out;
     g_debug ("allocating tcti_context: 0x%x", ctx_size);
-    iface->tcti_context = g_malloc0 (ctx_size);
-    rc = tss2_tcti_echo_init (iface->tcti_context, &ctx_size, self->size);
+    tcti->tcti_context = g_malloc0 (ctx_size);
+    rc = tss2_tcti_echo_init (tcti->tcti_context, &ctx_size, tcti_echo->size);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("failed to initialize echo TCTI context: 0x%x", rc);
-        g_free (iface->tcti_context);
-        iface->tcti_context = NULL;
+        g_free (tcti->tcti_context);
+        tcti->tcti_context = NULL;
     }
 out:
     return rc;

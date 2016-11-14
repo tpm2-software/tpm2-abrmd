@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <sapi/tpm20.h>
 
-#include "tcti-interface.h"
+#include "tcti.h"
 #include "tpm2-command.h"
 #include "tpm2-response.h"
 

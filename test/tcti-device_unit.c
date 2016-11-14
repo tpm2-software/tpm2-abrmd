@@ -48,8 +48,8 @@ tcti_device_new_unref_test (void **state)
 static void
 tcti_device_initialize_success_unit (void **state)
 {
-    Tcti       *tcti      = *state;
-    TctiDevice *tcti_sock = *state;
+    Tcti       *tcti        = *state;
+    TctiDevice *tcti_device = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 
     will_return (__wrap_InitDeviceTcti, 512);
@@ -58,7 +58,7 @@ tcti_device_initialize_success_unit (void **state)
     will_return (__wrap_InitDeviceTcti, 512);
     will_return (__wrap_InitDeviceTcti, TSS2_RC_SUCCESS);
 
-    rc = tcti_device_initialize (tcti);
+    rc = tcti_device_initialize (tcti_device);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
 }
 /**
@@ -88,14 +88,14 @@ tcti_device_initialize_success_interface_unit (void **state)
 static void
 tcti_device_initialize_fail_on_first_init_unit (void **state)
 {
-    Tcti       *tcti      = *state;
-    TctiDevice *tcti_sock = *state;
-    TSS2_RC     rc        = TSS2_RC_SUCCESS;
+    Tcti       *tcti        = *state;
+    TctiDevice *tcti_device = *state;
+    TSS2_RC     rc          = TSS2_RC_SUCCESS;
 
     will_return (__wrap_InitDeviceTcti, 0);
     will_return (__wrap_InitDeviceTcti, TSS2_TCTI_RC_GENERAL_FAILURE);
 
-    rc = tcti_device_initialize (tcti);
+    rc = tcti_device_initialize (tcti_device);
     assert_int_equal (rc, TSS2_TCTI_RC_GENERAL_FAILURE);
 }
 /**
@@ -106,8 +106,8 @@ tcti_device_initialize_fail_on_first_init_unit (void **state)
 static void
 tcti_device_initialize_fail_on_second_init_unit (void **state)
 {
-    Tcti       *tcti      = *state;
-    TctiDevice *tcti_sock = *state;
+    Tcti       *tcti        = *state;
+    TctiDevice *tcti_device = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 
     will_return (__wrap_InitDeviceTcti, 512);
@@ -116,7 +116,7 @@ tcti_device_initialize_fail_on_second_init_unit (void **state)
     will_return (__wrap_InitDeviceTcti, 0);
     will_return (__wrap_InitDeviceTcti, TSS2_TCTI_RC_GENERAL_FAILURE);
 
-    rc = tcti_device_initialize (tcti);
+    rc = tcti_device_initialize (tcti_device);
     assert_int_equal (rc, TSS2_TCTI_RC_GENERAL_FAILURE);
 }
 gint

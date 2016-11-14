@@ -6,17 +6,17 @@
 #include <tcti/tcti_socket.h>
 #include <glib-object.h>
 
-#include "tcti-interface.h"
+#include "tcti.h"
 
 G_BEGIN_DECLS
 
 typedef struct _TctiSocketClass {
-    GObjectClass       parent;
+    TctiClass          parent;
 } TctiSocketClass;
 
 typedef struct _TctiSocket
 {
-    GObject            parent_instance;
+    Tcti               parent_instance;
     gchar             *address;
     guint16            port;
 } TctiSocket;
@@ -31,7 +31,7 @@ typedef struct _TctiSocket
 GType                tcti_socket_get_type       (void);
 TctiSocket*          tcti_socket_new            (gchar const   *address,
                                                  guint16        port);
-TSS2_RC              tcti_socket_initialize     (Tcti          *tcti);
+TSS2_RC              tcti_socket_initialize     (TctiSocket    *tcti);
 
 G_END_DECLS
 #endif /* TABD_TCTI_SOCKET_H */

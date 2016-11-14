@@ -1,7 +1,6 @@
 #include <stdio.h>
 
 #include "tcti-options.h"
-#include "tcti-interface.h"
 #include "tcti-echo.h"
 #include "tss2-tcti-echo.h"
 #ifdef HAVE_TCTI_DEVICE

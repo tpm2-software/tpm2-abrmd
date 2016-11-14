@@ -11,8 +11,6 @@
 typedef struct test_data {
     Tcti              *tcti;
     TctiEcho          *tcti_echo;
-    TctiInterface     *tcti_interface;
-    TCTI_ECHO_CONTEXT *tcti_echo_context;
 } test_data_t;
 /**
  * Setup function to create all necessary stuff for our tests.
@@ -26,8 +24,6 @@ tcti_echo_setup (void **state)
 
     data->tcti_echo      = tcti_echo_new (TSS2_TCTI_ECHO_MAX_BUF);
     data->tcti           = TCTI (data->tcti_echo);
-    data->tcti_interface = TCTI_GET_INTERFACE (data->tcti);
-    data->tcti_echo_context = (TCTI_ECHO_CONTEXT*)data->tcti_interface->tcti_context;
 
     *state = data;
 }
@@ -53,7 +49,7 @@ tcti_echo_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
 
-    g_object_unref (data->tcti);
+    g_object_unref (data->tcti_echo);
     free (data);
 }
 /**
@@ -93,10 +89,12 @@ tcti_echo_transmit_test (void **state)
     TSS2_RC rc;
     uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0xde, 0xad, 0xbe, 0xef, 0x0 };
     size_t size = 5;
+    TCTI_ECHO_CONTEXT *echo_context;
 
     rc = tcti_transmit (data->tcti, size, buffer);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
-    assert_memory_equal (buffer, data->tcti_echo_context->buf, size);
+    echo_context = (TCTI_ECHO_CONTEXT*)tcti_peek_context (data->tcti);
+    assert_memory_equal (buffer, echo_context->buf, size);
 }
 /**
  * A test: call the receive function after manually writing the internal
@@ -109,23 +107,25 @@ tcti_echo_receive_test (void **state)
     TSS2_RC rc;
     uint8_t buffer_out [TSS2_TCTI_ECHO_MAX_BUF] = { 0, };
     size_t size_out = TSS2_TCTI_ECHO_MAX_BUF;
+    TCTI_ECHO_CONTEXT *echo_context;
 
+    echo_context = (TCTI_ECHO_CONTEXT*)tcti_peek_context (data->tcti);
     /* populate the buffer in the TCTI context structure faking a write */
-    data->tcti_echo_context->buf[0] = 0xde;
-    data->tcti_echo_context->buf[1] = 0xad;
-    data->tcti_echo_context->buf[2] = 0xbe;
-    data->tcti_echo_context->buf[3] = 0xef;
-    data->tcti_echo_context->buf[4] = 0x0;
-    data->tcti_echo_context->data_size = 5;
-    data->tcti_echo_context->state = CAN_RECEIVE;
+    echo_context->buf[0] = 0xde;
+    echo_context->buf[1] = 0xad;
+    echo_context->buf[2] = 0xbe;
+    echo_context->buf[3] = 0xef;
+    echo_context->buf[4] = 0x0;
+    echo_context->data_size = 5;
+    echo_context->state = CAN_RECEIVE;
 
     rc = tcti_receive (data->tcti,
-                       &size_out,
-                       buffer_out,
-                       TSS2_TCTI_TIMEOUT_BLOCK);
+                            &size_out,
+                            buffer_out,
+                            TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_int_equal (size_out, 5);
-    assert_memory_equal (buffer_out, data->tcti_echo_context->buf, size_out);
+    assert_memory_equal (buffer_out, echo_context->buf, size_out);
 }
 
 gint

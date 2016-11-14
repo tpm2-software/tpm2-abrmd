@@ -2,8 +2,8 @@
 #define TCTI_OPTIONS_H
 
 #include <glib-object.h>
+#include "tcti.h"
 #include "tcti-type-enum.h"
-#include "tcti-interface.h"
 
 G_BEGIN_DECLS
 

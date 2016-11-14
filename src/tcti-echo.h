@@ -1,21 +1,20 @@
-#ifndef TABD_TCTI_ECHO_H
-#define TABD_TCTI_ECHO_H
+#ifndef TCTI_ECHO_H
+#define TCTI_ECHO_H
 
 #include <sapi/tpm20.h>
 #include <glib-object.h>
 
-#include "tcti-interface.h"
+#include "tcti.h"
 
 G_BEGIN_DECLS
 
 typedef struct _TctiEchoClass {
-    GObjectClass       parent;
+    TctiClass      parent;
 } TctiEchoClass;
 
-typedef struct _TctiEcho
-{
-    GObject            parent_instance;
-    guint              size;
+typedef struct _TctiEcho {
+    Tcti           parent_instance;
+    guint          size;
 } TctiEcho;
 
 #define TYPE_TCTI_ECHO             (tcti_echo_get_type         ())
@@ -27,8 +26,8 @@ typedef struct _TctiEcho
 
 GType                tcti_echo_get_type       (void);
 TctiEcho*            tcti_echo_new            (guint        size);
-TSS2_RC              tcti_echo_initialize     (Tcti        *tcti);
+TSS2_RC              tcti_echo_initialize     (TctiEcho    *tcti);
 
 G_END_DECLS
 
-#endif /* TABD_TCTI_ECHO_H */
+#endif /* TCTI_ECHO_H */

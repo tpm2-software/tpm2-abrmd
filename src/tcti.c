@@ -1,11 +1,17 @@
-#include "tcti-interface.h"
+#include "tcti.h"
 
-G_DEFINE_INTERFACE (Tcti, tcti, G_TYPE_OBJECT);
+G_DEFINE_ABSTRACT_TYPE (Tcti, tcti, G_TYPE_OBJECT);
 
 static void
-tcti_default_init (TctiInterface *iface)
+tcti_init (Tcti *tcti)
 {
-/* noop, required by G_DEFINE_INTERFACE */
+/* noop, required by G_DEFINE_ABSTRACT_TYPE */
+    tcti->tcti_context = NULL;
+}
+static void
+tcti_class_init (TctiClass *klass)
+{
+    klass->initialize   = tcti_initialize;
 }
 /**
  * AFAIK this is boilerplate for 'interface' / abstract objects. All we do
@@ -16,25 +22,15 @@ tcti_default_init (TctiInterface *iface)
 TSS2_RC
 tcti_initialize (Tcti *self)
 {
-    TctiInterface *iface;
-
-    g_debug ("tcti_initialize");
-    g_return_val_if_fail (IS_TCTI (self), NULL);
-    iface = TCTI_GET_INTERFACE (self);
-    g_return_val_if_fail (iface->initialize != NULL, NULL);
-
-    return iface->initialize (self);
+    g_debug ("tcti_initialize: 0x%x", self);
+    return TCTI_GET_CLASS (self)->initialize (self);
 }
-/**
- * This function should be used carefully. It breaks the encapsulation of
- * the Tcti object and may cause weird side effects if the TSS2_TCTI_CONTEXT
- * structure and the Tcti object end up being used in different places or
- * threads.
- */
+
 TSS2_TCTI_CONTEXT*
 tcti_peek_context (Tcti *self)
 {
-    return TCTI_GET_INTERFACE (self)->tcti_context;
+    g_debug ("tcti_peek_context: 0x%x", self);
+    return self->tcti_context;
 }
 /**
  * The rest of these functions are just wrappers around the macros provided
@@ -46,7 +42,7 @@ tcti_transmit (Tcti      *self,
                size_t     size,
                uint8_t   *command)
 {
-    return tss2_tcti_transmit (TCTI_GET_INTERFACE (self)->tcti_context,
+    return tss2_tcti_transmit (self->tcti_context,
                                size,
                                command);
 }
@@ -56,20 +52,19 @@ tcti_receive (Tcti      *self,
               uint8_t   *response,
               int32_t    timeout)
 {
-    return tss2_tcti_receive (TCTI_GET_INTERFACE (self)->tcti_context,
+    return tss2_tcti_receive (self->tcti_context,
                               size,
                               response,
                               timeout);
 }
 TSS2_RC
-tcti_cancel (Tcti   *self)
+tcti_cancel (Tcti  *self)
 {
-    return tss2_tcti_cancel (TCTI_GET_INTERFACE (self)->tcti_context);
+    return tss2_tcti_cancel (self->tcti_context);
 }
 TSS2_RC
 tcti_set_locality (Tcti     *self,
                    uint8_t   locality)
 {
-    return tss2_tcti_set_locality (TCTI_GET_INTERFACE (self)->tcti_context,
-                                   locality);
+    return tss2_tcti_set_locality (self->tcti_context, locality);
 }

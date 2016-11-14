@@ -5,17 +5,17 @@
 #include <tcti/tcti_device.h>
 #include <glib-object.h>
 
-#include "tcti-interface.h"
+#include "tcti.h"
 
 G_BEGIN_DECLS
 
 typedef struct _TctiDeviceClass {
-    GObjectClass       parent;
+   TctiClass           parent;
 } TctiDeviceClass;
 
 typedef struct _TctiDevice
 {
-    GObject            parent_instance;
+    Tcti               parent_instance;
     gchar             *filename;
 } TctiDevice;
 
@@ -28,7 +28,7 @@ typedef struct _TctiDevice
 
 GType                tcti_device_get_type       (void);
 TctiDevice*          tcti_device_new            (gchar const      *filename);
-TSS2_RC              tcti_device_initialize     (Tcti             *tcti);
+TSS2_RC              tcti_device_initialize     (TctiDevice       *tcti);
 
 G_END_DECLS
 #endif /* TABD_TCTI_DEVICE_H */

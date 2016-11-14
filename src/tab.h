@@ -9,7 +9,7 @@
 #include "message-queue.h"
 #include "session-data.h"
 #include "sink-interface.h"
-#include "tcti-interface.h"
+#include "tcti.h"
 
 G_BEGIN_DECLS
 

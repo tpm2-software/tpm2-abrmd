@@ -100,7 +100,7 @@ access_broker_setup (void **state)
     TSS2_RC      rc;
 
     tcti = TCTI (tcti_echo_new (MAX_COMMAND_VALUE));
-    rc = tcti_echo_initialize (tcti);
+    rc = tcti_echo_initialize (TCTI_ECHO (tcti));
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize the echo TCTI");
     data = calloc (1, sizeof (test_data_t));
@@ -117,7 +117,7 @@ access_broker_setup_with_init (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     data->tcti = tcti_echo_new (MAX_COMMAND_VALUE);
-    rc = tcti_echo_initialize (TCTI (data->tcti));
+    rc = tcti_echo_initialize (data->tcti);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize the echo TCTI");
     data->broker = access_broker_new (TCTI (data->tcti));

@@ -80,7 +80,7 @@ src_tabd_SOURCES = \
     src/sink-interface.c \
     src/source-interface.c \
     src/tab.c \
-    src/tcti-interface.c \
+    src/tcti.c \
     src/tcti-options.c \
     src/tcti-echo.c \
     src/tcti-type-enum.c \
@@ -141,8 +141,8 @@ test_response_sink_unit_SOURCES = \
     src/session-manager.c \
     src/source-interface.c \
     src/tab.c \
+    src/tcti.c \
     src/tcti-echo.c \
-    src/tcti-interface.c \
     src/tpm2-command.c \
     src/tpm2-response.c \
     test/response-sink_unit.c
@@ -167,8 +167,8 @@ test_command_source_unit_SOURCES = \
     src/sink-interface.c \
     src/source-interface.c \
     src/tab.c \
+    src/tcti.c \
     src/tcti-echo.c \
-    src/tcti-interface.c \
     src/thread-interface.c \
     src/tpm2-command.c \
     src/tpm2-response.c \
@@ -186,8 +186,8 @@ test_tab_unit_SOURCES = \
     src/sink-interface.c \
     src/source-interface.c \
     src/tab.c \
+    src/tcti.c \
     src/tcti-echo.c \
-    src/tcti-interface.c \
     src/thread-interface.c \
     test/tab_unit.c
 
@@ -196,8 +196,8 @@ test_tcti_device_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAG
 test_tcti_device_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_tcti_device_unit_LDFLAGS  = -Wl,--wrap=InitDeviceTcti
 test_tcti_device_unit_SOURCES  = \
+    src/tcti.c \
     src/tcti-device.c \
-    src/tcti-interface.c \
     test/tcti-device_unit.c
 endif
 
@@ -206,16 +206,16 @@ test_tcti_socket_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAG
 test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TCTI_SOCKET_LIBS) $(GOBJECT_LIBS)
 test_tcti_socket_unit_LDFLAGS  = -Wl,--wrap=InitSocketTcti
 test_tcti_socket_unit_SOURCES  = \
+    src/tcti.c \
     src/tcti-socket.c \
-    src/tcti-interface.c \
     test/tcti-socket_unit.c
 endif
 
 test_tcti_options_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
 test_tcti_options_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_tcti_options_unit_SOURCES = \
+    src/tcti.c \
     src/tcti-echo.c \
-    src/tcti-interface.c \
     src/tcti-options.c \
     src/tcti-type-enum.c \
     test/tcti-options_unit.c
@@ -271,7 +271,7 @@ test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SA
 test_access_broker_unit_SOURCES = \
     src/access-broker.c \
     src/session-data.c \
-    src/tcti-interface.c \
+    src/tcti.c \
     src/tcti-echo.c \
     src/tpm2-command.c \
     src/tpm2-response.c \
@@ -280,8 +280,8 @@ test_access_broker_unit_SOURCES = \
 test_tcti_echo_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
 test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_tcti_echo_unit_SOURCES = \
+    src/tcti.c \
     src/tcti-echo.c \
-    src/tcti-interface.c \
     test/tcti-echo_unit.c
 
 test_tss2_tcti_echo_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)

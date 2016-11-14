@@ -59,7 +59,7 @@ tcti_socket_initialize_success_unit (void **state)
     will_return (__wrap_InitSocketTcti, 512);
     will_return (__wrap_InitSocketTcti, TSS2_RC_SUCCESS);
 
-    rc = tcti_socket_initialize (tcti);
+    rc = tcti_socket_initialize (tcti_sock);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
 }
 /**
@@ -96,7 +96,7 @@ tcti_socket_initialize_fail_on_first_init_unit (void **state)
     will_return (__wrap_InitSocketTcti, 0);
     will_return (__wrap_InitSocketTcti, TSS2_TCTI_RC_GENERAL_FAILURE);
 
-    rc = tcti_socket_initialize (tcti);
+    rc = tcti_socket_initialize (tcti_sock);
     assert_int_equal (rc, TSS2_TCTI_RC_GENERAL_FAILURE);
 }
 /**
@@ -117,7 +117,7 @@ tcti_socket_initialize_fail_on_second_init_unit (void **state)
     will_return (__wrap_InitSocketTcti, 0);
     will_return (__wrap_InitSocketTcti, TSS2_TCTI_RC_GENERAL_FAILURE);
 
-    rc = tcti_socket_initialize (tcti);
+    rc = tcti_socket_initialize (tcti_sock);
     assert_int_equal (rc, TSS2_TCTI_RC_GENERAL_FAILURE);
 }
 gint
