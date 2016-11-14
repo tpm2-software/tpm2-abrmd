@@ -151,21 +151,16 @@ test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c tes
 
 test_command_source_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
 test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
+test_command_source_unit_LDFLAGS = -Wl,--wrap=session_manager_lookup_fd,--wrap=tpm2_command_new_from_fd,--wrap=sink_enqueue
 test_command_source_unit_SOURCES = \
-    src/control-message.c \
     src/message-queue.c \
     src/command-source.c \
-    src/response-sink.c \
     src/session-manager.c \
     src/session-data.c \
     src/sink-interface.c \
     src/source-interface.c \
-    src/tab.c \
-    src/tcti.c \
-    src/tcti-echo.c \
     src/thread-interface.c \
     src/tpm2-command.c \
-    src/tpm2-response.c \
     test/command-source_unit.c
 
 test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) \
@@ -229,7 +224,7 @@ test_tcti_tabd_read_write_LDADD   = $(GLIB_LIBS) src/libtcti-tabd.la
 test_tcti_tabd_read_write_SOURCES = test/tcti-tabd_read-write.c
 
 test_tpm2_command_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CLFAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
-test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
+test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(noinst_LTLIBRARIES)
 test_tpm2_command_unit_SOURCES = \
     src/tpm2-command.c \
     src/session-data.c \

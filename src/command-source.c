@@ -149,8 +149,10 @@ command_source_finalize (GObject  *object)
 {
     CommandSource *source = COMMAND_SOURCE (object);
 
-    g_object_unref (source->sink);
-    g_object_unref (source->session_manager);
+    if (source->sink)
+        g_object_unref (source->sink);
+    if (source->session_manager)
+        g_object_unref (source->session_manager);
     close (source->wakeup_send_fd);
     close (source->wakeup_receive_fd);
 }
@@ -246,21 +248,6 @@ command_source_get_type (void)
     }
     return type;
 }
-
-Tpm2Command*
-tpm2_command_from_fd (SessionData *session,
-                      gint         fd)
-{
-    guint8 *command_buf = NULL;
-    UINT32 command_size = 0;
-
-    g_debug ("tpm2_command_from_fd: %d", fd);
-    command_buf = read_tpm_command_from_fd (fd, &command_size);
-    if (command_buf == NULL)
-        return NULL;
-    return tpm2_command_new (session, command_buf);
-}
-
 void
 command_source_thread_cleanup (void *data)
 {
@@ -284,7 +271,7 @@ command_source_session_responder (CommandSource      *source,
         g_error ("failed to get session associated with fd: %d", fd);
     else
         g_debug ("session_manager_lookup_fd for fd %d: 0x%x", fd, session);
-    command = tpm2_command_from_fd (session, fd);
+    command = tpm2_command_new_from_fd (session, fd);
     if (command == NULL) {
         /* command will be NULL when read error on fd, or fd is closed (EOF)
          * In either case we remove the session and free it.

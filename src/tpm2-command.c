@@ -1,4 +1,5 @@
 #include "tpm2-command.h"
+#include "util.h"
 
 /**
  * Boiler-plate gobject code.
@@ -147,6 +148,23 @@ tpm2_command_new (SessionData     *session,
                                        "buffer",  buffer,
                                        "session", session,
                                        NULL));
+}
+/**
+ * Same as tpm2_command_new but instead of taking the command buffer
+ * as a parameter we read it from the 'fd' parameter (file descriptor).
+ */
+Tpm2Command*
+tpm2_command_new_from_fd (SessionData *session,
+                          gint         fd)
+{
+    guint8 *command_buf = NULL;
+    UINT32 command_size = 0;
+
+    g_debug ("tpm2_command_new_from_fd: %d", fd);
+    command_buf = read_tpm_command_from_fd (fd, &command_size);
+    if (command_buf == NULL)
+        return NULL;
+    return tpm2_command_new (session, command_buf);
 }
 /**
  */

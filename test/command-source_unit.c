@@ -13,28 +13,46 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include "response-sink.h"
-#include "tab.h"
 #include "session-manager.h"
 #include "sink-interface.h"
 #include "source-interface.h"
 #include "command-source.h"
-#include "tcti-echo.h"
-#include "tss2-tcti-echo.h"
-
-#define TEST_MSG "test"
-#define TEST_MSG_SIZE 5
+#include "tpm2-command.h"
 
 typedef struct source_test_data {
     SessionManager *manager;
     CommandSource *source;
     SessionData *session;
-    Tab  *tab;
-    Tcti *tcti;
-    ResponseSink *sink;
     gboolean match;
 } source_test_data_t;
 
+
+SessionData*
+__wrap_session_manager_lookup_fd (SessionManager *manager,
+                                  gint            fd_in)
+{
+    g_debug ("__wrap_session_manager_lookup_fd");
+    return SESSION_DATA (mock ());
+}
+
+Tpm2Command*
+__wrap_tpm2_command_new_from_fd (SessionData *session,
+                                 gint         fd)
+{
+    g_debug ("__wrap_tpm2_command_from_fd");
+    return TPM2_COMMAND (mock ());
+}
+void
+__wrap_sink_enqueue (Sink     *sink,
+                     GObject  *obj)
+{
+    Tpm2Command **command;
+
+    g_debug ("__wrap_sink_enqueue");
+    command = (Tpm2Command**)mock ();
+
+    *command = TPM2_COMMAND (obj);
+}
 /* command_source_allocate_test begin
  * Test to allcoate and destroy a CommandSource.
  */
@@ -44,9 +62,8 @@ command_source_allocate_test (void **state)
     source_test_data_t *data = (source_test_data_t *)*state;
     CommandSource *source = NULL;
 
-    source = command_source_new (data->manager);
-    assert_non_null (source);
-    g_object_unref (source);
+    data->source = command_source_new (data->manager);
+    assert_non_null (data->source);
 }
 
 static void
@@ -65,6 +82,7 @@ command_source_allocate_teardown (void **state)
 {
     source_test_data_t *data = (source_test_data_t*)*state;
 
+    g_object_unref (data->source);
     g_object_unref (data->manager);
     free (data);
 }
@@ -100,16 +118,9 @@ command_source_start_setup (void **state)
     data->manager = session_manager_new ();
     if (data->manager == NULL)
         g_error ("failed to allocate new session_manager");
-    data->tcti = TCTI (tcti_echo_new (TSS2_TCTI_ECHO_MIN_BUF));
-    if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize echo TCTI");
-    data->sink = response_sink_new ();
-    data->tab = tab_new (data->tcti);
     data->source = command_source_new (data->manager);
     if (data->source == NULL)
         g_error ("failed to allocate new command_source");
-    source_add_sink (SOURCE (data->source), SINK (data->tab));
-    source_add_sink (SOURCE (data->tab), SINK (data->sink));
 
     *state = data;
 }
@@ -121,7 +132,6 @@ command_source_start_teardown (void **state)
 
     g_object_unref (data->source);
     g_object_unref (data->manager);
-    g_object_unref (data->tab);
     free (data);
 }
 /* command_source_start_test end */
@@ -142,14 +152,7 @@ command_source_wakeup_setup (void **state)
 
     data = calloc (1, sizeof (source_test_data_t));
     data->manager = session_manager_new ();
-    data->tcti    = TCTI (tcti_echo_new (TSS2_TCTI_ECHO_MIN_BUF));
-    if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize echo TCTI");
-    data->sink    = response_sink_new ();
-    data->tab     = tab_new (data->tcti);
     data->source  = command_source_new (data->manager);
-    source_add_sink (SOURCE (data->source), SINK (data->tab));
-    source_add_sink (SOURCE (data->tab), SINK (data->sink));
     *state = data;
 }
 
@@ -176,15 +179,6 @@ command_source_session_insert_test (void **state)
 }
 /* command_source_sesion_insert_test end */
 /* command_source_session_data_test start */
-/* This test picks up where the insert test left off.
- * This time we insert a session but then write some data to it.
- * The session source should pick this up, create a DataMessage,
- * insert it into the tab.
- * The tab should turn around and dump this into a TCTI (which it doesn't do
- * yet) and then put the response into the tab output queue.
- * We then grab this response and compare it to the data that we sent.
- * They should be identical.
- */
 static void
 command_source_session_data_setup (void **state)
 {
@@ -193,30 +187,7 @@ command_source_session_data_setup (void **state)
 
     data = calloc (1, sizeof (source_test_data_t));
     data->manager = session_manager_new ();
-    if (data->manager == NULL)
-        g_error ("failed to allocate new session_manager");
-    data->sink = response_sink_new ();
-    if (data->sink == NULL)
-        g_error ("failed to allocate new response_sink");
-    data->tcti = TCTI (tcti_echo_new (TSS2_TCTI_ECHO_MIN_BUF));
-    if (data->tcti == NULL)
-        g_error ("failed to allcoate new tcti_echo");
-    if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize echo TCTI");
-    data->tab = tab_new (data->tcti);
-    source_add_sink (SOURCE (data->tab), SINK (data->sink));
-
     data->source = command_source_new (data->manager);
-    source_add_sink (SOURCE (data->source), SINK (data->tab));
-
-    ret = tab_start (data->tab);
-    if (ret != 0)
-        g_error ("failed to start tab");
-    data->source = command_source_new (data->manager);
-    source_add_sink (SOURCE (data->source), SINK (data->tab));
-    ret = command_source_start (data->source);
-    if (ret != 0)
-        g_error ("failed to start CommandSource");
 
     *state = data;
 }
@@ -227,40 +198,57 @@ command_source_session_data_teardown (void **state)
 
     command_source_cancel (data->source);
     command_source_join (data->source);
-    tab_cancel (data->tab);
-    tab_join (data->tab);
 
     g_object_unref (data->source);
-    g_object_unref (data->tab);
     g_object_unref (data->manager);
     free (data);
 }
+/**
+ * A test: Test the command_source_session_responder function. We do this
+ * by creating a new SessionData object, associating it with a new
+ * Tpm2Command object (that we populate with a command body), and then
+ * calling the command_source_session_responder.
+ * This function will in turn call the session_manager_lookup_fd,
+ * tpm2_command_new_from_fd, before finally calling the sink_enqueue function.
+ * We mock these 3 functions to control the flow through the function under
+ * test.
+ * The most tricky bit to this is the way the __wrap_sink_enqueue function
+ * works. Since this thing has no return value we pass it a reference to a
+ * Tpm2Command pointer. It sets this to the Tpm2Command that it receives.
+ * We determine success /failure for this test by verifying that the
+ * sink_enqueue function receives the same Tpm2Command that we passed to
+ * the command under test (command_source_session_responder).
+ */
 static void
-command_source_session_data_test (void **state)
+command_source_session_responder_success_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
-    CommandSource *source = data->source;
-    SessionManager    *manager = data->manager;
-    Tab               *tab     = data->tab;
     SessionData *session;
-    gint ret, receive_fd, send_fd;
-    guint8 data_out [TEST_MSG_SIZE] = { 0, };
+    Tpm2Command *command, *command_out;
+    gint fds[2] = { 0, };
+    guint8 *buffer;
+    guint8 data_in [] = { 0x80, 0x01, 0x0,  0x0,  0x0,  0x16,
+                          0x0,  0x0,  0x01, 0x7a, 0x0,  0x0,
+                          0x0,  0x06, 0x0,  0x0,  0x01, 0x0,
+                          0x0,  0x0,  0x0,  0x7f, 0x0a };
+    gboolean result = FALSE;
 
-    session = session_data_new (&receive_fd, &send_fd, 5);
-    assert_false (FD_ISSET (session->receive_fd, &source->session_fdset));
-    session_manager_insert (data->manager, session);
-    sleep (1);
-    assert_true (FD_ISSET (session->receive_fd, &source->session_fdset));
+    session = session_data_new (&fds[0], &fds[1], 0);
+    /**
+     * We must dynamically allocate the buffer for the Tpm2Command since
+     * it takes ownership of the data buffer and frees it as part of it's
+     * instance finalize method.
+     */
+    buffer = calloc (1, sizeof (data_in));
+    memcpy (buffer, data_in, sizeof (data_in));
+    command = tpm2_command_new (session, buffer);
+    /* prime wraps */
+    will_return (__wrap_session_manager_lookup_fd, session);
+    will_return (__wrap_tpm2_command_new_from_fd, command);
+    will_return (__wrap_sink_enqueue, &command_out);
+    result = command_source_session_responder (data->source, 0, NULL);
 
-    g_debug ("writing to send_fd");
-    ret = write (send_fd, TEST_MSG, TEST_MSG_SIZE);
-    assert_true (ret > 0);
-
-    ret = read (receive_fd, data_out, TEST_MSG_SIZE);
-    assert_true (ret > 0);
-    g_debug ("I got this message back:");
-    assert_memory_equal (TEST_MSG, data_out, TEST_MSG_SIZE);
-    session_manager_remove (data->manager, session);
+    assert_int_equal (command_out, command);
 }
 /* command_source_session_data_test end */
 int
@@ -277,7 +265,7 @@ main (int argc,
         unit_test_setup_teardown (command_source_session_insert_test,
                                   command_source_wakeup_setup,
                                   command_source_start_teardown),
-        unit_test_setup_teardown (command_source_session_data_test,
+        unit_test_setup_teardown (command_source_session_responder_success_test,
                                   command_source_session_data_setup,
                                   command_source_session_data_teardown),
     };

@@ -28,6 +28,8 @@ typedef struct _Tpm2Command {
 GType                 tpm2_command_get_type        (void);
 Tpm2Command*          tpm2_command_new             (SessionData      *session,
                                                     guint8           *buffer);
+Tpm2Command*          tpm2_command_new_from_fd     (SessionData      *session,
+                                                    gint              fd);
 guint8*               tpm2_command_get_buffer      (Tpm2Command      *command);
 TPM_CC                tpm2_command_get_code        (Tpm2Command      *command);
 guint32               tpm2_command_get_size        (Tpm2Command      *command);
