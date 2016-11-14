@@ -68,6 +68,7 @@ src_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
 src_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(noinst_LTLIBRARIES) $(noinst_LTLIBRARIES)
 src_tabd_SOURCES = \
+    src/access-broker.c \
     src/control-message.c \
     src/message-queue.c \
     src/tabd.c \
@@ -77,10 +78,10 @@ src_tabd_SOURCES = \
     src/command-source.c \
     src/session-manager.c \
     src/session-data.c \
+    src/resource-manager.c \
     src/response-sink.c \
     src/sink-interface.c \
     src/source-interface.c \
-    src/tab.c \
     src/tcti.c \
     src/tcti-options.c \
     src/tcti-echo.c \

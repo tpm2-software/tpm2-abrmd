@@ -8,15 +8,16 @@
 
 #include <sapi/tpm20.h>
 #include <tabd.h>
+#include "access-broker.h"
 #include "tabd-priv.h"
 #include "logging.h"
 #include "thread-interface.h"
 #include "session-manager.h"
 #include "command-source.h"
 #include "session-data.h"
+#include "resource-manager.h"
 #include "response-sink.h"
 #include "source-interface.h"
-#include "tab.h"
 #include "tabd-generated.h"
 #include "tcti-options.h"
 
@@ -30,11 +31,12 @@
  */
 typedef struct gmain_data {
     GMainLoop *loop;
+    AccessBroker           *access_broker;
+    ResourceManager        *resource_manager;
     Tpm2AccessBroker       *skeleton;
     SessionManager         *manager;
     CommandSource         *command_source;
     Sink                   *response_sink;
-    Tab                    *tab;
     struct drand48_data     rand_data;
     GMutex                  init_mutex;
     Tcti                   *tcti;
@@ -389,6 +391,8 @@ init_thread_func (gpointer user_data)
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize TCTI: 0x%x", rc);
 
+    data->access_broker = access_broker_new (data->tcti);
+    g_debug ("created AccessBroker: 0x%x", data->access_broker);
     /**
      * Instantiate and the objects that make up the TPM command processing
      * pipeline.
@@ -396,8 +400,8 @@ init_thread_func (gpointer user_data)
     data->command_source =
         command_source_new (data->manager);
     g_debug ("created session source: 0x%x", data->command_source);
-    data->tab = tab_new (data->tcti);
-    g_debug ("created tab: 0x%x", data->tab);
+    data->resource_manager = resource_manager_new (data->access_broker);
+    g_debug ("created ResourceManager: 0x%x", data->resource_manager);
     data->response_sink = SINK (response_sink_new ());
     g_debug ("created response source: 0x%x", data->response_sink);
     /**
@@ -406,8 +410,8 @@ init_thread_func (gpointer user_data)
      * caller through the ResponseSink.
      */
     source_add_sink (SOURCE (data->command_source),
-                     SINK   (data->tab));
-    source_add_sink (SOURCE (data->tab),
+                     SINK   (data->resource_manager));
+    source_add_sink (SOURCE (data->resource_manager),
                      SINK   (data->response_sink));
     /**
      * Start the TPM command processing pipeline.
@@ -415,9 +419,9 @@ init_thread_func (gpointer user_data)
     ret = thread_start (THREAD (data->command_source));
     if (ret != 0)
         g_error ("failed to start connection_source");
-    ret = thread_start (THREAD (data->tab));
+    ret = thread_start (THREAD (data->resource_manager));
     if (ret != 0)
-        g_error ("failed to start Tab: %s", strerror (errno));
+        g_error ("failed to start ResourceManager: %s", strerror (errno));
     ret = thread_start (THREAD (data->response_sink));
     if (ret != 0)
         g_error ("failed to start response_source");
@@ -547,7 +551,7 @@ main (int argc, char *argv[])
         g_object_unref (gmain_data.skeleton);
     /* tear down the command processing pipeline */
     thread_cleanup (THREAD (gmain_data.command_source));
-    thread_cleanup (THREAD (gmain_data.tab));
+    thread_cleanup (THREAD (gmain_data.resource_manager));
     thread_cleanup (THREAD (gmain_data.response_sink));
     /* clean up what remains */
     g_object_unref (gmain_data.manager);
