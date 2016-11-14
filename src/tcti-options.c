@@ -3,6 +3,7 @@
 #include "tcti-options.h"
 #include "tcti-interface.h"
 #include "tcti-echo.h"
+#include "tss2-tcti-echo.h"
 #ifdef HAVE_TCTI_DEVICE
 #include "tcti-device.h"
 #endif
@@ -149,9 +150,9 @@ tcti_options_class_init (gpointer klass)
         g_param_spec_uint ("tcti-echo-size",
                            "Echo buffer size",
                            "Size of buffer to allocate for echo TCTI",
-                           0,
-                           16384,
-                           8192,
+                           TSS2_TCTI_ECHO_MIN_BUF,
+                           TSS2_TCTI_ECHO_MAX_BUF,
+                           TSS2_TCTI_ECHO_MAX_BUF,
                            G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
 #ifdef HAVE_TCTI_DEVICE
     obj_properties[PROP_DEVICE_NAME] =
@@ -299,7 +300,7 @@ tcti_options_get_group (TctiOptions *options)
             .arg             = G_OPTION_ARG_INT,
             .arg_data        = &options->echo_size,
             .description     = "Size of buffer to allocate for echo TCTI",
-            .arg_description = "[0-16384]"
+            .arg_description = "[1024-8192]"
         },
 #ifdef HAVE_TCTI_DEVICE
         {

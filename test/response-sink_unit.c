@@ -7,6 +7,7 @@
 #include "source-interface.h"
 #include "tab.h"
 #include "response-sink.h"
+#include "tss2-tcti-echo.h"
 #include "tcti-echo.h"
 
 /**
@@ -19,7 +20,7 @@ response_sink_allocate_test (void **state)
     Tab  *tab;
     ResponseSink *sink;
 
-    tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    tcti = TCTI (tcti_echo_new (TSS2_TCTI_ECHO_MIN_BUF));
     sink = response_sink_new ();
     tab = tab_new (tcti);
     source_add_sink (SOURCE (tab), SINK (sink));
@@ -71,7 +72,7 @@ response_sink_start_stop_setup (void **state)
 {
     start_stop_data_t *data = calloc (1, sizeof (start_stop_data_t));
 
-    data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    data->tcti = TCTI (tcti_echo_new (TSS2_TCTI_ECHO_MIN_BUF));
     data->sink = response_sink_new ();
     data->tab  = tab_new (data->tcti);
     source_add_sink (SOURCE (data->tab), SINK (data->sink));

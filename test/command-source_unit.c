@@ -20,6 +20,7 @@
 #include "source-interface.h"
 #include "command-source.h"
 #include "tcti-echo.h"
+#include "tss2-tcti-echo.h"
 
 #define TEST_MSG "test"
 #define TEST_MSG_SIZE 5
@@ -99,7 +100,7 @@ command_source_start_setup (void **state)
     data->manager = session_manager_new ();
     if (data->manager == NULL)
         g_error ("failed to allocate new session_manager");
-    data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    data->tcti = TCTI (tcti_echo_new (TSS2_TCTI_ECHO_MIN_BUF));
     if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
         g_error ("failed to initialize echo TCTI");
     data->sink = response_sink_new ();
@@ -141,7 +142,7 @@ command_source_wakeup_setup (void **state)
 
     data = calloc (1, sizeof (source_test_data_t));
     data->manager = session_manager_new ();
-    data->tcti    = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    data->tcti    = TCTI (tcti_echo_new (TSS2_TCTI_ECHO_MIN_BUF));
     if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)
         g_error ("failed to initialize echo TCTI");
     data->sink    = response_sink_new ();
@@ -197,7 +198,7 @@ command_source_session_data_setup (void **state)
     data->sink = response_sink_new ();
     if (data->sink == NULL)
         g_error ("failed to allocate new response_sink");
-    data->tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
+    data->tcti = TCTI (tcti_echo_new (TSS2_TCTI_ECHO_MIN_BUF));
     if (data->tcti == NULL)
         g_error ("failed to allcoate new tcti_echo");
     if (tcti_initialize (data->tcti) != TSS2_RC_SUCCESS)

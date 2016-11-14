@@ -12,6 +12,7 @@ check_PROGRAMS  = \
     test/session-manager_unit \
     test/command-source_unit \
     test/test-skeleton_unit \
+    test/tcti-echo_unit \
     test/tcti-options_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
@@ -58,8 +59,8 @@ src_libtcti_tabd_la_SOURCES = \
     src/tabd-generated.c \
     src/tcti-tabd.c
 
-src_libtcti_echo_la_CFLAGS  = -fPIC $(GLIB_CFLAGS) $(AM_CFLAGS)
-src_libtcti_echo_la_SOURCES = src/tcti-interface.c src/tcti-echo.c
+src_libtcti_echo_la_CFLAGS  = -fPIC $(AM_CFLAGS) $(SAPI_CFLAGS)
+src_libtcti_echo_la_SOURCES = src/tss2-tcti-echo.c
 
 src_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
     $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
@@ -211,7 +212,7 @@ test_tcti_socket_unit_SOURCES  = \
 endif
 
 test_tcti_options_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
-test_tcti_options_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_tcti_options_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_tcti_options_unit_SOURCES = \
     src/tcti-echo.c \
     src/tcti-interface.c \
@@ -266,7 +267,7 @@ test_message_queue_unit_SOURCES = \
 
 test_access_broker_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_GetCapability,--wrap=tcti_echo_transmit
-test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS)
+test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_access_broker_unit_SOURCES = \
     src/access-broker.c \
     src/session-data.c \
@@ -276,8 +277,14 @@ test_access_broker_unit_SOURCES = \
     src/tpm2-response.c \
     test/access-broker_unit.c
 
+test_tcti_echo_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
+test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
+test_tcti_echo_unit_SOURCES = \
+    src/tcti-echo.c \
+    src/tcti-interface.c \
+    test/tcti-echo_unit.c
+
 test_tss2_tcti_echo_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
-test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS)
+test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(noinst_LTLIBRARIES)
 test_tss2_tcti_echo_unit_SOURCES = \
-    src/tss2-tcti-echo.c \
     test/tss2-tcti-echo_unit.c

@@ -8,10 +8,6 @@
 
 G_BEGIN_DECLS
 
-#define TCTI_ECHO_MIN_BUF 1024
-#define TCTI_ECHO_DEFAULT_BUF 8192
-#define TCTI_ECHO_MAX_BUF 16384
-
 typedef struct _TctiEchoClass {
     GObjectClass       parent;
 } TctiEchoClass;
@@ -34,4 +30,5 @@ TctiEcho*            tcti_echo_new            (guint        size);
 TSS2_RC              tcti_echo_initialize     (Tcti        *tcti);
 
 G_END_DECLS
+
 #endif /* TABD_TCTI_ECHO_H */
