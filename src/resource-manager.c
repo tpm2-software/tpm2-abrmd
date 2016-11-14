@@ -61,10 +61,8 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                    16,
                    4);
     /* transform the Tpm2Response */
-    /* send the response to the sink */
-    if (resmgr->sink)
-        sink_enqueue (resmgr->sink, G_OBJECT (response));
-    g_object_unref (response);
+    /* send the response to the sinrk */
+    sink_enqueue (resmgr->sink, G_OBJECT (response));
 }
 /**
  * This function acts as a thread. It simply:
