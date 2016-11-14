@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <string.h>
 #include <tpm20.h>
 
 #include "tpm2-response.h"
@@ -167,6 +169,12 @@ tpm2_response_new_rc (SessionData *session,
     guint8 *buffer;
 
     buffer = calloc (1, TPM_RESPONSE_HEADER_SIZE);
+    if (buffer == NULL) {
+        g_warning ("tpm2_response_new_rc: failed to allocate 0x%x bytes for "
+                   "response: errno: %d: %s",
+                   TPM_RESPONSE_HEADER_SIZE, errno, strerror (errno));
+        return NULL;
+    }
     TPM_RESPONSE_TAG (buffer)  = htobe16 (TPM_ST_NO_SESSIONS);
     TPM_RESPONSE_SIZE (buffer) = htobe32 (TPM_RESPONSE_HEADER_SIZE);
     TPM_RESPONSE_CODE (buffer) = htobe32 (rc);

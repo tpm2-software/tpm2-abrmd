@@ -18,9 +18,48 @@ typedef struct test_data {
     SessionData     *session;
     TctiEcho        *tcti_echo;
     Tpm2Command     *command;
-    Tpm2Response    *responce;
+    Tpm2Response    *response;
 } test_data_t;
 
+/**
+ * Mock function for testing the resource_manager_process_tpm2_command
+ * function which depends on the access_broker_send_command and must
+ * handle the call and the associated error conditions.
+ */
+Tpm2Response*
+__wrap_access_broker_send_command (AccessBroker *access_broker,
+                                   Tpm2Command  *command,
+                                   TSS2_RC      *rc)
+{
+    Tpm2Response *response;
+
+    *rc      = (TSS2_RC)mock ();
+    response = TPM2_RESPONSE (mock ());
+
+    return response;
+}
+/**
+ * Mock function for testing the resoruce_manager_process_tpm2_command
+ * function. When the AccessBroker returns a Tpm2Response object the
+ * ResourceManager passes this object to whatever sink has been provided
+ * to it. For the purposes of testing we don't provide a valid Sink.
+ * Instead we mock this function as a way to take the response object
+ * away from the ResourceManager and verify that it was produced
+ * correctly.
+ *
+ * We do something weird here though: we pass the test data structure into
+ * this function by way of the will_return / wrap mechanism. This isn't how
+ * these are intended to be used but it's the only way to get the test
+ * data structure into the function so that we can verify the sink was
+ * passed the Tpm2Response object that we expect.
+ */
+void
+__wrap_sink_enqueue (Sink      *self,
+                     GObject   *obj)
+{
+    test_data_t *data = (test_data_t*)mock ();
+    data->response = TPM2_RESPONSE (obj);
+}
 static void
 resource_manager_setup (void **state)
 {
@@ -103,11 +142,47 @@ resource_manager_sink_enqueue_test (void **state)
     data->session = session_data_new (&fds[0], &fds[1], 0);
     buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
     data->command = tpm2_command_new (data->session, buffer);
-    sink_enqueue (SINK (data->resource_manager), G_OBJECT (data->command));
+    resource_manager_enqueue (SINK (data->resource_manager), G_OBJECT (data->command));
     command_out = TPM2_COMMAND (message_queue_dequeue (data->resource_manager->in_queue));
 
     assert_int_equal (data->command, command_out);
     assert_int_equal (1, 1);
+}
+/**
+ * A test: exercise the resource_manager_process_tpm2_command function.
+ * This function is normally invoked by the ResoruceManager internal
+ * thread. We invoke it directly here to control variables and timing
+ * issues with the thread.
+ */
+static void
+resource_manager_process_tpm2_command_success_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    Tpm2Command  *command;
+    Tpm2Response *response;
+    guint8 *buffer;
+    gint fds[2] = { 0, };
+
+    data->session = session_data_new (&fds[0], &fds[1], 0);
+    buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
+    /**
+     * we don't use the test data structure to hold the command object since
+     * it will be freed by the call to resource_manager_process_tpm2_command
+     * and the teardown function will attempt to free it again if set.
+     */
+    command = tpm2_command_new (data->session, buffer);
+    response = tpm2_response_new_rc (data->session, TSS2_RC_SUCCESS);
+
+    will_return (__wrap_access_broker_send_command, TSS2_RC_SUCCESS);
+    will_return (__wrap_access_broker_send_command, response);
+    /**
+     * The sink_enqueue wrap function will assign the Tpm2Response it's passed
+     * to the test data structure.
+     */
+    will_return (__wrap_sink_enqueue, data);
+    resource_manager_process_tpm2_command (data->resource_manager,
+                                           command);
+    assert_int_equal (data->response, response);
 }
 int
 main (int   argc,
@@ -121,6 +196,9 @@ main (int   argc,
                                   resource_manager_setup,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_sink_enqueue_test,
+                                  resource_manager_setup,
+                                  resource_manager_teardown),
+        unit_test_setup_teardown (resource_manager_process_tpm2_command_success_test,
                                   resource_manager_setup,
                                   resource_manager_teardown),
     };
