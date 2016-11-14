@@ -131,20 +131,13 @@ test_test_skeleton_unit_SOURCES = test/test-skeleton_unit.c
 test_response_sink_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
 test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(GOBJECT_LIBS)
-test_response_sink_unit_LDFLAGS = -Wl,--wrap=response_sink_start
 test_response_sink_unit_SOURCES = \
     src/control-message.c \
     src/thread-interface.c \
     src/message-queue.c \
     src/response-sink.c \
-    src/sink-interface.c \
     src/session-data.c \
-    src/session-manager.c \
-    src/source-interface.c \
-    src/tab.c \
-    src/tcti.c \
-    src/tcti-echo.c \
-    src/tpm2-command.c \
+    src/sink-interface.c \
     src/tpm2-response.c \
     test/response-sink_unit.c
 

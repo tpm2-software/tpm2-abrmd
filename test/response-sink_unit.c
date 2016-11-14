@@ -1,14 +1,10 @@
 #include <glib.h>
+#include <stdlib.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include "session-manager.h"
-#include "source-interface.h"
-#include "tab.h"
 #include "response-sink.h"
-#include "tss2-tcti-echo.h"
-#include "tcti-echo.h"
 
 /**
  * Test to allcoate and destroy a ResponseSink.
@@ -16,43 +12,18 @@
 static void
 response_sink_allocate_test (void **state)
 {
-    Tcti *tcti;
-    Tab  *tab;
     ResponseSink *sink;
 
-    tcti = TCTI (tcti_echo_new (TSS2_TCTI_ECHO_MIN_BUF));
     sink = response_sink_new ();
-    tab = tab_new (tcti);
-    source_add_sink (SOURCE (tab), SINK (sink));
 
     g_object_unref (sink);
-    g_object_unref (tab);
 }
 
 /* response_sink_start_stop_test begin
  */
 typedef struct start_stop_data {
     ResponseSink  *sink;
-    Tab              *tab;
-    Tcti             *tcti;
 } start_stop_data_t;
-
-void *
-not_response_sink_thread (void *data)
-{
-    while (TRUE) {
-        sleep (1);
-        pthread_testcancel ();
-    }
-}
-
-gint
-__wrap_response_sink_start (ResponseSink *sink)
-{
-    if (sink->thread != 0)
-        g_error ("response_sink already started");
-    return pthread_create (&sink->thread, NULL, not_response_sink_thread, sink);
-}
 
 static void
 response_sink_start_stop_test (void **state)
@@ -72,10 +43,7 @@ response_sink_start_stop_setup (void **state)
 {
     start_stop_data_t *data = calloc (1, sizeof (start_stop_data_t));
 
-    data->tcti = TCTI (tcti_echo_new (TSS2_TCTI_ECHO_MIN_BUF));
     data->sink = response_sink_new ();
-    data->tab  = tab_new (data->tcti);
-    source_add_sink (SOURCE (data->tab), SINK (data->sink));
 
     *state = data;
 }
