@@ -1,6 +1,9 @@
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
+AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include \
+    $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
+    $(SAPI_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS)
+UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 
 sbin_PROGRAMS   = src/tpm2-abrmd
 noinst_PROGRAMS = test/tcti-tabrmd_read-write
@@ -48,23 +51,15 @@ nodist_pkgconfig_DATA = lib/tcti-tabrmd.pc
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
 VALGRIND_memcheck_FLAGS = --show-leak-kinds=definite,indirect
 
-src_libutil_la_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(SAPI_CFLAGS) -fPIC
-src_libutil_la_SOURCES = src/tpm2-header.c src/util.c
+src_libutil_la_SOURCES = src/tabrmd-generated.c src/tpm2-header.c src/util.c
 
-src_libtcti_tabrmd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
-    $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
 src_libtcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(SAPI_LIBS)
-src_libtcti_tabrmd_la_LDFLAGS = -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
-src_libtcti_tabrmd_la_SOURCES = \
-    src/tabrmd-generated.c \
-    src/tcti-tabrmd.c
+src_libtcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
+src_libtcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c
 
-src_libtcti_echo_la_CFLAGS  = -fPIC $(AM_CFLAGS) $(SAPI_CFLAGS)
 src_libtcti_echo_la_SOURCES = src/tss2-tcti-echo.c
 
-src_tpm2_abrmd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
-    $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(noinst_LTLIBRARIES) $(noinst_LTLIBRARIES)
 src_tpm2_abrmd_SOURCES = \
@@ -72,7 +67,6 @@ src_tpm2_abrmd_SOURCES = \
     src/control-message.c \
     src/message-queue.c \
     src/tabrmd.c \
-    src/tabrmd-generated.c \
     src/logging.c \
     src/thread-interface.c \
     src/command-source.c \
@@ -89,12 +83,10 @@ src_tpm2_abrmd_SOURCES = \
     src/tpm2-command.c \
     src/tpm2-response.c
 if TCTI_DEVICE
-src_tpm2_abrmd_CFLAGS += $(TCTI_DEVICE_CFLAGS)
 src_tpm2_abrmd_LDADD += $(TCTI_DEVICE_LIBS)
 src_tpm2_abrmd_SOURCES += src/tcti-device.c
 endif
 if TCTI_SOCKET
-src_tpm2_abrmd_CFLAGS += $(TCTI_SOCKET_CFLAGS)
 src_tpm2_abrmd_LDADD += $(TCTI_SOCKET_LIBS)
 src_tpm2_abrmd_SOURCES += src/tcti-socket.c
 endif
@@ -125,11 +117,11 @@ dist/%.service : dist/%.service.in
 	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g; \
                 s,[@]includedir[@],$(includedir),g;" $^ > $@
 
-test_test_skeleton_unit_CFLAGS  = $(CMOCKA_CFLAGS)
+test_test_skeleton_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_test_skeleton_unit_LDADD   = $(CMOCKA_LIBS)
 test_test_skeleton_unit_SOURCES = test/test-skeleton_unit.c
 
-test_response_sink_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
+test_response_sink_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(GOBJECT_LIBS)
 test_response_sink_unit_SOURCES = \
@@ -142,15 +134,15 @@ test_response_sink_unit_SOURCES = \
     src/tpm2-response.c \
     test/response-sink_unit.c
 
-test_session_data_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
+test_session_data_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_session_data_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_session_data_unit_SOURCES = src/session-data.c test/session-data_unit.c
 
-test_session_manager_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
+test_session_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c test/session-manager_unit.c
 
-test_command_source_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(GOBJECT_CFLAGS)
+test_command_source_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_command_source_unit_LDFLAGS = -Wl,--wrap=session_manager_lookup_fd,--wrap=tpm2_command_new_from_fd,--wrap=sink_enqueue
 test_command_source_unit_SOURCES = \
@@ -165,7 +157,7 @@ test_command_source_unit_SOURCES = \
     test/command-source_unit.c
 
 if TCTI_DEVICE
-test_tcti_device_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(AM_CFLAGS)
+test_tcti_device_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
 test_tcti_device_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_tcti_device_unit_LDFLAGS  = -Wl,--wrap=InitDeviceTcti
 test_tcti_device_unit_SOURCES  = \
@@ -175,7 +167,7 @@ test_tcti_device_unit_SOURCES  = \
 endif
 
 if TCTI_SOCKET
-test_tcti_socket_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAGS) $(TCTI_SOCKET_CFLAGS) $(AM_CFLAGS)
+test_tcti_socket_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
 test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TCTI_SOCKET_LIBS) $(GOBJECT_LIBS)
 test_tcti_socket_unit_LDFLAGS  = -Wl,--wrap=InitSocketTcti
 test_tcti_socket_unit_SOURCES  = \
@@ -184,7 +176,7 @@ test_tcti_socket_unit_SOURCES  = \
     test/tcti-socket_unit.c
 endif
 
-test_tcti_options_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
+test_tcti_options_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tcti_options_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_tcti_options_unit_SOURCES = \
     src/tcti.c \
@@ -193,52 +185,49 @@ test_tcti_options_unit_SOURCES = \
     src/tcti-type-enum.c \
     test/tcti-options_unit.c
 if TCTI_DEVICE
-test_tcti_options_unit_CFLAGS  += $(TCTI_DEVICE_CFLAGS)
 test_tcti_options_unit_LDADD   += $(TCTI_DEVICE_LIBS)
 test_tcti_options_unit_SOURCES += src/tcti-device.c
 endif
 if TCTI_SOCKET
-test_tcti_options_unit_CFLAGS  += $(TCTI_SOCKET_CFLAGS)
 test_tcti_options_unit_LDADD   += $(TCTI_SOCKET_LIBS)
 test_tcti_options_unit_SOURCES += src/tcti-socket.c
 endif
 
-test_tcti_tabrmd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)
 test_tcti_tabrmd_read_write_LDADD   = $(GLIB_LIBS) src/libtcti-tabrmd.la
 test_tcti_tabrmd_read_write_SOURCES = test/tcti-tabrmd_read-write.c
 
-test_tpm2_command_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CLFAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
+test_tpm2_command_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(noinst_LTLIBRARIES)
 test_tpm2_command_unit_SOURCES = \
     src/tpm2-command.c \
     src/session-data.c \
     test/tpm2-command_unit.c
 
-test_tpm2_response_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CLFAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
+test_tpm2_response_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tpm2_response_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
 test_tpm2_response_unit_SOURCES = \
     src/tpm2-response.c \
     src/session-data.c \
     test/tpm2-response_unit.c
 
-test_util_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
+test_util_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_util_unit_LDFLAGS = -Wl,--wrap=read,--wrap=write
 test_util_unit_SOURCES = test/util_unit.c
 
-test_util_mock_realloc_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
+test_util_mock_realloc_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_util_mock_realloc_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_util_mock_realloc_unit_LDFLAGS = -Wl,--wrap=realloc
 test_util_mock_realloc_unit_SOURCES = test/util-mock-realloc_unit.c
 
-test_message_queue_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(AM_CFLAGS)
+test_message_queue_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_message_queue_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_message_queue_unit_SOURCES = \
     src/message-queue.c \
     src/session-data.c \
     test/message-queue_unit.c
 
-test_access_broker_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
+test_access_broker_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_GetCapability,--wrap=tcti_echo_transmit
 test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_access_broker_unit_SOURCES = \
@@ -250,9 +239,9 @@ test_access_broker_unit_SOURCES = \
     src/tpm2-response.c \
     test/access-broker_unit.c
 
-test_resource_manager_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(SAPI_CFLAGS) $(PTHREAD_CFLAGS) $(AM_CFLAGS)
-test_resource_manager_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
+test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue
+test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_resource_manager_unit_SOURCES = \
     src/access-broker.c \
     src/control-message.c \
@@ -268,14 +257,14 @@ test_resource_manager_unit_SOURCES = \
     src/tpm2-response.c \
     test/resource-manager_unit.c
 
-test_tcti_echo_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
+test_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
 test_tcti_echo_unit_SOURCES = \
     src/tcti.c \
     src/tcti-echo.c \
     test/tcti-echo_unit.c
 
-test_tss2_tcti_echo_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
+test_tss2_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(noinst_LTLIBRARIES)
 test_tss2_tcti_echo_unit_SOURCES = \
     test/tss2-tcti-echo_unit.c
