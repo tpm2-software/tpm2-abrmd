@@ -60,11 +60,11 @@ tcti_options_set_property (GObject      *object,
 #ifdef HAVE_TCTI_SOCKET
     case PROP_SOCKET_ADDRESS:
         self->socket_address = g_value_dup_string (value);
-        g_debug ("TctiOptions set socket_address: %s\n", self->socket_address);
+        g_debug ("TctiOptions set socket_address: %s", self->socket_address);
         break;
     case PROP_SOCKET_PORT:
         self->socket_port = g_value_get_int (value);
-        g_debug ("TctiOptions set socket_port: %d\n", self->socket_port);
+        g_debug ("TctiOptions set socket_port: %d", self->socket_port);
         break;
 #endif
     default:

@@ -464,7 +464,7 @@ parse_opts (gint            argc,
     g_option_context_add_main_entries (ctx, entries, NULL);
     g_option_context_add_group (ctx, tcti_options_get_group (options->tcti_options));
     if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
-        g_print ("Failed to initialize: %s\n", err->message);
+        g_warning ("Failed to initialize: %s", err->message);
         g_clear_error (&err);
         ret = 1;
         goto out;
