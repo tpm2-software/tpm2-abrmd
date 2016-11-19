@@ -166,16 +166,16 @@ tcti_options_class_init (gpointer klass)
         g_param_spec_string ("socket-address",
                              "Socket address",
                              "Address for socket TCTI to connect",
-                             NULL  /* default value */,
-                             G_PARAM_READWRITE);
+                             "127.0.0.1",
+                             G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
     obj_properties[PROP_SOCKET_PORT] =
         g_param_spec_int ("socket-port",
                           "Port",
                           "Port for socket TCTI connection",
                           0,
                           65535,
-                          2222,
-                          G_PARAM_READWRITE);
+                          2321,
+                          G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
 #endif
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
