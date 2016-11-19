@@ -1,7 +1,7 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
   "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
-<node name='/us/twobit/tss2/Tpm2AccessBroker'>
-    <interface name='us.twobit.tss2.Tpm2AccessBroker'>
+<node name='/com/intel/tss2/TctiTabrmd'>
+    <interface name='com.intel.tss2.TctiTabrmd'>
         <method name='CreateConnection'>
             <arg type='ah' name='fds' direction='out'/>
             <arg type='t'  name='id'  direction='out'/>

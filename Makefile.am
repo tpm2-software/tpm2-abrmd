@@ -114,7 +114,7 @@ endif
 	cat $^ >> $@
 
 %-generated.c %-generated.h : src/tabrmd.xml
-	$(GDBUS_CODEGEN) --interface-prefix=us.twobit.tss2. \
+	$(GDBUS_CODEGEN) --interface-prefix=com.intel.tss2. \
 	    --generate-c-code=src/tabrmd-generated $^
 
 dist/%.service : dist/%.service.in
