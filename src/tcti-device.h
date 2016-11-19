@@ -9,6 +9,8 @@
 
 G_BEGIN_DECLS
 
+#define TCTI_DEVICE_DEFAULT_FILE "/dev/tpm0"
+
 typedef struct _TctiDeviceClass {
    TctiClass           parent;
 } TctiDeviceClass;

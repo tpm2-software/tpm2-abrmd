@@ -158,7 +158,7 @@ tcti_options_class_init (gpointer klass)
         g_param_spec_string ("device-name",
                              "Device name",
                              "TPM2 device node",
-                             "/dev/tpm0",
+                             TCTI_DEVICE_DEFAULT_FILE,
                              G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
 #endif
 #ifdef HAVE_TCTI_SOCKET
@@ -166,7 +166,7 @@ tcti_options_class_init (gpointer klass)
         g_param_spec_string ("socket-address",
                              "Socket address",
                              "Address for socket TCTI to connect",
-                             "127.0.0.1",
+                             TCTI_SOCKET_DEFAULT_HOST,
                              G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
     obj_properties[PROP_SOCKET_PORT] =
         g_param_spec_int ("socket-port",
@@ -174,7 +174,7 @@ tcti_options_class_init (gpointer klass)
                           "Port for socket TCTI connection",
                           0,
                           65535,
-                          2321,
+                          TCTI_SOCKET_DEFAULT_PORT,
                           G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
 #endif
     g_object_class_install_properties (object_class,

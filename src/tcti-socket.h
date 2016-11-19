@@ -10,6 +10,9 @@
 
 G_BEGIN_DECLS
 
+#define TCTI_SOCKET_DEFAULT_HOST "127.0.0.1"
+#define TCTI_SOCKET_DEFAULT_PORT 2321
+
 typedef struct _TctiSocketClass {
     TctiClass          parent;
 } TctiSocketClass;
