@@ -1,7 +1,7 @@
 #include <errno.h>
 #include <stdbool.h>
 
-#include "tabd.h"
+#include "tabrmd.h"
 
 #include "access-broker.h"
 #include "tpm2-command.h"

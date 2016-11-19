@@ -1,6 +1,6 @@
 {
     global:
-        tss2_tcti_tabd_init;
+        tss2_tcti_tabrmd_init;
     local:
         *;
 };

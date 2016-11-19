@@ -1,6 +1,7 @@
 #include <glib.h>
-#include <tcti-tabd.h>
 #include <unistd.h>
+
+#include "tcti-tabrmd.h"
 
 int
 send_recv (TSS2_TCTI_CONTEXT *tcti_context)
@@ -58,7 +59,7 @@ main (void)
     TSS2_RC ret;
     size_t context_size;
 
-    ret = tss2_tcti_tabd_init (NULL, &context_size);
+    ret = tss2_tcti_tabrmd_init (NULL, &context_size);
     if (ret != TSS2_RC_SUCCESS)
         g_error ("failed to get size of tcti context");
     g_debug ("tcti size is: %d", context_size);
@@ -66,11 +67,11 @@ main (void)
     if (tcti_context == NULL)
         g_error ("failed to allocate memory for tcti context");
     g_debug ("context structure allocated successfully");
-    ret = tss2_tcti_tabd_init (tcti_context, NULL);
+    ret = tss2_tcti_tabrmd_init (tcti_context, NULL);
     if (ret != TSS2_RC_SUCCESS)
         g_error ("failed to initialize tcti context");
     /* Wait for initialization thread in the TCTI to setup a connection to the
-     * tabd. The right thing to do is for the TCTI to cause callers to block
+     * tabrmd. The right thing to do is for the TCTI to cause callers to block
      * on a mutex till the setup thread is done.
      */
     g_debug ("initialized");

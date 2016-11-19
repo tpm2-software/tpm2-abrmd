@@ -3,11 +3,11 @@
 
 #include <tpm20.h>
 
-#define TAB_DBUS_INTERFACE "com.intel.tss2.Tab"
-#define TAB_DBUS_NAME "com.intel.tss2.Tab"
-#define TAB_DBUS_PATH "/com/intel/tss2/Tab"
-#define TAB_DBUS_METHOD_CREATE_CONNECTION "CreateConnection"
-#define TAB_DBUS_METHOD_CANCEL "Cancel"
+#define TABRMD_DBUS_INTERFACE                "com.intel.tss2.Tab"
+#define TABRMD_DBUS_NAME                     "com.intel.tss2.Tab"
+#define TABRMD_DBUS_PATH                     "/com/intel/tss2/Tab"
+#define TABRMD_DBUS_METHOD_CREATE_CONNECTION "CreateConnection"
+#define TABRMD_DBUS_METHOD_CANCEL            "Cancel"
 
 #define TSS2_TABRMD_INTERNAL_ERROR ((TSS2_RC)(1 << TSS2_LEVEL_IMPLEMENTATION_SPECIFIC_SHIFT) + TSS2_RESMGR_ERROR_LEVEL)
 #define TSS2_TABRMD_SAPI_INIT      ((TSS2_RC)(2 << TSS2_LEVEL_IMPLEMENTATION_SPECIFIC_SHIFT) + TSS2_RESMGR_ERROR_LEVEL)

@@ -2,26 +2,26 @@
 #include <gio/gio.h>
 #include <glib.h>
 #include <string.h>
-#include <tabd.h>
-#include <tcti-tabd.h>
 
-#include "tcti-tabd-priv.h"
+#include "tabrmd.h"
+#include "tcti-tabrmd.h"
+#include "tcti-tabrmd-priv.h"
 #include "util.h"
 
 static TSS2_RC
-tss2_tcti_tabd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
+tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
                          size_t size,
                          uint8_t *command)
 {
     int ret = 0;
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
 
-    g_debug ("tss2_tcti_tabd_transmit");
-    ret = pthread_mutex_lock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    g_debug ("tss2_tcti_tabrmd_transmit");
+    ret = pthread_mutex_lock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error acquiring TCTI lock: %s", strerror (errno));
-    g_debug ("blocking on PIPE_TRANSMIT: %d", TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context));
-    ret = write_all (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context),
+    g_debug ("blocking on PIPE_TRANSMIT: %d", TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context));
+    ret = write_all (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context),
                      command,
                      size);
     /* should switch on possible errors to translate to TSS2 error codes */
@@ -29,14 +29,14 @@ tss2_tcti_tabd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
         tss2_ret = TSS2_RC_SUCCESS;
     else
         tss2_ret = TSS2_TCTI_RC_GENERAL_FAILURE;
-    ret = pthread_mutex_unlock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    ret = pthread_mutex_unlock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error unlocking TCTI mutex: %s", strerror (errno));
     return tss2_ret;
 }
 
 static TSS2_RC
-tss2_tcti_tabd_receive (TSS2_TCTI_CONTEXT *tcti_context,
+tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
                         size_t *size,
                         uint8_t *response,
                         int32_t timeout)
@@ -44,59 +44,59 @@ tss2_tcti_tabd_receive (TSS2_TCTI_CONTEXT *tcti_context,
     ssize_t ret = 0;
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
 
-    g_debug ("tss2_tcti_tabd_receive");
+    g_debug ("tss2_tcti_tabrmd_receive");
     if (timeout != TSS2_TCTI_TIMEOUT_BLOCK)
         return TSS2_TCTI_RC_BAD_VALUE;
-    ret = pthread_mutex_lock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    ret = pthread_mutex_lock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error acquiring TCTI lock: %s", strerror (errno));
-    ret = read (TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context), response, *size);
+    ret = read (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context), response, *size);
     if (ret != -1) {
         *size = ret;
         tss2_ret = TSS2_RC_SUCCESS;
     } else
         tss2_ret = TSS2_TCTI_RC_GENERAL_FAILURE;
-    ret = pthread_mutex_unlock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    ret = pthread_mutex_unlock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error unlocking TCTI mutex: %s", strerror (errno));
     return tss2_ret;
 }
 
 static void
-tss2_tcti_tabd_finalize (TSS2_TCTI_CONTEXT *tcti_context)
+tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *tcti_context)
 {
     int ret = 0;
 
-    g_debug ("tss2_tcti_tabd_finalize");
+    g_debug ("tss2_tcti_tabrmd_finalize");
     if (tcti_context == NULL)
-        g_warning ("tss2_tcti_tabd_finalize: NULL context");
-    if (TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) != 0) {
-        ret = close (TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context));
-        TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) = 0;
+        g_warning ("tss2_tcti_tabrmm_finalize: NULL context");
+    if (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) != 0) {
+        ret = close (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context));
+        TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) = 0;
     }
     if (ret != 0 && ret != EBADF)
         g_warning ("Failed to close receive pipe: %s", strerror (errno));
-    if (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context) != 0) {
-        ret = close (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context));
-        TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context) = 0;
+    if (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context) != 0) {
+        ret = close (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context));
+        TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context) = 0;
     }
     if (ret != 0 && ret != EBADF)
         g_warning ("Failed to close send pipe: %s", strerror (errno));
-    g_object_unref (TSS2_TCTI_TABD_PROXY (tcti_context));
+    g_object_unref (TSS2_TCTI_TABRMD_PROXY (tcti_context));
     free (tcti_context);
 }
 
 static TSS2_RC
-tss2_tcti_tabd_cancel (TSS2_TCTI_CONTEXT *tcti_context)
+tss2_tcti_tabrmd_cancel (TSS2_TCTI_CONTEXT *tcti_context)
 {
     GVariant *id_variant, *ret_variant;
     TSS2_RC ret = TSS2_RC_SUCCESS;
     GError *error = NULL;
     gboolean cancel_ret;
 
-    g_info("tss2_tcti_tabd_cancel: id 0x%x", TSS2_TCTI_TABD_ID (tcti_context));
-    cancel_ret = tpm2_access_broker_call_cancel_sync (TSS2_TCTI_TABD_PROXY (tcti_context),
-                                                      TSS2_TCTI_TABD_ID (tcti_context),
+    g_info("tss2_tcti_tabrmd_cancel: id 0x%x", TSS2_TCTI_TABRMD_ID (tcti_context));
+    cancel_ret = tpm2_access_broker_call_cancel_sync (TSS2_TCTI_TABRMD_PROXY (tcti_context),
+                                                      TSS2_TCTI_TABRMD_ID (tcti_context),
                                                       &ret,
                                                       NULL,
                                                       &error);
@@ -110,7 +110,7 @@ tss2_tcti_tabd_cancel (TSS2_TCTI_CONTEXT *tcti_context)
 }
 
 static TSS2_RC
-tss2_tcti_tabd_get_poll_handles (TSS2_TCTI_CONTEXT *tcti_context,
+tss2_tcti_tabrmd_get_poll_handles (TSS2_TCTI_CONTEXT *tcti_context,
                                  TSS2_TCTI_POLL_HANDLE *handles,
                                  size_t *num_handles)
 {
@@ -118,16 +118,16 @@ tss2_tcti_tabd_get_poll_handles (TSS2_TCTI_CONTEXT *tcti_context,
 }
 
 static TSS2_RC
-tss2_tcti_tabd_set_locality (TSS2_TCTI_CONTEXT *tcti_context,
+tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *tcti_context,
                              guint8             locality)
 {
     gboolean status;
     TSS2_RC ret;
     GError *error = NULL;
 
-    g_info ("tss2_tcti_tabd_set_locality: id 0x%x", TSS2_TCTI_TABD_ID (tcti_context));
-    status = tpm2_access_broker_call_set_locality_sync (TSS2_TCTI_TABD_PROXY (tcti_context),
-                                                        TSS2_TCTI_TABD_ID (tcti_context),
+    g_info ("tss2_tcti_tabrmd_set_locality: id 0x%x", TSS2_TCTI_TABRMD_ID (tcti_context));
+    status = tpm2_access_broker_call_set_locality_sync (TSS2_TCTI_TABRMD_PROXY (tcti_context),
+                                                        TSS2_TCTI_TABRMD_ID (tcti_context),
                                                         locality,
                                                         &ret,
                                                         NULL,
@@ -151,16 +151,16 @@ on_name_appeared (GDBusConnection *connection,
     GDBusMessage *message_call = NULL, *message_reply = NULL;
     GError *error = NULL;
     GUnixFDList *fd_list = NULL;
-    TSS2_TCTI_TABD_CONTEXT *tcti_context = (TSS2_TCTI_TABD_CONTEXT*)user_data;
+    TSS2_TCTI_TABRMD_CONTEXT *tcti_context = (TSS2_TCTI_TABRMD_CONTEXT*)user_data;
     int ret;
 
     g_debug("on_name_appeared");
     /* get sockets for transmit / receive */
     message_call =
         g_dbus_message_new_method_call (name_owner,
-                                        TAB_DBUS_PATH,
-                                        TAB_DBUS_INTERFACE,
-                                        TAB_DBUS_METHOD_CREATE_CONNECTION);
+                                        TABRMD_DBUS_PATH,
+                                        TABRMD_DBUS_INTERFACE,
+                                        TABRMD_DBUS_METHOD_CREATE_CONNECTION);
     message_reply =
         g_dbus_connection_send_message_with_reply_sync (
             connection,
@@ -172,7 +172,7 @@ on_name_appeared (GDBusConnection *connection,
             &error);
     if (message_reply == NULL) {
         g_error ("Call to DBus method %s returned a null result.",
-                 TAB_DBUS_METHOD_CREATE_CONNECTION);
+                 TABRMD_DBUS_METHOD_CREATE_CONNECTION);
         goto out;
     }
     if (g_dbus_message_get_message_type (message_reply) ==
@@ -180,7 +180,7 @@ on_name_appeared (GDBusConnection *connection,
     {
         g_dbus_message_to_gerror (message_reply, &error);
         g_error ("Call to DBus method %s failed: %s",
-                 TAB_DBUS_METHOD_CREATE_CONNECTION, error->message);
+                 TABRMD_DBUS_METHOD_CREATE_CONNECTION, error->message);
         goto out;
     }
     fd_list = g_dbus_message_get_unix_fd_list (message_reply);
@@ -188,13 +188,13 @@ on_name_appeared (GDBusConnection *connection,
     if (fd_list_length != 2)
         g_error ("Expecting 2 fds, received %d", fd_list_length);
     g_debug ("got some fds: %d", fd_list_length);
-    TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) =
+    TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) =
         g_unix_fd_list_get (fd_list, 0, &error);
-    TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context) =
+    TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context) =
         g_unix_fd_list_get (fd_list, 1, &error);
-    g_debug ("receive fd: %d", TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context));
-    g_debug ("transmit fd: %d", TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context));
-    ret = pthread_mutex_unlock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    g_debug ("receive fd: %d", TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context));
+    g_debug ("transmit fd: %d", TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context));
+    ret = pthread_mutex_unlock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Failed to unlock init mutex: %s", strerror (errno));
 out:
@@ -209,23 +209,23 @@ on_name_vanished (GDBusConnection *connection,
                   const gchar     *name,
                   gpointer         user_data)
 {
-    TSS2_TCTI_TABD_CONTEXT *tcti_context = (TSS2_TCTI_TABD_CONTEXT*)user_data;
+    TSS2_TCTI_TABRMD_CONTEXT *tcti_context = (TSS2_TCTI_TABRMD_CONTEXT*)user_data;
     int ret = 0;
 
     g_warning ("No owner for name: %s", name);
-    ret = pthread_mutex_trylock (&TSS2_TCTI_TABD_MUTEX (tcti_context));
+    ret = pthread_mutex_trylock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Unable to acquire init lock through trylock: %s",
                  strerror (errno));
-    if (TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) != 0) {
-        ret = close (TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context));
-        TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) = 0;
+    if (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) != 0) {
+        ret = close (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context));
+        TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) = 0;
     }
     if (ret != 0 && ret != EBADF)
         g_warning ("Failed to close receive pipe: %s", strerror (errno));
-    if (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context) != 0) {
-        ret = close (TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context));
-        TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context) = 0;
+    if (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context) != 0) {
+        ret = close (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context));
+        TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context) = 0;
     }
     if (ret != 0 && ret != EBADF)
         g_warning ("Failed to close send pipe: %s", strerror (errno));
@@ -234,14 +234,14 @@ on_name_vanished (GDBusConnection *connection,
 void
 init_function_pointers (TSS2_TCTI_CONTEXT *tcti_context)
 {
-    TSS2_TCTI_MAGIC (tcti_context) = TSS2_TCTI_TABD_MAGIC;
-    TSS2_TCTI_VERSION (tcti_context) = 1;
-    TSS2_TCTI_TRANSMIT (tcti_context) = tss2_tcti_tabd_transmit;
-    TSS2_TCTI_RECEIVE (tcti_context) = tss2_tcti_tabd_receive;
-    TSS2_TCTI_FINALIZE (tcti_context) = tss2_tcti_tabd_finalize;
-    TSS2_TCTI_CANCEL (tcti_context) = tss2_tcti_tabd_cancel;
-    TSS2_TCTI_GET_POLL_HANDLES (tcti_context) = tss2_tcti_tabd_get_poll_handles;
-    TSS2_TCTI_SET_LOCALITY (tcti_context) = tss2_tcti_tabd_set_locality;
+    TSS2_TCTI_MAGIC (tcti_context)            = TSS2_TCTI_TABRMD_MAGIC;
+    TSS2_TCTI_VERSION (tcti_context)          = 1;
+    TSS2_TCTI_TRANSMIT (tcti_context)         = tss2_tcti_tabrmd_transmit;
+    TSS2_TCTI_RECEIVE (tcti_context)          = tss2_tcti_tabrmd_receive;
+    TSS2_TCTI_FINALIZE (tcti_context)         = tss2_tcti_tabrmd_finalize;
+    TSS2_TCTI_CANCEL (tcti_context)           = tss2_tcti_tabrmd_cancel;
+    TSS2_TCTI_GET_POLL_HANDLES (tcti_context) = tss2_tcti_tabrmd_get_poll_handles;
+    TSS2_TCTI_SET_LOCALITY (tcti_context)     = tss2_tcti_tabrmd_set_locality;
 }
 
 static gboolean
@@ -271,7 +271,8 @@ _out:
 }
 
 TSS2_RC
-tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
+tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *tcti_context,
+                       size_t            *size)
 {
     GError *error = NULL;
     GVariant *fds_variant;
@@ -283,27 +284,27 @@ tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
     if (tcti_context == NULL && size == NULL)
         return TSS2_TCTI_RC_BAD_VALUE;
     if (tcti_context == NULL && size != NULL) {
-        *size = sizeof (TSS2_TCTI_TABD_CONTEXT);
+        *size = sizeof (TSS2_TCTI_TABRMD_CONTEXT);
         return TSS2_RC_SUCCESS;
     }
     init_function_pointers (tcti_context);
-    ret = pthread_mutex_init (&TSS2_TCTI_TABD_MUTEX (tcti_context), NULL);
+    ret = pthread_mutex_init (&TSS2_TCTI_TABRMD_MUTEX (tcti_context), NULL);
     if (ret != 0)
         g_error ("Failed to initialize initialization mutex: %s",
                  strerror (errno));
 
-    TSS2_TCTI_TABD_PROXY (tcti_context) =
+    TSS2_TCTI_TABRMD_PROXY (tcti_context) =
         tpm2_access_broker_proxy_new_for_bus_sync (
             G_BUS_TYPE_SESSION,
             G_DBUS_PROXY_FLAGS_NONE,
-            TAB_DBUS_NAME,              /* bus name */
-            TAB_DBUS_PATH, /* object */
+            TABRMD_DBUS_NAME,              /* bus name */
+            TABRMD_DBUS_PATH, /* object */
             NULL,                          /* GCancellable* */
             &error);
-    if (TSS2_TCTI_TABD_PROXY (tcti_context) == NULL)
+    if (TSS2_TCTI_TABRMD_PROXY (tcti_context) == NULL)
         g_error ("failed to allocate dbus proxy object: %s", error->message);
     call_ret = tpm2_access_broker_call_create_connection_sync_fdlist (
-        TSS2_TCTI_TABD_PROXY (tcti_context),
+        TSS2_TCTI_TABRMD_PROXY (tcti_context),
         &fds_variant,
         &id,
         &fd_list,
@@ -322,15 +323,15 @@ tss2_tcti_tabd_init (TSS2_TCTI_CONTEXT *tcti_context, size_t *size)
     if (fd == -1)
         g_error ("unable to get receive handle from GUnixFDList: %s",
                  error->message);
-    TSS2_TCTI_TABD_PIPE_RECEIVE (tcti_context) = fd;
+    TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) = fd;
     fd = g_unix_fd_list_get (fd_list, 1, &error);
     if (fd == -1)
         g_error ("failed to get transmit handle from GUnixFDList: %s",
                  error->message);
-    TSS2_TCTI_TABD_PIPE_TRANSMIT (tcti_context) = fd;
-    TSS2_TCTI_TABD_ID (tcti_context) = id;
-    g_debug ("initialized tabd TCTI context with id: %ld",
-             TSS2_TCTI_TABD_ID (tcti_context));
+    TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context) = fd;
+    TSS2_TCTI_TABRMD_ID (tcti_context) = id;
+    g_debug ("initialized tabrmd TCTI context with id: %ld",
+             TSS2_TCTI_TABRMD_ID (tcti_context));
 
     return TSS2_RC_SUCCESS;
 }

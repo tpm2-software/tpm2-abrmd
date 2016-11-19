@@ -141,7 +141,7 @@ tcti_options_class_init (gpointer klass)
     obj_properties[PROP_TCTI_TYPE] =
         g_param_spec_enum ("tcti",
                            "TCTI",
-                           "TCTI used by tabd to communicate with the TPM",
+                           "TCTI used by tpm2-abrmd to communicate with the TPM",
                            TYPE_TCTI_TYPE_ENUM,
                            TCTI_TYPE_ECHO,
                            G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
@@ -239,7 +239,7 @@ tcti_options_new (void)
 }
 
 /* callback used to handl the --tcti= option 
- * This is how we determin which TCTI the tabd will use to communicate with
+ * This is how we determin which TCTI the tabrmd will use to communicate with
  * the TPM.
  */
 gboolean

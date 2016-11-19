@@ -2,8 +2,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include
 
-sbin_PROGRAMS   = src/tabd
-noinst_PROGRAMS = test/tcti-tabd_read-write
+sbin_PROGRAMS   = src/tpm2-abrmd
+noinst_PROGRAMS = test/tcti-tabrmd_read-write
 check_PROGRAMS  = \
     test/access-broker_unit \
     test/message-queue_unit \
@@ -27,18 +27,18 @@ if TCTI_SOCKET
 check_PROGRAMS += test/tcti-socket_unit
 endif
 
-lib_LTLIBRARIES = src/libtcti-tabd.la
+lib_LTLIBRARIES = src/libtcti-tabrmd.la
 noinst_LTLIBRARIES = src/libtcti-echo.la src/libutil.la
-man8_MANS = man/tabd.8
+man8_MANS = man/tpm2-abrmd.8
 TESTS = $(check_PROGRAMS)
 
-tabddir      = $(includedir)/tss2
-tabd_HEADERS = $(srcdir)/src/include/tabd.h
-libtcti_tabddir      = $(includedir)/tss2
-libtcti_tabd_HEADERS = $(srcdir)/src/include/tcti-tabd.h
+tpm2_abrmddir      = $(includedir)/tss2
+tpm2_abrmd_HEADERS = $(srcdir)/src/include/tabrmd.h
+libtcti_tabrmddir      = $(includedir)/tcti
+libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
 CLEANFILES = \
-    src/tabd-generated.c \
-    src/tabd-generated.h \
+    src/tabrmd-generated.c \
+    src/tabrmd-generated.h \
     dist/*.service
 
 pkgconfigdir          = $(libdir)/pkgconfig
@@ -51,28 +51,28 @@ VALGRIND_memcheck_FLAGS = --show-leak-kinds=definite,indirect
 src_libutil_la_CFLAGS  = $(AM_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) $(SAPI_CFLAGS) -fPIC
 src_libutil_la_SOURCES = src/tpm2-header.c src/util.c
 
-src_libtcti_tabd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
+src_libtcti_tabrmd_la_CFLAGS  = -fPIC $(DEBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
     $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
-src_libtcti_tabd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
+src_libtcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(SAPI_LIBS)
-src_libtcti_tabd_la_LDFLAGS = -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabd.map
-src_libtcti_tabd_la_SOURCES = \
-    src/tabd-generated.c \
-    src/tcti-tabd.c
+src_libtcti_tabrmd_la_LDFLAGS = -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
+src_libtcti_tabrmd_la_SOURCES = \
+    src/tabrmd-generated.c \
+    src/tcti-tabrmd.c
 
 src_libtcti_echo_la_CFLAGS  = -fPIC $(AM_CFLAGS) $(SAPI_CFLAGS)
 src_libtcti_echo_la_SOURCES = src/tss2-tcti-echo.c
 
-src_tabd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
+src_tpm2_abrmd_CFLAGS  = $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) \
     $(PTHREAD_CFLAGS) $(AM_CFLAGS) $(SAPI_CFLAGS)
-src_tabd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
+src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(noinst_LTLIBRARIES) $(noinst_LTLIBRARIES)
-src_tabd_SOURCES = \
+src_tpm2_abrmd_SOURCES = \
     src/access-broker.c \
     src/control-message.c \
     src/message-queue.c \
-    src/tabd.c \
-    src/tabd-generated.c \
+    src/tabrmd.c \
+    src/tabrmd-generated.c \
     src/logging.c \
     src/thread-interface.c \
     src/command-source.c \
@@ -89,14 +89,14 @@ src_tabd_SOURCES = \
     src/tpm2-command.c \
     src/tpm2-response.c
 if TCTI_DEVICE
-src_tabd_CFLAGS += $(TCTI_DEVICE_CFLAGS)
-src_tabd_LDADD += $(TCTI_DEVICE_LIBS)
-src_tabd_SOURCES += src/tcti-device.c
+src_tpm2_abrmd_CFLAGS += $(TCTI_DEVICE_CFLAGS)
+src_tpm2_abrmd_LDADD += $(TCTI_DEVICE_LIBS)
+src_tpm2_abrmd_SOURCES += src/tcti-device.c
 endif
 if TCTI_SOCKET
-src_tabd_CFLAGS += $(TCTI_SOCKET_CFLAGS)
-src_tabd_LDADD += $(TCTI_SOCKET_LIBS)
-src_tabd_SOURCES += src/tcti-socket.c
+src_tpm2_abrmd_CFLAGS += $(TCTI_SOCKET_CFLAGS)
+src_tpm2_abrmd_LDADD += $(TCTI_SOCKET_LIBS)
+src_tpm2_abrmd_SOURCES += src/tcti-socket.c
 endif
 
 man/%.8 : man/%.8.in
@@ -113,9 +113,9 @@ else
 endif
 	cat $^ >> $@
 
-%-generated.c %-generated.h : src/tabd.xml
+%-generated.c %-generated.h : src/tabrmd.xml
 	$(GDBUS_CODEGEN) --interface-prefix=us.twobit.tss2. \
-	    --generate-c-code=src/tabd-generated $^
+	    --generate-c-code=src/tabrmd-generated $^
 
 dist/%.service : dist/%.service.in
 	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
@@ -203,9 +203,9 @@ test_tcti_options_unit_LDADD   += $(TCTI_SOCKET_LIBS)
 test_tcti_options_unit_SOURCES += src/tcti-socket.c
 endif
 
-test_tcti_tabd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)
-test_tcti_tabd_read_write_LDADD   = $(GLIB_LIBS) src/libtcti-tabd.la
-test_tcti_tabd_read_write_SOURCES = test/tcti-tabd_read-write.c
+test_tcti_tabrmd_read_write_CFLAGS  = $(GLIB_CFLAGS) $(AM_CFLAGS)
+test_tcti_tabrmd_read_write_LDADD   = $(GLIB_LIBS) src/libtcti-tabrmd.la
+test_tcti_tabrmd_read_write_SOURCES = test/tcti-tabrmd_read-write.c
 
 test_tpm2_command_unit_CFLAGS  = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOBJECT_CLFAGS) $(SAPI_CFLAGS) $(AM_CFLAGS)
 test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(noinst_LTLIBRARIES)

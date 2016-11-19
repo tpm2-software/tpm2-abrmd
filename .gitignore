@@ -31,10 +31,10 @@ man/*.8
 missing
 test-driver
 test-suite.log
-src/tabd
-src/tabd-generated.c
-src/tabd-generated.h
+src/tpm2-abrmd
+src/tabrmd-generated.c
+src/tabrmd-generated.h
 src/libutil.a
 test/*_unit
-test/tcti-tabd_read-write
+test/tcti-tabrmd_read-write
 dist/tabd.service

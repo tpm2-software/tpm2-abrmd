@@ -3,5 +3,5 @@ Description: TCTI library for communicating with the TPM2 access broker / resour
 URL: https://github.com/01org/??
 Version: @VERSION@
 Requires: sapi
-Cflags: -I@includedir@/tss2
-Libs: -ltcti-tabd
+Cflags: -I@includedir@/tcti -I@includedir@/sapi
+Libs: -ltcti-tabrmd

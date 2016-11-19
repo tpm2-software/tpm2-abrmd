@@ -7,9 +7,9 @@
 #include <unistd.h>
 
 #include <sapi/tpm20.h>
-#include <tabd.h>
+#include "tabrmd.h"
 #include "access-broker.h"
-#include "tabd-priv.h"
+#include "tabrmd-priv.h"
 #include "logging.h"
 #include "thread-interface.h"
 #include "session-manager.h"
@@ -18,7 +18,7 @@
 #include "resource-manager.h"
 #include "response-sink.h"
 #include "source-interface.h"
-#include "tabd-generated.h"
+#include "tabrmd-generated.h"
 #include "tcti-options.h"
 
 #ifdef G_OS_UNIX
@@ -73,7 +73,7 @@ handle_array_variant_from_fdlist (GUnixFDList *fdlist)
 /**
  * This is a signal handler for the handle-create-connection signal from
  * the Tpm2AccessBroker DBus interface. This signal is triggered by a
- * request from a client to create a new connection with the tabd. This
+ * request from a client to create a new connection with the tabrmd. This
  * requires a few things be done:
  * - Create a new ID (uint64) for the connection.
  * - Create a new SessionData object getting the FDs that must be returned
@@ -135,7 +135,7 @@ on_handle_create_connection (Tpm2AccessBroker      *skeleton,
  *   unlocking the init mutex.
  * - Locate the SessionData object associted with the 'id' parameter in
  *   the SessionManager.
- * - If the session has a command being processed by the tabd then it's
+ * - If the session has a command being processed by the tabrmd then it's
  *   removed from the processing queue.
  * - If the session has a command being processed by the TPM then the
  *   request to cancel the command will be sent down to the TPM.
@@ -263,7 +263,7 @@ on_name_acquired (GDBusConnection *connection,
     ret = g_dbus_interface_skeleton_export (
         G_DBUS_INTERFACE_SKELETON (gmain_data->skeleton),
         connection,
-        TAB_DBUS_PATH,
+        TABRMD_DBUS_PATH,
         &error);
     if (ret == FALSE)
         g_warning ("failed to export interface: %s", error->message);
@@ -346,7 +346,7 @@ seed_rand_data (const char *fname, struct drand48_data *rand_data)
 }
 /**
  * This function initializes and configures all of the long-lived objects
- * in the tabd system. It is invoked on a thread separate from the main
+ * in the tabrmd system. It is invoked on a thread separate from the main
  * thread as a way to get the main thread listening for connections on
  * DBus as quickly as possible. Any incomming DBus requests will block
  * on the 'init_mutex' until this thread completes but they won't be
@@ -431,7 +431,7 @@ init_thread_func (gpointer user_data)
 }
 /**
  * This function parses the parameter argument vector and populates the
- * parameter 'options' structure with data needed to configure the tabd.
+ * parameter 'options' structure with data needed to configure the tabrmd.
  * We rely heavily on the GOption module here and we get our GOptionEntry
  * array from two places:
  * - The TctiOption module.
@@ -442,7 +442,7 @@ init_thread_func (gpointer user_data)
 gint
 parse_opts (gint            argc,
             gchar          *argv[],
-            tabd_options_t *options)
+            tabrmd_options_t *options)
 {
     gchar *logger_name = "stdout";
     GOptionContext *ctx;
@@ -460,7 +460,7 @@ parse_opts (gint            argc,
 
     g_debug ("creating tcti_options object");
     options->tcti_options = tcti_options_new ();
-    ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabd)");
+    ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabrmd)");
     g_option_context_add_main_entries (ctx, entries, NULL);
     g_option_context_add_group (ctx, tcti_options_get_group (options->tcti_options));
     if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
@@ -494,7 +494,7 @@ thread_cleanup (Thread *thread)
  * - Creates the initialization thread and kicks it off.
  * - Registers / owns a name on a DBus.
  * - Blocks on the main loop.
- * At this point all of the tabd processing is being done on other threads.
+ * At this point all of the tabrmd processing is being done on other threads.
  * When the daemon shutsdown (for any reason) we do cleanup here:
  * - Join / cleanup the initialization thread.
  * - Release the name on the DBus.
@@ -507,9 +507,9 @@ main (int argc, char *argv[])
     guint owner_id;
     gmain_data_t gmain_data = { 0 };
     GThread *init_thread;
-    tabd_options_t options = { 0 };
+    tabrmd_options_t options = { 0 };
 
-    g_info ("tabd startup");
+    g_info ("tabrmd startup");
     if (parse_opts (argc, argv, &options) != 0)
         return 1;
     gmain_data.tcti = tcti_options_get_tcti (options.tcti_options);
@@ -527,7 +527,7 @@ main (int argc, char *argv[])
                                 init_thread_func,
                                 &gmain_data);
     owner_id = g_bus_own_name (options.bus,
-                               TAB_DBUS_NAME,
+                               TABRMD_DBUS_NAME,
                                G_BUS_NAME_OWNER_FLAGS_NONE,
                                on_bus_acquired,
                                on_name_acquired,
