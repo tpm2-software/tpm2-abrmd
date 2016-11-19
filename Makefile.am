@@ -43,6 +43,7 @@ CLEANFILES = \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
     dist/*.service
+BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
 pkgconfigdir          = $(libdir)/pkgconfig
 nodist_pkgconfig_DATA = lib/tcti-tabrmd.pc
