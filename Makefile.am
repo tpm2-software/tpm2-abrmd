@@ -164,23 +164,6 @@ test_command_source_unit_SOURCES = \
     src/tpm2-command.c \
     test/command-source_unit.c
 
-test_tab_unit_CFLAGS = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(SAPI_CFLAGS) \
-    $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(GOBJECT_CFLAGS)
-test_tab_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
-    $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
-test_tab_unit_SOURCES = \
-    src/control-message.c \
-    src/message-queue.c \
-    src/response-sink.c \
-    src/session-data.c \
-    src/sink-interface.c \
-    src/source-interface.c \
-    src/tab.c \
-    src/tcti.c \
-    src/tcti-echo.c \
-    src/thread-interface.c \
-    test/tab_unit.c
-
 if TCTI_DEVICE
 test_tcti_device_unit_CFLAGS   = $(CMOCKA_CFLAGS) $(GLIB_CFLAGS) $(GOJBECT_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(AM_CFLAGS)
 test_tcti_device_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)

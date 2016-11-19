@@ -10,7 +10,6 @@
 #include "message-queue.h"
 #include "session-data.h"
 #include "sink-interface.h"
-#include "tab.h"
 
 G_BEGIN_DECLS
 
