@@ -15,6 +15,7 @@
 #include "session-manager.h"
 #include "command-source.h"
 #include "session-data.h"
+#include "random.h"
 #include "resource-manager.h"
 #include "response-sink.h"
 #include "source-interface.h"
@@ -36,8 +37,8 @@ typedef struct gmain_data {
     TctiTabrmd             *skeleton;
     SessionManager         *manager;
     CommandSource         *command_source;
+    Random                 *random;
     Sink                   *response_sink;
-    struct drand48_data     rand_data;
     GMutex                  init_mutex;
     Tcti                   *tcti;
 } gmain_data_t;
@@ -101,7 +102,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
      */
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
-    lrand48_r (&data->rand_data, &id);
+    random_get_uint64 (data->random, &id);
     session = session_data_new (&client_fds[0], &client_fds[1], id);
     if (session == NULL)
         g_error ("Failed to allocate new session.");
@@ -308,43 +309,6 @@ signal_handler (int signum)
     main_loop_quit (g_loop);
 }
 /**
- * This function seeds the parameter 'rand_data' (state object for the
- * rand48_r functions)with entropy from the parameter 'fname' file. It
- * does 3 things:
- * - Opens the parameter 'file' read only.
- * - Reads sizeof (long int) bytes of data (presumably entropy) from it.
- * - Uses the seed data to initialize the 'rand_data' state object.
- */
-static int
-seed_rand_data (const char *fname, struct drand48_data *rand_data)
-{
-    gint rand_fd;
-    long int rand_seed;
-    ssize_t read_ret;
-
-    /* seed rand with some entropy from TABD_RAND_FILE */
-    g_debug ("opening entropy source: %s", fname);
-    rand_fd = open (fname, O_RDONLY);
-    if (rand_fd == -1) {
-        g_warning ("failed to open entropy source %s: %s",
-                   fname,
-                   strerror (errno));
-        return 1;
-    }
-    g_debug ("reading from entropy source: %s", fname);
-    read_ret = read (rand_fd, &rand_seed, sizeof (rand_seed));
-    if (read_ret == -1) {
-        g_warning ("failed to read from entropy source %s, %s",
-                   fname,
-                   strerror (errno));
-        return 1;
-    }
-    g_debug ("seeding rand with %ld", rand_seed);
-    srand48_r (rand_seed, rand_data);
-
-    return 0;
-}
-/**
  * This function initializes and configures all of the long-lived objects
  * in the tabrmd system. It is invoked on a thread separate from the main
  * thread as a way to get the main thread listening for connections on
@@ -375,8 +339,10 @@ init_thread_func (gpointer user_data)
     signal (SIGINT, signal_handler);
     signal (SIGTERM, signal_handler);
 
-    if (seed_rand_data (TABD_RAND_FILE, &data->rand_data) != 0)
-        g_error ("failed to seed random number generator");
+    data->random = random_new();
+    ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
+    if (ret != 0)
+        g_error ("failed to seed Random object");
 
     data->manager = session_manager_new();
     if (data->manager == NULL)

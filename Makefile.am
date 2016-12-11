@@ -15,6 +15,7 @@ check_PROGRAMS  = \
     test/session-data_unit \
     test/session-manager_unit \
     test/command-source_unit \
+    test/random_unit \
     test/test-skeleton_unit \
     test/tcti-echo_unit \
     test/tcti-options_unit \
@@ -73,6 +74,7 @@ src_tpm2_abrmd_SOURCES = \
     src/command-source.c \
     src/session-manager.c \
     src/session-data.c \
+    src/random.c \
     src/resource-manager.c \
     src/response-sink.c \
     src/sink-interface.c \
@@ -239,6 +241,13 @@ test_access_broker_unit_SOURCES = \
     src/tpm2-command.c \
     src/tpm2-response.c \
     test/access-broker_unit.c
+
+test_random_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_random_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_random_unit_LDFLAGS = -Wl,--wrap=open,--wrap=read,--wrap=close
+test_random_unit_SOURCES = \
+    src/random.c \
+    test/random_unit.c
 
 test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue
