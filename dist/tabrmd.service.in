@@ -4,10 +4,10 @@ Description=TPM2 Access Broker and Resource Manager
 
 [Service]
 Type=dbus
-BusName=us.twobit.tss2.Tab
+BusName=com.intel.tss2.Tab
 Environment=G_MESSAGES_DEBUG=all
 StandardOutput=syslog
-ExecStart=@SBINDIR@/tss2-tabd
+ExecStart=@SBINDIR@/tpm2-abrmd
 
 [Install]
 WantedBy=runlevel3.target

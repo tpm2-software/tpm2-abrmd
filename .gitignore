@@ -37,4 +37,4 @@ src/tabrmd-generated.h
 src/libutil.a
 test/*_unit
 test/tcti-tabrmd_read-write
-dist/tabd.service
+dist/*.service
