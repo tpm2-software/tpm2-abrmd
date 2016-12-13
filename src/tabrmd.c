@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <gio/gio.h>
 #include <glib.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -106,7 +107,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     session = session_data_new (&client_fds[0], &client_fds[1], id);
     if (session == NULL)
         g_error ("Failed to allocate new session.");
-    g_debug ("Created connection with fds: %d, %d and id: %ld",
+    g_debug ("Created connection with fds: %d, %d and id: 0x%" PRIx64,
              client_fds[0], client_fds[1], id);
     /* prepare tuple variant for response message */
     fd_list = g_unix_fd_list_new_from_array (client_fds, 2);

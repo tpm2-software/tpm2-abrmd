@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <gio/gio.h>
 #include <glib.h>
+#include <inttypes.h>
 #include <string.h>
 
 #include "tabrmd.h"
@@ -329,7 +330,7 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *tcti_context,
                  error->message);
     TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context) = fd;
     TSS2_TCTI_TABRMD_ID (tcti_context) = id;
-    g_debug ("initialized tabrmd TCTI context with id: %ld",
+    g_debug ("initialized tabrmd TCTI context with id: 0x%" PRIx64,
              TSS2_TCTI_TABRMD_ID (tcti_context));
 
     return TSS2_RC_SUCCESS;
