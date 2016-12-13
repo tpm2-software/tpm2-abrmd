@@ -83,7 +83,6 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *tcti_context)
     if (ret != 0 && ret != EBADF)
         g_warning ("Failed to close send pipe: %s", strerror (errno));
     g_object_unref (TSS2_TCTI_TABRMD_PROXY (tcti_context));
-    free (tcti_context);
 }
 
 static TSS2_RC
