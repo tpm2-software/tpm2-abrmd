@@ -379,14 +379,12 @@ access_broker_send_command (AccessBroker  *broker,
         g_error ("access_broker: Failed to unlock SAPI mutex.");
     response = tpm2_response_new (tpm2_command_get_session (command),
                                   buffer);
-    g_object_unref (command);
     return response;
 
 unlock_out:
     access_broker_unlock (broker);
 err_out:
     response = tpm2_response_new_rc (tpm2_command_get_session (command), *rc);
-    g_object_unref (command);
     return response;
 }
 /**

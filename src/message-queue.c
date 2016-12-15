@@ -66,6 +66,7 @@ message_queue_enqueue (MessageQueue  *message_queue,
 {
     g_assert (message_queue != NULL);
     g_debug ("message_queue_enqueue 0x%x: message 0x%x", message_queue, object);
+    g_object_ref (object);
     g_async_queue_push (message_queue->queue, object);
 }
 /**

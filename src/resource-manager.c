@@ -63,6 +63,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     /* transform the Tpm2Response */
     /* send the response to the sinrk */
     sink_enqueue (resmgr->sink, G_OBJECT (response));
+    g_object_unref (response);
 }
 /**
  * This function acts as a thread. It simply:
@@ -90,7 +91,6 @@ resource_manager_thread (gpointer data)
             resource_manager_process_tpm2_command (resmgr, TPM2_COMMAND (obj));
         if (IS_CONTROL_MESSAGE (obj))
             process_control_message (CONTROL_MESSAGE (obj));
-        g_object_unref (obj);
      }
 }
 /**
@@ -162,8 +162,6 @@ resource_manager_enqueue (Sink        *sink,
     ResourceManager *resmgr = RESOURCE_MANAGER (sink);
 
     g_debug ("resource_manager_enqueue: ResourceManager: 0x%x obj: 0x%x", resmgr, obj);
-    /* Take ownership of this object */
-    g_object_ref (obj);
     message_queue_enqueue (resmgr->in_queue, obj);
 }
 /**
