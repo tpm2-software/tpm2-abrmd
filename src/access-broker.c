@@ -365,6 +365,7 @@ access_broker_send_command (AccessBroker  *broker,
         *rc = TSS2_TABRMD_OUT_OF_MEMORY;
         goto unlock_out;
     }
+    size = max_resp_size;
     *rc = tcti_receive (broker->tcti,
                         &size,
                         buffer,
