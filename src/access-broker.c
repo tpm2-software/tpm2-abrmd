@@ -163,13 +163,12 @@ sapi_context_init (Tcti *tcti)
     g_debug ("Allocating 0x%x bytes for SAPI context", size);
     sapi_context = (TSS2_SYS_CONTEXT*)g_malloc0 (size);
     if (sapi_context == NULL) {
-        g_error ("Failed to allocate 0x%zx bytes for the SAPI context\n",
-                 size);
+        g_error ("Failed to allocate 0x%zx bytes for the SAPI context", size);
         return NULL;
     }
     rc = Tss2_Sys_Initialize (sapi_context, size, tcti_context, &abi_version);
     if (rc != TSS2_RC_SUCCESS) {
-        g_error ("Failed to initialize SAPI context: 0x%x\n", rc);
+        g_error ("Failed to initialize SAPI context: 0x%x", rc);
         return NULL;
     }
     return sapi_context;
@@ -263,12 +262,12 @@ access_broker_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
                                  NULL);
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("Failed to GetCapability: TPM_CAP_TPM_PROPERTIES, "
-                 "PT_FIXED: 0x%x\n", rc);
+                 "PT_FIXED: 0x%x", rc);
         return rc;
     }
     /* sanity check the property returned */
     if (capability_data->capability != TPM_CAP_TPM_PROPERTIES)
-        g_warning ("GetCapability returned wrong capability: 0x%x\n",
+        g_warning ("GetCapability returned wrong capability: 0x%x",
                    capability_data->capability);
     return rc;
 }

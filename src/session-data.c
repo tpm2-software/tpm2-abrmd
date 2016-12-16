@@ -29,18 +29,16 @@ session_data_set_property (GObject        *object,
     switch (property_id) {
     case PROP_ID:
         self->id = g_value_get_uint (value);
-        g_debug ("SessionData 0x%x set id to 0x%x\n",
-                 self, self->id);
+        g_debug ("SessionData 0x%x set id to 0x%x", self, self->id);
         break;
     case PROP_RECEIVE_FD:
         self->receive_fd = g_value_get_int (value);
-        g_debug ("SessionData 0x%x set receive_fd to 0x%x\n",
+        g_debug ("SessionData 0x%x set receive_fd to 0x%x",
                  self, self->receive_fd);
         break;
     case PROP_SEND_FD:
         self->send_fd = g_value_get_int (value);
-        g_debug ("SessionData 0x%x set send_fd to 0x%x\n",
-                 self, self->send_fd);
+        g_debug ("SessionData 0x%x set send_fd to 0x%x", self, self->send_fd);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
