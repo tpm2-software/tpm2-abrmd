@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <inttypes.h>
 #include <stdbool.h>
 
 #include "tabrmd.h"
@@ -408,7 +409,13 @@ access_broker_new (Tcti *tcti)
                                           NULL));
     return broker;
 }
-/**
+/*
+ * Initialize the AccessBroker. This is all about initializing internal data
+ * that normally we would want to do in a constructor. But since this
+ * initialization requires reaching out to the TPM and could fail we don't
+ * want to do it in the constructur / _new function. So we put it here in
+ * an explicit _init function that must be executed after the object has
+ * been instantiated.
  */
 TSS2_RC
 access_broker_init (AccessBroker *broker)
@@ -422,11 +429,15 @@ access_broker_init (AccessBroker *broker)
     rc = access_broker_send_tpm_startup (broker);
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("access_broker_sent_tpm_startup failed: 0x%x", rc);
-        return rc;
+        goto out;
     }
     rc = access_broker_get_tpm_properties_fixed (broker->sapi_context,
                                                  &broker->properties_fixed);
-    if (rc == TSS2_RC_SUCCESS)
-        broker->initialized = true;
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("failed to get fixed TPM properties: 0x" PRIx32, rc);
+        goto out;
+    }
+    broker->initialized = true;
+out:
     return rc;
 }
