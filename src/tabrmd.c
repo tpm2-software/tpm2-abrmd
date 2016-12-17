@@ -360,6 +360,9 @@ init_thread_func (gpointer user_data)
 
     data->access_broker = access_broker_new (data->tcti);
     g_debug ("created AccessBroker: 0x%x", data->access_broker);
+    rc = access_broker_init (data->access_broker);
+    if (rc != TSS2_RC_SUCCESS)
+        g_error ("failed to initialize AccessBroker: 0x" PRIx32, rc);
     /**
      * Instantiate and the objects that make up the TPM command processing
      * pipeline.
