@@ -155,6 +155,8 @@ command_source_finalize (GObject  *object)
         g_object_unref (source->session_manager);
     close (source->wakeup_send_fd);
     close (source->wakeup_receive_fd);
+    if (command_source_parent_class)
+        G_OBJECT_CLASS (command_source_parent_class)->finalize (object);
 }
 
 static void
