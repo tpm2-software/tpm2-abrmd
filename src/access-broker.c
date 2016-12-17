@@ -302,6 +302,31 @@ access_broker_get_fixed_property (AccessBroker           *broker,
 out:
     return rc;
 }
+/*
+ * This function exposes the underlying SAPI context in the AccessBroker.
+ * It locks the AccessBroker object and returns the SAPI context for use
+ * by the caller. Do not call this function if you already hold the
+ * AccessBroker lock. If you do you'll deadlock.
+ * When done with the context the caller must unlock the AccessBroker.
+ */
+TSS2_SYS_CONTEXT*
+access_broker_lock_sapi (AccessBroker *broker)
+{
+    if (access_broker_lock (broker) != 0)
+        return NULL;
+    return broker->sapi_context;
+}
+/*
+ * Return the TPM_PT_TOTAL_COMAMNDS fixed TPM property.
+ */
+TSS2_RC
+access_broker_get_total_commands (AccessBroker *broker,
+                                  guint        *value)
+{
+    return access_broker_get_fixed_property (broker,
+                                             TPM_PT_TOTAL_COMMANDS,
+                                             value);
+}
 /**
  * Return the TPM_PT_MAX_COMMAND_SIZE fixed TPM property.
  */
