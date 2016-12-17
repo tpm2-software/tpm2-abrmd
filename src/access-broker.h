@@ -40,6 +40,8 @@ gint               access_broker_unlock         (AccessBroker    *broker);
 Tpm2Response*      access_broker_send_command   (AccessBroker    *broker,
                                                  Tpm2Command     *command,
                                                  TSS2_RC         *rc);
+TSS2_RC            access_broker_get_max_command    (AccessBroker   *broker,
+                                                     guint32        *value);
 
 G_END_DECLS
 
