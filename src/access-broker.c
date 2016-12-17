@@ -434,7 +434,7 @@ access_broker_init (AccessBroker *broker)
     rc = access_broker_get_tpm_properties_fixed (broker->sapi_context,
                                                  &broker->properties_fixed);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("failed to get fixed TPM properties: 0x" PRIx32, rc);
+        g_warning ("failed to get fixed TPM properties: 0x%" PRIx32, rc);
         goto out;
     }
     broker->initialized = true;
