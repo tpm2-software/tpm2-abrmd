@@ -349,6 +349,51 @@ access_broker_get_max_response (AccessBroker *broker,
                                              TPM_PT_MAX_RESPONSE_SIZE,
                                              value);
 }
+/* Send the parameter Tpm2Command to the TPM. Return the TSS2_RC. */
+static TSS2_RC
+access_broker_send_cmd (AccessBroker *broker,
+                        Tpm2Command  *command)
+{
+    TSS2_RC rc;
+
+    rc = tcti_transmit (broker->tcti,
+                        tpm2_command_get_size (command),
+                        tpm2_command_get_buffer (command));
+    if (rc != TSS2_RC_SUCCESS)
+        g_warning ("AccessBroker 0x%" PRIxPTR " failed to transmit "
+                   "Tpm2Command 0x%" PRIxPTR ": 0x%" PRIx32,
+                   broker, command, rc);
+    return rc;
+}
+/*
+ * Get a response buffer from the TPM. Return the TSS2_RC through the
+ * 'rc' parameter. Returns a buffer (that must be freed by the caller)
+ * containing the response from the TPM. Determine the size of the buffer
+ * by reading the size field from the TPM command header.
+ */
+static guint8*
+access_broker_get_response (AccessBroker *broker,
+                            TSS2_RC      *rc)
+{
+    guint32   max_resp_size;
+    guint8   *buffer;
+    size_t    size;
+
+    *rc = access_broker_get_max_response (broker, &max_resp_size);
+    if (*rc != TSS2_RC_SUCCESS)
+        return NULL;
+    buffer = calloc (1, max_resp_size);
+    if (buffer == NULL) {
+        g_warning ("failed to allocate buffer for Tpm2Response: %s",
+                   strerror (errno));
+        return NULL;
+    }
+    size = max_resp_size;
+    *rc = tcti_receive (broker->tcti, &size, buffer, TSS2_TCTI_TIMEOUT_BLOCK);
+    buffer = realloc (buffer, size);
+
+    return buffer;
+}
 /**
  * In the most simple case the caller will want to send just a single
  * command represented by a Tpm2Command object. The response is passed
@@ -379,24 +424,13 @@ access_broker_send_command (AccessBroker  *broker,
         *rc = TSS2_TABRMD_INTERNAL_ERROR;
         goto err_out;
     }
-    *rc = tcti_transmit (broker->tcti,
-                         tpm2_command_get_size (command),
-                         tpm2_command_get_buffer (command));
+    *rc = access_broker_send_cmd (broker, command);
     if (*rc != TSS2_RC_SUCCESS)
         goto unlock_out;
-    *rc = access_broker_get_max_response (broker, &max_resp_size);
-    buffer = calloc (1, max_resp_size);
-    if (buffer == NULL) {
-        *rc = TSS2_TABRMD_OUT_OF_MEMORY;
-        goto unlock_out;
-    }
-    size = max_resp_size;
-    *rc = tcti_receive (broker->tcti,
-                        &size,
-                        buffer,
-                        TSS2_TCTI_TIMEOUT_BLOCK);
+    buffer = access_broker_get_response (broker, rc);
     if (*rc != TSS2_RC_SUCCESS) {
-        free (buffer);
+        if (buffer != NULL)
+            free (buffer);
         goto unlock_out;
     }
     error = access_broker_unlock (broker);
