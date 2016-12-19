@@ -14,9 +14,12 @@ typedef struct _Tpm2CommandClass {
 
 typedef struct _Tpm2Command {
     GObject         parent_instance;
+    TPMA_CC         attributes;
     SessionData    *session;
     guint8         *buffer;
 } Tpm2Command;
+
+#include "command-attrs.h"
 
 #define TYPE_TPM2_COMMAND            (tpm2_command_get_type      ())
 #define TPM2_COMMAND(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_TPM2_COMMAND, Tpm2Command))
@@ -27,9 +30,12 @@ typedef struct _Tpm2Command {
 
 GType                 tpm2_command_get_type        (void);
 Tpm2Command*          tpm2_command_new             (SessionData      *session,
-                                                    guint8           *buffer);
+                                                    guint8           *buffer,
+                                                    TPMA_CC           attrs);
 Tpm2Command*          tpm2_command_new_from_fd     (SessionData      *session,
-                                                    gint              fd);
+                                                    gint              fd,
+                                                    CommandAttrs     *attrs);
+TPMA_CC               tpm2_command_get_attributes  (Tpm2Command      *command);
 guint8*               tpm2_command_get_buffer      (Tpm2Command      *command);
 TPM_CC                tpm2_command_get_code        (Tpm2Command      *command);
 guint32               tpm2_command_get_size        (Tpm2Command      *command);

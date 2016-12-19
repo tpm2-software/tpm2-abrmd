@@ -8,8 +8,6 @@
 
 #include <sapi/tpm20.h>
 
-#include "access-broker.h"
-
 G_BEGIN_DECLS
 
 typedef struct _CommandAttrsClass {
@@ -21,6 +19,8 @@ typedef struct _CommandAttrs {
     TPMA_CC               *command_attrs;
     UINT32                 count;
 } CommandAttrs;
+
+#include "access-broker.h"
 
 #define TYPE_COMMAND_ATTRS              (command_attrs_get_type   ())
 #define COMMAND_ATTRS(obj)              (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_COMMAND_ATTRS, CommandAttrs))

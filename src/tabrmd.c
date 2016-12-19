@@ -333,6 +333,7 @@ init_thread_func (gpointer user_data)
     gint ret;
     Tcti *tcti;
     TSS2_RC rc;
+    CommandAttrs *command_attrs;
 
     g_info ("init_thread_func start");
     g_mutex_lock (&data->init_mutex);
@@ -367,13 +368,21 @@ init_thread_func (gpointer user_data)
      * Instantiate and the objects that make up the TPM command processing
      * pipeline.
      */
+    command_attrs = command_attrs_new ();
+    g_debug ("created CommandAttrs: 0x%" PRIxPTR, command_attrs);
+    rc = command_attrs_init (command_attrs, data->access_broker);
+    if (rc != TSS2_RC_SUCCESS)
+        g_error ("failed to initialize CommandAttribute object: 0x" PRIxPTR,
+                 command_attrs);
+
     data->command_source =
-        command_source_new (data->manager);
+        command_source_new (data->manager, command_attrs);
     g_debug ("created session source: 0x%x", data->command_source);
     data->resource_manager = resource_manager_new (data->access_broker);
     g_debug ("created ResourceManager: 0x%x", data->resource_manager);
     data->response_sink = SINK (response_sink_new ());
     g_debug ("created response source: 0x%x", data->response_sink);
+    g_object_unref (command_attrs);
     /**
      * Wire up the TPM command processing pipeline. TPM command buffers
      * flow from the CommandSource, to the Tab then finally back to the

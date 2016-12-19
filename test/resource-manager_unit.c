@@ -141,7 +141,7 @@ resource_manager_sink_enqueue_test (void **state)
 
     data->session = session_data_new (&fds[0], &fds[1], 0);
     buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
-    data->command = tpm2_command_new (data->session, buffer);
+    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
     resource_manager_enqueue (SINK (data->resource_manager), G_OBJECT (data->command));
     command_out = TPM2_COMMAND (message_queue_dequeue (data->resource_manager->in_queue));
 
@@ -170,7 +170,7 @@ resource_manager_process_tpm2_command_success_test (void **state)
      * it will be freed by the call to resource_manager_process_tpm2_command
      * and the teardown function will attempt to free it again if set.
      */
-    command = tpm2_command_new (data->session, buffer);
+    command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
     response = tpm2_response_new_rc (data->session, TSS2_RC_SUCCESS);
 
     will_return (__wrap_access_broker_send_command, TSS2_RC_SUCCESS);

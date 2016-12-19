@@ -27,7 +27,7 @@ tpm2_response_setup (void **state)
     /* allocate a buffer large enough to hold a TPM2 header */
     data->buffer   = calloc (1, TPM_RESPONSE_HEADER_SIZE);
     data->session  = session_data_new (&fds[0], &fds[1], 0);
-    data->response = tpm2_response_new (data->session, data->buffer);
+    data->response = tpm2_response_new (data->session, data->buffer, (TPMA_CC){ 0, });
 
     *state = data;
 }

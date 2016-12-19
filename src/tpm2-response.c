@@ -20,6 +20,7 @@ static gpointer tpm2_response_parent_class = NULL;
 
 enum {
     PROP_0,
+    PROP_ATTRIBUTES,
     PROP_SESSION,
     PROP_BUFFER,
     N_PROPERTIES
@@ -37,6 +38,9 @@ tpm2_response_set_property (GObject        *object,
     Tpm2Response *self = TPM2_RESPONSE (object);
 
     switch (property_id) {
+    case PROP_ATTRIBUTES:
+        self->attributes = (TPMA_CC)g_value_get_uint (value);
+        break;
     case PROP_BUFFER:
         if (self->buffer != NULL) {
             g_warning ("  buffer already set");
@@ -70,6 +74,9 @@ tpm2_response_get_property (GObject     *object,
 
     g_debug ("tpm2_response_get_property: 0x%x", self);
     switch (property_id) {
+    case PROP_ATTRIBUTES:
+        g_value_set_uint (value, self->attributes.val);
+        break;
     case PROP_BUFFER:
         g_value_set_pointer (value, self->buffer);
         break;
@@ -112,6 +119,14 @@ tpm2_response_class_init (gpointer klass)
     object_class->get_property = tpm2_response_get_property;
     object_class->set_property = tpm2_response_set_property;
 
+    obj_properties [PROP_ATTRIBUTES] =
+        g_param_spec_uint ("attributes",
+                           "TPMA_CC",
+                           "Attributes for command.",
+                           0,
+                           UINT32_MAX,
+                           0,
+                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_BUFFER] =
         g_param_spec_pointer ("buffer",
                               "TPM2 response buffer",
@@ -151,9 +166,11 @@ tpm2_response_get_type (void)
  */
 Tpm2Response*
 tpm2_response_new (SessionData     *session,
-                   guint8          *buffer)
+                   guint8          *buffer,
+                   TPMA_CC          attributes)
 {
     return TPM2_RESPONSE (g_object_new (TYPE_TPM2_RESPONSE,
+                                        "attributes", attributes,
                                        "buffer",  buffer,
                                        "session", session,
                                        NULL));
@@ -178,7 +195,13 @@ tpm2_response_new_rc (SessionData *session,
     TPM_RESPONSE_TAG (buffer)  = htobe16 (TPM_ST_NO_SESSIONS);
     TPM_RESPONSE_SIZE (buffer) = htobe32 (TPM_RESPONSE_HEADER_SIZE);
     TPM_RESPONSE_CODE (buffer) = htobe32 (rc);
-    return tpm2_response_new (session, buffer);
+    return tpm2_response_new (session, buffer, (TPMA_CC){ 0, });
+}
+/* Simple "getter" to expose the attributes associated with the command. */
+TPMA_CC
+tpm2_response_get_attributes (Tpm2Response *response)
+{
+    return response->attributes;
 }
 /**
  */

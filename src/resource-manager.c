@@ -45,6 +45,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                    tpm2_command_get_size (command),
                    16,
                    4);
+    g_debug_tpma_cc (tpm2_command_get_attributes (command));
     /* transform the Tpm2Command */
     /* send the command */
     response = access_broker_send_command (resmgr->access_broker,
@@ -60,6 +61,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                    tpm2_response_get_size (response),
                    16,
                    4);
+    g_debug_tpma_cc (tpm2_response_get_attributes (response));
     /* transform the Tpm2Response */
     /* send the response to the sinrk */
     sink_enqueue (resmgr->sink, G_OBJECT (response));

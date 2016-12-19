@@ -27,7 +27,7 @@ tpm2_command_setup (void **state)
     /* allocate a buffer large enough to hold a TPM2 header */
     data->buffer = calloc (1, 10);
     data->session = session_data_new (&fds[0], &fds[1], 0);
-    data->command = tpm2_command_new (data->session, data->buffer);
+    data->command = tpm2_command_new (data->session, data->buffer, (TPMA_CC){ 0, });
 
     *state = data;
 }

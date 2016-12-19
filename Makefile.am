@@ -67,6 +67,7 @@ src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(noinst_LTLIBRARIES) $(noinst_LTLIBRARIES)
 src_tpm2_abrmd_SOURCES = \
     src/access-broker.c \
+    src/command-attrs.c \
     src/control-message.c \
     src/message-queue.c \
     src/tabrmd.c \
@@ -164,6 +165,7 @@ test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PT
 test_command_source_unit_LDFLAGS = -Wl,--wrap=session_manager_lookup_fd,--wrap=tpm2_command_new_from_fd,--wrap=sink_enqueue
 test_command_source_unit_SOURCES = \
     src/access-broker.c \
+    src/command-attrs.c \
     src/message-queue.c \
     src/command-source.c \
     src/session-manager.c \
@@ -219,8 +221,12 @@ test_tcti_tabrmd_read_write_SOURCES = test/tcti-tabrmd_read-write.c
 test_tpm2_command_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(noinst_LTLIBRARIES)
 test_tpm2_command_unit_SOURCES = \
+    src/access-broker.c \
+    src/command-attrs.c \
     src/tpm2-command.c \
+    src/tpm2-response.c \
     src/session-data.c \
+    src/tcti.c \
     test/tpm2-command_unit.c
 
 test_tpm2_response_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -252,6 +258,7 @@ test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_Ge
 test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_access_broker_unit_SOURCES = \
     src/access-broker.c \
+    src/command-attrs.c \
     src/session-data.c \
     src/tcti.c \
     src/tcti-echo.c \
@@ -271,6 +278,7 @@ test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wra
 test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_resource_manager_unit_SOURCES = \
     src/access-broker.c \
+    src/command-attrs.c \
     src/control-message.c \
     src/message-queue.c \
     src/resource-manager.c \

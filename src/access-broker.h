@@ -7,7 +7,6 @@
 #include <sapi/tpm20.h>
 
 #include "tcti.h"
-#include "tpm2-command.h"
 #include "tpm2-response.h"
 
 G_BEGIN_DECLS
@@ -24,6 +23,8 @@ typedef struct _AccessBroker {
     TPMS_CAPABILITY_DATA    properties_fixed;
     gboolean                initialized;
 } AccessBroker;
+
+#include "tpm2-command.h"
 
 #define TYPE_ACCESS_BROKER              (access_broker_get_type ())
 #define ACCESS_BROKER(obj)              (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_ACCESS_BROKER, AccessBroker))

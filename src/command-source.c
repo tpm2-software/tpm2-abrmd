@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <glib.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -19,6 +20,7 @@ static gpointer command_source_parent_class = NULL;
 
 enum {
     PROP_0,
+    PROP_COMMAND_ATTRS,
     PROP_SESSION_MANAGER,
     PROP_SINK,
     PROP_WAKEUP_RECEIVE_FD,
@@ -61,6 +63,10 @@ command_source_set_property (GObject       *object,
 
     g_debug ("command_source_set_properties: 0x%x", self);
     switch (property_id) {
+    case PROP_COMMAND_ATTRS:
+        self->command_attrs = COMMAND_ATTRS (g_value_dup_object (value));
+        g_debug ("  command_attrs: 0x" PRIxPTR, self->command_attrs);
+        break;
     case PROP_SESSION_MANAGER:
         self->session_manager = SESSION_MANAGER (g_value_get_object (value));
         break;
@@ -98,6 +104,9 @@ command_source_get_property (GObject      *object,
 
     g_debug ("command_source_get_properties: 0x%x", self);
     switch (property_id) {
+    case PROP_COMMAND_ATTRS:
+        g_value_set_object (value, self->command_attrs);
+        break;
     case PROP_SESSION_MANAGER:
         g_value_set_object (value, self->session_manager);
         break;
@@ -153,6 +162,10 @@ command_source_finalize (GObject  *object)
         g_object_unref (source->sink);
     if (source->session_manager)
         g_object_unref (source->session_manager);
+    if (source->command_attrs) {
+        g_object_unref (source->command_attrs);
+        source->command_attrs = NULL;
+    }
     close (source->wakeup_send_fd);
     close (source->wakeup_receive_fd);
     if (command_source_parent_class)
@@ -172,6 +185,12 @@ command_source_class_init (gpointer klass)
     object_class->get_property = command_source_get_property;
     object_class->set_property = command_source_set_property;
 
+    obj_properties [PROP_COMMAND_ATTRS] =
+        g_param_spec_object ("command-attrs",
+                             "CommandAttrs object",
+                             "CommandAttrs instance.",
+                             TYPE_COMMAND_ATTRS,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_SESSION_MANAGER] =
         g_param_spec_object ("session-manager",
                              "SessionManager object",
@@ -273,7 +292,7 @@ command_source_session_responder (CommandSource      *source,
         g_error ("failed to get session associated with fd: %d", fd);
     else
         g_debug ("session_manager_lookup_fd for fd %d: 0x%x", fd, session);
-    command = tpm2_command_new_from_fd (session, fd);
+    command = tpm2_command_new_from_fd (session, fd, source->command_attrs);
     if (command == NULL) {
         /* command will be NULL when read error on fd, or fd is closed (EOF)
          * In either case we remove the session and free it.
@@ -346,7 +365,8 @@ command_source_thread (void *data)
 }
 
 CommandSource*
-command_source_new (SessionManager    *session_manager)
+command_source_new (SessionManager    *session_manager,
+                    CommandAttrs      *command_attrs)
 {
     CommandSource *source;
     gint wakeup_fds [2] = { 0, };
@@ -357,6 +377,7 @@ command_source_new (SessionManager    *session_manager)
     if (pipe2 (wakeup_fds, O_CLOEXEC) != 0)
         g_error ("failed to make wakeup pipe: %s", strerror (errno));
     source = COMMAND_SOURCE (g_object_new (TYPE_COMMAND_SOURCE,
+                                             "command-attrs", command_attrs,
                                              "session-manager", session_manager,
                                              "wakeup-receive-fd", wakeup_fds [0],
                                              "wakeup-send-fd", wakeup_fds [1],

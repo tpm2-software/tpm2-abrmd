@@ -244,7 +244,7 @@ access_broker_send_command_tcti_transmit_fail_test (void **state)
     buffer = calloc (1, rc_expected);
     will_return (__wrap_tcti_echo_transmit, rc_expected);
     data->session = session_data_new (&fds[0], &fds[1], 0);
-    data->command = tpm2_command_new (data->session, buffer);
+    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
     data->response = access_broker_send_command (data->broker, data->command, &rc);
     /* the response code should be the one we passed to __wrap_tcti_echo_transmit */
     assert_int_equal (rc, rc_expected);
@@ -270,7 +270,7 @@ access_broker_send_command_tcti_receive_fail_test (void **state)
     will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
     will_return (__wrap_tcti_echo_receive, rc_expected);
     data->session = session_data_new (&fds[0], &fds[1], 0);
-    data->command = tpm2_command_new (data->session, buffer);
+    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
     data->response = access_broker_send_command (data->broker, data->command, &rc);
     /* the response code should be the one we passed to __wrap_tcti_echo_receive */
     assert_int_equal (rc, rc_expected);
@@ -296,7 +296,7 @@ access_broker_send_command_success (void **state)
     will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
     will_return (__wrap_tcti_echo_receive,  rc_expected);
     data->session = session_data_new (&fds[0], &fds[1], 0);
-    data->command = tpm2_command_new (data->session, buffer);
+    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
     data->response = access_broker_send_command (data->broker, data->command, &rc);
     /* the response code should be the one we passed to __wrap_tcti_echo_receive */
     assert_int_equal (rc, rc_expected);

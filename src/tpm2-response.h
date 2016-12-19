@@ -16,6 +16,7 @@ typedef struct _Tpm2Response {
     GObject         parent_instance;
     SessionData    *session;
     guint8         *buffer;
+    TPMA_CC         attributes;
 } Tpm2Response;
 
 #define TPM_RESPONSE_HEADER_SIZE (sizeof (TPM_ST) + sizeof (UINT32) + sizeof (TPM_RC))
@@ -29,9 +30,11 @@ typedef struct _Tpm2Response {
 
 GType               tpm2_response_get_type      (void);
 Tpm2Response*       tpm2_response_new           (SessionData     *session,
-                                                 guint8          *buffer);
+                                                 guint8          *buffer,
+                                                 TPMA_CC          attributes);
 Tpm2Response*       tpm2_response_new_rc        (SessionData     *session,
                                                  TPM_RC           rc);
+TPMA_CC             tpm2_response_get_attributes (Tpm2Response   *response);
 guint8*             tpm2_response_get_buffer    (Tpm2Response    *response);
 TPM_RC              tpm2_response_get_code      (Tpm2Response    *response);
 guint32             tpm2_response_get_size      (Tpm2Response    *response);

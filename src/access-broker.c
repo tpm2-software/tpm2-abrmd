@@ -437,7 +437,8 @@ access_broker_send_command (AccessBroker  *broker,
     if (error)
         g_error ("access_broker: Failed to unlock SAPI mutex.");
     response = tpm2_response_new (tpm2_command_get_session (command),
-                                  buffer);
+                                  buffer,
+                                  tpm2_command_get_attributes (command));
     return response;
 
 unlock_out:

@@ -16,11 +16,13 @@
 #include "session-manager.h"
 #include "sink-interface.h"
 #include "source-interface.h"
+#include "command-attrs.h"
 #include "command-source.h"
 #include "tpm2-command.h"
 
 typedef struct source_test_data {
     SessionManager *manager;
+    CommandAttrs   *command_attrs;
     CommandSource *source;
     SessionData *session;
     gboolean match;
@@ -37,7 +39,8 @@ __wrap_session_manager_lookup_fd (SessionManager *manager,
 
 Tpm2Command*
 __wrap_tpm2_command_new_from_fd (SessionData *session,
-                                 gint         fd)
+                                 gint         fd,
+                                 TPMA_CC      attributes)
 {
     g_debug ("__wrap_tpm2_command_from_fd");
     return TPM2_COMMAND (mock ());
@@ -62,7 +65,9 @@ command_source_allocate_test (void **state)
     source_test_data_t *data = (source_test_data_t *)*state;
     CommandSource *source = NULL;
 
-    data->source = command_source_new (data->manager);
+    data->command_attrs = command_attrs_new ();
+    data->source = command_source_new (data->manager,
+                                       data->command_attrs);
     assert_non_null (data->source);
 }
 
@@ -118,7 +123,9 @@ command_source_start_setup (void **state)
     data->manager = session_manager_new ();
     if (data->manager == NULL)
         g_error ("failed to allocate new session_manager");
-    data->source = command_source_new (data->manager);
+    data->command_attrs = command_attrs_new ();
+    data->source = command_source_new (data->manager,
+                                       data->command_attrs);
     if (data->source == NULL)
         g_error ("failed to allocate new command_source");
 
@@ -132,6 +139,7 @@ command_source_start_teardown (void **state)
 
     g_object_unref (data->source);
     g_object_unref (data->manager);
+    g_object_unref (data->command_attrs);
     free (data);
 }
 /* command_source_start_test end */
@@ -152,7 +160,9 @@ command_source_wakeup_setup (void **state)
 
     data = calloc (1, sizeof (source_test_data_t));
     data->manager = session_manager_new ();
-    data->source  = command_source_new (data->manager);
+    data->command_attrs = command_attrs_new ();
+    data->source  = command_source_new (data->manager,
+                                        data->command_attrs);
     *state = data;
 }
 
@@ -187,7 +197,9 @@ command_source_session_data_setup (void **state)
 
     data = calloc (1, sizeof (source_test_data_t));
     data->manager = session_manager_new ();
-    data->source = command_source_new (data->manager);
+    data->command_attrs = command_attrs_new ();
+    data->source = command_source_new (data->manager,
+                                       data->command_attrs);
 
     *state = data;
 }
@@ -241,7 +253,7 @@ command_source_session_responder_success_test (void **state)
      */
     buffer = calloc (1, sizeof (data_in));
     memcpy (buffer, data_in, sizeof (data_in));
-    command = tpm2_command_new (session, buffer);
+    command = tpm2_command_new (session, buffer, (TPMA_CC){ 0, });
     /* prime wraps */
     will_return (__wrap_session_manager_lookup_fd, session);
     will_return (__wrap_tpm2_command_new_from_fd, command);

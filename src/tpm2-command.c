@@ -1,3 +1,6 @@
+#include <inttypes.h>
+#include <stdint.h>
+
 #include "tpm2-command.h"
 #include "util.h"
 
@@ -11,6 +14,7 @@ static gpointer tpm2_command_parent_class = NULL;
 
 enum {
     PROP_0,
+    PROP_ATTRIBUTES,
     PROP_SESSION,
     PROP_BUFFER,
     N_PROPERTIES
@@ -28,6 +32,9 @@ tpm2_command_set_property (GObject        *object,
     Tpm2Command *self = TPM2_COMMAND (object);
 
     switch (property_id) {
+    case PROP_ATTRIBUTES:
+        self->attributes = (TPMA_CC)g_value_get_uint (value);
+        break;
     case PROP_BUFFER:
         if (self->buffer != NULL) {
             g_warning ("  buffer already set");
@@ -61,6 +68,9 @@ tpm2_command_get_property (GObject     *object,
 
     g_debug ("tpm2_command_get_property: 0x%x", self);
     switch (property_id) {
+    case PROP_ATTRIBUTES:
+        g_value_set_uint (value, self->attributes.val);
+        break;
     case PROP_BUFFER:
         g_value_set_pointer (value, self->buffer);
         break;
@@ -103,6 +113,14 @@ tpm2_command_class_init (gpointer klass)
     object_class->get_property = tpm2_command_get_property;
     object_class->set_property = tpm2_command_set_property;
 
+    obj_properties [PROP_ATTRIBUTES] =
+        g_param_spec_uint ("attributes",
+                           "TPMA_CC",
+                           "Attributes for command.",
+                           0,
+                           UINT32_MAX,
+                           0,
+                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_BUFFER] =
         g_param_spec_pointer ("buffer",
                               "TPM2 command buffer",
@@ -142,9 +160,11 @@ tpm2_command_get_type (void)
  */
 Tpm2Command*
 tpm2_command_new (SessionData     *session,
-                  guint8          *buffer)
+                  guint8          *buffer,
+                  TPMA_CC          attributes)
 {
     return TPM2_COMMAND (g_object_new (TYPE_TPM2_COMMAND,
+                                       "attributes", attributes,
                                        "buffer",  buffer,
                                        "session", session,
                                        NULL));
@@ -155,16 +175,35 @@ tpm2_command_new (SessionData     *session,
  */
 Tpm2Command*
 tpm2_command_new_from_fd (SessionData *session,
-                          gint         fd)
+                          gint         fd,
+                          CommandAttrs *command_attrs)
 {
     guint8 *command_buf = NULL;
     UINT32 command_size = 0;
+    TPMA_CC attributes;
+    TPM_CC  command_code;
 
     g_debug ("tpm2_command_new_from_fd: %d", fd);
     command_buf = read_tpm_command_from_fd (fd, &command_size);
     if (command_buf == NULL)
         return NULL;
-    return tpm2_command_new (session, command_buf);
+    command_code = be32toh (*(TPM_CC*)(command_buf +
+                                       sizeof (TPMI_ST_COMMAND_TAG) +
+                                       sizeof (UINT32)));
+    attributes = command_attrs_from_cc (command_attrs, command_code);
+    if (attributes.val == 0) {
+        g_warning ("Failed to find TPMA_CC for TPM_CC: 0x%" PRIx32,
+                   command_code);
+        free (command_buf);
+        return NULL;
+    }
+    return tpm2_command_new (session, command_buf, attributes);
+}
+/* Simple "getter" to expose the attributes associated with the command. */
+TPMA_CC
+tpm2_command_get_attributes (Tpm2Command *command)
+{
+    return command->attributes;
 }
 /**
  */

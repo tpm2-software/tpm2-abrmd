@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -255,4 +256,19 @@ read_tpm_command_from_fd (int fd, UINT32 *command_size)
     }
 
     return tpm_command;
+}
+/* pretty print */
+void
+g_debug_tpma_cc (TPMA_CC tpma_cc)
+{
+    g_debug ("TPMA_CC: 0x%08" PRIx32, tpma_cc.val);
+    g_debug ("  commandIndex: 0x%" PRIx32, tpma_cc.val & TPMA_CC_COMMANDINDEX);
+    g_debug ("  reserved1:    0x%" PRIx32, tpma_cc.val & TPMA_CC_RESERVED1);
+    g_debug ("  nv:           %s", prop_str (tpma_cc.val & TPMA_CC_NV));
+    g_debug ("  extensive:    %s", prop_str (tpma_cc.val & TPMA_CC_EXTENSIVE));
+    g_debug ("  flushed:      %s", prop_str (tpma_cc.val & TPMA_CC_FLUSHED));
+    g_debug ("  cHandles:     0x%" PRIx32, tpma_cc.val & TPMA_CC_CHANDLES);
+    g_debug ("  rHandle:      %s", prop_str (tpma_cc.val & TPMA_CC_RHANDLE));
+    g_debug ("  V:            %s", prop_str (tpma_cc.val & TPMA_CC_V));
+    g_debug ("  Res:          0x%" PRIx32, tpma_cc.val & TPMA_CC_RES );
 }

@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <sys/select.h>
 
+#include "command-attrs.h"
 #include "session-manager.h"
 #include "sink-interface.h"
 
@@ -25,6 +26,7 @@ typedef struct _CommandSourceClass {
 typedef struct _CommandSource {
     GObject            parent_instance;
     SessionManager    *session_manager;
+    CommandAttrs      *command_attrs;
     pthread_t          thread;
     gint               wakeup_receive_fd;
     gint               wakeup_send_fd;
@@ -41,7 +43,8 @@ typedef struct _CommandSource {
 #define COMMAND_SOURCE_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_COMMAND_SOURCE, CommandSourceClass))
 
 GType           command_source_get_type       (void);
-CommandSource*  command_source_new            (SessionManager  *session_manager);
+CommandSource*  command_source_new            (SessionManager  *session_manager,
+                                               CommandAttrs    *command_attrs);
 gint            command_source_on_new_session (SessionManager  *session_manager,
                                                SessionData     *session_data,
                                                CommandSource   *command_source);
