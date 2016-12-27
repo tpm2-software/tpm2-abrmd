@@ -241,3 +241,13 @@ tpm2_command_get_session (Tpm2Command *command)
 {
     return command->session;
 }
+/* Return the number of handles in the command. */
+guint8
+tpm2_command_get_handle_count (Tpm2Command *command)
+{
+    g_debug ("tpm2_command_get_handle_count");
+    uint32_t tmp;
+
+    tmp = tpm2_command_get_attributes (command).val;
+    return (tmp & TPMA_CC_CHANDLES) >> 25;
+}

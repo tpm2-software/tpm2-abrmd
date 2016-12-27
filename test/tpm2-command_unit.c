@@ -18,7 +18,7 @@ typedef struct {
  * the teardown.
  */
 static void
-tpm2_command_setup (void **state)
+tpm2_command_setup_base (void **state)
 {
     test_data_t *data   = NULL;
     gint         fds[2] = { 0, };
@@ -27,9 +27,36 @@ tpm2_command_setup (void **state)
     /* allocate a buffer large enough to hold a TPM2 header */
     data->buffer = calloc (1, 10);
     data->session = session_data_new (&fds[0], &fds[1], 0);
-    data->command = tpm2_command_new (data->session, data->buffer, (TPMA_CC){ 0, });
-
     *state = data;
+}
+static void
+tpm2_command_setup (void **state)
+{
+    test_data_t *data   = NULL;
+    TPMA_CC  attributes = {
+        .val = 0x0,
+    };
+
+    tpm2_command_setup_base (state);
+    data = (test_data_t*)*state;
+    data->command = tpm2_command_new (data->session,
+                                      data->buffer,
+                                      attributes);
+    *state = data;
+}
+static void
+tpm2_command_setup_two_handles (void **state)
+{
+    test_data_t *data = NULL;
+    TPMA_CC  attributes = {
+       .val = 2 << 25,
+    };
+
+    tpm2_command_setup_base (state);
+    data = (test_data_t*)*state;
+    data->command = tpm2_command_new (data->session,
+                                      data->buffer,
+                                      attributes);
 }
 /**
  * Tear down all of the data from the setup function. We don't have to
@@ -137,6 +164,15 @@ tpm2_command_get_code_test (void **state)
     assert_int_equal (command_code, TPM_CC_GetCapability);
 }
 
+static void
+tpm2_command_get_two_handle_count_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    guint8 command_handles;
+
+    command_handles = tpm2_command_get_handle_count (data->command);
+    assert_int_equal (command_handles, 2);
+}
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -159,6 +195,9 @@ main (gint    argc,
                                   tpm2_command_teardown),
         unit_test_setup_teardown (tpm2_command_get_code_test,
                                   tpm2_command_setup,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_get_two_handle_count_test,
+                                  tpm2_command_setup_two_handles,
                                   tpm2_command_teardown),
     };
     return run_tests (tests);
