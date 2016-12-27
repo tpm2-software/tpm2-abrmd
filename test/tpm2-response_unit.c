@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
@@ -11,14 +12,12 @@ typedef struct {
     guint8       *buffer;
     SessionData  *session;
 } test_data_t;
-/**
- * This is the minimum work required to instantiate a Tpm2Response. It needs
- * a data buffer to hold the response and a SessionData object. We also
- * allocate a structure to hold these things so that we can free them in
- * the teardown.
+/*
+ * This function does all of the setup required to run a test *except*
+ * for instantiating the Tpm2Response object.
  */
 static void
-tpm2_response_setup (void **state)
+tpm2_response_setup_base (void **state)
 {
     test_data_t *data   = NULL;
     gint         fds[2] = { 0, };
@@ -27,9 +26,42 @@ tpm2_response_setup (void **state)
     /* allocate a buffer large enough to hold a TPM2 header */
     data->buffer   = calloc (1, TPM_RESPONSE_HEADER_SIZE);
     data->session  = session_data_new (&fds[0], &fds[1], 0);
-    data->response = tpm2_response_new (data->session, data->buffer, (TPMA_CC){ 0, });
 
     *state = data;
+}
+/*
+ * This function sets up all required test data with a Tpm2Response
+ * object that has no attributes set.
+ */
+static void
+tpm2_response_setup (void **state)
+{
+    test_data_t *data;
+
+    tpm2_response_setup_base (state);
+    data = (test_data_t*)*state;
+    data->response = tpm2_response_new (data->session,
+                                        data->buffer,
+                                        (TPMA_CC){ 0, });
+}
+/*
+ * This function sets up all required test data with a Tpm2Response
+ * object that has attributes indicating the response has a handle
+ * in it.
+ */
+static void
+tpm2_response_setup_with_handle (void **state)
+{
+    test_data_t *data;
+    TPMA_CC attributes = {
+        .val = 1 << 28,
+    };
+
+    tpm2_response_setup_base (state);
+    data = (test_data_t*)*state;
+    data->response = tpm2_response_new (data->session,
+                                        data->buffer,
+                                        attributes);
 }
 /**
  * Tear down all of the data from the setup function. We don't have to
@@ -235,7 +267,34 @@ tpm2_response_new_rc_session_test (void **state)
 
     assert_int_equal (session, tpm2_response_get_session (data->response));
 }
+/*
+ * This test ensures that a tpm2_response_has_handle reports the
+ * actual value in the TPMA_CC attributes field when the rHandle bit
+ * in the attributes is *not* set.
+ */
+static void
+tpm2_response_no_handle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    gboolean has_handle;
 
+    has_handle = tpm2_response_has_handle (data->response);
+    assert_false (has_handle);
+}
+/*
+ * This test ensures that a tpm2_response_has_handle reports the
+ * actual value in the TPMA_CC attributes field when the rHandle bit
+ * in the attributes *is* set.
+ */
+static void
+tpm2_response_has_handle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    gboolean has_handle = FALSE;
+
+    has_handle = tpm2_response_has_handle (data->response);
+    assert_true (has_handle);
+}
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -270,6 +329,12 @@ main (gint    argc,
                                   tpm2_response_teardown),
         unit_test_setup_teardown (tpm2_response_new_rc_session_test,
                                   tpm2_response_new_rc_setup,
+                                  tpm2_response_teardown),
+        unit_test_setup_teardown (tpm2_response_no_handle_test,
+                                  tpm2_response_setup,
+                                  tpm2_response_teardown),
+        unit_test_setup_teardown (tpm2_response_has_handle_test,
+                                  tpm2_response_setup_with_handle,
                                   tpm2_response_teardown),
     };
     return run_tests (tests);

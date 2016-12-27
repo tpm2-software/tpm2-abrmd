@@ -37,6 +37,7 @@ Tpm2Response*       tpm2_response_new_rc        (SessionData     *session,
 TPMA_CC             tpm2_response_get_attributes (Tpm2Response   *response);
 guint8*             tpm2_response_get_buffer    (Tpm2Response    *response);
 TPM_RC              tpm2_response_get_code      (Tpm2Response    *response);
+gboolean            tpm2_response_has_handle    (Tpm2Response    *response);
 guint32             tpm2_response_get_size      (Tpm2Response    *response);
 TPM_ST              tpm2_response_get_tag       (Tpm2Response    *response);
 SessionData*        tpm2_response_get_session   (Tpm2Response    *response);
