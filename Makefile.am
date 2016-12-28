@@ -16,6 +16,7 @@ check_PROGRAMS  = \
     test/session-data_unit \
     test/session-manager_unit \
     test/command-source_unit \
+    test/handle-map-entry_unit \
     test/random_unit \
     test/test-skeleton_unit \
     test/tcti-echo_unit \
@@ -177,6 +178,12 @@ test_command_source_unit_SOURCES = \
     src/tpm2-command.c \
     src/tpm2-response.c \
     test/command-source_unit.c
+
+test_handle_map_entry_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_handle_map_entry_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_handle_map_entry_unit_SOURCES = \
+    src/handle-map-entry.c \
+    test/handle-map-entry_unit.c
 
 if TCTI_DEVICE
 test_tcti_device_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
