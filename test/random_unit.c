@@ -184,36 +184,17 @@ random_get_bytes_setup (void **state)
     assert_int_equal (ret, 0);
 }
 /*
- * Test a failure condition for the random_get_bytes function. In this
- * test we request a number of bytes that isn't a multiple of
- * sizeof (long int) which should cause an error to be returned (in the
- * form of a 0 return value).
- */
-static void
-random_get_bytes_not_multiple_test (void **state)
-{
-    test_data_t *data = *state;
-    int ret;
-    uint8_t dest[10] = { 0, };
-
-    ret = random_get_bytes (data->random, dest, sizeof (dest));
-    assert_int_equal (ret, 0);
-}
-/*
- * Test a successful call to the random_get_bytes function. We request
- * a number of bytes that's a multiple of sizeof (long int). This gets
- * us a success scenario where random_get_bytes returns the number of
- * bytes that we requested.
+ * Test a successful call to the random_get_bytes function.
  */
 static void
 random_get_bytes_success_test (void **state)
 {
     test_data_t *data = *state;
     int ret;
-    uint8_t dest[sizeof (long int) * 3] = { 0, };
+    uint8_t dest[sizeof (long int) * 3 - 3] = { 0, };
 
     ret = random_get_bytes (data->random, dest, sizeof (dest));
-    assert_int_equal (ret, sizeof (long int) * 3);
+    assert_int_equal (ret, sizeof (long int) * 3 - 3);
 }
 /* Test case to execute a successful call to random_get_uint64. */
 static void
@@ -251,9 +232,6 @@ main (gint    argc,
                                   random_teardown),
         unit_test_setup_teardown (random_seed_from_file_read_short_test,
                                   random_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_get_bytes_not_multiple_test,
-                                  random_get_bytes_setup,
                                   random_teardown),
         unit_test_setup_teardown (random_get_bytes_success_test,
                                   random_get_bytes_setup,

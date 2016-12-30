@@ -1,8 +1,11 @@
 #include <errno.h>
+#include <inttypes.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#include <sapi/tpm20.h>
 
 #include "random.h"
 
@@ -108,8 +111,9 @@ out:
  * Get 'count' bytes of random data out of the provided Random object.
  * On success the number of bytes obtained is returned. On error 0 is
  * returned.
- * NOTE: The number of bytes requested must be a multiple of
- *       sizeof (long_int).
+ * NOTE: This algorithm is pretty inefficient. For each byte we return
+ *   to the caller we get a long int of data from rand48. The rest of
+ *   the sizeof (long int) bytes are wasted.
  */
 size_t
 random_get_bytes (Random    *random,
@@ -117,19 +121,13 @@ random_get_bytes (Random    *random,
                   size_t     count)
 {
     size_t i;
+    uint8_t rand[sizeof (long int)] = { 0, };
 
     g_debug ("random_get_bytes: %p", random);
     g_assert_nonnull (random);
-    if (count % sizeof (long int)) {
-        g_warning ("random_get_bytes destination must be a multiple of %d",
-                   sizeof (long int));
-        return 0;
-    }
-    for (i = 0; i < count; i += sizeof (long int)) {
-        lrand48_r (&random->rand_state, (long int*)&dest[i]);
-        g_debug ("  got %d bytes: 0x%08x",
-                 sizeof (long int),
-                 *(long int*)&dest[i]);
+    for (i = 0; i < count; ++i) {
+        lrand48_r (&random->rand_state, (long int*)&rand[0]);
+        memcpy (&dest[i], &rand[0], sizeof (uint8_t));
     }
     return i;
 }
