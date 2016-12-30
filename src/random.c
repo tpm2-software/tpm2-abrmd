@@ -148,3 +148,41 @@ random_get_uint64 (Random      *random,
     else
         return 0;
 }
+/*
+ * Get 32 bits of random data from the parameter 'random' object. If
+ * we successfully fill in the supplied 'dest' parameter with random
+ * data we return 0, on error return -1.
+ */
+int
+random_get_uint32 (Random       *random,
+                   uint32_t     *dest)
+{
+    size_t ret;
+
+    ret = random_get_bytes (random, (uint8_t*)dest, sizeof (uint32_t));
+    if (ret == sizeof (uint32_t))
+        return 0;
+    else
+        return -1;
+}
+/*
+ * Get random 32bit number in the given range.
+ */
+int
+random_get_uint32_range (Random *random,
+                         uint32_t high,
+                         uint32_t low,
+                         uint32_t *dest)
+{
+    size_t ret;
+
+    if (dest == NULL)
+        return -1;
+    ret = random_get_bytes (random, (uint8_t*)dest, sizeof (*dest));
+    if (ret != sizeof (uint32_t))
+        return -1;
+
+    *dest = low + (*dest / (UINT32_MAX / (high - low)));
+
+    return 0;
+}

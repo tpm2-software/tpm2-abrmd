@@ -207,6 +207,29 @@ random_get_uint64_success_test (void **state)
     ret = random_get_uint64 (data->random, &dest);
     assert_int_equal (ret, 0);
 }
+/* Test case to execute a successful call to random_get_uint32. */
+static void
+random_get_uint32_success_test (void **state)
+{
+    test_data_t *data = *state;
+    int ret;
+    uint32_t dest;
+
+    ret = random_get_uint32 (data->random, &dest);
+    assert_int_equal (ret, 0);
+}
+/**/
+static void
+random_get_uint32_range_success_test (void **state)
+{
+    test_data_t *data = *state;
+    int ret;
+    uint32_t dest, low = 6, high = 20;
+
+    ret = random_get_uint32_range (data->random, high, low, &dest);
+    assert_int_equal (ret, 0);
+    assert_true (low < dest < high);
+}
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -237,6 +260,12 @@ main (gint    argc,
                                   random_get_bytes_setup,
                                   random_teardown),
         unit_test_setup_teardown (random_get_uint64_success_test,
+                                  random_get_bytes_setup,
+                                  random_teardown),
+        unit_test_setup_teardown (random_get_uint32_success_test,
+                                  random_get_bytes_setup,
+                                  random_teardown),
+        unit_test_setup_teardown (random_get_uint32_range_success_test,
                                   random_get_bytes_setup,
                                   random_teardown),
         NULL,
