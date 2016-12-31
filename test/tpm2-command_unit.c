@@ -1,10 +1,14 @@
 #include <glib.h>
+#include <inttypes.h>
 #include <stdlib.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
 
 #include "tpm2-command.h"
+
+#define HANDLE_FIRST  0x80000000
+#define HANDLE_SECOND 0x80000001
 
 typedef struct {
     Tpm2Command *command;
@@ -57,6 +61,13 @@ tpm2_command_setup_two_handles (void **state)
     data->command = tpm2_command_new (data->session,
                                       data->buffer,
                                       attributes);
+    /*
+     * This sets the two handles to 0x80000000 and 0x80000001, assuming the
+     * buffer was initialized to all 0's
+     */
+    data->buffer [10] = 0x80;
+    data->buffer [14] = 0x80;
+    data->buffer [17] = 0x01;
 }
 /**
  * Tear down all of the data from the setup function. We don't have to
@@ -173,6 +184,19 @@ tpm2_command_get_two_handle_count_test (void **state)
     command_handles = tpm2_command_get_handle_count (data->command);
     assert_int_equal (command_handles, 2);
 }
+
+static void
+tpm2_command_get_handles_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE handles [3] = { 0, };
+    gboolean ret;
+
+    ret = tpm2_command_get_handles (data->command, handles, 3);
+    assert_true (ret == TRUE);
+    assert_int_equal (handles [0], HANDLE_FIRST);
+    assert_int_equal (handles [1], HANDLE_SECOND);
+}
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -197,6 +221,9 @@ main (gint    argc,
                                   tpm2_command_setup,
                                   tpm2_command_teardown),
         unit_test_setup_teardown (tpm2_command_get_two_handle_count_test,
+                                  tpm2_command_setup_two_handles,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_get_handles_test,
                                   tpm2_command_setup_two_handles,
                                   tpm2_command_teardown),
     };

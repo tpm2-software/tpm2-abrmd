@@ -39,6 +39,9 @@ TPMA_CC               tpm2_command_get_attributes  (Tpm2Command      *command);
 guint8*               tpm2_command_get_buffer      (Tpm2Command      *command);
 TPM_CC                tpm2_command_get_code        (Tpm2Command      *command);
 guint8                tpm2_command_get_handle_count (Tpm2Command     *command);
+gboolean              tpm2_command_get_handles     (Tpm2Command      *command,
+                                                    TPM_HANDLE        handles[],
+                                                    guint8            count);
 guint32               tpm2_command_get_size        (Tpm2Command      *command);
 TPMI_ST_COMMAND_TAG   tpm2_command_get_tag         (Tpm2Command      *command);
 SessionData*          tpm2_command_get_session     (Tpm2Command      *command);

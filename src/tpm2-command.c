@@ -3,6 +3,15 @@
 
 #include "tpm2-command.h"
 #include "util.h"
+/* macros to make getting at fields in the command more simple */
+
+#define HANDLE_OFFSET (sizeof (TPMI_ST_COMMAND_TAG) + \
+                       sizeof (UINT32) + \
+                       sizeof (TPM_CC))
+#define HANDLE_INDEX(i) (sizeof (TPM_HANDLE) * i)
+#define HANDLE_GET(buffer, count) (*(TPM_HANDLE*)(HANDLE_START (buffer) + \
+                                                  HANDLE_INDEX (count)))
+#define HANDLE_START(buffer) (buffer + HANDLE_OFFSET)
 
 /**
  * Boiler-plate gobject code.
@@ -250,4 +259,26 @@ tpm2_command_get_handle_count (Tpm2Command *command)
 
     tmp = tpm2_command_get_attributes (command).val;
     return (tmp & TPMA_CC_CHANDLES) >> 25;
+}
+/*
+ * Return the handles from the Tpm2Command back to the caller by way of the
+ * handles parameter. The caller must allocate sufficient space to hold
+ * however many handles are in this command. Take a look @
+ * tpm2_command_get_handle_count.
+ */
+gboolean
+tpm2_command_get_handles (Tpm2Command *command,
+                          TPM_HANDLE   handles[],
+                          guint8       count)
+{
+    guint8 real_count, i;
+
+    real_count = tpm2_command_get_handle_count (command);
+    if (handles == NULL || real_count > count)
+        return FALSE;
+
+    for (i = 0; i < real_count; ++i)
+        handles[i] = be32toh (HANDLE_GET (command->buffer, i));
+
+    return TRUE;
 }
