@@ -10,6 +10,10 @@
 #define TPM_RESPONSE_CODE(buffer) (*(TPM_RC*)(buffer + \
                                               sizeof (TPM_ST) + \
                                               sizeof (UINT32)))
+#define TPM_RESPONSE_HANDLE(buffer) (*(TPM_HANDLE*)(buffer + \
+                                                    sizeof (TPM_ST) + \
+                                                    sizeof (UINT32) + \
+                                                    sizeof (TPM_RC)))
 /**
  * Boiler-plate gobject code.
  * NOTE: I tried to use the G_DEFINE_TYPE macro to take care of this boiler
@@ -247,4 +251,23 @@ tpm2_response_has_handle (Tpm2Response  *response)
 
     tmp = tpm2_response_get_attributes (response).val;
     return tmp & TPMA_CC_RHANDLE ? TRUE : FALSE;
+}
+/*
+ * Return the handle from the response handle area. Always check to be sure
+ * the response has a handle in it before calling this function. If the
+ * Tpm2Response has no handle in the handle area the return value from this
+ * function will be indetermanent.
+ */
+TPM_HANDLE
+tpm2_response_get_handle (Tpm2Response *response)
+{
+    return be32toh (TPM_RESPONSE_HANDLE (response->buffer));
+}
+/*
+ * Return the type of the handle from the Tpm2Response object.
+ */
+TPM_HT
+tpm2_response_get_handle_type (Tpm2Response *response)
+{
+    return tpm2_response_get_handle (response) >> HR_SHIFT;
 }

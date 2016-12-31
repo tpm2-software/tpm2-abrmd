@@ -7,6 +7,9 @@
 
 #include "tpm2-response.h"
 
+#define HANDLE_TEST 0xdeadbeef
+#define HANDLE_TYPE 0xde
+
 typedef struct {
     Tpm2Response *response;
     guint8       *buffer;
@@ -62,6 +65,10 @@ tpm2_response_setup_with_handle (void **state)
     data->response = tpm2_response_new (data->session,
                                         data->buffer,
                                         attributes);
+    data->buffer [TPM_RESPONSE_HEADER_SIZE]     = 0xde;
+    data->buffer [TPM_RESPONSE_HEADER_SIZE + 1] = 0xad;
+    data->buffer [TPM_RESPONSE_HEADER_SIZE + 2] = 0xbe;
+    data->buffer [TPM_RESPONSE_HEADER_SIZE + 3] = 0xef;
 }
 /**
  * Tear down all of the data from the setup function. We don't have to
@@ -295,6 +302,32 @@ tpm2_response_has_handle_test (void **state)
     has_handle = tpm2_response_has_handle (data->response);
     assert_true (has_handle);
 }
+/*
+ * This tests the Tpm2Response objects ability to return the handle that
+ * we set in the setup function.
+ */
+static void
+tpm2_response_get_handle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE handle;
+
+    handle = tpm2_response_get_handle (data->response);
+    assert_int_equal (handle, HANDLE_TEST);
+}
+/*
+ * This tests the Tpm2Response objects ability to return the handle type
+ * from the handle we set in the setup function.
+ */
+static void
+tpm2_response_get_handle_type_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HT handle_type;
+
+    handle_type = tpm2_response_get_handle_type (data->response);
+    assert_int_equal (handle_type, HANDLE_TYPE);
+}
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -334,6 +367,12 @@ main (gint    argc,
                                   tpm2_response_setup,
                                   tpm2_response_teardown),
         unit_test_setup_teardown (tpm2_response_has_handle_test,
+                                  tpm2_response_setup_with_handle,
+                                  tpm2_response_teardown),
+        unit_test_setup_teardown (tpm2_response_get_handle_test,
+                                  tpm2_response_setup_with_handle,
+                                  tpm2_response_teardown),
+        unit_test_setup_teardown (tpm2_response_get_handle_type_test,
                                   tpm2_response_setup_with_handle,
                                   tpm2_response_teardown),
     };
