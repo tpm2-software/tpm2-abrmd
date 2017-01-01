@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <inttypes.h>
 
 #include "control-message.h"
 #include "message-queue.h"
@@ -20,6 +21,47 @@ enum {
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
+/*
+ */
+gboolean
+resource_manager_process_command_handles (ResourceManager *resmgr,
+                                          Tpm2Command     *command)
+{
+    TPM_HANDLE *handles;
+    guint8     handle_count, i;
+
+    g_debug ("resource_manager_process_command_handles: ResourceManager: 0x%"
+             PRIxPTR " Tpm2Command: 0x%" PRIxPTR, resmgr, command);
+    handle_count = tpm2_command_get_handle_count (command);
+    g_debug ("Tpm2Command has handle count: 0x%" PRIx8, handle_count);
+    if (handle_count == 0)
+        return TRUE;
+
+    handles = calloc (handle_count, sizeof (TPM_HANDLE));
+    if (tpm2_command_get_handles (command, handles, handle_count))
+        for (i = 0; i < handle_count; ++i)
+            g_debug ("  have handle: 0x%" PRIx32, handles[i]);
+    return TRUE;
+}
+/*
+ */
+gboolean
+resource_manager_process_response_handle (ResourceManager *resmgr,
+                                          Tpm2Response    *response)
+{
+    TPM_HANDLE handle;
+    TPM_HT handle_type;
+
+    g_debug ("resource_manager_process_response_handle");
+    handle = tpm2_response_get_handle (response);
+    g_debug ("has handle: 0x%" PRIx32, handle);
+    handle_type = tpm2_response_get_handle_type (response);
+    g_debug ("has handle type: 0x%" PRIx8, handle_type);
+    if (handle_type == TPM_HT_TRANSIENT)
+        g_debug ("has TPM_HT_TRANSIENT");
+
+    return TRUE;
+}
 /**
  * This function is invoked in response to the receipt of a Tpm2Command.
  * This is the place where we send the command buffer out to the TPM
@@ -47,6 +89,8 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                    4);
     g_debug_tpma_cc (tpm2_command_get_attributes (command));
     /* transform the Tpm2Command */
+    if (tpm2_command_get_handle_count (command) > 0)
+        resource_manager_process_command_handles (resmgr, command);
     /* send the command */
     response = access_broker_send_command (resmgr->access_broker,
                                            command,
@@ -63,6 +107,8 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                    4);
     g_debug_tpma_cc (tpm2_response_get_attributes (response));
     /* transform the Tpm2Response */
+    if (tpm2_response_has_handle (response))
+        resource_manager_process_response_handle (resmgr, response);
     /* send the response to the sinrk */
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
