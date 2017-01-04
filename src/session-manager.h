@@ -33,7 +33,6 @@ typedef gint (*new_session_callback)(SessionManager *session_manager,
 
 GType              session_manager_get_type    (void);
 SessionManager*    session_manager_new         (void);
-void               session_manager_free        (SessionManager  *manager);
 gint               session_manager_insert      (SessionManager  *manager,
                                                 SessionData     *session);
 gint               session_manager_remove      (SessionManager  *manager,

@@ -36,6 +36,5 @@ gpointer         session_data_key_fd       (SessionData      *session);
 gpointer         session_data_key_id       (SessionData      *session);
 gint             session_data_receive_fd   (SessionData      *session);
 gint             session_data_send_fd      (SessionData      *session);
-void             session_data_free         (SessionData      *session);
 
 #endif /* SESSION_H */
