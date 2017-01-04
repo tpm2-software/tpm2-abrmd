@@ -6,50 +6,22 @@
 
 /* Boiler-plate gobject code. */
 static gpointer handle_map_parent_class = NULL;
-
-enum {
-    PROP_0,
-    PROP_HASH_TABLE,
-    N_PROPERTIES
-};
-static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
 /*
- * GObject property getter.
+ * Initialize object.
  */
 static void
-handle_map_get_property (GObject        *object,
-                         guint           property_id,
-                         GValue         *value,
-                         GParamSpec     *pspec)
+handle_map_init (GTypeInstance *instance,
+                 gpointer       klass)
 {
-    HandleMap *self = HANDLE_MAP (object);
+    HandleMap *map = HANDLE_MAP (instance);
 
-    switch (property_id) {
-    case PROP_HASH_TABLE:
-        g_value_set_pointer (value, self->handle_to_object_hash_table);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-    }
-}
-/*
- * GObject property setter.
- */
-static void
-handle_map_set_property (GObject        *object,
-                               guint           property_id,
-                               GValue const   *value,
-                               GParamSpec     *pspec)
-{
-    HandleMap *self = HANDLE_MAP (object);
-
-    switch (property_id) {
-    case PROP_HASH_TABLE:
-        self->handle_to_object_hash_table = g_value_get_pointer (value);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-    }
+    g_debug ("handle_map_init");
+    pthread_mutex_init (&map->mutex, NULL);
+    map->handle_to_object_hash_table =
+        g_hash_table_new_full (g_direct_hash,
+                               g_direct_equal,
+                               NULL,
+                               (GDestroyNotify)g_object_unref);
 }
 /*
  * Deallocate all associated resources. The mutex may be held by another
@@ -80,17 +52,6 @@ handle_map_class_init (gpointer klass)
     if (handle_map_parent_class == NULL)
         handle_map_parent_class = g_type_class_peek_parent (klass);
     object_class->finalize     = handle_map_finalize;
-    object_class->get_property = handle_map_get_property;
-    object_class->set_property = handle_map_set_property;
-
-    obj_properties [PROP_HASH_TABLE] =
-        g_param_spec_pointer ("hash-table",
-                              "GHashTable",
-                              "Hash table mapping TPM_HANDLE to some object",
-                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    g_object_class_install_properties (object_class,
-                                       N_PROPERTIES,
-                                       obj_properties);
 }
 /*
  * Boiler-plate GObject 'get_type' function.
@@ -106,7 +67,7 @@ handle_map_get_type (void)
                                               sizeof (HandleMapClass),
                                               (GClassInitFunc) handle_map_class_init,
                                               sizeof (HandleMap),
-                                              NULL,
+                                              handle_map_init,
                                               0);
 
     return type;
@@ -118,21 +79,8 @@ handle_map_get_type (void)
 HandleMap*
 handle_map_new (void)
 {
-    GHashTable *hash_table;
-    HandleMap  *handle_map;
-
-    hash_table = g_hash_table_new_full (g_direct_hash,
-                                        g_direct_equal,
-                                        NULL,
-                                        (GDestroyNotify)g_object_unref);
-    handle_map = HANDLE_MAP (g_object_new (TYPE_HANDLE_MAP,
-                                           "hash-table", hash_table,
-                                           NULL));
-    if (pthread_mutex_init (&handle_map->mutex, NULL) != 0)
-        g_error ("Failed to initialize HandleMap mutex: %s",
-                 strerror (errno));
-
-    return handle_map;
+    return HANDLE_MAP (g_object_new (TYPE_HANDLE_MAP,
+                                     NULL));
 }
 /*
  * Lock the mutex that protects the hash table object.
