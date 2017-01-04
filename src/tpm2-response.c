@@ -240,6 +240,7 @@ tpm2_response_get_tag (Tpm2Response *response)
 SessionData*
 tpm2_response_get_session (Tpm2Response *response)
 {
+    g_object_ref (response->session);
     return response->session;
 }
 /* Return the number of handles in the command. */

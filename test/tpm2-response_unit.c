@@ -107,8 +107,11 @@ static void
 tpm2_response_get_session_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
+    SessionData *session;
 
-    assert_int_equal (data->session, tpm2_response_get_session (data->response));
+    session = tpm2_response_get_session (data->response);
+    assert_int_equal (data->session, session);
+    g_object_unref (session);
 }
 /**
  * In the setup function we passed the Tpm2Response object a data buffer.

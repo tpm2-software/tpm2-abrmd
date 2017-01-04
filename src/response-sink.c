@@ -210,6 +210,7 @@ response_sink_process_response (Tpm2Response *response)
     if (written <= 0)
         g_warning ("write failed (%d) on fd %d for session 0x%x: %s",
                    written, fd, session, strerror (errno));
+    g_object_unref (session);
 
     return written;
 }
