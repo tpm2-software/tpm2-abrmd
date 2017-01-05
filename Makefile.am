@@ -71,6 +71,8 @@ src_tpm2_abrmd_SOURCES = \
     src/access-broker.c \
     src/command-attrs.c \
     src/control-message.c \
+    src/handle-map.c \
+    src/handle-map-entry.c \
     src/message-queue.c \
     src/tabrmd.c \
     src/logging.c \
@@ -133,6 +135,8 @@ test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(GOBJECT_LIBS)
 test_response_sink_unit_SOURCES = \
     src/control-message.c \
+    src/handle-map.c \
+    src/handle-map-entry.c \
     src/thread-interface.c \
     src/message-queue.c \
     src/response-sink.c \
@@ -143,11 +147,20 @@ test_response_sink_unit_SOURCES = \
 
 test_session_data_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_session_data_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
-test_session_data_unit_SOURCES = src/session-data.c test/session-data_unit.c
+test_session_data_unit_SOURCES = \
+    src/handle-map.c \
+    src/handle-map-entry.c \
+    src/session-data.c \
+    test/session-data_unit.c
 
 test_session_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
-test_session_manager_unit_SOURCES = src/session-manager.c src/session-data.c test/session-manager_unit.c
+test_session_manager_unit_SOURCES = \
+    src/handle-map.c \
+    src/handle-map-entry.c \
+    src/session-manager.c \
+    src/session-data.c \
+    test/session-manager_unit.c
 
 test_command_attrs_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
 test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(GOBJECT_LIBS) $(noinst_LTLIBRARIES)
@@ -155,6 +168,8 @@ test_command_attrs_unit_LDFLAGS  = -Wl,--wrap=access_broker_lock_sapi,--wrap=acc
 test_command_attrs_unit_SOURCES  = \
     src/access-broker.c \
     src/command-attrs.c \
+    src/handle-map.c \
+    src/handle-map-entry.c \
     src/session-data.c \
     src/tcti.c \
     src/tcti-echo.c \
@@ -168,6 +183,8 @@ test_command_source_unit_LDFLAGS = -Wl,--wrap=session_manager_lookup_fd,--wrap=t
 test_command_source_unit_SOURCES = \
     src/access-broker.c \
     src/command-attrs.c \
+    src/handle-map.c \
+    src/handle-map-entry.c \
     src/message-queue.c \
     src/command-source.c \
     src/session-manager.c \
@@ -247,6 +264,8 @@ test_tpm2_command_unit_SOURCES = \
 test_tpm2_response_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tpm2_response_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
 test_tpm2_response_unit_SOURCES = \
+    src/handle-map.c \
+    src/handle-map-entry.c \
     src/tpm2-response.c \
     src/session-data.c \
     test/tpm2-response_unit.c
@@ -264,6 +283,8 @@ test_util_mock_realloc_unit_SOURCES = test/util-mock-realloc_unit.c
 test_message_queue_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_message_queue_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_message_queue_unit_SOURCES = \
+    src/handle-map.c \
+    src/handle-map-entry.c \
     src/message-queue.c \
     src/session-data.c \
     test/message-queue_unit.c
@@ -274,6 +295,8 @@ test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SA
 test_access_broker_unit_SOURCES = \
     src/access-broker.c \
     src/command-attrs.c \
+    src/handle-map.c \
+    src/handle-map-entry.c \
     src/session-data.c \
     src/tcti.c \
     src/tcti-echo.c \
@@ -295,6 +318,8 @@ test_resource_manager_unit_SOURCES = \
     src/access-broker.c \
     src/command-attrs.c \
     src/control-message.c \
+    src/handle-map.c \
+    src/handle-map-entry.c \
     src/message-queue.c \
     src/resource-manager.c \
     src/session-data.c \

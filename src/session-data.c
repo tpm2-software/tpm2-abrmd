@@ -69,6 +69,16 @@ session_data_get_property (GObject     *object,
         break;
     }
 }
+/* GObject instance initialization. */
+static void
+session_data_init (GTypeInstance *instance,
+                   gpointer       klass)
+{
+    SessionData *session = SESSION_DATA (instance);
+
+    g_debug ("session_data_init");
+    session->handle_map = handle_map_new (TPM_HT_TRANSIENT);
+}
 
 static void
 session_data_finalize (GObject *obj)
@@ -80,6 +90,7 @@ session_data_finalize (GObject *obj)
         return;
     close (session->receive_fd);
     close (session->send_fd);
+    g_object_unref (session->handle_map);
     if (session_data_parent_class)
         G_OBJECT_CLASS (session_data_parent_class)->finalize (obj);
 }
@@ -137,7 +148,7 @@ session_data_get_type (void)
                                               sizeof (SessionDataClass),
                                               (GClassInitFunc) session_data_class_init,
                                               sizeof (SessionData),
-                                              NULL,
+                                              session_data_init,
                                               0);
     }
     return type;
@@ -282,4 +293,10 @@ session_data_send_fd (SessionData *session)
                            "send_fd",
                            &value);
     return g_value_get_int (&value);
+}
+HandleMap*
+session_data_get_trans_map (SessionData *session)
+{
+    g_object_ref (session->handle_map);
+    return session->handle_map;
 }

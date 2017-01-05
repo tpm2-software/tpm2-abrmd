@@ -4,6 +4,8 @@
 #include <glib.h>
 #include <glib-object.h>
 
+#include "handle-map.h"
+
 G_BEGIN_DECLS
 
 typedef struct _SessionDataClass {
@@ -15,6 +17,7 @@ typedef struct _SessionData {
     gint                receive_fd;
     gint                send_fd;
     guint64             id;
+    HandleMap          *handle_map;
 } SessionData;
 
 #define TYPE_SESSION_DATA              (session_data_get_type ())
@@ -36,5 +39,6 @@ gpointer         session_data_key_fd       (SessionData      *session);
 gpointer         session_data_key_id       (SessionData      *session);
 gint             session_data_receive_fd   (SessionData      *session);
 gint             session_data_send_fd      (SessionData      *session);
+HandleMap*       session_data_get_trans_map(SessionData      *session);
 
 #endif /* SESSION_H */
