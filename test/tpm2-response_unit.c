@@ -26,8 +26,8 @@ tpm2_response_setup_base (void **state)
     gint         fds[2] = { 0, };
 
     data = calloc (1, sizeof (test_data_t));
-    /* allocate a buffer large enough to hold a TPM2 header */
-    data->buffer   = calloc (1, TPM_RESPONSE_HEADER_SIZE);
+    /* allocate a buffer large enough to hold a TPM2 header and a handle */
+    data->buffer   = calloc (1, TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE));
     data->session  = session_data_new (&fds[0], &fds[1], 0);
 
     *state = data;
@@ -331,6 +331,23 @@ tpm2_response_get_handle_type_test (void **state)
     handle_type = tpm2_response_get_handle_type (data->response);
     assert_int_equal (handle_type, HANDLE_TYPE);
 }
+/*
+ * This tests the Tpm2Response objects ability to set the response handle
+ * field. We do this by first setting the handle to some value and then
+ * querying the Tpm2Response object for the handle. The value returned
+ * should be the handle that we set in the previous call.
+ */
+static void
+tpm2_response_set_handle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE handle_in = 0x80fffffe, handle_out = 0;
+
+    tpm2_response_set_handle (data->response, handle_in);
+    handle_out = tpm2_response_get_handle (data->response);
+
+    assert_int_equal (handle_in, handle_out);
+}
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -376,6 +393,9 @@ main (gint    argc,
                                   tpm2_response_setup_with_handle,
                                   tpm2_response_teardown),
         unit_test_setup_teardown (tpm2_response_get_handle_type_test,
+                                  tpm2_response_setup_with_handle,
+                                  tpm2_response_teardown),
+        unit_test_setup_teardown (tpm2_response_set_handle_test,
                                   tpm2_response_setup_with_handle,
                                   tpm2_response_teardown),
     };

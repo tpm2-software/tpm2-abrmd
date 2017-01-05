@@ -265,6 +265,14 @@ tpm2_response_get_handle (Tpm2Response *response)
     return be32toh (TPM_RESPONSE_HANDLE (response->buffer));
 }
 /*
+ */
+void
+tpm2_response_set_handle (Tpm2Response *response,
+                          TPM_HANDLE    handle)
+{
+    TPM_RESPONSE_HANDLE (response->buffer) = htobe32 (handle);
+}
+/*
  * Return the type of the handle from the Tpm2Response object.
  */
 TPM_HT
