@@ -22,7 +22,7 @@ handle_map_setup_base (void **state)
     test_data_t *data = NULL;
 
     data = calloc (1, sizeof (test_data_t));
-    data->map = handle_map_new ();
+    data->map = handle_map_new (TPM_HT_TRANSIENT);
     data->entry = handle_map_entry_new (PHANDLE, VHANDLE);
 
     *state = data;
@@ -47,7 +47,8 @@ handle_map_setup_with_entry (void **state)
     data = (test_data_t*)*state;
     handle_map_insert (data->map,
                        handle_map_entry_get_phandle (data->entry),
-                       G_OBJECT (data->entry));
+                       handle_map_entry_get_vhandle (data->entry),
+                       data->entry);
 }
 /*
  * This test ensures that the object instances created in the setup function
@@ -77,7 +78,8 @@ handle_map_insert_test (void **state)
     assert_int_equal (handle_map_size (data->map), 0);
     handle_map_insert (data->map,
                        PHANDLE,
-                       G_OBJECT (data->entry));
+                       VHANDLE,
+                       data->entry);
     assert_int_equal (handle_map_size (data->map), 1);
 }
 /*
@@ -101,14 +103,45 @@ handle_map_remove_test (void **state)
  * handle.
  */
 static void
-handle_map_lookup_test (void **state)
+handle_map_plookup_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
     HandleMapEntry *entry_out;
 
-    entry_out = HANDLE_MAP_ENTRY (handle_map_lookup (data->map, PHANDLE));
+    entry_out = HANDLE_MAP_ENTRY (handle_map_plookup (data->map, PHANDLE));
     assert_int_equal (data->entry, entry_out);
     g_object_unref (entry_out);
+}
+/*
+ * This test ensures that we can lookup a known entry from the map. The
+ * EntryMap must already have an entry and it must be keyed to the virtual
+ * handle.
+ */
+static void
+handle_map_vlookup_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    HandleMapEntry *entry_out;
+
+    entry_out = HANDLE_MAP_ENTRY (handle_map_vlookup (data->map, VHANDLE));
+    assert_int_equal (data->entry, entry_out);
+    g_object_unref (entry_out);
+}
+/*
+ * This test ensures that the 'handle_map_next_vhandle' function returns
+ * a different handle across two invocations. This is the lowest bar we can
+ * set for this function. Additional tests should cover roll over and
+ * recovery.
+ */
+static void
+handle_map_next_vhandle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE handle1, handle2;
+
+    handle1 = handle_map_next_vhandle (data->map);
+    handle2 = handle_map_next_vhandle (data->map);
+    assert_true (handle2 != handle1);
 }
 int
 main(int argc, char* argv[])
@@ -123,7 +156,13 @@ main(int argc, char* argv[])
         unit_test_setup_teardown (handle_map_remove_test,
                                   handle_map_setup_with_entry,
                                   handle_map_teardown),
-        unit_test_setup_teardown (handle_map_lookup_test,
+        unit_test_setup_teardown (handle_map_plookup_test,
+                                  handle_map_setup_with_entry,
+                                  handle_map_teardown),
+        unit_test_setup_teardown (handle_map_vlookup_test,
+                                  handle_map_setup_with_entry,
+                                  handle_map_teardown),
+        unit_test_setup_teardown (handle_map_next_vhandle_test,
                                   handle_map_setup_with_entry,
                                   handle_map_teardown),
     };
