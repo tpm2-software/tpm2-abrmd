@@ -282,3 +282,25 @@ tpm2_command_get_handles (Tpm2Command *command,
 
     return TRUE;
 }
+/*
+ * Set handles in the Tpm2Command buffer. The handles are passed in the
+ * 'handles' parameter, the size of this array through the 'count'
+ * parameter. Each invocation of this function sets all handles in the
+ * Tpm2Command and so the size of the handles array (aka 'count') must be
+ * the same as the number of handles in the command.
+ */
+gboolean
+tpm2_command_set_handles (Tpm2Command *command,
+                          TPM_HANDLE   handles[],
+                          guint8       count)
+{
+    guint8 real_count, i;
+
+    real_count = tpm2_command_get_handle_count (command);
+    if (handles == NULL || real_count != count)
+        return FALSE;
+
+    for (i = 0; i < real_count; ++i)
+        HANDLE_GET (command->buffer, i) = htobe32 (handles [i]);
+    return TRUE;
+}

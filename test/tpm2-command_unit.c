@@ -28,8 +28,8 @@ tpm2_command_setup_base (void **state)
     gint         fds[2] = { 0, };
 
     data = calloc (1, sizeof (test_data_t));
-    /* allocate a buffer large enough to hold a TPM2 header */
-    data->buffer = calloc (1, 10);
+    /* allocate a buffer large enough to hold a TPM2 header and 3 handles */
+    data->buffer = calloc (1, TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE) * 3);
     data->session = session_data_new (&fds[0], &fds[1], 0);
     *state = data;
 }
@@ -197,6 +197,23 @@ tpm2_command_get_handles_test (void **state)
     assert_int_equal (handles [0], HANDLE_FIRST);
     assert_int_equal (handles [1], HANDLE_SECOND);
 }
+static void
+tpm2_command_set_handles_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    gboolean ret;
+    TPM_HANDLE handles_in [2] = {
+        TPM_HT_TRANSIENT + 0x1,
+        TPM_HT_TRANSIENT + 0x2,
+    };
+    TPM_HANDLE handles_out [2] = { 0, };
+
+    ret = tpm2_command_set_handles (data->command, handles_in, 2);
+    assert_true (ret == TRUE);
+    ret = tpm2_command_get_handles (data->command, handles_out, 2);
+    assert_true (ret == TRUE);
+    assert_memory_equal (handles_in, handles_out, 2 * sizeof (TPM_HANDLE));
+}
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -224,6 +241,9 @@ main (gint    argc,
                                   tpm2_command_setup_two_handles,
                                   tpm2_command_teardown),
         unit_test_setup_teardown (tpm2_command_get_handles_test,
+                                  tpm2_command_setup_two_handles,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_set_handles_test,
                                   tpm2_command_setup_two_handles,
                                   tpm2_command_teardown),
     };

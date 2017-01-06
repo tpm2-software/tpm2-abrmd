@@ -255,6 +255,8 @@ test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(S
 test_tpm2_command_unit_SOURCES = \
     src/access-broker.c \
     src/command-attrs.c \
+    src/handle-map.c \
+    src/handle-map-entry.c \
     src/tpm2-command.c \
     src/tpm2-response.c \
     src/session-data.c \
