@@ -26,10 +26,23 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
                      command,
                      size);
     /* should switch on possible errors to translate to TSS2 error codes */
-    if (ret == size)
-        tss2_ret = TSS2_RC_SUCCESS;
-    else
-        tss2_ret = TSS2_TCTI_RC_GENERAL_FAILURE;
+    switch (ret) {
+    case -1:
+        g_debug ("tss2_tcti_tabrmd_transmit: error writing to pipe: %s",
+                 strerror (errno));
+        tss2_ret = TSS2_TCTI_RC_IO_ERROR;
+        break;
+    case 0:
+        g_debug ("tss2_tcti_tabrmd_transmit: EOF returned writing to pipe");
+        tss2_ret = TSS2_TCTI_RC_NO_CONNECTION;
+        break;
+    default:
+        if (ret != size) {
+            g_debug ("tss2_tcti_tabrmd_transmit: short write");
+            tss2_ret = TSS2_TCTI_RC_GENERAL_FAILURE;
+        }
+        break;
+    }
     ret = pthread_mutex_unlock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error unlocking TCTI mutex: %s", strerror (errno));
