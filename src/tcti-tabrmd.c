@@ -52,11 +52,21 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
     if (ret != 0)
         g_error ("Error acquiring TCTI lock: %s", strerror (errno));
     ret = read (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context), response, *size);
-    if (ret != -1) {
+    switch (ret) {
+    case -1:
+        g_debug ("tss2_tcti_tabrmd_receive: error reading from pipe: %s",
+                 strerror (errno));
+        tss2_ret = TSS2_TCTI_RC_IO_ERROR;
+        break;
+    case 0:
+        g_debug ("tss2_tcti_tabrmd_receive: read returned 0: EOF!");
+        tss2_ret = TSS2_TCTI_RC_NO_CONNECTION;
+        break;
+    default:
+        g_debug ("tss2_tcti_tabrmd_receive: read returned: 0x%", PRIdMAX, ret);
         *size = ret;
-        tss2_ret = TSS2_RC_SUCCESS;
-    } else
-        tss2_ret = TSS2_TCTI_RC_GENERAL_FAILURE;
+        break;
+    }
     ret = pthread_mutex_unlock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error unlocking TCTI mutex: %s", strerror (errno));
