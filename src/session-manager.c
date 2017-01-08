@@ -32,7 +32,6 @@ session_manager_new (void)
      * hash tables will be free'd by the g_object_unref function. We only
      * set this for one of the hash tables because we only want to free
      * each session-data object once.
-     * We could make this more clean by using reference counted objects.
      */
     session_manager->session_from_fd_table =
         g_hash_table_new_full (g_int_hash,
@@ -122,6 +121,12 @@ session_manager_insert (SessionManager    *manager,
     if (ret != 0)
         g_error ("Error locking session_manager mutex: %s",
                  strerror (errno));
+    /*
+     * Increase reference count on SessionData object on insert. The
+     * corresponding call to g_hash_table_remove will cause the reference
+     * count to be decreased (see g_hash_table_new_full).
+     */
+    g_object_ref (session);
     g_hash_table_insert (manager->session_from_fd_table,
                          session_data_key_fd (session),
                          session);

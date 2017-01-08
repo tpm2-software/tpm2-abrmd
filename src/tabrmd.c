@@ -124,6 +124,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     ret = session_manager_insert (data->manager, session);
     if (ret != 0)
         g_error ("Failed to add new session to session_manager.");
+    g_object_unref (session);
 
     return TRUE;
 }
