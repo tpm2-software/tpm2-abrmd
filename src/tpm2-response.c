@@ -235,7 +235,13 @@ tpm2_response_get_tag (Tpm2Response *response)
 {
     return be16toh (TPM_RESPONSE_TAG (response->buffer));
 }
-/**
+/*
+ * Return the SessionData object associated with this Tpm2Response. This
+ * is the SessionData object representing the client that should receive
+ * this response. The reference count on this object is incremented before
+ * the object is returned to the caller. The caller is responsible for
+ * decrementing the reference count when it is done using the session
+ * object.
  */
 SessionData*
 tpm2_response_get_session (Tpm2Response *response)

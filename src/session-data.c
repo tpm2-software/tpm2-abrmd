@@ -294,6 +294,12 @@ session_data_send_fd (SessionData *session)
                            &value);
     return g_value_get_int (&value);
 }
+/*
+ * Return a reference to the HandleMap for transient handles to the caller.
+ * We increment the reference count on this object before returning it. The
+ * caller *must* decrement the reference count when they're done using the
+ * object.
+ */
 HandleMap*
 session_data_get_trans_map (SessionData *session)
 {

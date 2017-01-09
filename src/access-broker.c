@@ -412,6 +412,7 @@ access_broker_send_command (AccessBroker  *broker,
                             TSS2_RC       *rc)
 {
     Tpm2Response   *response = NULL;
+    SessionData    *session = NULL;
     gint            error;
     size_t          size;
     guint32         max_resp_size;
@@ -436,15 +437,20 @@ access_broker_send_command (AccessBroker  *broker,
     error = access_broker_unlock (broker);
     if (error)
         g_error ("access_broker: Failed to unlock SAPI mutex.");
-    response = tpm2_response_new (tpm2_command_get_session (command),
+    session = tpm2_command_get_session (command);
+    response = tpm2_response_new (session,
                                   buffer,
                                   tpm2_command_get_attributes (command));
+    g_object_unref (session);
     return response;
 
 unlock_out:
     access_broker_unlock (broker);
 err_out:
-    response = tpm2_response_new_rc (tpm2_command_get_session (command), *rc);
+    if (!session)
+        session = tpm2_command_get_session (command);
+    response = tpm2_response_new_rc (session, *rc);
+    g_object_unref (session);
     return response;
 }
 /**

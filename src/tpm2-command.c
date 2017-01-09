@@ -245,9 +245,17 @@ tpm2_command_get_tag (Tpm2Command *command)
 {
     return be16toh (*(TPMI_ST_COMMAND_TAG*)(command->buffer));
 }
+/*
+ * Return the SessionData object associated with this Tpm2Command. This
+ * is the SessionData object representing the client that sent this command.
+ * The reference count on this object is incremented before the SessionData
+ * object is returned to the caller. The caller is responsible for
+ * decrementing the reference count when it is done using the session object.
+ */
 SessionData*
 tpm2_command_get_session (Tpm2Command *command)
 {
+    g_object_ref (command->session);
     return command->session;
 }
 /* Return the number of handles in the command. */
