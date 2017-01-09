@@ -46,6 +46,8 @@ TSS2_RC            access_broker_get_max_command    (AccessBroker   *broker,
 TSS2_RC            access_broker_get_total_commands (AccessBroker   *broker,
                                                      guint          *value);
 TSS2_SYS_CONTEXT*  access_broker_lock_sapi          (AccessBroker   *broker);
+TSS2_RC            access_broker_get_trans_object_count (AccessBroker *broker,
+                                                         uint32_t     *count);
 
 G_END_DECLS
 

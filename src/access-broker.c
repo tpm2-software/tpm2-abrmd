@@ -507,3 +507,33 @@ access_broker_init (AccessBroker *broker)
 out:
     return rc;
 }
+/*
+ * Query the TPM for the current number of loaded transient objects.
+ */
+ TSS2_RC
+access_broker_get_trans_object_count (AccessBroker *broker,
+                                      uint32_t     *count)
+{
+    TSS2_RC rc = TSS2_RC_SUCCESS;
+    TSS2_SYS_CONTEXT *sapi_context;
+    TPMI_YES_NO more_data;
+    TPMS_CAPABILITY_DATA capability_data = { 0, };
+
+    if (broker == NULL || count == NULL)
+        g_error ("get_loaded_transient_object_count: got NULL parameter");
+    sapi_context = access_broker_lock_sapi (broker);
+    rc = Tss2_Sys_GetCapability (sapi_context,
+                                 NULL,
+                                 TPM_CAP_HANDLES,
+                                 TRANSIENT_FIRST,
+                                 TRANSIENT_LAST - TRANSIENT_FIRST,
+                                 &more_data,
+                                 &capability_data,
+                                 NULL);
+    if (rc != TSS2_RC_SUCCESS)
+        goto out;
+    *count = capability_data.data.handles.count;
+out:
+    access_broker_unlock (broker);
+    return rc;
+}
