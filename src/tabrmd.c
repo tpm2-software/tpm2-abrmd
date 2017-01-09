@@ -32,7 +32,8 @@
  * the DBus.
  */
 typedef struct gmain_data {
-    GMainLoop *loop;
+    tabrmd_options_t        options;
+    GMainLoop              *loop;
     AccessBroker           *access_broker;
     ResourceManager        *resource_manager;
     TctiTabrmd             *skeleton;
@@ -322,6 +323,7 @@ signal_handler (int signum)
  * - Seeds the RNG state from an entropy source.
  * - Creates the SessionManager.
  * - Creates the TCTI instance used by the Tab.
+ * - Creates an access broker and verify the current state of the TPM.
  * - Creates and wires up the objects that make up the TPM command
  *   processing pipeline.
  * - Starts all of the threads in the command processing pipeline.
@@ -332,6 +334,7 @@ init_thread_func (gpointer user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     gint ret;
+    uint32_t loaded_trans_objs;
     Tcti *tcti;
     TSS2_RC rc;
     CommandAttrs *command_attrs;
@@ -365,6 +368,20 @@ init_thread_func (gpointer user_data)
     rc = access_broker_init (data->access_broker);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize AccessBroker: 0x" PRIx32, rc);
+    /*
+     * Ensure the TPM is in a state in which we can use it w/o stepping all
+     * over someone else.
+     */
+    rc = access_broker_get_trans_object_count (data->access_broker,
+                                               &loaded_trans_objs);
+    if (rc != TSS2_RC_SUCCESS)
+        g_error ("failed to get number of loaded transient objects from "
+                 "access broker 0x%" PRIxPTR " RC: 0x%" PRIx32,
+                 data->access_broker,
+                 rc);
+    if (loaded_trans_objs > 0 & data->options.fail_on_loaded_trans)
+        g_error ("TPM reports 0x%" PRIx32 " loaded transient objects, "
+                 "aborting", loaded_trans_objs);
     /**
      * Instantiate and the objects that make up the TPM command processing
      * pipeline.
@@ -435,6 +452,9 @@ parse_opts (gint            argc,
           "The name of desired logger, stdout is default.", "[stdout|syslog]"},
         { "system", 's', 0, G_OPTION_ARG_NONE, &system_bus,
           "Connect to the system dbus." },
+        { "fail-on-loaded-trans", 't', 0, G_OPTION_ARG_NONE,
+          &options->fail_on_loaded_trans,
+          "Fail initialization if the TPM reports loaded transient objects" },
         { NULL },
     };
 
@@ -487,12 +507,11 @@ main (int argc, char *argv[])
     guint owner_id;
     gmain_data_t gmain_data = { 0 };
     GThread *init_thread;
-    tabrmd_options_t options = { 0 };
 
     g_info ("tabrmd startup");
-    if (parse_opts (argc, argv, &options) != 0)
+    if (parse_opts (argc, argv, &gmain_data.options) != 0)
         return 1;
-    gmain_data.tcti = tcti_options_get_tcti (options.tcti_options);
+    gmain_data.tcti = tcti_options_get_tcti (gmain_data.options.tcti_options);
     if (gmain_data.tcti == NULL)
         g_error ("Failed to get TCTI object from TctiOptions");
 
@@ -506,7 +525,7 @@ main (int argc, char *argv[])
     init_thread = g_thread_new (TABD_INIT_THREAD_NAME,
                                 init_thread_func,
                                 &gmain_data);
-    owner_id = g_bus_own_name (options.bus,
+    owner_id = g_bus_own_name (gmain_data.options.bus,
                                TABRMD_DBUS_NAME,
                                G_BUS_NAME_OWNER_FLAGS_NONE,
                                on_bus_acquired,
@@ -535,6 +554,6 @@ main (int argc, char *argv[])
     thread_cleanup (THREAD (gmain_data.response_sink));
     /* clean up what remains */
     g_object_unref (gmain_data.manager);
-    g_object_unref (options.tcti_options);
+    g_object_unref (gmain_data.options.tcti_options);
     return 0;
 }

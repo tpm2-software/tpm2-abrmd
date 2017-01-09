@@ -9,6 +9,7 @@
 typedef struct tabrmd_options {
     GBusType        bus;
     TctiOptions    *tcti_options;
+    gboolean        fail_on_loaded_trans;
 } tabrmd_options_t;
 
 #endif /* TABRMD_PRIV_H */
