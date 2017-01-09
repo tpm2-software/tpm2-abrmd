@@ -27,20 +27,49 @@ gboolean
 resource_manager_process_command_handles (ResourceManager *resmgr,
                                           Tpm2Command     *command)
 {
-    TPM_HANDLE *handles;
-    guint8     handle_count, i;
+    TPM_HANDLE       *handles;
+    SessionData      *session = NULL;;
+    HandleMap        *map = NULL;
+    HandleMapEntry   *entry = NULL;
+    guint8            handle_count, i;
+    gboolean          handle_dirty = FALSE;
 
-    g_debug ("resource_manager_process_command_handles: ResourceManager: 0x%"
-             PRIxPTR " Tpm2Command: 0x%" PRIxPTR, resmgr, command);
     handle_count = tpm2_command_get_handle_count (command);
-    g_debug ("Tpm2Command has handle count: 0x%" PRIx8, handle_count);
     if (handle_count == 0)
         return TRUE;
-
     handles = calloc (handle_count, sizeof (TPM_HANDLE));
-    if (tpm2_command_get_handles (command, handles, handle_count))
-        for (i = 0; i < handle_count; ++i)
-            g_debug ("  have handle: 0x%" PRIx32, handles[i]);
+    if (!tpm2_command_get_handles (command, handles, handle_count))
+        g_error ("failed to get handles from Tpm2Command: 0x%" PRIx32,
+                 command);
+    session = tpm2_command_get_session (command);
+    map = session_data_get_trans_map (session);
+    g_object_unref (session);
+    for (i = 0; i < handle_count; ++i) {
+        /* process handle by "type" / TPM_HT */
+        switch (handles [i] >> HR_SHIFT) {
+        case TPM_HT_TRANSIENT:
+            g_debug ("handle 0x%" PRIx32 " is TPM_HT_TRANSIENT, virtualizing",
+                     handles [i]);
+            handle_dirty = TRUE;
+            entry = handle_map_vlookup (map, handles[i]);
+            if (entry) {
+                handles [i] = handle_map_entry_get_phandle (entry);
+                g_object_unref (entry);
+            } else {
+                g_warning ("No HandleMapEntry for vhandle: 0x%" PRIx32,
+                           handles [i]);
+            }
+            break;
+        default:
+            g_debug ("handle 0x%" PRIx32 " requires no processing",
+                     handles [i]);
+            break;
+        }
+    }
+    if (handle_dirty)
+        tpm2_command_set_handles (command, handles, handle_count);
+    g_object_unref (map);
+
     return TRUE;
 }
 /*
@@ -49,16 +78,43 @@ gboolean
 resource_manager_process_response_handle (ResourceManager *resmgr,
                                           Tpm2Response    *response)
 {
-    TPM_HANDLE handle;
+    TPM_HANDLE phandle, vhandle;
     TPM_HT handle_type;
+    SessionData *session;
+    HandleMap   *map;
+    HandleMapEntry *entry;
 
     g_debug ("resource_manager_process_response_handle");
-    handle = tpm2_response_get_handle (response);
-    g_debug ("has handle: 0x%" PRIx32, handle);
+    /* if no handles, nothing to process */
+    if (!tpm2_response_has_handle (response))
+        return TRUE;
+
     handle_type = tpm2_response_get_handle_type (response);
     g_debug ("has handle type: 0x%" PRIx8, handle_type);
-    if (handle_type == TPM_HT_TRANSIENT)
-        g_debug ("has TPM_HT_TRANSIENT");
+    if (handle_type != TPM_HT_TRANSIENT)
+        return TRUE;
+
+    g_debug ("has TPM_HT_TRANSIENT");
+    phandle = tpm2_response_get_handle (response);
+    g_debug ("has phandle: 0x%" PRIx32, phandle);
+    /* extract transient handle map */
+    session = tpm2_response_get_session (response);
+    map = session_data_get_trans_map (session);
+    /* generate a new virtual handle, return FALSE on roll over */
+    vhandle = handle_map_next_vhandle (map);
+    if (vhandle == 0) {
+        g_error ("vhandle rolled over!");
+        return FALSE;
+    }
+    g_debug ("now has vhandle:0x%" PRIx32, vhandle);
+    entry = handle_map_entry_new (phandle, vhandle);
+    g_debug ("handle map entry: 0x%" PRIxPTR, entry);
+    handle_map_insert (map, phandle, vhandle, entry);
+    tpm2_response_set_handle (response, vhandle);
+
+    g_object_unref (entry);
+    g_object_unref (map);
+    g_object_unref (session);
 
     return TRUE;
 }
