@@ -203,7 +203,7 @@ read_tpm_command_body_from_fd (int fd, uint8_t *buf, size_t body_size)
     num_read = read (fd, buf, body_size);
     if (num_read == body_size) {
         g_debug ("  read 0x%x bytes as expected", num_read);
-        g_debug_bytes (buf, body_size, 8, 4);
+        g_debug_bytes (buf, body_size, 16, 4);
         return buf;
     }
     switch (num_read) {
