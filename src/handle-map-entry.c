@@ -1,3 +1,5 @@
+#include <inttypes.h>
+
 #include "handle-map-entry.h"
 
 /* Boiler-plate gobject code. */
@@ -70,7 +72,7 @@ handle_map_entry_finalize (GObject *object)
 {
     HandleMapEntry *self = HANDLE_MAP_ENTRY (object);
 
-    g_debug ("handle_map_entry_finalize");
+    g_debug ("handle_map_entry_finalize: 0x%" PRIxPTR, object);
     G_OBJECT_CLASS (handle_map_entry_parent_class)->finalize (object);
 }
 /*
@@ -138,10 +140,14 @@ HandleMapEntry*
 handle_map_entry_new (TPM_HANDLE phandle,
                       TPM_HANDLE vhandle)
 {
-    return HANDLE_MAP_ENTRY (g_object_new (TYPE_HANDLE_MAP_ENTRY,
-                                           "phandle", (guint)phandle,
-                                           "vhandle", (guint)vhandle,
-                                           NULL));
+    HandleMapEntry *entry;
+
+    entry = HANDLE_MAP_ENTRY (g_object_new (TYPE_HANDLE_MAP_ENTRY,
+                                            "phandle", (guint)phandle,
+                                            "vhandle", (guint)vhandle,
+                                            NULL));
+    g_debug ("handle_map_entry_new: 0x%" PRIxPTR, entry);
+    return entry;
 }
 /*
  * Access the TPMS_CONTEXT member.
