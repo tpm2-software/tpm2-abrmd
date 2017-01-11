@@ -31,6 +31,8 @@ HandleMapEntry*  handle_map_entry_new           (TPM_HANDLE         phandle,
 TPM_HANDLE       handle_map_entry_get_phandle   (HandleMapEntry    *entry);
 TPM_HANDLE       handle_map_entry_get_vhandle   (HandleMapEntry    *entry);
 TPMS_CONTEXT*    handle_map_entry_get_context   (HandleMapEntry    *entry);
+void             handle_map_entry_set_phandle   (HandleMapEntry    *entry,
+                                                 TPM_HANDLE         phandle);
 
 G_END_DECLS
 #endif /* HANDLE_MAP_ENTRY_H */

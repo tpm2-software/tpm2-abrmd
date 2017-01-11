@@ -177,3 +177,9 @@ handle_map_entry_get_vhandle (HandleMapEntry *entry)
 {
     return entry->vhandle;
 }
+void
+handle_map_entry_set_phandle (HandleMapEntry *entry,
+                              TPM_HANDLE      phandle)
+{
+    entry->phandle = phandle;
+}
