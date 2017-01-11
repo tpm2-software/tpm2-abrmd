@@ -537,3 +537,55 @@ out:
     access_broker_unlock (broker);
     return rc;
 }
+TSS2_RC
+access_broker_context_load (AccessBroker *broker,
+                            TPMS_CONTEXT *context,
+                            TPM_HANDLE   *handle)
+{
+    TSS2_RC           rc;
+    TSS2_SYS_CONTEXT *sapi_context;
+
+    if (broker == NULL || context == NULL || handle == NULL)
+        g_error ("access_broker_context_load received NULL parameter");
+
+    sapi_context = access_broker_lock_sapi (broker);
+    rc = Tss2_Sys_ContextLoad (sapi_context, context, handle);
+    access_broker_unlock (broker);
+    if (rc == TSS2_RC_SUCCESS)
+        g_debug ("Tss2_Sys_ContextLoad: successfully load context at 0x%"
+                 PRIxPTR " got handle 0x%" PRIx32, context, *handle);
+    else
+        g_warning ("Tss2_Sys_ContextLoad: failed to load context for "
+                   "context at: 0x%" PRIxPTR ", TSS2_RC: 0x%" PRIx32,
+                   context, rc);
+
+    return rc;
+}
+TSS2_RC
+access_broker_context_saveflush (AccessBroker *broker,
+                                 TPM_HANDLE    handle,
+                                 TPMS_CONTEXT *context)
+{
+    TSS2_RC           rc;
+    TSS2_SYS_CONTEXT *sapi_context;
+
+    if (broker == NULL || context == NULL)
+        g_error ("access_broker_context_save received NULL parameter");
+
+    g_debug ("access_broker_context_saveflush: handle 0x%" PRIx32, handle);
+    sapi_context = access_broker_lock_sapi (broker);
+    rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("Tss2_Sys_ContextSave: failed to save context for "
+                   "handle: 0x%" PRIxPTR " TSS2_RC: 0x%" PRIx32, handle, rc);
+        goto out;
+    }
+    g_debug ("access_broker_context_saveflush: handle 0x%" PRIx32, handle);
+    rc = Tss2_Sys_FlushContext (sapi_context, handle);
+    if (rc != TSS2_RC_SUCCESS)
+        g_warning("Tss2_Sys_FlushContext: failed to flushed context for "
+                  "handle: 0x%" PRIxPTR ", TSS2_RC: 0x%" PRIx32, handle, rc);
+out:
+    access_broker_unlock (broker);
+    return rc;
+}

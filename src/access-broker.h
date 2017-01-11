@@ -48,6 +48,12 @@ TSS2_RC            access_broker_get_total_commands (AccessBroker   *broker,
 TSS2_SYS_CONTEXT*  access_broker_lock_sapi          (AccessBroker   *broker);
 TSS2_RC            access_broker_get_trans_object_count (AccessBroker *broker,
                                                          uint32_t     *count);
+TSS2_RC            access_broker_context_load           (AccessBroker *broker,
+                                                         TPMS_CONTEXT *context,
+                                                         TPM_HANDLE   *handle);
+TSS2_RC            access_broker_context_saveflush      (AccessBroker *broker,
+                                                         TPM_HANDLE    handle,
+                                                         TPMS_CONTEXT *context);
 
 G_END_DECLS
 
