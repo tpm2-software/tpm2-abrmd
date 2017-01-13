@@ -22,101 +22,146 @@ enum {
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
 /*
+ * Before we can convert virtual handles (TPM_HT_TRANSIENT handles in a
+ * command from a client) we must load all associated contexts. This is
+ * necessary to get physical handles. This function iterates over the handles
+ * in the 'vhandles' array. When we identify a handle that's a
+ * TPM_HT_TRANSIENT we use it to find the saved context in the the
+ * supplied HandleMap, 'map'. We then load the context which returns to us
+ * a physical handle. We then add this physical handle to the map entry
+ * (we're going to need these when we process the Tpm2Response) and remove
+ * the context which is invalid since we've just loaded it.
+ * Finally we replace the vhandle in the 'handle' array with the phandle.
  */
-gboolean
-resource_manager_process_command_handles (ResourceManager *resmgr,
-                                          Tpm2Command     *command)
+void
+resource_manager_load_contexts (ResourceManager *resmgr,
+                                Tpm2Command     *command)
 {
-    TPM_HANDLE       *handles;
-    SessionData      *session = NULL;;
-    HandleMap        *map = NULL;
-    HandleMapEntry   *entry = NULL;
-    guint8            handle_count, i;
-    gboolean          handle_dirty = FALSE;
+    HandleMap    *map;
+    HandleMapEntry *entry;
+    SessionData  *session;
+    TSS2_RC       rc;
+    TPM_HANDLE    handles[3] = { 0, };
+    TPM_HANDLE    phandle;
+    TPMS_CONTEXT *context;
+    guint i, handle_count;;
 
-    handle_count = tpm2_command_get_handle_count (command);
-    if (handle_count == 0)
-        return TRUE;
-    handles = calloc (handle_count, sizeof (TPM_HANDLE));
-    if (!tpm2_command_get_handles (command, handles, handle_count))
-        g_error ("failed to get handles from Tpm2Command: 0x%" PRIx32,
-                 command);
+    g_debug ("resource_manager_load_contexts");
     session = tpm2_command_get_session (command);
-    map = session_data_get_trans_map (session);
-    g_object_unref (session);
+    handle_count = tpm2_command_get_handle_count (command);
+    tpm2_command_get_handles (command, handles, handle_count);
+    g_debug ("loading contexts for %" PRId8 " handles", handle_count);
     for (i = 0; i < handle_count; ++i) {
-        /* process handle by "type" / TPM_HT */
         switch (handles [i] >> HR_SHIFT) {
         case TPM_HT_TRANSIENT:
-            g_debug ("handle 0x%" PRIx32 " is TPM_HT_TRANSIENT, virtualizing",
-                     handles [i]);
-            handle_dirty = TRUE;
-            entry = handle_map_vlookup (map, handles[i]);
-            if (entry) {
-                handles [i] = handle_map_entry_get_phandle (entry);
-                g_object_unref (entry);
-            } else {
+            g_debug ("processing TPM_HT_TRANSIENT: 0x%" PRIx32, handles [i]);
+            map = session_data_get_trans_map (session);
+            g_debug ("handle 0x%" PRIx32 " is virtual TPM_HT_TRANSIENT, "
+                     "loading", handles [i]);
+            entry = handle_map_vlookup (map, handles [i]);
+            if (!entry) {
                 g_warning ("No HandleMapEntry for vhandle: 0x%" PRIx32,
                            handles [i]);
+                continue;
             }
+            context = handle_map_entry_get_context (entry);
+            rc = access_broker_context_load (resmgr->access_broker,
+                                             context,
+                                            &phandle);
+            if (rc != TSS2_RC_SUCCESS)
+                g_error ("Failed to load context: 0x%" PRIx32, rc);
+            handle_map_entry_set_phandle (entry, phandle);
+            handles [i] = phandle;
+            g_object_unref (entry);
+            g_object_unref (map);
             break;
         default:
-            g_debug ("handle 0x%" PRIx32 " requires no processing",
-                     handles [i]);
             break;
         }
     }
-    if (handle_dirty)
-        tpm2_command_set_handles (command, handles, handle_count);
-    g_object_unref (map);
+    g_debug ("resource_manager_load_contexts end");
+    g_object_unref (session);
+}
+/*
+ * Remove all contexts with handles in the transitive range from the
+ * TPM. Store them in the HandleMap and set the physical handle to 0.
+ * A HandleMapEntry with a physical handle set to 0 means the context
+ * has been saved and flushed.
+ */
+TSS2_RC
+resource_manager_flushsave_context (ResourceManager *resmgr,
+                                    HandleMap       *handle_map,
+                                    TPM_HANDLE       phandle)
+{
+    TPMS_CONTEXT   *context;
+    TSS2_RC         rc = TSS2_RC_SUCCESS;
+    HandleMapEntry *entry;
 
-    return TRUE;
+    g_debug ("resource_manager_flushsave_context phandle: 0x%" PRIx32,
+             phandle);
+    entry = handle_map_plookup (handle_map, phandle);
+    if (entry == NULL) {
+        g_debug ("no entry for phandle 0x%" PRIx32 ", not virtualized",
+                 phandle);
+        return TSS2_RC_SUCCESS;
+    }
+
+    g_debug ("resource_manager_save_context phandle: 0x%" PRIx32, phandle);
+    switch (phandle >> HR_SHIFT) {
+    case TPM_HT_TRANSIENT:
+        g_debug ("handle is transient, saving context");
+        context = handle_map_entry_get_context (entry);
+        rc = access_broker_context_saveflush (resmgr->access_broker,
+                                              phandle,
+                                              context);
+        if (rc != TSS2_RC_SUCCESS)
+            g_error ("access_broker_context_save failed for handle: 0x%"
+                     PRIx32 " rc: 0x%" PRIx32, phandle, rc);
+        handle_map_entry_set_phandle (entry, 0);
+        break;
+    default:
+        break;
+    }
+
+    g_object_unref (entry);
+    return rc;
 }
 /*
  */
-gboolean
-resource_manager_process_response_handle (ResourceManager *resmgr,
-                                          Tpm2Response    *response)
+TPM_HANDLE
+resource_manager_virtualize_handle (ResourceManager *resmgr,
+                                    Tpm2Response    *response)
 {
-    TPM_HANDLE phandle, vhandle;
-    TPM_HT handle_type;
-    SessionData *session;
-    HandleMap   *map;
+    TPM_HANDLE      phandle, vhandle = 0;
+    SessionData    *session;
+    HandleMap      *handle_map;
     HandleMapEntry *entry;
 
-    g_debug ("resource_manager_process_response_handle");
-    /* if no handles, nothing to process */
-    if (!tpm2_response_has_handle (response))
-        return TRUE;
-
-    handle_type = tpm2_response_get_handle_type (response);
-    g_debug ("has handle type: 0x%" PRIx8, handle_type);
-    if (handle_type != TPM_HT_TRANSIENT)
-        return TRUE;
-
-    g_debug ("has TPM_HT_TRANSIENT");
     phandle = tpm2_response_get_handle (response);
-    g_debug ("has phandle: 0x%" PRIx32, phandle);
-    /* extract transient handle map */
-    session = tpm2_response_get_session (response);
-    map = session_data_get_trans_map (session);
-    /* generate a new virtual handle, return FALSE on roll over */
-    vhandle = handle_map_next_vhandle (map);
-    if (vhandle == 0) {
-        g_error ("vhandle rolled over!");
-        return FALSE;
+    g_debug ("resource_manager_virtualize_handle 0x%" PRIx32, phandle);
+    switch (phandle >> HR_SHIFT) {
+    case TPM_HT_TRANSIENT:
+        g_debug ("handle is transient, virtualizing");
+        session = tpm2_response_get_session (response);
+        handle_map = session_data_get_trans_map (session);
+        vhandle = handle_map_next_vhandle (handle_map);
+        if (vhandle == 0)
+            g_error ("vhandle rolled over!");
+        g_debug ("now has vhandle:0x%" PRIx32, vhandle);
+        entry = handle_map_entry_new (phandle, vhandle);
+        g_debug ("handle map entry: 0x%" PRIxPTR, entry);
+        handle_map_insert (handle_map, phandle, vhandle, entry);
+        tpm2_response_set_handle (response, vhandle);
+        g_object_unref (session);
+        g_object_unref (handle_map);
+        g_object_unref (entry);
+        break;
+    default:
+        g_debug ("handle isn't transient, not virtualizing");
+        break;
     }
-    g_debug ("now has vhandle:0x%" PRIx32, vhandle);
-    entry = handle_map_entry_new (phandle, vhandle);
-    g_debug ("handle map entry: 0x%" PRIxPTR, entry);
-    handle_map_insert (map, phandle, vhandle, entry);
-    tpm2_response_set_handle (response, vhandle);
 
-    g_object_unref (entry);
-    g_object_unref (map);
-    g_object_unref (session);
-
-    return TRUE;
+    return vhandle;
 }
 /**
  * This function is invoked in response to the receipt of a Tpm2Command.
@@ -125,17 +170,26 @@ resource_manager_process_response_handle (ResourceManager *resmgr,
  * The AccessBroker will send us back a Tpm2Response that we send back to
  * the client by way of our Sink object. The flow is roughly:
  * - Receive the Tpm2Command as a parameter
+ * - Load all virtualized objects required by the command.
  * - Send the Tpm2Command out through the AccessBroker.
  * - Receive the response from the AccessBroker.
+ * - Virtualize the new objects created by the command & referenced in the
+ *   response.
  * - Enqueue the response back out to the processing pipeline through the
  *   Sink object.
+ * - Flush all objects loaded for the command or as part of executing the
+ *   command..
  */
 void
 resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                        Tpm2Command       *command)
 {
-    TSS2_RC rc;
-    Tpm2Response *response;
+    HandleMap      *handle_map;
+    SessionData    *session;
+    TPM_HANDLE      pchandles[3] = { 0, }, prhandle = 0, vrhandle = 0;
+    Tpm2Response   *response;
+    TSS2_RC         rc;
+    guint8          handle_count = 0;
 
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%x, cmd: 0x%x",
              resmgr, command);
@@ -144,9 +198,15 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                    16,
                    4);
     g_debug_tpma_cc (tpm2_command_get_attributes (command));
-    /* transform the Tpm2Command */
-    if (tpm2_command_get_handle_count (command) > 0)
-        resource_manager_process_command_handles (resmgr, command);
+    /* if necessary, transform virtual to physical handles in Tpm2Command
+     * then load all related contexts.
+     */
+    handle_count = tpm2_command_get_handle_count (command);
+    if (handle_count > 0) {
+        resource_manager_load_contexts (resmgr, command);
+        tpm2_command_handles_virt_to_phys (command);
+    }
+    tpm2_command_get_handles (command, pchandles, handle_count);
     /* send the command */
     response = access_broker_send_command (resmgr->access_broker,
                                            command,
@@ -162,12 +222,29 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                    16,
                    4);
     g_debug_tpma_cc (tpm2_response_get_attributes (response));
-    /* transform the Tpm2Response */
-    if (tpm2_response_has_handle (response))
-        resource_manager_process_response_handle (resmgr, response);
+    /* get references to session & handle map before sending response */
+    session = tpm2_response_get_session (response);
+    handle_map = session_data_get_trans_map (session);
+    g_object_unref (session);
+     /* transform the Tpm2Response */
+    if (tpm2_response_has_handle (response)) {
+        prhandle = tpm2_response_get_handle (response);
+        vrhandle = resource_manager_virtualize_handle (resmgr, response);
+    }
     /* send the response to the sinrk */
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
+    g_debug ("flushing contexts");
+    /* flush contexts loaded for, or created by the command */
+    guint i;
+    for (i = 0; i < handle_count; ++i) {
+        rc = resource_manager_flushsave_context (resmgr,
+                                                 handle_map,
+                                                 pchandles [i]);
+    }
+    if (prhandle != 0)
+        rc = resource_manager_flushsave_context (resmgr, handle_map, prhandle);
+    g_object_unref (handle_map);
 }
 /**
  * This function acts as a thread. It simply:
