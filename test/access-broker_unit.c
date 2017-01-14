@@ -97,24 +97,7 @@ static void
 access_broker_setup (void **state)
 {
     test_data_t *data;
-    Tcti        *tcti;
     TSS2_RC      rc;
-
-    tcti = TCTI (tcti_echo_new (MAX_COMMAND_VALUE));
-    rc = tcti_echo_initialize (TCTI_ECHO (tcti));
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize the echo TCTI");
-    data = calloc (1, sizeof (test_data_t));
-    data->broker = access_broker_new (tcti);
-
-    *state = data;
-}
-static void
-access_broker_setup_with_init (void **state)
-{
-    test_data_t *data;
-    TSS2_RC      rc;
-    TSS2_TCTI_CONTEXT *ctx;
 
     data = calloc (1, sizeof (test_data_t));
     data->tcti = tcti_echo_new (MAX_COMMAND_VALUE);
@@ -122,6 +105,25 @@ access_broker_setup_with_init (void **state)
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize the echo TCTI");
     data->broker = access_broker_new (TCTI (data->tcti));
+
+    *state = data;
+}
+/*
+ * This setup function chains up to the base setup function. Additionally
+ * it done some special handling to wrap the TCTI transmit / receive
+ * function since the standard linker tricks don't work with the TCTI
+ * function pointers. Finally we also invoke the AccessBroker init function
+ * while preparing return values for various SAPI commands that it invokes.
+ */
+static void
+access_broker_setup_with_init (void **state)
+{
+    test_data_t *data;
+    TSS2_RC      rc;
+    TSS2_TCTI_CONTEXT *ctx;
+
+    access_broker_setup (state);
+    data = (test_data_t*)*state;
     /* can't wrap the tss2_tcti_transmit using linker tricks */
     TSS2_TCTI_RECEIVE  (tcti_peek_context (TCTI (data->tcti))) = __wrap_tcti_echo_receive;
     TSS2_TCTI_TRANSMIT (tcti_peek_context (TCTI (data->tcti))) = __wrap_tcti_echo_transmit;
@@ -131,9 +133,28 @@ access_broker_setup_with_init (void **state)
     will_return (__wrap_Tss2_Sys_GetCapability, MAX_RESPONSE_VALUE);
     will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
     access_broker_init (data->broker);
-
-    *state = data;
 }
+/*
+ * This setup function chains up to the 'setup_with_init' function.
+ * Additionally it creates a SessionData and Tpm2Command object for use in
+ * the unit test.
+ */
+static void
+access_broker_setup_with_command (void **state)
+{
+    test_data_t *data;
+    gint fds [2] = { 0 };
+    guint8 *buffer;
+
+    access_broker_setup_with_init (state);
+    data = (test_data_t*)*state;
+    buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
+    data->session = session_data_new (&fds[0], &fds[1], 0);
+    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
+}
+/*
+ * Function to teardown data created for tests.
+ */
 static void
 access_broker_teardown (void **state)
 {
@@ -235,17 +256,10 @@ static void
 access_broker_send_command_tcti_transmit_fail_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    gint fds [2] = { 0, };
-    guint8 *buffer;
-    SessionData  *session = NULL;
     TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = 99;
-    Tpm2Command  *command  = NULL;
-    Tpm2Response *response = NULL;
+    SessionData *session;
 
-    buffer = calloc (1, rc_expected);
     will_return (__wrap_tcti_echo_transmit, rc_expected);
-    data->session = session_data_new (&fds[0], &fds[1], 0);
-    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
     data->response = access_broker_send_command (data->broker, data->command, &rc);
     /* the response code should be the one we passed to __wrap_tcti_echo_transmit */
     assert_int_equal (rc, rc_expected);
@@ -255,23 +269,24 @@ access_broker_send_command_tcti_transmit_fail_test (void **state)
      * the Tpm2Response object we get back should have the same session as
      * the Tpm2Command we tried to send.
      */
-    assert_int_equal (tpm2_response_get_session (data->response),
-                      data->session);
+    session = tpm2_response_get_session (data->response);
+    assert_int_equal (session, data->session);
+    g_object_unref (session);
 }
-
+/*
+ * This test exercises a failure path through the access_broker_send_command
+ * function. We use the 'mock' pattern to cause the tcti_receive command to
+ * return an RC indicating failure.
+ */
 static void
 access_broker_send_command_tcti_receive_fail_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    gint fds [2] = { 0, };
-    guint8 *buffer;
     TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = 99;
+    SessionData *session;
 
-    buffer = calloc (1, rc_expected);
     will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
     will_return (__wrap_tcti_echo_receive, rc_expected);
-    data->session = session_data_new (&fds[0], &fds[1], 0);
-    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
     data->response = access_broker_send_command (data->broker, data->command, &rc);
     /* the response code should be the one we passed to __wrap_tcti_echo_receive */
     assert_int_equal (rc, rc_expected);
@@ -281,34 +296,35 @@ access_broker_send_command_tcti_receive_fail_test (void **state)
      * the Tpm2Response object we get back should have the same session as
      * the Tpm2Command we tried to send.
      */
-    assert_int_equal (tpm2_response_get_session (data->response),
-                      data->session);
+    session = tpm2_response_get_session (data->response);
+    assert_int_equal (session, data->session);
+    g_object_unref (session);
 }
-
+/*
+ * This test exercises the success path through the
+ * access_broker_send_command function.
+ */
 static void
 access_broker_send_command_success (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    gint fds [2] = { 0, };
-    guint8 *buffer;
-    TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = TSS2_RC_SUCCESS;
+    TSS2_RC rc;
+    SessionData *session;
 
-    buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
     will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
-    will_return (__wrap_tcti_echo_receive,  rc_expected);
-    data->session = session_data_new (&fds[0], &fds[1], 0);
-    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
+    will_return (__wrap_tcti_echo_receive,  TSS2_RC_SUCCESS);
     data->response = access_broker_send_command (data->broker, data->command, &rc);
     /* the response code should be the one we passed to __wrap_tcti_echo_receive */
-    assert_int_equal (rc, rc_expected);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
     /* the Tpm2Response object we get back should have the same RC */
-    assert_int_equal (tpm2_response_get_code (data->response), rc_expected);
+    assert_int_equal (tpm2_response_get_code (data->response), TSS2_RC_SUCCESS);
     /**
      * the Tpm2Response object we get back should have the same session as
      * the Tpm2Command we tried to send.
      */
-    assert_int_equal (tpm2_response_get_session (data->response),
-                      data->session);
+    session = tpm2_response_get_session (data->response);
+    assert_int_equal (session, data->session);
+    g_object_unref (session);
 }
 
 int
@@ -332,13 +348,13 @@ main (int   argc,
                                   access_broker_setup_with_init,
                                   access_broker_teardown),
         unit_test_setup_teardown (access_broker_send_command_tcti_transmit_fail_test,
-                                  access_broker_setup_with_init,
+                                  access_broker_setup_with_command,
                                   access_broker_teardown),
         unit_test_setup_teardown (access_broker_send_command_tcti_receive_fail_test,
-                                  access_broker_setup_with_init,
+                                  access_broker_setup_with_command,
                                   access_broker_teardown),
         unit_test_setup_teardown (access_broker_send_command_success,
-                                  access_broker_setup_with_init,
+                                  access_broker_setup_with_command,
                                   access_broker_teardown),
     };
     return run_tests (tests);
