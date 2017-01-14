@@ -21,6 +21,7 @@ if test -z "$GDBUS_CODEGEN"; then
     AC_MSG_ERROR([*** gdbus-codegen is required to build tss2-tabd])
 fi
 # disable helgrind and drd, they hate GAsyncQueue
+AX_VALGRIND_DFLT([sgcheck], [off])
 AX_VALGRIND_DFLT([helgrind], [off])
 AX_VALGRIND_DFLT([drd], [off])
 AX_VALGRIND_CHECK
