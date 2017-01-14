@@ -67,6 +67,7 @@ session_manager_lookup_fd_test (void **state)
     ret = session_manager_insert (manager, session);
     session_lookup = session_manager_lookup_fd (manager, *(int*)session_data_key_fd (session));
     assert_int_equal (session, session_lookup);
+    g_object_unref (session_lookup);
 }
 
 static void
@@ -133,7 +134,6 @@ main(int argc, char* argv[])
         unit_test_setup_teardown (session_manager_insert_test,
                                   session_manager_setup,
                                   session_manager_teardown),
-        /*
         unit_test_setup_teardown (session_manager_lookup_fd_test,
                                   session_manager_setup,
                                   session_manager_teardown),
@@ -146,7 +146,6 @@ main(int argc, char* argv[])
         unit_test_setup_teardown (session_manager_set_fds_test,
                                   session_manager_setup,
                                   session_manager_teardown),
-                                  */
     };
     return run_tests(tests);
 }

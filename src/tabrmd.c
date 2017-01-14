@@ -166,6 +166,7 @@ on_handle_cancel (TctiTabrmd           *skeleton,
     }
     g_info ("canceling command for session 0x%x", session);
     /* cancel any existing commands for the session */
+    g_object_unref (session);
     /* setup and send return value */
     uint32_variant = g_variant_new_uint32 (TSS2_RC_SUCCESS);
     tuple_variant = g_variant_new_tuple (&uint32_variant, 1);
@@ -206,6 +207,7 @@ on_handle_set_locality (TctiTabrmd            *skeleton,
     g_info ("setting locality for session 0x%x to: 0x%x",
             session, locality);
     /* set locality for an existing session */
+    g_object_unref (session);
     /* setup and send return value */
     uint32_variant = g_variant_new_uint32 (TSS2_RC_SUCCESS);
     tuple_variant = g_variant_new_tuple (&uint32_variant, 1);

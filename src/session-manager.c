@@ -141,7 +141,12 @@ session_manager_insert (SessionManager    *manager,
     g_signal_emit (manager, signals [SIGNAL_NEW_SESSION], 0, session, &ret);
     return ret;
 }
-
+/*
+ * Lookup a SessionData object from the provided session fd. This function
+ * returns a reference to the SessionData object. The reference count for
+ * this object is incremented before it is returned and must be decremented
+ * by the caller.
+ */
 SessionData*
 session_manager_lookup_fd (SessionManager *manager,
                            gint fd_in)
@@ -152,10 +157,16 @@ session_manager_lookup_fd (SessionManager *manager,
     session = g_hash_table_lookup (manager->session_from_fd_table,
                                    &fd_in);
     pthread_mutex_unlock (&manager->mutex);
+    g_object_ref (session);
 
     return session;
 }
-
+/*
+ * Lookup a SessionData object from the provided session ID. This function
+ * returns a reference to the SessionData object. The reference count for
+ * this object is incremented before it is returned and must be decremented
+ * by the caller.
+ */
 SessionData*
 session_manager_lookup_id (SessionManager   *manager,
                            gint64 id)
@@ -169,6 +180,7 @@ session_manager_lookup_id (SessionManager   *manager,
                                    &id);
     g_debug ("unlocking manager mutex");
     pthread_mutex_unlock (&manager->mutex);
+    g_object_ref (session);
 
     return session;
 }

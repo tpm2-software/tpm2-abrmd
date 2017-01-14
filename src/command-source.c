@@ -293,7 +293,11 @@ command_source_session_responder (CommandSource      *source,
     else
         g_debug ("session_manager_lookup_fd for fd %d: 0x%x", fd, session);
     command = tpm2_command_new_from_fd (session, fd, source->command_attrs);
-    if (command == NULL) {
+    if (command != NULL) {
+        sink_enqueue (sink, G_OBJECT (command));
+        /* the sink now owns this message */
+        g_object_unref (command);
+    } else {
         /* command will be NULL when read error on fd, or fd is closed (EOF)
          * In either case we remove the session and free it.
          */
@@ -301,11 +305,8 @@ command_source_session_responder (CommandSource      *source,
                  session, source->session_manager);
         session_manager_remove (source->session_manager,
                                 session);
-        return TRUE;
     }
-    sink_enqueue (sink, G_OBJECT (command));
-    /* the sink now owns this message */
-    g_object_unref (command);
+    g_object_unref (session);
     return TRUE;
 }
 
