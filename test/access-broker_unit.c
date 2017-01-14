@@ -6,6 +6,7 @@
 
 #include "access-broker.h"
 #include "tcti-echo.h"
+#include "tpm2-header.h"
 #include "tpm2-response.h"
 
 #define MAX_COMMAND_VALUE 2048
@@ -292,7 +293,7 @@ access_broker_send_command_success (void **state)
     guint8 *buffer;
     TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = TSS2_RC_SUCCESS;
 
-    buffer = calloc (1, rc_expected);
+    buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
     will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
     will_return (__wrap_tcti_echo_receive,  rc_expected);
     data->session = session_data_new (&fds[0], &fds[1], 0);
