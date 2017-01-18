@@ -36,7 +36,7 @@ endif
 
 lib_LTLIBRARIES = src/libtcti-tabrmd.la
 noinst_LTLIBRARIES = src/libtcti-echo.la src/libutil.la
-man8_MANS = man/tpm2-abrmd.8
+man8_MANS = man/man8/tpm2-abrmd.8
 TESTS = $(check_PROGRAMS)
 
 tpm2_abrmddir      = $(includedir)/tss2
@@ -100,8 +100,9 @@ src_tpm2_abrmd_LDADD += $(TCTI_SOCKET_LIBS)
 src_tpm2_abrmd_SOURCES += src/tcti-socket.c
 endif
 
-man/%.8 : man/%.8.in
+man/man8/%.8 : man/%.8.in
 	rm -f $@
+	mkdir -p man/man8
 if TCTI_DEVICE
 	echo ".nr HAVE_DEVICE_TCTI 1" >> $@
 else
