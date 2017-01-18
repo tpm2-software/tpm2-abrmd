@@ -216,7 +216,7 @@ set_fd (gpointer key,
         gpointer user_data)
 {
     fd_set *fds = (fd_set*)user_data;
-    SessionData *session = (SessionData*)value;
+    SessionData *session = SESSION_DATA (value);
 
     FD_SET (session_data_receive_fd (session), fds);
 }
