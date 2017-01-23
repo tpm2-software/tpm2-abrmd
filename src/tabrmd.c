@@ -557,5 +557,6 @@ main (int argc, char *argv[])
     /* clean up what remains */
     g_object_unref (gmain_data.manager);
     g_object_unref (gmain_data.options.tcti_options);
+    g_object_unref (gmain_data.random);
     return 0;
 }
