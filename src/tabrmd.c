@@ -403,6 +403,7 @@ init_thread_func (gpointer user_data)
     data->response_sink = SINK (response_sink_new ());
     g_debug ("created response source: 0x%x", data->response_sink);
     g_object_unref (command_attrs);
+    g_object_unref (data->access_broker);
     /**
      * Wire up the TPM command processing pipeline. TPM command buffers
      * flow from the CommandSource, to the Tab then finally back to the
@@ -558,5 +559,6 @@ main (int argc, char *argv[])
     g_object_unref (gmain_data.manager);
     g_object_unref (gmain_data.options.tcti_options);
     g_object_unref (gmain_data.random);
+    g_object_unref (gmain_data.tcti);
     return 0;
 }
