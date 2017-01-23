@@ -31,6 +31,7 @@ GType control_message_get_type (void);
 #define CONTROL_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_CONTROL_MESSAGE, ControlMessageClass))
 
 ControlMessage*    control_message_new    (ControlCode code);
+ControlCode        control_message_get_code (ControlMessage *msg);
 
 G_END_DECLS
 #endif /* CONTROL_MESSAGE_H */

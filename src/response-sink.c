@@ -226,11 +226,16 @@ response_sink_thread (void *data)
                  sink->in_queue);
         obj = message_queue_dequeue (sink->in_queue);
         g_debug ("response_sink_thread got obj: 0x%x", obj);
-        if (IS_CONTROL_MESSAGE (obj))
-            process_control_message (CONTROL_MESSAGE (obj));
-        if (IS_TPM2_RESPONSE (obj))
+        if (IS_CONTROL_MESSAGE (obj)) {
+            ControlCode code =
+                control_message_get_code (CONTROL_MESSAGE (obj));
+            g_object_unref (obj);
+            process_control_code (code);
+        }
+        if (IS_TPM2_RESPONSE (obj)) {
             response_sink_process_response (TPM2_RESPONSE (obj));
-        g_object_unref (obj);
+            g_object_unref (obj);
+        }
     } while (TRUE);
 }
 /**
@@ -262,6 +267,7 @@ response_sink_cancel (Thread *self)
     msg = control_message_new (CHECK_CANCEL);
     g_debug ("response_sink_cancel enqueuing ControlMessage: 0x%x", msg);
     message_queue_enqueue (sink->in_queue, G_OBJECT (msg));
+    g_object_unref (msg);
 
     return ret;
 }

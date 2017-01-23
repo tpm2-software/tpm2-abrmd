@@ -241,7 +241,6 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         g_warning ("access_broker_send_command returned error: 0x%x", rc);
     if (response == NULL)
         g_error ("access_broker_send_command returned NULL Tpm2Response?");
-    g_object_unref (command);
     dump_response (response);
     /* transform the Tpm2Response */
     if (tpm2_response_has_handle (response)) {
@@ -281,10 +280,18 @@ resource_manager_thread (gpointer data)
             g_debug ("resource_manager_thread: dequeued a null object");
             break;
         }
-        if (IS_TPM2_COMMAND (obj))
+        if (IS_TPM2_COMMAND (obj)) {
             resource_manager_process_tpm2_command (resmgr, TPM2_COMMAND (obj));
-        if (IS_CONTROL_MESSAGE (obj))
-            process_control_message (CONTROL_MESSAGE (obj));
+            g_object_unref (obj);
+        } else if (IS_CONTROL_MESSAGE (obj)) {
+            ControlCode code =
+                control_message_get_code (CONTROL_MESSAGE (obj));
+            /* we must unref the message before processing the ControlCode
+             * since the function may cause the thread to exit.
+             */
+            g_object_unref (obj);
+            process_control_code (code);
+        }
      }
 }
 /**
@@ -324,6 +331,7 @@ resource_manager_cancel (Thread *self)
     msg = control_message_new (CHECK_CANCEL);
     g_debug ("resource_manager_cancel: enqueuing ControlMessage: 0x%x", msg);
     message_queue_enqueue (resmgr->in_queue, G_OBJECT (msg));
+    g_object_unref (msg);
 
     return ret;
 }

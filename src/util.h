@@ -31,7 +31,7 @@ ssize_t     write_all                       (gint const        fd,
 ssize_t     read_till_block                 (gint const        fd,
                                              guint8          **buf,
                                              size_t           *size);
-void        process_control_message         (ControlMessage   *msg);
+void        process_control_code            (ControlCode       code);
 uint8_t*    read_tpm_command_header_from_fd (int               fd,
                                              uint8_t          *buf,
                                              size_t            buf_size);

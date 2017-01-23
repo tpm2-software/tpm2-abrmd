@@ -142,10 +142,10 @@ err_out:
 }
 
 void
-process_control_message (ControlMessage *msg)
+process_control_code (ControlCode code)
 {
-    g_debug ("Got a ControlMessage with code: 0x%x", msg->code);
-    switch (msg->code) {
+    g_debug ("Processing ControlCode: 0x%x", code);
+    switch (code) {
     case CHECK_CANCEL:
         pthread_testcancel ();
         break;

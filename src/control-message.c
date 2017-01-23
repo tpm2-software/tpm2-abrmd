@@ -43,3 +43,11 @@ control_message_new (ControlCode code)
     msg->code = code;
     return msg;
 }
+/*
+ * Simple getter to expose the ControlCode in the ControlMessage object.
+ */
+ControlCode
+control_message_get_code (ControlMessage *msg)
+{
+    return msg->code;
+}
