@@ -69,11 +69,6 @@ handle_map_init (GTypeInstance *instance,
 
     g_debug ("handle_map_init");
     pthread_mutex_init (&map->mutex, NULL);
-    map->phandle_to_entry_table =
-        g_hash_table_new_full (g_direct_hash,
-                               g_direct_equal,
-                               NULL,
-                               (GDestroyNotify)g_object_unref);
     map->vhandle_to_entry_table =
         g_hash_table_new_full (g_direct_hash,
                                g_direct_equal,
@@ -95,7 +90,6 @@ handle_map_finalize (GObject *object)
 
     g_debug ("handle_map_finalize");
     pthread_mutex_destroy (&self->mutex);
-    g_hash_table_unref (self->phandle_to_entry_table);
     g_hash_table_unref (self->vhandle_to_entry_table);
     G_OBJECT_CLASS (handle_map_parent_class)->finalize (object);
 }
@@ -175,21 +169,24 @@ handle_map_unlock (HandleMap *map)
         g_error ("Error unlocking HandleMap: %s", strerror (errno));
 }
 /*
- * Insert GObject into the hash table with the key bing the provided handle.
+ * Insert GObject into the hash table with the key being the provided handle.
  * We take a reference to the object before we insert the object since when
  * it is removed or if the hash table is destroyed the object will be unref'd.
+ * If a handle provided is 0 we do not insert the entry in the corresponding
+ * map.
  */
 void
 handle_map_insert (HandleMap      *map,
-                   TPM_HANDLE      phandle,
                    TPM_HANDLE      vhandle,
                    HandleMapEntry *entry)
 {
     handle_map_lock (map);
-    g_object_ref (entry);
-    g_hash_table_insert (map->phandle_to_entry_table, GINT_TO_POINTER (phandle), entry);
-    g_object_ref (entry);
-    g_hash_table_insert (map->vhandle_to_entry_table, GINT_TO_POINTER (vhandle), entry);
+    if (entry && vhandle != 0) {
+        g_object_ref (entry);
+        g_hash_table_insert (map->vhandle_to_entry_table,
+                             GINT_TO_POINTER (vhandle),
+                             entry);
+    }
     handle_map_unlock (map);
 }
 /*
@@ -198,18 +195,14 @@ handle_map_insert (HandleMap      *map,
  */
 gboolean
 handle_map_remove (HandleMap *map,
-                   TPM_HANDLE phandle)
+                   TPM_HANDLE vhandle)
 {
     gboolean ret;
     HandleMapEntry *entry;
-    TPM_HANDLE vhandle;
 
-    entry = handle_map_plookup (map, phandle);
-    vhandle = handle_map_entry_get_vhandle (entry);
+    entry = handle_map_vlookup (map, vhandle);
     g_object_unref (entry);
     handle_map_lock (map);
-    ret = g_hash_table_remove (map->phandle_to_entry_table,
-                               GINT_TO_POINTER (phandle));
     ret = g_hash_table_remove (map->vhandle_to_entry_table,
                                GINT_TO_POINTER (vhandle));
     handle_map_unlock (map);
@@ -236,20 +229,11 @@ handle_map_lookup (HandleMap     *map,
     return entry;
 }
 /*
- * Look up the GObject associated with the handle in the hash table. The
- * object is not removed from the hash table. The reference count for the
- * object is incremented before it is returned to the caller. The caller
- * must free this reference when they are done with it.
+ * Look up the GObject associated with the virtual handle in the hash
+ * table. The object is not removed from the hash table. The reference
+ * count for the object is incremented before it is returned to the caller.
+ * The caller must free this reference when they are done with it.
  * NULL is returned if no entry matches the provided handle.
- */
-HandleMapEntry*
-handle_map_plookup (HandleMap    *map,
-                    TPM_HANDLE    phandle)
-{
-    return handle_map_lookup (map, phandle, map->phandle_to_entry_table);
-}
-/*
- * Same thing for the vhandle.
  */
 HandleMapEntry*
 handle_map_vlookup (HandleMap    *map,
@@ -267,7 +251,7 @@ handle_map_size (HandleMap *map)
     guint ret;
 
     handle_map_lock (map);
-    ret = g_hash_table_size (map->phandle_to_entry_table);
+    ret = g_hash_table_size (map->vhandle_to_entry_table);
     handle_map_unlock (map);
 
     return ret;
@@ -291,4 +275,13 @@ handle_map_next_vhandle (HandleMap *map)
     handle = map->handle_count + (map->handle_type << HR_SHIFT);
     ++map->handle_count;
     return handle;
+}
+void
+handle_map_foreach (HandleMap *map,
+                    GHFunc     callback,
+                    gpointer   user_data)
+{
+    g_hash_table_foreach (map->vhandle_to_entry_table,
+                          callback,
+                          user_data);
 }

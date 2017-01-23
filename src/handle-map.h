@@ -19,7 +19,6 @@ typedef struct _HandleMap {
     pthread_mutex_t     mutex;
     TPM_HT              handle_type;
     TPM_HANDLE          handle_count;
-    GHashTable         *phandle_to_entry_table;
     GHashTable         *vhandle_to_entry_table;
 } HandleMap;
 
@@ -33,12 +32,9 @@ typedef struct _HandleMap {
 GType            handle_map_get_type    (void);
 HandleMap*       handle_map_new         (TPM_HT          handle_type);
 void             handle_map_insert      (HandleMap      *map,
-                                         TPM_HANDLE      phandle,
                                          TPM_HANDLE      vhandle,
                                          HandleMapEntry *entry);
-gint             handle_map_premove     (HandleMap     *map,
-                                         TPM_HANDLE     phandle);
-gint             handle_map_vremove     (HandleMap     *map,
+gint             handle_map_remove      (HandleMap     *map,
                                          TPM_HANDLE     vremove);
 HandleMapEntry*  handle_map_plookup     (HandleMap     *map,
                                          TPM_HANDLE     phandle);
@@ -46,6 +42,9 @@ HandleMapEntry*  handle_map_vlookup     (HandleMap     *map,
                                          TPM_HANDLE     vhandle);
 guint            handle_map_size        (HandleMap     *map);
 TPM_HANDLE       handle_map_next_vhandle (HandleMap    *map);
+void             handle_map_foreach      (HandleMap    *map,
+                                          GHFunc        callback,
+                                          gpointer      user_data);
 
 G_END_DECLS
 #endif /* HANDLE_MAP_H */

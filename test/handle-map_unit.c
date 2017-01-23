@@ -46,7 +46,6 @@ handle_map_setup_with_entry (void **state)
     handle_map_setup_base (state);
     data = (test_data_t*)*state;
     handle_map_insert (data->map,
-                       handle_map_entry_get_phandle (data->entry),
                        handle_map_entry_get_vhandle (data->entry),
                        data->entry);
 }
@@ -77,7 +76,6 @@ handle_map_insert_test (void **state)
 
     assert_int_equal (handle_map_size (data->map), 0);
     handle_map_insert (data->map,
-                       PHANDLE,
                        VHANDLE,
                        data->entry);
     assert_int_equal (handle_map_size (data->map), 1);
@@ -93,24 +91,9 @@ handle_map_remove_test (void **state)
     test_data_t *data = (test_data_t*)*state;
     gint ret;
 
-    ret = handle_map_remove (data->map, PHANDLE);
+    ret = handle_map_remove (data->map, VHANDLE);
     assert_int_equal (ret, TRUE);
     assert_int_equal (0, handle_map_size (data->map));
-}
-/*
- * This test ensures that we can lookup a known entry from the map. The
- * EntryMap must already have an entry and it must be keyed to the physical
- * handle.
- */
-static void
-handle_map_plookup_test (void **state)
-{
-    test_data_t *data = (test_data_t*)*state;
-    HandleMapEntry *entry_out;
-
-    entry_out = HANDLE_MAP_ENTRY (handle_map_plookup (data->map, PHANDLE));
-    assert_int_equal (data->entry, entry_out);
-    g_object_unref (entry_out);
 }
 /*
  * This test ensures that we can lookup a known entry from the map. The
@@ -154,9 +137,6 @@ main(int argc, char* argv[])
                                   handle_map_setup_base,
                                   handle_map_teardown),
         unit_test_setup_teardown (handle_map_remove_test,
-                                  handle_map_setup_with_entry,
-                                  handle_map_teardown),
-        unit_test_setup_teardown (handle_map_plookup_test,
                                   handle_map_setup_with_entry,
                                   handle_map_teardown),
         unit_test_setup_teardown (handle_map_vlookup_test,
