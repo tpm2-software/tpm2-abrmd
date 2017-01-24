@@ -332,6 +332,7 @@ tpm2_command_handles_virt_to_phys (Tpm2Command *command)
         if (!entry)
             continue;
         handles [i] = handle_map_entry_get_phandle (entry);
+        g_object_unref (entry);
         g_debug ("mapped to phandle 0x%" PRIx32, handles [i]);
         if (handles [i] == 0)
             g_error ("tpm2_command_handles_virt_to_phys: got a phandle == 0 :(");
