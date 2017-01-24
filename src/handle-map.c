@@ -200,8 +200,6 @@ handle_map_remove (HandleMap *map,
     gboolean ret;
     HandleMapEntry *entry;
 
-    entry = handle_map_vlookup (map, vhandle);
-    g_object_unref (entry);
     handle_map_lock (map);
     ret = g_hash_table_remove (map->vhandle_to_entry_table,
                                GINT_TO_POINTER (vhandle));
