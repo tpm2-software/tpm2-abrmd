@@ -253,7 +253,7 @@ tpm2_response_get_session (Tpm2Response *response)
 gboolean
 tpm2_response_has_handle (Tpm2Response  *response)
 {
-    g_debug ("tpm2_response_get_handle_count");
+    g_debug ("tpm2_response_has_handle");
     uint32_t tmp;
 
     tmp = tpm2_response_get_attributes (response).val;
