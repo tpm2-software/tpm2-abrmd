@@ -165,6 +165,29 @@ tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *tcti_context,
     return ret;
 }
 
+TSS2_RC
+tss2_tcti_tabrmd_dump_trans_state (TSS2_TCTI_CONTEXT *tcti_context)
+{
+    gboolean status;
+    TSS2_RC ret;
+    GError *error = NULL;
+
+    g_info ("tss2_tcti_tabrmd_dump_state: id 0x%" PRIx64,
+            TSS2_TCTI_TABRMD_ID (tcti_context));
+    status = tcti_tabrmd_call_dump_trans_state_sync (TSS2_TCTI_TABRMD_PROXY (tcti_context),
+                                                     TSS2_TCTI_TABRMD_ID (tcti_context),
+                                                     &ret,
+                                                     NULL,
+                                                     &error);
+    if (status == FALSE) {
+        g_warning ("dump_trans_state command failed: %s", error->message);
+        g_error_free (error);
+        return TSS2_TCTI_RC_GENERAL_FAILURE;
+    }
+
+    return ret;
+}
+
 static void
 on_name_appeared (GDBusConnection *connection,
                   const gchar *name,
