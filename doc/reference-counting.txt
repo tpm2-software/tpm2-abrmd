@@ -1,0 +1,40 @@
+In working on this project I've probably made every possible mistake that
+can be made when using a reference counted object system. This document
+is meant to serve as a reminder to myself and a statement to anyone else
+who comes along and needs to figure out why this code is written the way
+it is.
+
+When to increment / decrement the reference count on objects:
+I've been unfortunately inconsistent in my application of "rules" for when
+to increase, and when to decrease the reference counts on object. I'm in
+the process of fixing this so now is the right time to write this all down.
+
+When you instantiate a new object using a *_new function it's returned to
+the caller with a reference count of 1. When you're done with the object
+you *must* signal to the object system that you no longer need the reference
+by calling g_object_unref manually. This is all well and good as the common
+case but when we start passing references to objects around in a complex
+system it's not always clear. Let's cover some specific cases that have
+caused me some pain and suffering in recent months:
+
+Let's call this first example "Passing a reference, passing ownership".
+I started doing this with the Tpm2Command / Tpm2Response processing
+pipeline. When commands / responses are created they start with a reference
+count of 1. I started out with the source *not* unref'ing the command
+object and just passing the reference to the next stage in the pipeline.
+My logic here was that the next state was effectively inheriting ownership
+of the object so having the reference count increased and then immediately
+decreased seemed superfluous to me.
+
+However I ran into some weird edge cases early on. Mostly this is because
+passing the object and assuming that a reference comes along with it isn't
+something that you can formalize in source code. It's an assumption and if
+someone doesn't make the same assumption (or you forget that your code
+makes this assumption) you're in for some painful debugging.
+
+Rule of thumb: When your code / function takes a reference to an object it
+should be explicitly released when you're done with said object. If during
+the course of the code you write you end up passing said object to another
+object / thread said receiver is responsible for *taking* a reference for
+themselves. This is as simple calling g_object_ref in whatever function
+receives the reference.
