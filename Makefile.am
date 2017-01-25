@@ -6,7 +6,9 @@ AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include \
 UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 
 sbin_PROGRAMS   = src/tpm2-abrmd
-noinst_PROGRAMS = test/tcti-tabrmd_read-write
+noinst_PROGRAMS = \
+    test/integration/create-keys \
+    test/tcti-tabrmd_read-write
 check_PROGRAMS  = \
     test/access-broker_unit \
     test/command-attrs_unit \
@@ -346,3 +348,7 @@ test_tss2_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(noinst_LTLIBRARIES)
 test_tss2_tcti_echo_unit_SOURCES = \
     test/tss2-tcti-echo_unit.c
+
+test_integration_create_keys_LDADD   = $(GLIB_LIBS) $(lib_LTLIBRARIES) $(SAPI_LIBS)
+test_integration_create_keys_SOURCES = \
+    test/integration/create-keys.c
