@@ -334,6 +334,28 @@ resource_manager_flushsave_context_test (void **state)
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_int_equal (handle_map_entry_get_phandle (entry), 0);
 }
+/*
+ * This test case pushes an error RC on to the mock stack for the
+ * access_broker_context_flushsave function. The flushsave_context function
+ * in the RM will then successfully find the phandle in the provided entry
+ * but the call to the AccessBroker will fail.
+ * The function under test should propagate this RC to the caller (us) and
+ * should *NOT* update the phandle in the provided entry.
+ */
+static void
+resource_manager_flushsave_context_fail_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    HandleMapEntry *entry;
+    TPM_HANDLE vhandle = HR_TRANSIENT + 0x1, phandle = HR_TRANSIENT + 0x2;
+    TSS2_RC rc;
+
+    entry = handle_map_entry_new (phandle, vhandle);
+    will_return (__wrap_access_broker_context_saveflush, TPM_RC_INITIALIZE);
+    rc = resource_manager_flushsave_context (data->resource_manager, entry);
+    assert_int_equal (rc, TPM_RC_INITIALIZE);
+    assert_int_equal (handle_map_entry_get_phandle (entry), phandle);
+}
 int
 main (int   argc,
       char *argv[])
@@ -352,6 +374,9 @@ main (int   argc,
                                   resource_manager_setup,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_flushsave_context_test,
+                                  resource_manager_setup,
+                                  resource_manager_teardown),
+        unit_test_setup_teardown (resource_manager_flushsave_context_fail_test,
                                   resource_manager_setup,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_cmd_virt_to_phys_test,

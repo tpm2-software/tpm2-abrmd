@@ -118,10 +118,12 @@ resource_manager_flushsave_context (ResourceManager *resmgr,
         rc = access_broker_context_saveflush (resmgr->access_broker,
                                               phandle,
                                               context);
-        if (rc != TSS2_RC_SUCCESS)
-            g_error ("access_broker_context_save failed for handle: 0x%"
-                     PRIx32 " rc: 0x%" PRIx32, phandle, rc);
-        handle_map_entry_set_phandle (entry, 0);
+        if (rc == TSS2_RC_SUCCESS) {
+            handle_map_entry_set_phandle (entry, 0);
+        } else {
+            g_warning ("access_broker_context_save failed for handle: 0x%"
+                       PRIx32 " rc: 0x%" PRIx32, phandle, rc);
+        }
         break;
     default:
         break;
