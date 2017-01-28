@@ -249,6 +249,65 @@ resource_manager_cmd_virt_to_phys_test (void **state)
         assert_int_equal (phandles [i], out_handles [i]);
     g_object_unref (command);
 }
+/*
+ * Test the resource_manager_cmd_virt_to_phys functions ability to detect
+ * and report invalid handles in a Tpm2Command. The scenario under test
+ * creates a Tpm2Command object with two handles. The first has a
+ * HandleMapEntry in the commands HandleMap. The second does not, so it is
+ * effectively a bad handle. The ResourceManager should then return an RC
+ * indiacting that the handle is inapproprate for this use and the handle
+ * number should be reflected in the RC (2nd handle is TPM_RC_H + TPM_RC_2.
+ */
+static void
+resource_manager_cmd_virt_to_phys_bad_handle2_test (void **state)
+{
+    test_data_t    *data = (test_data_t*)*state;
+    HandleMap      *handle_map;
+    HandleMapEntry *entry;
+    Tpm2Command    *command;
+    gint            fds [2] = { 0 };
+    guint8         *buffer, handle_count;
+    TPMA_CC         command_attrs = {
+        .val = (2 << 25) + TPM_CC_StartAuthSession, /* 2 handles + TPM2_StartAuthSession */
+    };
+    TPM_HANDLE      vhandle = HR_TRANSIENT + 0x1;
+    TPM_HANDLE      phandle = HR_TRANSIENT + 0x4;
+    TPM_HANDLE      out_handles [2] = { 0 };
+    TSS2_RC         rc = TSS2_RC_SUCCESS;
+
+    /* create SessionData object for Tpm2Command */
+    data->session = session_data_new (&fds[0], &fds[1], 0);
+    /* create & populate HandleMap for transient handle */
+    handle_map = session_data_get_trans_map (data->session);
+    handle_map_insert (handle_map,
+                       vhandle,
+                       handle_map_entry_new (phandle, vhandle));
+    /* create Tpm2Command that we'll be transforming */
+    buffer = calloc (1, TPM_COMMAND_HEADER_SIZE + 2 * sizeof (TPM_HANDLE));
+    buffer [0]  = 0x80;
+    buffer [1]  = 0x02;
+    buffer [2]  = 0x00;
+    buffer [3]  = 0x00;
+    buffer [4]  = 0x00;
+    buffer [5]  = TPM_COMMAND_HEADER_SIZE + 2 * sizeof (TPM_HANDLE);
+    buffer [6]  = 0x00;
+    buffer [7]  = 0x00;
+    buffer [8]  = TPM_CC_StartAuthSession >> 8;
+    buffer [9]  = TPM_CC_StartAuthSession & 0xff;
+    buffer [10] = TPM_HT_TRANSIENT;
+    buffer [11] = 0x00;
+    buffer [12] = 0x00;
+    buffer [13] = vhandle & 0xff; /* first virtual handle */
+    buffer [14] = TPM_HT_TRANSIENT;
+    buffer [15] = 0x00;
+    buffer [16] = 0x00;
+    buffer [17] = 0xff; /* arbitrary second virtual handle */
+    command = tpm2_command_new (data->session, buffer, command_attrs);
+    /* function under test, */
+    rc = resource_manager_cmd_virt_to_phys (data->resource_manager, command);
+    assert_int_equal (rc, TSS2_RESMGR_ERROR_LEVEL + TPM_RC_HANDLE + TPM_RC_H + TPM_RC_2);
+    g_object_unref (command);
+}
 int
 main (int   argc,
       char *argv[])
@@ -267,6 +326,9 @@ main (int   argc,
                                   resource_manager_setup,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_cmd_virt_to_phys_test,
+                                  resource_manager_setup,
+                                  resource_manager_teardown),
+        unit_test_setup_teardown (resource_manager_cmd_virt_to_phys_bad_handle2_test,
                                   resource_manager_setup,
                                   resource_manager_teardown),
     };
