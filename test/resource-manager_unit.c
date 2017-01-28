@@ -158,7 +158,6 @@ static void
 resource_manager_process_tpm2_command_success_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    Tpm2Command  *command;
     Tpm2Response *response;
     guint8 *buffer;
     gint fds[2] = { 0, };
@@ -170,8 +169,13 @@ resource_manager_process_tpm2_command_success_test (void **state)
      * it will be freed by the call to resource_manager_process_tpm2_command
      * and the teardown function will attempt to free it again if set.
      */
-    command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
+    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
     response = tpm2_response_new_rc (data->session, TSS2_RC_SUCCESS);
+    /*
+     * This response object will be freed by the process_tpm2_command
+     * function. We take an extra reference and free when we're done.
+     */
+    g_object_ref (response);
 
     will_return (__wrap_access_broker_send_command, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_send_command, response);
@@ -181,8 +185,9 @@ resource_manager_process_tpm2_command_success_test (void **state)
      */
     will_return (__wrap_sink_enqueue, data);
     resource_manager_process_tpm2_command (data->resource_manager,
-                                           command);
+                                           data->command);
     assert_int_equal (data->response, response);
+    g_object_unref (response);
 }
 /*
  * Test to ensure virtual handles in a Tpm2Command are transformed properly
