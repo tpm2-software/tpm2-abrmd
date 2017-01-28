@@ -60,6 +60,13 @@ __wrap_sink_enqueue (Sink      *self,
     test_data_t *data = (test_data_t*)mock ();
     data->response = TPM2_RESPONSE (obj);
 }
+TSS2_RC
+__wrap_access_broker_context_saveflush (AccessBroker *broker,
+                                        TPM_HANDLE    handle,
+                                        TPMS_CONTEXT *contedt)
+{
+   return (TSS2_RC)mock ();
+}
 static void
 resource_manager_setup (void **state)
 {
@@ -313,6 +320,20 @@ resource_manager_cmd_virt_to_phys_bad_handle2_test (void **state)
     assert_int_equal (rc, TSS2_RESMGR_ERROR_LEVEL + TPM_RC_HANDLE + TPM_RC_H + TPM_RC_2);
     g_object_unref (command);
 }
+static void
+resource_manager_flushsave_context_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    HandleMapEntry *entry;
+    TPM_HANDLE vhandle = HR_TRANSIENT + 0x1, phandle = HR_TRANSIENT + 0x2;
+    TSS2_RC rc;
+
+    entry = handle_map_entry_new (phandle, vhandle);
+    will_return (__wrap_access_broker_context_saveflush, TSS2_RC_SUCCESS);
+    rc = resource_manager_flushsave_context (data->resource_manager, entry);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_int_equal (handle_map_entry_get_phandle (entry), 0);
+}
 int
 main (int   argc,
       char *argv[])
@@ -328,6 +349,9 @@ main (int   argc,
                                   resource_manager_setup,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_process_tpm2_command_success_test,
+                                  resource_manager_setup,
+                                  resource_manager_teardown),
+        unit_test_setup_teardown (resource_manager_flushsave_context_test,
                                   resource_manager_setup,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_cmd_virt_to_phys_test,

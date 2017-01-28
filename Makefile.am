@@ -317,7 +317,7 @@ test_random_unit_SOURCES = \
     test/random_unit.c
 
 test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue
+test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush
 test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(noinst_LTLIBRARIES)
 test_resource_manager_unit_SOURCES = \
     src/access-broker.c \
