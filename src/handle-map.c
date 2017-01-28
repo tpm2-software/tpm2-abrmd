@@ -180,6 +180,8 @@ handle_map_insert (HandleMap      *map,
                    TPM_HANDLE      vhandle,
                    HandleMapEntry *entry)
 {
+    g_debug ("handle_map_insert: vhandle: 0x%" PRIx32 ", entry: 0x%" PRIxPTR,
+             vhandle, entry);
     handle_map_lock (map);
     if (entry && vhandle != 0) {
         g_object_ref (entry);

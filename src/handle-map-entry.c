@@ -146,7 +146,8 @@ handle_map_entry_new (TPM_HANDLE phandle,
                                             "phandle", (guint)phandle,
                                             "vhandle", (guint)vhandle,
                                             NULL));
-    g_debug ("handle_map_entry_new: 0x%" PRIxPTR, entry);
+    g_debug ("handle_map_entry_new: 0x%" PRIxPTR " with vhandle: 0x%" PRIx32
+             " and phandle: 0x%" PRIx32, entry, vhandle, phandle);
     return entry;
 }
 /*
