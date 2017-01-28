@@ -184,6 +184,71 @@ resource_manager_process_tpm2_command_success_test (void **state)
                                            command);
     assert_int_equal (data->response, response);
 }
+/*
+ * Test to ensure virtual handles in a Tpm2Command are transformed properly
+ * by the resource_manager_cmd_virt_to_phys function.
+ */
+static void
+resource_manager_cmd_virt_to_phys_test (void **state)
+{
+    test_data_t    *data = (test_data_t*)*state;
+    HandleMap      *handle_map;
+    HandleMapEntry *entry;
+    Tpm2Command    *command;
+    gint            fds [2] = { 0 };
+    guint8         *buffer, handle_count;
+    TPMA_CC         command_attrs = {
+        .val = (2 << 25) + TPM_CC_StartAuthSession, /* 2 handles + TPM2_StartAuthSession */
+    };
+    TPM_HANDLE      vhandles [2] = {
+        HR_TRANSIENT + 0x1,
+        HR_TRANSIENT + 0X2,
+    };
+    TPM_HANDLE      phandles [2] = {
+        HR_TRANSIENT + 0x4,
+        HR_TRANSIENT + 0x5,
+    };
+    TPM_HANDLE      out_handles [2] = { 0 };
+
+    /* create SessionData object for Tpm2Command */
+    data->session = session_data_new (&fds[0], &fds[1], 0);
+    /* create & populate HandleMap for transient handles */
+    handle_map = session_data_get_trans_map (data->session);
+    handle_map_insert (handle_map,
+                       vhandles [0],
+                       handle_map_entry_new (phandles [0], vhandles [0]));
+    handle_map_insert (handle_map,
+                       vhandles [1],
+                       handle_map_entry_new (phandles [1], vhandles [1]));
+    /* create Tpm2Command that we'll be transforming */
+    buffer = calloc (1, TPM_COMMAND_HEADER_SIZE + 2 * sizeof (TPM_HANDLE));
+    buffer [0]  = 0x80;
+    buffer [1]  = 0x02;
+    buffer [2]  = 0x00;
+    buffer [3]  = 0x00;
+    buffer [4]  = 0x00;
+    buffer [5]  = TPM_COMMAND_HEADER_SIZE + 2 * sizeof (TPM_HANDLE);
+    buffer [6]  = 0x00;
+    buffer [7]  = 0x00;
+    buffer [8]  = TPM_CC_StartAuthSession >> 8;
+    buffer [9]  = TPM_CC_StartAuthSession & 0xff;
+    buffer [10] = TPM_HT_TRANSIENT;
+    buffer [11] = 0x00;
+    buffer [12] = 0x00;
+    buffer [13] = vhandles [0] & 0xff; /* first virtual handle */
+    buffer [14] = TPM_HT_TRANSIENT;
+    buffer [15] = 0x00;
+    buffer [16] = 0x00;
+    buffer [17] = vhandles [1] & 0xff; /* second virtual handle */
+    command = tpm2_command_new (data->session, buffer, command_attrs);
+    /* function under test, */
+    resource_manager_cmd_virt_to_phys (data->resource_manager, command);
+    assert_true (tpm2_command_get_handles (command, out_handles, 2));
+    guint i;
+    for (i = 0; i < 2; ++i)
+        assert_int_equal (phandles [i], out_handles [i]);
+    g_object_unref (command);
+}
 int
 main (int   argc,
       char *argv[])
@@ -199,6 +264,9 @@ main (int   argc,
                                   resource_manager_setup,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_process_tpm2_command_success_test,
+                                  resource_manager_setup,
+                                  resource_manager_teardown),
+        unit_test_setup_teardown (resource_manager_cmd_virt_to_phys_test,
                                   resource_manager_setup,
                                   resource_manager_teardown),
     };
