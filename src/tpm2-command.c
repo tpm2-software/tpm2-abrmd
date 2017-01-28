@@ -312,33 +312,3 @@ tpm2_command_set_handles (Tpm2Command *command,
         HANDLE_GET (command->buffer, i) = htobe32 (handles [i]);
     return TRUE;
 }
-
-gboolean
-tpm2_command_handles_virt_to_phys (Tpm2Command *command)
-{
-    TPM_HANDLE      handles[3] = { 0, };
-    guint8          handle_count = 0, i;
-    HandleMap      *handle_map;
-    HandleMapEntry *entry;
-
-    g_debug ("tpm2_command_handles_virt_to_phys");
-    handle_count = tpm2_command_get_handle_count (command);
-    g_assert (handle_count <= 3);
-    tpm2_command_get_handles (command, handles, handle_count);
-    handle_map = session_data_get_trans_map (command->session);
-    for (i = 0; i < handle_count; ++i) {
-        g_debug ("mapping vhandle 0x%" PRIx32 " to phandle", handles[i]);
-        entry = handle_map_vlookup (handle_map, handles [i]);
-        if (!entry)
-            continue;
-        handles [i] = handle_map_entry_get_phandle (entry);
-        g_object_unref (entry);
-        g_debug ("mapped to phandle 0x%" PRIx32, handles [i]);
-        if (handles [i] == 0)
-            g_error ("tpm2_command_handles_virt_to_phys: got a phandle == 0 :(");
-    }
-    g_object_unref (handle_map);
-    tpm2_command_set_handles (command, handles, handle_count);
-
-    return TRUE;
-}

@@ -130,6 +130,44 @@ resource_manager_flushsave_context (ResourceManager *resmgr,
     return rc;
 }
 /*
+ * Convert handles in the provided Tpm2Command from virtual to physical.
+ * Calling this function without first loading the associated contexts will
+ * return an error.
+ */
+gboolean
+resource_manager_cmd_virt_to_phys (ResourceManager     *resmgr,
+                                   Tpm2Command         *command)
+{
+    TPM_HANDLE      handles[3] = { 0, };
+    guint8          handle_count = 0, i;
+    SessionData    *session;
+    HandleMap      *handle_map;
+    HandleMapEntry *entry;
+
+    g_debug ("resource_manager_cmd_virt_to_phys");
+    handle_count = tpm2_command_get_handle_count (command);
+    g_assert (handle_count <= 3);
+    tpm2_command_get_handles (command, handles, handle_count);
+    session = tpm2_command_get_session (command);
+    handle_map = session_data_get_trans_map (session);
+    g_object_unref (session);
+    for (i = 0; i < handle_count; ++i) {
+        g_debug ("mapping vhandle 0x%" PRIx32, handles[i]);
+        entry = handle_map_vlookup (handle_map, handles [i]);
+        if (!entry)
+            continue;
+        handles [i] = handle_map_entry_get_phandle (entry);
+        g_object_unref (entry);
+        g_debug ("mapped to phandle 0x%" PRIx32, handles [i]);
+        if (handles [i] == 0)
+            g_error ("resource_manager_cmd_virt_to_phys: got a phandle == 0 :(");
+    }
+    g_object_unref (handle_map);
+    tpm2_command_set_handles (command, handles, handle_count);
+
+    return TRUE;
+}
+/*
  * Each Tpm2Response object can have at most one handle in it.
  * This function assumes that the handle in the parameter Tpm2Response
  * object is a physical handle. It creates a new virtual handle and
@@ -232,7 +270,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                         command,
                                         entries,
                                         &entry_count);
-        tpm2_command_handles_virt_to_phys (command);
+        resource_manager_cmd_virt_to_phys (resmgr, command);
     }
     response = access_broker_send_command (resmgr->access_broker,
                                            command,
