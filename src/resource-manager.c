@@ -134,7 +134,7 @@ resource_manager_flushsave_context (ResourceManager *resmgr,
  * Calling this function without first loading the associated contexts will
  * return an error.
  */
-gboolean
+TSS2_RC
 resource_manager_cmd_virt_to_phys (ResourceManager     *resmgr,
                                    Tpm2Command         *command)
 {
@@ -143,6 +143,7 @@ resource_manager_cmd_virt_to_phys (ResourceManager     *resmgr,
     SessionData    *session;
     HandleMap      *handle_map;
     HandleMapEntry *entry;
+    TSS2_RC         rc = TSS2_RC_SUCCESS;
 
     g_debug ("resource_manager_cmd_virt_to_phys");
     handle_count = tpm2_command_get_handle_count (command);
@@ -152,20 +153,31 @@ resource_manager_cmd_virt_to_phys (ResourceManager     *resmgr,
     handle_map = session_data_get_trans_map (session);
     g_object_unref (session);
     for (i = 0; i < handle_count; ++i) {
-        g_debug ("mapping vhandle 0x%" PRIx32, handles[i]);
-        entry = handle_map_vlookup (handle_map, handles [i]);
-        if (!entry)
-            continue;
-        handles [i] = handle_map_entry_get_phandle (entry);
-        g_object_unref (entry);
-        g_debug ("mapped to phandle 0x%" PRIx32, handles [i]);
-        if (handles [i] == 0)
-            g_error ("resource_manager_cmd_virt_to_phys: got a phandle == 0 :(");
+        switch (handles [i] >> HR_SHIFT) {
+        case TPM_HT_TRANSIENT:
+            g_debug ("mapping vhandle 0x%" PRIx32, handles[i]);
+            entry = handle_map_vlookup (handle_map, handles [i]);
+            if (entry == NULL) {
+                rc = TSS2_RESMGR_ERROR_LEVEL + TPM_RC_HANDLE + TPM_RC_H + ((i + 1) << 8);
+                break;
+            }
+            handles [i] = handle_map_entry_get_phandle (entry);
+            g_object_unref (entry);
+            g_debug ("mapped to phandle 0x%" PRIx32, handles [i]);
+            /* context is not loaded, internal error */
+            if (handles [i] == 0) {
+                g_error ("transient handle map: 0x%" PRIxPTR "  returned entry"
+                         " 0x%" PRIxPTR " with physical handle 0",
+                         handle_map, entry);
+            }
+        default:
+            break;
+        }
     }
     g_object_unref (handle_map);
     tpm2_command_set_handles (command, handles, handle_count);
 
-    return TRUE;
+    return rc;
 }
 /*
  * Each Tpm2Response object can have at most one handle in it.
@@ -255,7 +267,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                        Tpm2Command       *command)
 {
     Tpm2Response   *response;
-    TSS2_RC         rc;
+    TSS2_RC         rc = TSS2_RC_SUCCESS;
     HandleMapEntry *entries[4];
     guint           entry_count = 0;
 
@@ -270,15 +282,21 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                         command,
                                         entries,
                                         &entry_count);
-        resource_manager_cmd_virt_to_phys (resmgr, command);
+        rc = resource_manager_cmd_virt_to_phys (resmgr, command);
     }
-    response = access_broker_send_command (resmgr->access_broker,
-                                           command,
-                                           &rc);
-    if (rc != TSS2_RC_SUCCESS)
-        g_warning ("access_broker_send_command returned error: 0x%x", rc);
-    if (response == NULL)
-        g_error ("access_broker_send_command returned NULL Tpm2Response?");
+    if (rc == TSS2_RC_SUCCESS) {
+        response = access_broker_send_command (resmgr->access_broker,
+                                               command,
+                                               &rc);
+        if (rc != TSS2_RC_SUCCESS)
+            g_warning ("access_broker_send_command returned error: 0x%x", rc);
+        if (response == NULL)
+            g_error ("access_broker_send_command returned NULL Tpm2Response?");
+    } else {
+        SessionData *session = tpm2_command_get_session (command);
+        response = tpm2_response_new_rc (session, rc);
+        g_object_unref (session);
+    }
     dump_response (response);
     /* transform the Tpm2Response */
     if (tpm2_response_has_handle (response)) {
