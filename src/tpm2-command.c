@@ -324,9 +324,15 @@ tpm2_command_get_handles (Tpm2Command *command,
 {
     guint8 real_count, i;
 
-    real_count = tpm2_command_get_handle_count (command);
-    if (handles == NULL || real_count > count)
+    if (command == NULL || handles == NULL) {
+        g_warning ("tpm2_command_get_handles passed NULL parameter");
         return FALSE;
+    }
+    real_count = tpm2_command_get_handle_count (command);
+    if (real_count > count) {
+        g_warning ("tpm2_command_get_handles passed insufficient handle array");
+        return FALSE;
+    }
 
     for (i = 0; i < real_count; ++i)
         handles[i] = be32toh (HANDLE_GET (command->buffer, i));
@@ -347,11 +353,19 @@ tpm2_command_set_handles (Tpm2Command *command,
 {
     guint8 real_count, i;
 
-    real_count = tpm2_command_get_handle_count (command);
-    if (handles == NULL || real_count != count)
+    if (command == NULL || handles == NULL) {
+        g_warning ("tpm2_command_get_handles passed NULL parameter");
         return FALSE;
+    }
+    real_count = tpm2_command_get_handle_count (command);
+    if (real_count != count) {
+        g_warning ("tpm2_command_set_handles passed handle array with wrong "
+                   "number of handles");
+        return FALSE;
+    }
 
     for (i = 0; i < real_count; ++i)
         HANDLE_GET (command->buffer, i) = htobe32 (handles [i]);
+
     return TRUE;
 }
