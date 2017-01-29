@@ -214,6 +214,79 @@ tpm2_command_set_handles_test (void **state)
     assert_true (ret == TRUE);
     assert_memory_equal (handles_in, handles_out, 2 * sizeof (TPM_HANDLE));
 }
+/*
+ * Get the handle at the first position in the handle area of the command.
+ */
+static void
+tpm2_command_get_handle_first_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE   handle_out;
+
+    handle_out = tpm2_command_get_handle (data->command, 0);
+    assert_int_equal (handle_out, HANDLE_FIRST);
+}
+/*
+ * Get the handle at the second position in the handle area of the command.
+ */
+static void
+tpm2_command_get_handle_second_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE   handle_out;
+
+    handle_out = tpm2_command_get_handle (data->command, 1);
+    assert_int_equal (handle_out, HANDLE_SECOND);
+}
+/*
+ * Attempt to get the handle at the third position in the handle area of the
+ * command. This should fail since the command has only two handles.
+ */
+static void
+tpm2_command_get_handle_fail_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE   handle_out;
+
+    handle_out = tpm2_command_get_handle (data->command, 2);
+    assert_int_equal (handle_out, 0);
+}
+/*
+ */
+static void
+tpm2_command_set_handle_first_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE   handle_in = 0xdeadbeef, handle_out = 0;
+    gboolean     ret;
+
+    ret = tpm2_command_set_handle (data->command, handle_in, 0);
+    assert_true (ret);
+    handle_out = tpm2_command_get_handle (data->command, 0);
+    assert_int_equal (handle_out, handle_in);
+}
+static void
+tpm2_command_set_handle_second_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE   handle_in = 0xdeadbeef, handle_out = 0;
+    gboolean     ret;
+
+    ret = tpm2_command_set_handle (data->command, handle_in, 1);
+    assert_true (ret);
+    handle_out = tpm2_command_get_handle (data->command, 1);
+    assert_int_equal (handle_out, handle_in);
+}
+static void
+tpm2_command_set_handle_fail_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE   handle_in = 0xdeadbeef, handle_out = 0;
+    gboolean     ret;
+
+    ret = tpm2_command_set_handle (data->command, handle_in, 2);
+    assert_false (ret);
+}
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -246,6 +319,24 @@ main (gint    argc,
         unit_test_setup_teardown (tpm2_command_set_handles_test,
                                   tpm2_command_setup_two_handles,
                                   tpm2_command_teardown),
-    };
+        unit_test_setup_teardown (tpm2_command_get_handle_first_test,
+                                  tpm2_command_setup_two_handles,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_get_handle_second_test,
+                                  tpm2_command_setup_two_handles,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_get_handle_fail_test,
+                                  tpm2_command_setup_two_handles,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_set_handle_first_test,
+                                  tpm2_command_setup_two_handles,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_set_handle_second_test,
+                                  tpm2_command_setup_two_handles,
+                                  tpm2_command_teardown),
+        unit_test_setup_teardown (tpm2_command_set_handle_fail_test,
+                                  tpm2_command_setup_two_handles,
+                                  tpm2_command_teardown),
+      };
     return run_tests (tests);
 }

@@ -269,6 +269,49 @@ tpm2_command_get_handle_count (Tpm2Command *command)
     return (tmp & TPMA_CC_CHANDLES) >> 25;
 }
 /*
+ * Simple function to access handles in the provided Tpm2Command. The
+ * 'handle_number' parameter is a 0-based index into the handle area
+ * which is effectively an array. If the handle_number requests a handle
+ * beyond the end of this array 0 is returned.
+ */
+TPM_HANDLE
+tpm2_command_get_handle (Tpm2Command *command,
+                         guint8       handle_number)
+{
+    guint8 real_count;
+
+    if (command == NULL)
+        return 0;
+    real_count = tpm2_command_get_handle_count (command);
+    if (real_count > handle_number) {
+        return be32toh (HANDLE_GET (command->buffer, handle_number));
+    } else {
+        return 0;
+    }
+}
+/*
+ * Simple function to set a handle at the 0-based index into the Tpm2Command
+ * handle area to the provided value. If the handle_number is past the bounds
+ * FALSE is returned.
+ */
+gboolean
+tpm2_command_set_handle (Tpm2Command *command,
+                         TPM_HANDLE   handle,
+                         guint8       handle_number)
+{
+    guint8 real_count;
+
+    if (command == NULL)
+        return FALSE;
+    real_count = tpm2_command_get_handle_count (command);
+    if (real_count > handle_number) {
+        HANDLE_GET (command->buffer, handle_number) = htobe32 (handle);
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+/*
  * Return the handles from the Tpm2Command back to the caller by way of the
  * handles parameter. The caller must allocate sufficient space to hold
  * however many handles are in this command. Take a look @
