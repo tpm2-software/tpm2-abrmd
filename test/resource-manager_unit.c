@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <inttypes.h>
 #include <unistd.h>
 
 #include <setjmp.h>
@@ -66,6 +67,25 @@ __wrap_access_broker_context_saveflush (AccessBroker *broker,
                                         TPMS_CONTEXT *contedt)
 {
    return (TSS2_RC)mock ();
+}
+/*
+ * Wrap call to access_broker_context_load. Pops two parameters off the
+ * stack with the 'mock' command. The first is the RC which is returned
+ * directly to the caller. The other is the new physical handle that was
+ * allocated by the TPM for the context that was just loaded.
+ */
+TSS2_RC
+__wrap_access_broker_context_load (AccessBroker *access_broker,
+                                   TPMS_CONTEXT *context,
+                                   TPM_HANDLE   *handle)
+{
+    TSS2_RC    rc      = (TSS2_RC)mock ();
+    TPM_HANDLE phandle = (TPM_HANDLE)mock ();
+    
+    assert_non_null (handle);
+    *handle = phandle;
+
+    return rc;
 }
 static void
 resource_manager_setup (void **state)
@@ -356,6 +376,60 @@ resource_manager_flushsave_context_fail_test (void **state)
     assert_int_equal (rc, TPM_RC_INITIALIZE);
     assert_int_equal (handle_map_entry_get_phandle (entry), phandle);
 }
+/*
+ */
+static void
+resource_manager_virt_to_phys_test (void **state)
+{
+    test_data_t    *data = (test_data_t*)*state;
+    Tpm2Command    *command;
+    HandleMapEntry *entry;
+    guint8         *buffer;
+    gint            fds [2] = { 0 };
+    TSS2_RC         rc = TSS2_RC_SUCCESS;
+    TPM_HANDLE      phandle = HR_TRANSIENT + 0x1;
+    TPM_HANDLE      vhandle = HR_TRANSIENT + 0xc9;
+    TPM_HANDLE      handle_ret = 0;
+    TPMA_CC         command_attrs = {
+        .val = (2 << 25) + TPM_CC_StartAuthSession, /* 2 handles + TPM2_StartAuthSession */
+    };
+
+    will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
+    will_return (__wrap_access_broker_context_load, phandle);
+    /* and the rest of it */
+
+    /* create SessionData object for Tpm2Command */
+    data->session = session_data_new (&fds[0], &fds[1], 0);
+    /* create & populate HandleMap for transient handle */
+    entry = handle_map_entry_new (phandle, vhandle);
+    /* create Tpm2Command that we'll be transforming */
+    buffer = calloc (1, TPM_COMMAND_HEADER_SIZE + 2 * sizeof (TPM_HANDLE));
+    buffer [0]  = 0x80;
+    buffer [1]  = 0x02;
+    buffer [2]  = 0x00;
+    buffer [3]  = 0x00;
+    buffer [4]  = 0x00;
+    buffer [5]  = TPM_COMMAND_HEADER_SIZE + 2 * sizeof (TPM_HANDLE);
+    buffer [6]  = 0x00;
+    buffer [7]  = 0x00;
+    buffer [8]  = TPM_CC_StartAuthSession >> 8;
+    buffer [9]  = TPM_CC_StartAuthSession & 0xff;
+    buffer [10] = TPM_HT_TRANSIENT;
+    buffer [11] = 0x00;
+    buffer [12] = 0x00;
+    buffer [13] = vhandle & 0xff; /* first virtual handle */
+    buffer [14] = TPM_HT_TRANSIENT;
+    buffer [15] = 0x00;
+    buffer [16] = 0x00;
+    buffer [17] = 0xff; /* arbitrary second virtual handle */
+    command = tpm2_command_new (data->session, buffer, command_attrs);
+    /* function under test, */
+    rc = resource_manager_virt_to_phys (data->resource_manager, command, entry, 0);
+    handle_ret = tpm2_command_get_handle (command, 0);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_int_equal (phandle, handle_ret);
+    g_object_unref (command);
+}
 int
 main (int   argc,
       char *argv[])
@@ -383,6 +457,9 @@ main (int   argc,
                                   resource_manager_setup,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_cmd_virt_to_phys_bad_handle2_test,
+                                  resource_manager_setup,
+                                  resource_manager_teardown),
+        unit_test_setup_teardown (resource_manager_virt_to_phys_test,
                                   resource_manager_setup,
                                   resource_manager_teardown),
     };

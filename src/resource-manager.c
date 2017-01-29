@@ -22,6 +22,35 @@ enum {
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
 /*
+ * This is a helper function that does everything required to convert
+ * a virtual handle to a physical one in a Tpm2Command object.
+ * - load the context from the provided HandleMapEntry
+ * - store the newly assigned TPM handle (physical handle) in the entry
+ * - set this handle in the comamnd at the position indicated by
+ *   'handle_number' (0-based index)
+ */
+TSS2_RC
+resource_manager_virt_to_phys (ResourceManager *resmgr,
+                               Tpm2Command     *command,
+                               HandleMapEntry  *entry,
+                               guint8           handle_number)
+{
+    TPM_HANDLE    phandle = 0;
+    TPMS_CONTEXT *context;
+    TSS2_RC       rc = TSS2_RC_SUCCESS;
+
+    context = handle_map_entry_get_context (entry);
+    rc = access_broker_context_load (resmgr->access_broker, context, &phandle);
+    g_debug ("phandle: 0x%" PRIx32, phandle);
+    if (rc == TSS2_RC_SUCCESS) {
+        handle_map_entry_set_phandle (entry, phandle);
+        tpm2_command_set_handle (command, phandle, handle_number);
+    } else {
+        g_warning ("Failed to load context: 0x%" PRIx32, rc);
+    }
+    return rc;
+}
+/*
  * Before we can convert virtual handles (TPM_HT_TRANSIENT handles in a
  * command from a client) we must load all associated contexts. This is
  * necessary to get physical handles. This function iterates over the handles
