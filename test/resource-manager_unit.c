@@ -84,7 +84,7 @@ __wrap_access_broker_context_load (AccessBroker *access_broker,
 {
     TSS2_RC    rc      = (TSS2_RC)mock ();
     TPM_HANDLE phandle = (TPM_HANDLE)mock ();
-    
+
     assert_non_null (handle);
     *handle = phandle;
 
@@ -323,6 +323,49 @@ resource_manager_virt_to_phys_test (void **state)
     assert_int_equal (phandle, handle_ret);
 
 }
+/*
+ */
+static void
+resource_manager_load_contexts_test (void **state)
+{
+    test_data_t    *data = (test_data_t*)*state;
+    HandleMapEntry *entry;
+    HandleMapEntry  entries [3] = { 0 };
+    HandleMap      *map;
+    TPM_HANDLE      phandles [2] = {
+        HR_TRANSIENT + 0xeb,
+        HR_TRANSIENT + 0xbe,
+    };
+    TPM_HANDLE      vhandles [3] = { 0 };
+    TPM_HANDLE      handle_ret;
+    TSS2_RC         rc = TSS2_RC_SUCCESS;
+    guint8          handle_count, i, entry_count = 2;
+
+    will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
+    will_return (__wrap_access_broker_context_load, phandles [0]);
+    will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
+    will_return (__wrap_access_broker_context_load, phandles [1]);
+
+    handle_count = tpm2_command_get_handle_count (data->command);
+    tpm2_command_get_handles (data->command, vhandles, 3);
+    map = session_data_get_trans_map (data->session);
+    for (i = 0; i < handle_count; ++i) {
+        entry = handle_map_entry_new (phandles [i], vhandles [i]);
+        handle_map_insert (map, vhandles [i], entry);
+        g_object_unref (entry);
+    }
+    g_debug ("before resource_manager_load_contexts");
+    rc = resource_manager_load_contexts (data->resource_manager,
+                                         data->command,
+                                         entries,
+                                         &entry_count);
+    g_debug ("after resource_manager_load_contexts");
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    for (i = 0; i < handle_count; ++i) {
+        handle_ret = tpm2_command_get_handle (data->command, i);
+        assert_int_equal (phandles [i], handle_ret);
+    }
+}
 int
 main (int   argc,
       char *argv[])
@@ -347,6 +390,9 @@ main (int   argc,
                                   resource_manager_setup,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_virt_to_phys_test,
+                                  resource_manager_setup_two_transient_handles,
+                                  resource_manager_teardown),
+        unit_test_setup_teardown (resource_manager_load_contexts_test,
                                   resource_manager_setup_two_transient_handles,
                                   resource_manager_teardown),
     };

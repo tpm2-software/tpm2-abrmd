@@ -74,11 +74,13 @@ resource_manager_load_contexts (ResourceManager *resmgr,
 
     g_debug ("resource_manager_load_contexts");
     if (!resmgr || !command || !entries || !entry_count) {
+        g_warning ("resource_manager_load_contexts received NULL parameter.");
         return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
     }
     session = tpm2_command_get_session (command);
     handle_count = tpm2_command_get_handle_count (command);
-    if (handle_count < *entry_count) {
+    if (handle_count > *entry_count) {
+        g_warning ("resource_manager_load_contexts handle count > entry_count");
         return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
     }
     tpm2_command_get_handles (command, handles, handle_count);

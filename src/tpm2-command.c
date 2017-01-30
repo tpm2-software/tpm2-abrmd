@@ -265,6 +265,10 @@ tpm2_command_get_handle_count (Tpm2Command *command)
     g_debug ("tpm2_command_get_handle_count");
     uint32_t tmp;
 
+    if (command == NULL) {
+        g_warning ("tpm2_command_get_handle_count received NULL parameter");
+        return 0;
+    }
     tmp = tpm2_command_get_attributes (command).val;
     return (tmp & TPMA_CC_CHANDLES) >> 25;
 }
