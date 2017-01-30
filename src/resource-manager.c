@@ -11,6 +11,8 @@
 #include "thread-interface.h"
 #include "util.h"
 
+#define RM_RC(rc) TSS2_RESMGR_ERROR_LEVEL + rc
+
 static gpointer resource_manager_parent_class = NULL;
 
 enum {
@@ -51,19 +53,11 @@ resource_manager_virt_to_phys (ResourceManager *resmgr,
     return rc;
 }
 /*
- * Before we can convert virtual handles (TPM_HT_TRANSIENT handles in a
- * command from a client) we must load all associated contexts. This is
- * necessary to get physical handles. This function iterates over the handles
- * in the privided 'comman'. When we identify a handle that's a
- * TPM_HT_TRANSIENT we use it to find the saved context in the the
- * associated HandleMap. We then load the context which returns to us
- * a physical handle. This physical handle is then set in the map entry
- * Finally we store a reference to the entry in the 'entries' array.
- * This is to provide the caller with all of the map entries associated
- * with the command. They will need to be saved and flushed after the command
- * has been executed.
+ * This function operates on the provided command. It iterates over each
+ * handle in the commands handle area. For each relevant handle it loads
+ * the related context and fixes up the handles in the command.
  */
-gboolean
+TSS2_RC
 resource_manager_load_contexts (ResourceManager *resmgr,
                                 Tpm2Command     *command,
                                 HandleMapEntry  *entries[],
@@ -80,12 +74,12 @@ resource_manager_load_contexts (ResourceManager *resmgr,
 
     g_debug ("resource_manager_load_contexts");
     if (!resmgr || !command || !entries || !entry_count) {
-        return FALSE;
+        return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
     }
     session = tpm2_command_get_session (command);
     handle_count = tpm2_command_get_handle_count (command);
     if (handle_count < *entry_count) {
-        return FALSE;
+        return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
     }
     tpm2_command_get_handles (command, handles, handle_count);
     g_debug ("loading contexts for %" PRId8 " handles", handle_count);
@@ -102,16 +96,12 @@ resource_manager_load_contexts (ResourceManager *resmgr,
                            handles [i]);
                 continue;
             }
-            context = handle_map_entry_get_context (entry);
-            rc = access_broker_context_load (resmgr->access_broker,
-                                             context,
-                                            &phandle);
+            g_object_unref (map);
+            rc = resource_manager_virt_to_phys (resmgr, command, entry, i);
             if (rc != TSS2_RC_SUCCESS)
-                g_error ("Failed to load context: 0x%" PRIx32, rc);
-            handle_map_entry_set_phandle (entry, phandle);
+                break;
             entries [i] = entry;
             ++(*entry_count);
-            g_object_unref (map);
             break;
         default:
             break;
@@ -119,6 +109,8 @@ resource_manager_load_contexts (ResourceManager *resmgr,
     }
     g_debug ("resource_manager_load_contexts end");
     g_object_unref (session);
+
+    return rc;
 }
 /*
  * Remove all contexts with handles in the transitive range from the
@@ -157,56 +149,6 @@ resource_manager_flushsave_context (ResourceManager *resmgr,
     default:
         break;
     }
-
-    return rc;
-}
-/*
- * Convert handles in the provided Tpm2Command from virtual to physical.
- * Calling this function without first loading the associated contexts will
- * return an error.
- */
-TSS2_RC
-resource_manager_cmd_virt_to_phys (ResourceManager     *resmgr,
-                                   Tpm2Command         *command)
-{
-    TPM_HANDLE      handles[3] = { 0, };
-    guint8          handle_count = 0, i;
-    SessionData    *session;
-    HandleMap      *handle_map;
-    HandleMapEntry *entry;
-    TSS2_RC         rc = TSS2_RC_SUCCESS;
-
-    g_debug ("resource_manager_cmd_virt_to_phys");
-    handle_count = tpm2_command_get_handle_count (command);
-    g_assert (handle_count <= 3);
-    tpm2_command_get_handles (command, handles, handle_count);
-    session = tpm2_command_get_session (command);
-    handle_map = session_data_get_trans_map (session);
-    g_object_unref (session);
-    for (i = 0; i < handle_count; ++i) {
-        switch (handles [i] >> HR_SHIFT) {
-        case TPM_HT_TRANSIENT:
-            g_debug ("mapping vhandle 0x%" PRIx32, handles[i]);
-            entry = handle_map_vlookup (handle_map, handles [i]);
-            if (entry == NULL) {
-                rc = TSS2_RESMGR_ERROR_LEVEL + TPM_RC_HANDLE + TPM_RC_H + ((i + 1) << 8);
-                break;
-            }
-            handles [i] = handle_map_entry_get_phandle (entry);
-            g_object_unref (entry);
-            g_debug ("mapped to phandle 0x%" PRIx32, handles [i]);
-            /* context is not loaded, internal error */
-            if (handles [i] == 0) {
-                g_error ("transient handle map: 0x%" PRIxPTR "  returned entry"
-                         " 0x%" PRIxPTR " with physical handle 0",
-                         handle_map, entry);
-            }
-        default:
-            break;
-        }
-    }
-    g_object_unref (handle_map);
-    tpm2_command_set_handles (command, handles, handle_count);
 
     return rc;
 }
@@ -305,15 +247,12 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%x, cmd: 0x%x",
              resmgr, command);
     dump_command (command);
-    /* if necessary, transform virtual to physical handles in Tpm2Command
-     * then load all related contexts.
+    /*
+     * if necessary, load all related contexts and switch virtual for physical
+     * handles in Tpm2Command
      */
     if (tpm2_command_get_handle_count (command) > 0) {
-        resource_manager_load_contexts (resmgr,
-                                        command,
-                                        entries,
-                                        &entry_count);
-        rc = resource_manager_cmd_virt_to_phys (resmgr, command);
+        resource_manager_load_contexts (resmgr, command, entries, &entry_count);
     }
     if (rc == TSS2_RC_SUCCESS) {
         response = access_broker_send_command (resmgr->access_broker,

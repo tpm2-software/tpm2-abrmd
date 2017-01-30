@@ -258,75 +258,6 @@ resource_manager_process_tpm2_command_success_test (void **state)
     assert_int_equal (data->response, response);
     g_object_unref (response);
 }
-/*
- * Test to ensure virtual handles in a Tpm2Command are transformed properly
- * by the resource_manager_cmd_virt_to_phys function.
- */
-static void
-resource_manager_cmd_virt_to_phys_test (void **state)
-{
-    test_data_t    *data = (test_data_t*)*state;
-    HandleMap      *handle_map;
-    HandleMapEntry *entry;
-    Tpm2Command    *command;
-    gint            fds [2] = { 0 };
-    guint8         *buffer, handle_count;
-    TPM_HANDLE      phandles [2] = {
-        HR_TRANSIENT + 0x4,
-        HR_TRANSIENT + 0x5,
-    };
-    TPM_HANDLE      out_handles [2] = { 0 };
-
-    /* create & populate HandleMap for transient handles */
-    handle_map = session_data_get_trans_map (data->session);
-    entry = handle_map_entry_new (phandles [0], data->vhandles [0]);
-    handle_map_insert (handle_map, data->vhandles [0], entry);
-    g_object_unref (entry);
-    entry = handle_map_entry_new (phandles [1], data->vhandles [1]);
-    handle_map_insert (handle_map, data->vhandles [1], entry);
-    g_object_unref (entry);
-
-    /* function under test, */
-    resource_manager_cmd_virt_to_phys (data->resource_manager, data->command);
-    assert_true (tpm2_command_get_handles (data->command, out_handles, 2));
-    guint i;
-    for (i = 0; i < 2; ++i)
-        assert_int_equal (phandles [i], out_handles [i]);
-}
-/*
- * Test the resource_manager_cmd_virt_to_phys functions ability to detect
- * and report invalid handles in a Tpm2Command. The scenario under test
- * creates a Tpm2Command object with two handles. The first has a
- * HandleMapEntry in the commands HandleMap. The second does not, so it is
- * effectively a bad handle. The ResourceManager should then return an RC
- * indiacting that the handle is inapproprate for this use and the handle
- * number should be reflected in the RC (2nd handle is TPM_RC_H + TPM_RC_2.
- */
-static void
-resource_manager_cmd_virt_to_phys_bad_handle2_test (void **state)
-{
-    test_data_t    *data = (test_data_t*)*state;
-    HandleMap      *handle_map;
-    HandleMapEntry *entry;
-    guint8          handle_count;
-    TPM_HANDLE      vhandle = 0;
-    TPM_HANDLE      phandle = HR_TRANSIENT + 0x4;
-    TSS2_RC         rc = TSS2_RC_SUCCESS;
-
-    /* Create & populate HandleMap for first transient vhandle. The second
-     * won't have a mapping which should cause an error.
-     */
-    handle_map = session_data_get_trans_map (data->session);
-    vhandle = tpm2_command_get_handle (data->command, 0);
-    entry = handle_map_entry_new (phandle, vhandle);
-    handle_map_insert (handle_map, vhandle, entry);
-    g_object_unref (entry);
-                       
-    /* function under test, */
-    rc = resource_manager_cmd_virt_to_phys (data->resource_manager,
-                                            data->command);
-    assert_int_equal (rc, TSS2_RESMGR_ERROR_LEVEL + TPM_RC_HANDLE + TPM_RC_H + TPM_RC_2);
-}
 static void
 resource_manager_flushsave_context_test (void **state)
 {
@@ -414,12 +345,6 @@ main (int   argc,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_flushsave_context_fail_test,
                                   resource_manager_setup,
-                                  resource_manager_teardown),
-        unit_test_setup_teardown (resource_manager_cmd_virt_to_phys_test,
-                                  resource_manager_setup_two_transient_handles,
-                                  resource_manager_teardown),
-        unit_test_setup_teardown (resource_manager_cmd_virt_to_phys_bad_handle2_test,
-                                  resource_manager_setup_two_transient_handles,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_virt_to_phys_test,
                                   resource_manager_setup_two_transient_handles,
