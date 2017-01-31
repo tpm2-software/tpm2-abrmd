@@ -252,3 +252,44 @@ load_key (TSS2_SYS_CONTEXT *sapi_context,
 
     return rc;
 }
+TSS2_RC
+save_context (TSS2_SYS_CONTEXT *sapi_context,
+              TPM_HANDLE        handle,
+              TPMS_CONTEXT     *context)
+{
+    TSS2_RC rc;
+
+    g_debug ("save_context: sapi_context: 0x%" PRIxPTR " handle: 0x%"
+             PRIx32 " context: 0x%" PRIxPTR, sapi_context, handle, context);
+    if (sapi_context == NULL || context == NULL) {
+        g_error ("save_context passed NULL reference");
+    }
+
+    rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("Tss2_Sys_ContextSave: failed to save context for handle: "
+                   "0x%" PRIx32, handle);
+    }
+
+    return rc;
+}
+TSS2_RC
+flush_context (TSS2_SYS_CONTEXT *sapi_context,
+               TPM_HANDLE        handle)
+{
+    TSS2_RC rc;
+
+    g_debug ("flush_context: sapi_context: 0x%" PRIxPTR " handle: 0x%"
+             PRIx32, sapi_context, handle);
+    if (sapi_context == NULL) {
+        g_error ("flush_context passed NULL reference");
+    }
+
+    rc = Tss2_Sys_FlushContext (sapi_context, handle);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("Tss2_Sys_FlushContext: failed to flush context for "
+                   "handle: 0x%" PRIx32 " TSS2_RC: 0x%" PRIx32, handle, rc);
+    }
+
+    return rc;
+}

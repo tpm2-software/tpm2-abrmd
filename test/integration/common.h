@@ -37,3 +37,16 @@ load_key (
     TPM2B_PRIVATE    *in_private,
     TPM2B_PUBLIC     *in_public
     );
+
+TSS2_RC
+save_context (
+    TSS2_SYS_CONTEXT *sapi_context,
+    TPM_HANDLE        handle,
+    TPMS_CONTEXT     *context
+    );
+
+TSS2_RC
+flush_context (
+    TSS2_SYS_CONTEXT *sapi_context,
+    TPM_HANDLE        handle
+    );

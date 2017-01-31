@@ -8,6 +8,7 @@ UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 sbin_PROGRAMS   = src/tpm2-abrmd
 noinst_PROGRAMS = \
     test/integration/create-keys \
+    test/integration/manage-transient-keys \
     test/tcti-tabrmd_read-write
 check_PROGRAMS  = \
     test/access-broker_unit \
@@ -365,3 +366,8 @@ test_integration_create_keys_LDADD   = $(libtest) $(lib_LTLIBRARIES) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
 test_integration_create_keys_SOURCES = \
     test/integration/create-keys.c
+
+test_integration_manage_transient_keys_LDADD   = $(libtest) $(lib_LTLIBRARIES) \
+    $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
+test_integration_manage_transient_keys_SOURCES = \
+    test/integration/manage-transient-keys.c
