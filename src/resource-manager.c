@@ -83,6 +83,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
         g_warning ("resource_manager_load_contexts handle count > entry_count");
         return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
     }
+    *entry_count = 0;
     tpm2_command_get_handles (command, handles, handle_count);
     g_debug ("loading contexts for %" PRId8 " handles", handle_count);
     for (i = 0; i < handle_count; ++i) {
@@ -220,6 +221,44 @@ dump_response (Tpm2Response *response)
                    4);
     g_debug_tpma_cc (tpm2_response_get_attributes (response));
 }
+TSS2_RC
+resource_manager_flush_context (ResourceManager *resmgr,
+                                Tpm2Command     *command)
+{
+    SessionData *session;
+    HandleMap   *map;
+    HandleMapEntry *entry;
+    TPM_HANDLE      vhandle;
+    TSS2_RC rc;
+
+    if (tpm2_command_get_code (command) != TPM_CC_FlushContext) {
+        g_warning ("resource_manager_flush_context with wrong command");
+        return TSS2_RC_SUCCESS;
+    }
+    session = tpm2_command_get_session (command);
+    map = session_data_get_trans_map (session);
+    g_object_unref (session);
+
+    vhandle = tpm2_command_get_flush_handle (command);
+    g_debug ("resource_manager_flush_context vhandle: 0x%" PRIx32, vhandle);
+    entry = handle_map_vlookup (map, vhandle);
+    if (entry != NULL) {
+        handle_map_remove (map, vhandle);
+        g_object_unref (entry);
+        rc = TSS2_RC_SUCCESS;
+    } else {
+        /*
+         * If the handle doesn't map to a HandleMapEntry then it's not one
+         * that we're managing and so we can't flush it. Return an error
+         * indicating that error is related to a handle, that it's a parameter
+         * and that it's the first parameter.
+         */
+        rc = RM_RC (TPM_RC_HANDLE + TPM_RC_P + TPM_RC_1);
+    }
+    g_object_unref (map);
+
+    return rc;
+}
 /**
  * This function is invoked in response to the receipt of a Tpm2Command.
  * This is the place where we send the command buffer out to the TPM
@@ -241,10 +280,11 @@ void
 resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                        Tpm2Command       *command)
 {
+    SessionData    *session;
     Tpm2Response   *response;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     HandleMapEntry *entries[4];
-    guint           entry_count = 0;
+    guint           entry_count = 4;
 
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%x, cmd: 0x%x",
              resmgr, command);
@@ -253,28 +293,40 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
      * if necessary, load all related contexts and switch virtual for physical
      * handles in Tpm2Command
      */
-    if (tpm2_command_get_handle_count (command) > 0) {
-        resource_manager_load_contexts (resmgr, command, entries, &entry_count);
-    }
-    if (rc == TSS2_RC_SUCCESS) {
-        response = access_broker_send_command (resmgr->access_broker,
-                                               command,
-                                               &rc);
-        if (rc != TSS2_RC_SUCCESS)
-            g_warning ("access_broker_send_command returned error: 0x%x", rc);
+    switch (tpm2_command_get_code (command)) {
+    case TPM_CC_FlushContext:
+        g_debug ("processing TPM_CC_FlushContext");
+        rc = resource_manager_flush_context (resmgr, command);
+        session = tpm2_command_get_session (command);
+        response = tpm2_response_new_rc (session, rc);
+        entry_count = 0;
+        g_object_unref (session);
+        break;
+    default:
+        if (tpm2_command_get_handle_count (command) > 0) {
+            resource_manager_load_contexts (resmgr, command, entries, &entry_count);
+        }
+        if (rc == TSS2_RC_SUCCESS) {
+            response = access_broker_send_command (resmgr->access_broker,
+                                                   command,
+                                                   &rc);
+            if (rc != TSS2_RC_SUCCESS)
+                g_warning ("access_broker_send_command returned error: 0x%x", rc);
         if (response == NULL)
             g_error ("access_broker_send_command returned NULL Tpm2Response?");
-    } else {
-        SessionData *session = tpm2_command_get_session (command);
-        response = tpm2_response_new_rc (session, rc);
-        g_object_unref (session);
-    }
-    dump_response (response);
-    /* transform the Tpm2Response */
-    if (tpm2_response_has_handle (response)) {
-        entries [entry_count] =
-            resource_manager_virtualize_handle (resmgr, response);
-        ++entry_count;
+        } else {
+            session = tpm2_command_get_session (command);
+            response = tpm2_response_new_rc (session, rc);
+            g_object_unref (session);
+        }
+        dump_response (response);
+        /* transform the Tpm2Response */
+        if (tpm2_response_has_handle (response)) {
+            entries [entry_count] =
+                resource_manager_virtualize_handle (resmgr, response);
+            ++entry_count;
+        }
+        break;
     }
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
