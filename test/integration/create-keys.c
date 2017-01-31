@@ -196,10 +196,10 @@ main (int   argc,
     TPMS_CONTEXT       context     = { 0 };
     TSS2_RC rc;
 
-    tcti_context = tcti_context_init (&rc);
+    rc = tcti_context_init (&tcti_context);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("Failed to initialize TCTI context");
-    sapi_context = sapi_context_init (tcti_context, &rc);
+    rc = sapi_context_init (&sapi_context, tcti_context);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("Failed to initialize SAPI context");
 
