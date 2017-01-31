@@ -36,8 +36,17 @@ if TCTI_SOCKET
 check_PROGRAMS += test/tcti-socket_unit
 endif
 
+# libraries
+libtcti_tabrmd = src/libtcti-tabrmd.la
+libtcti_echo   = src/libtcti-echo.la
+libtest        = test/integration/libtest.la
+libutil        = src/libutil.la
+
 lib_LTLIBRARIES = src/libtcti-tabrmd.la
-noinst_LTLIBRARIES = src/libtcti-echo.la src/libutil.la
+noinst_LTLIBRARIES = \
+    $(libtcti_echo) \
+    $(libutil) \
+    $(libtest)
 man8_MANS = man/man8/tpm2-abrmd.8
 TESTS = $(check_PROGRAMS)
 
@@ -59,6 +68,9 @@ VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
 VALGRIND_memcheck_FLAGS = --show-leak-kinds=definite,indirect
 
 src_libutil_la_SOURCES = src/tabrmd-generated.c src/tpm2-header.c src/util.c
+
+test_integration_libtest_la_LIBADD  = $(SAPI_LIBS) $(GLIB_LIBS)
+test_integration_libtest_la_SOURCES = test/integration/common.c
 
 src_libtcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(SAPI_LIBS)
@@ -349,6 +361,7 @@ test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(noinst_LTLIBRARIES)
 test_tss2_tcti_echo_unit_SOURCES = \
     test/tss2-tcti-echo_unit.c
 
-test_integration_create_keys_LDADD   = $(GLIB_LIBS) $(lib_LTLIBRARIES) $(SAPI_LIBS)
+test_integration_create_keys_LDADD   = $(libtest) $(lib_LTLIBRARIES) \
+    $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
 test_integration_create_keys_SOURCES = \
     test/integration/create-keys.c
