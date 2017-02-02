@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <glib.h>
+#include <inttypes.h>
 #include <pthread.h>
 
 #include "sink-interface.h"
@@ -7,6 +8,7 @@
 #include "response-sink.h"
 #include "control-message.h"
 #include "tpm2-response.h"
+#include "util.h"
 
 #define RESPONSE_SINK_TIMEOUT 1e6
 
@@ -74,7 +76,7 @@ response_sink_get_property (GObject     *object,
 {
     ResponseSink *self = RESPONSE_SINK (object);
 
-    g_debug ("response_sink_get_property: 0x%x", self);
+    g_debug ("response_sink_get_property: 0x%" PRIxPTR, (uintptr_t)self);
     switch (property_id) {
     case PROP_IN_QUEUE:
         g_value_set_object (value, self->in_queue);
@@ -202,14 +204,14 @@ response_sink_process_response (Tpm2Response *response)
     SessionData *session = tpm2_response_get_session (response);
     guint        fd      = session_data_send_fd (session);
 
-    g_debug ("response_sink_thread got response: 0x%x size %d",
-             response, size);
+    g_debug ("response_sink_thread got response: 0x%" PRIxPTR " size %d",
+             (uintptr_t)response, size);
     g_debug ("  writing 0x%x bytes", size);
     g_debug_bytes (buffer, size, 16, 4);
     written = write_all (fd, buffer, size);
     if (written <= 0)
-        g_warning ("write failed (%d) on fd %d for session 0x%x: %s",
-                   written, fd, session, strerror (errno));
+        g_warning ("write failed (%zu) on fd %d for session 0x%" PRIxPTR ": %s",
+                   written, fd, (uintptr_t)session, strerror (errno));
     g_object_unref (session);
 
     return written;
@@ -222,10 +224,10 @@ response_sink_thread (void *data)
     GObject *obj;
 
     do {
-        g_debug ("response_sink_thread blocking on input queue: 0x%x",
-                 sink->in_queue);
+        g_debug ("response_sink_thread blocking on input queue: 0x%" PRIxPTR,
+                 (uintptr_t)sink->in_queue);
         obj = message_queue_dequeue (sink->in_queue);
-        g_debug ("response_sink_thread got obj: 0x%x", obj);
+        g_debug ("response_sink_thread got obj: 0x%" PRIxPTR, (uintptr_t)obj);
         if (IS_CONTROL_MESSAGE (obj)) {
             ControlCode code =
                 control_message_get_code (CONTROL_MESSAGE (obj));
@@ -265,7 +267,8 @@ response_sink_cancel (Thread *self)
         g_error ("response_sink_cancel: cannot cancel thread with id 0");
     ret = pthread_cancel (sink->thread);
     msg = control_message_new (CHECK_CANCEL);
-    g_debug ("response_sink_cancel enqueuing ControlMessage: 0x%x", msg);
+    g_debug ("response_sink_cancel enqueuing ControlMessage: 0x%" PRIxPTR,
+             (uintptr_t)msg);
     message_queue_enqueue (sink->in_queue, G_OBJECT (msg));
     g_object_unref (msg);
 

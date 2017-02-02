@@ -1,3 +1,5 @@
+#include <inttypes.h>
+
 #include "tcti.h"
 
 G_DEFINE_ABSTRACT_TYPE (Tcti, tcti, G_TYPE_OBJECT);
@@ -22,14 +24,14 @@ tcti_class_init (TctiClass *klass)
 TSS2_RC
 tcti_initialize (Tcti *self)
 {
-    g_debug ("tcti_initialize: 0x%x", self);
+    g_debug ("tcti_initialize: 0x%" PRIxPTR, (uintptr_t)self);
     return TCTI_GET_CLASS (self)->initialize (self);
 }
 
 TSS2_TCTI_CONTEXT*
 tcti_peek_context (Tcti *self)
 {
-    g_debug ("tcti_peek_context: 0x%x", self);
+    g_debug ("tcti_peek_context: 0x%" PRIxPTR, (uintptr_t)self);
     return self->tcti_context;
 }
 /**

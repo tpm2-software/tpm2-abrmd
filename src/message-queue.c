@@ -1,6 +1,8 @@
 #include <errno.h>
 #include <glib.h>
+#include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "message-queue.h"
 
@@ -65,7 +67,8 @@ message_queue_enqueue (MessageQueue  *message_queue,
                        GObject       *object)
 {
     g_assert (message_queue != NULL);
-    g_debug ("message_queue_enqueue 0x%x: message 0x%x", message_queue, object);
+    g_debug ("message_queue_enqueue 0x%" PRIxPTR " : message 0x%" PRIxPTR,
+             (uintptr_t)message_queue, (uintptr_t)object);
     g_object_ref (object);
     g_async_queue_push (message_queue->queue, object);
 }
@@ -80,9 +83,9 @@ message_queue_dequeue (MessageQueue *message_queue)
     GObject *obj;
 
     g_assert (message_queue != NULL);
-    g_debug ("message_queue_dequeue 0x%x", message_queue);
+    g_debug ("message_queue_dequeue 0x%" PRIxPTR, (uintptr_t)message_queue);
     obj = g_async_queue_pop (message_queue->queue);
-    g_debug ("  got obj: 0x%x", obj);
+    g_debug ("  got obj: 0x%" PRIxPTR, (uintptr_t)obj);
     return obj;
 }
 /**
@@ -97,8 +100,8 @@ message_queue_timeout_dequeue (MessageQueue *message_queue,
     GObject *obj;
 
     g_assert (message_queue != NULL);
-    g_debug ("message_queue_timeout_dequeue 0x%x", message_queue);
+    g_debug ("message_queue_timeout_dequeue 0x%" PRIxPTR, (uintptr_t)message_queue);
     obj = g_async_queue_timeout_pop (message_queue->queue, timeout);
-    g_debug ("  got obj: 0x%x", obj);
+    g_debug ("  got obj: 0x%" PRIxPTR, (uintptr_t)obj);
     return obj;
 }

@@ -156,15 +156,15 @@ on_handle_cancel (TctiTabrmd           *skeleton,
     SessionData *session = NULL;
     GVariant *uint32_variant, *tuple_variant;
 
-    g_info ("on_handle_cancel for id 0x%x", id);
+    g_info ("on_handle_cancel for id 0x%" PRIx64, id);
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
     session = session_manager_lookup_id (data->manager, id);
     if (session == NULL) {
-        g_warning ("no active session for id: 0x%x", id);
+        g_warning ("no active session for id: 0x%" PRIx64, id);
         return FALSE;
     }
-    g_info ("canceling command for session 0x%x", session);
+    g_info ("canceling command for session 0x%" PRIxPTR, (uintptr_t)session);
     /* cancel any existing commands for the session */
     g_object_unref (session);
     /* setup and send return value */
@@ -196,16 +196,16 @@ on_handle_set_locality (TctiTabrmd            *skeleton,
     SessionData *session = NULL;
     GVariant *uint32_variant, *tuple_variant;
 
-    g_info ("on_handle_set_locality for id 0x%x", id);
+    g_info ("on_handle_set_locality for id 0x%" PRIx64, id);
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
     session = session_manager_lookup_id (data->manager, id);
     if (session == NULL) {
-        g_warning ("no active session for id: 0x%x", id);
+        g_warning ("no active session for id: 0x%" PRIx64, id);
         return FALSE;
     }
-    g_info ("setting locality for session 0x%x to: 0x%x",
-            session, locality);
+    g_info ("setting locality for session 0x%" PRIxPTR " to: %" PRIx8,
+            (uintptr_t)session, locality);
     /* set locality for an existing session */
     g_object_unref (session);
     /* setup and send return value */
@@ -223,20 +223,23 @@ dump_trans_state_callback (gpointer key,
     TPM_HANDLE phandle;
     HandleMapEntry *entry;
 
-    g_debug ("dump_trans_state_callback: key: 0x%" PRIxPTR " value: 0x%" PRIxPTR " user_data: 0x%" PRIxPTR, key, value, user_data);
+    g_debug ("dump_trans_state_callback: key: 0x%" PRIxPTR " value: 0x%"
+             PRIxPTR " user_data: 0x%" PRIxPTR,
+             (uintptr_t)key, (uintptr_t)value, (uintptr_t)user_data);
     phandle = (TPM_HANDLE)(uintptr_t)key;
     if (value == NULL) {
-        g_warning ("got NULL entry for key: 0x%" PRIxPTR, phandle);
+        g_warning ("got NULL entry for key: 0x%" PRIx32, phandle);
         return;
     }
     entry = HANDLE_MAP_ENTRY (value);
 
-    g_debug ("  dump_trans_state_callback entry:   0x%" PRIxPTR, entry);
+    g_debug ("  dump_trans_state_callback entry:   0x%" PRIxPTR,
+             (uintptr_t)entry);
     g_debug ("  dump_trans_state_callback phandle: 0x%" PRIx32, phandle);
     g_debug ("  dump_trans_state_callback vhandle: 0x%" PRIx32,
              handle_map_entry_get_vhandle (entry));
     g_debug ("  dump_trans_state_callback_context: 0x%" PRIxPTR,
-             handle_map_entry_get_context (entry));
+             (uintptr_t)handle_map_entry_get_context (entry));
 }
 /*
  */
@@ -248,17 +251,17 @@ on_handle_dump_trans_state (TctiTabrmd            *skeleton,
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     HandleMap      *map     = NULL;
-    HandleMapEntry *entry   = NULL;
     SessionData    *session = NULL;
     GVariant *uint32_variant, *tuple_variant;
 
-    g_info ("on_handle_dump_trans_state for id 0x%x", id);
+    g_info ("on_handle_dump_trans_state for id 0x%" PRIx64, id);
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
     session = session_manager_lookup_id (data->manager, id);
     if (session == NULL)
-        g_error ("no active session for id: 0x%x", id);
-    g_info ("dumping transient handle map for for session 0x%x", session);
+        g_error ("no active session for id: 0x%" PRIx64, id);
+    g_info ("dumping transient handle map for for session 0x%" PRIxPTR,
+            (uintptr_t)session);
     map = session_data_get_trans_map (session);
     g_object_unref (session);
     g_info ("  number of entries in map: %" PRIu32, handle_map_size (map));
@@ -300,7 +303,6 @@ on_name_acquired (GDBusConnection *connection,
                   gpointer         user_data)
 {
     g_info ("on_name_acquired: %s", name);
-    guint registration_id;
     gmain_data_t *gmain_data;
     GError *error = NULL;
     gboolean ret;
@@ -397,7 +399,6 @@ init_thread_func (gpointer user_data)
     gmain_data_t *data = (gmain_data_t*)user_data;
     gint ret;
     uint32_t loaded_trans_objs;
-    Tcti *tcti;
     TSS2_RC rc;
     CommandAttrs *command_attrs;
 
@@ -415,7 +416,7 @@ init_thread_func (gpointer user_data)
     data->manager = session_manager_new();
     if (data->manager == NULL)
         g_error ("failed to allocate connection_manager");
-    g_debug ("SessionManager: 0x%x", data->manager);
+    g_debug ("SessionManager: 0x%" PRIxPTR, (uintptr_t)data->manager);
 
     /**
      * this isn't strictly necessary but it allows us to detect a failure in
@@ -426,10 +427,11 @@ init_thread_func (gpointer user_data)
         g_error ("failed to initialize TCTI: 0x%x", rc);
 
     data->access_broker = access_broker_new (data->tcti);
-    g_debug ("created AccessBroker: 0x%x", data->access_broker);
+    g_debug ("created AccessBroker: 0x%" PRIxPTR,
+             (uintptr_t)data->access_broker);
     rc = access_broker_init (data->access_broker);
     if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize AccessBroker: 0x" PRIx32, rc);
+        g_error ("failed to initialize AccessBroker: 0x%" PRIx32, rc);
     /*
      * Ensure the TPM is in a state in which we can use it w/o stepping all
      * over someone else.
@@ -439,9 +441,9 @@ init_thread_func (gpointer user_data)
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to get number of loaded transient objects from "
                  "access broker 0x%" PRIxPTR " RC: 0x%" PRIx32,
-                 data->access_broker,
+                 (uintptr_t)data->access_broker,
                  rc);
-    if (loaded_trans_objs > 0 & data->options.fail_on_loaded_trans)
+    if ((loaded_trans_objs > 0) & data->options.fail_on_loaded_trans)
         g_error ("TPM reports 0x%" PRIx32 " loaded transient objects, "
                  "aborting", loaded_trans_objs);
     /**
@@ -449,19 +451,22 @@ init_thread_func (gpointer user_data)
      * pipeline.
      */
     command_attrs = command_attrs_new ();
-    g_debug ("created CommandAttrs: 0x%" PRIxPTR, command_attrs);
+    g_debug ("created CommandAttrs: 0x%" PRIxPTR, (uintptr_t)command_attrs);
     rc = command_attrs_init (command_attrs, data->access_broker);
     if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize CommandAttribute object: 0x" PRIxPTR,
-                 command_attrs);
+        g_error ("failed to initialize CommandAttribute object: 0x%" PRIxPTR,
+                 (uintptr_t)command_attrs);
 
     data->command_source =
         command_source_new (data->manager, command_attrs);
-    g_debug ("created session source: 0x%x", data->command_source);
+    g_debug ("created session source: 0x%" PRIxPTR,
+             (uintptr_t)data->command_source);
     data->resource_manager = resource_manager_new (data->access_broker);
-    g_debug ("created ResourceManager: 0x%x", data->resource_manager);
+    g_debug ("created ResourceManager: 0x%" PRIxPTR,
+             (uintptr_t)data->resource_manager);
     data->response_sink = SINK (response_sink_new ());
-    g_debug ("created response source: 0x%x", data->response_sink);
+    g_debug ("created response source: 0x%" PRIxPTR,
+             (uintptr_t)data->response_sink);
     g_object_unref (command_attrs);
     g_object_unref (data->access_broker);
     /**
@@ -488,6 +493,8 @@ init_thread_func (gpointer user_data)
 
     g_mutex_unlock (&data->init_mutex);
     g_info ("init_thread_func done");
+
+    return (void*)0;
 }
 /**
  * This function parses the parameter argument vector and populates the

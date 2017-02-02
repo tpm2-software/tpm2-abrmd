@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <sapi/tpm20.h>
 
@@ -92,7 +93,7 @@ random_seed_from_file (Random *random,
         ret = -1;
         goto close_out;
     } else if (read_ret < sizeof (rand_seed)) {
-        g_warning ("short read on entropy source %s: got %d bytes, expecting %d",
+        g_warning ("short read on entropy source %s: got %zu bytes, expecting %zu",
                    fname, read_ret, sizeof (rand_seed));
         ret = -1;
         goto close_out;

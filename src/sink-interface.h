@@ -22,6 +22,7 @@ struct _SinkInterface {
     SinkEnqueue            enqueue;
 };
 
+GType      sink_get_type     (void);
 void       sink_enqueue      (Sink           *self,
                               GObject        *obj);
 

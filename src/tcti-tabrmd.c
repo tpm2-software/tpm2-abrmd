@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <gio/gio.h>
+#include <gio/gunixfdlist.h>
 #include <glib.h>
 #include <inttypes.h>
 #include <string.h>
@@ -76,7 +77,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
         tss2_ret = TSS2_TCTI_RC_NO_CONNECTION;
         break;
     default:
-        g_debug ("tss2_tcti_tabrmd_receive: read returned: 0x%", PRIdMAX, ret);
+        g_debug ("tss2_tcti_tabrmd_receive: read returned: %" PRIdMAX, ret);
         *size = ret;
         break;
     }
@@ -112,12 +113,12 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *tcti_context)
 static TSS2_RC
 tss2_tcti_tabrmd_cancel (TSS2_TCTI_CONTEXT *tcti_context)
 {
-    GVariant *id_variant, *ret_variant;
     TSS2_RC ret = TSS2_RC_SUCCESS;
     GError *error = NULL;
     gboolean cancel_ret;
 
-    g_info("tss2_tcti_tabrmd_cancel: id 0x%x", TSS2_TCTI_TABRMD_ID (tcti_context));
+    g_info("tss2_tcti_tabrmd_cancel: id 0x%" PRIx64,
+           TSS2_TCTI_TABRMD_ID (tcti_context));
     cancel_ret = tcti_tabrmd_call_cancel_sync (TSS2_TCTI_TABRMD_PROXY (tcti_context),
                                                       TSS2_TCTI_TABRMD_ID (tcti_context),
                                                       &ret,
@@ -148,7 +149,8 @@ tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *tcti_context,
     TSS2_RC ret;
     GError *error = NULL;
 
-    g_info ("tss2_tcti_tabrmd_set_locality: id 0x%x", TSS2_TCTI_TABRMD_ID (tcti_context));
+    g_info ("tss2_tcti_tabrmd_set_locality: id 0x%" PRIx64,
+            TSS2_TCTI_TABRMD_ID (tcti_context));
     status = tcti_tabrmd_call_set_locality_sync (TSS2_TCTI_TABRMD_PROXY (tcti_context),
                                                         TSS2_TCTI_TABRMD_ID (tcti_context),
                                                         locality,
@@ -186,95 +188,6 @@ tss2_tcti_tabrmd_dump_trans_state (TSS2_TCTI_CONTEXT *tcti_context)
     }
 
     return ret;
-}
-
-static void
-on_name_appeared (GDBusConnection *connection,
-                  const gchar *name,
-                  const gchar *name_owner,
-                  gpointer user_data)
-{
-    GDBusMessage *message_call = NULL, *message_reply = NULL;
-    GError *error = NULL;
-    GUnixFDList *fd_list = NULL;
-    TSS2_TCTI_TABRMD_CONTEXT *tcti_context = (TSS2_TCTI_TABRMD_CONTEXT*)user_data;
-    int ret;
-
-    g_debug("on_name_appeared");
-    /* get sockets for transmit / receive */
-    message_call =
-        g_dbus_message_new_method_call (name_owner,
-                                        TABRMD_DBUS_PATH,
-                                        TABRMD_DBUS_INTERFACE,
-                                        TABRMD_DBUS_METHOD_CREATE_CONNECTION);
-    message_reply =
-        g_dbus_connection_send_message_with_reply_sync (
-            connection,
-            message_call,
-            G_DBUS_SEND_MESSAGE_FLAGS_NONE,
-            -1, /* may want a more sane timeout */
-            NULL, /* out_serial */
-            NULL, /* cancellable */
-            &error);
-    if (message_reply == NULL) {
-        g_error ("Call to DBus method %s returned a null result.",
-                 TABRMD_DBUS_METHOD_CREATE_CONNECTION);
-        goto out;
-    }
-    if (g_dbus_message_get_message_type (message_reply) ==
-        G_DBUS_MESSAGE_TYPE_ERROR)
-    {
-        g_dbus_message_to_gerror (message_reply, &error);
-        g_error ("Call to DBus method %s failed: %s",
-                 TABRMD_DBUS_METHOD_CREATE_CONNECTION, error->message);
-        goto out;
-    }
-    fd_list = g_dbus_message_get_unix_fd_list (message_reply);
-    gint fd_list_length = g_unix_fd_list_get_length(fd_list);
-    if (fd_list_length != 2)
-        g_error ("Expecting 2 fds, received %d", fd_list_length);
-    g_debug ("got some fds: %d", fd_list_length);
-    TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) =
-        g_unix_fd_list_get (fd_list, 0, &error);
-    TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context) =
-        g_unix_fd_list_get (fd_list, 1, &error);
-    g_debug ("receive fd: %d", TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context));
-    g_debug ("transmit fd: %d", TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context));
-    ret = pthread_mutex_unlock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
-    if (ret != 0)
-        g_error ("Failed to unlock init mutex: %s", strerror (errno));
-out:
-    if (error)
-        g_error_free (error);
-    g_object_unref (message_call);
-    g_object_unref (message_reply);
-}
-
-static void
-on_name_vanished (GDBusConnection *connection,
-                  const gchar     *name,
-                  gpointer         user_data)
-{
-    TSS2_TCTI_TABRMD_CONTEXT *tcti_context = (TSS2_TCTI_TABRMD_CONTEXT*)user_data;
-    int ret = 0;
-
-    g_warning ("No owner for name: %s", name);
-    ret = pthread_mutex_trylock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
-    if (ret != 0)
-        g_error ("Unable to acquire init lock through trylock: %s",
-                 strerror (errno));
-    if (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) != 0) {
-        ret = close (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context));
-        TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) = 0;
-    }
-    if (ret != 0 && ret != EBADF)
-        g_warning ("Failed to close receive pipe: %s", strerror (errno));
-    if (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context) != 0) {
-        ret = close (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context));
-        TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context) = 0;
-    }
-    if (ret != 0 && ret != EBADF)
-        g_warning ("Failed to close send pipe: %s", strerror (errno));
 }
 
 void

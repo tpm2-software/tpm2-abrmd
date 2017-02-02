@@ -137,7 +137,7 @@ tcti_echo_initialize (TctiEcho *tcti_echo)
     rc = tss2_tcti_echo_init (NULL, &ctx_size, tcti_echo->size);
     if (rc != TSS2_RC_SUCCESS)
         goto out;
-    g_debug ("allocating tcti_context: 0x%x", ctx_size);
+    g_debug ("allocating tcti_context: 0x%zu", ctx_size);
     tcti->tcti_context = g_malloc0 (ctx_size);
     rc = tss2_tcti_echo_init (tcti->tcti_context, &ctx_size, tcti_echo->size);
     if (rc != TSS2_RC_SUCCESS) {

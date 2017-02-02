@@ -24,6 +24,7 @@ struct _SourceInterface {
     SourceAddSink          add_sink;
 };
 
+GType      source_get_type         (void);
 void       source_add_sink         (Source         *self,
                                     Sink           *sink);
 

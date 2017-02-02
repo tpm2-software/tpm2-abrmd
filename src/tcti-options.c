@@ -273,7 +273,6 @@ GOptionGroup*
 tcti_options_get_group (TctiOptions *options)
 {
     GOptionGroup *group;
-    GOptionArg   *opt_arg;
 
     GOptionEntry entries[] = {
         {

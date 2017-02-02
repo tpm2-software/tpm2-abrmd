@@ -181,7 +181,7 @@ handle_map_insert (HandleMap      *map,
                    HandleMapEntry *entry)
 {
     g_debug ("handle_map_insert: vhandle: 0x%" PRIx32 ", entry: 0x%" PRIxPTR,
-             vhandle, entry);
+             vhandle, (uintptr_t)entry);
     handle_map_lock (map);
     if (entry && vhandle != 0) {
         g_object_ref (entry);
@@ -200,7 +200,6 @@ handle_map_remove (HandleMap *map,
                    TPM_HANDLE vhandle)
 {
     gboolean ret;
-    HandleMapEntry *entry;
 
     handle_map_lock (map);
     ret = g_hash_table_remove (map->vhandle_to_entry_table,

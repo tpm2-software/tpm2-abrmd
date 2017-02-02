@@ -166,7 +166,7 @@ tcti_socket_initialize (TctiSocket *self)
         goto out;
     rc = InitSocketTcti (NULL, &ctx_size, NULL, 0);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("failed to get size for socket TCTI context structure: ",
+        g_warning ("failed to get size for socket TCTI context structure: "
                    "0x%x", rc);
         goto out;
     }

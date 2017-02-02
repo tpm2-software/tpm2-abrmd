@@ -42,6 +42,9 @@ guint8                tpm2_command_get_handle_count (Tpm2Command     *command);
 gboolean              tpm2_command_get_handles     (Tpm2Command      *command,
                                                     TPM_HANDLE        handles[],
                                                     guint8            count);
+gboolean              tpm2_command_set_handle      (Tpm2Command      *command,
+                                                    TPM_HANDLE        handle,
+                                                    guint8            handle_number);
 gboolean              tpm2_command_set_handles     (Tpm2Command      *command,
                                                     TPM_HANDLE        handles[],
                                                     guint8            count);

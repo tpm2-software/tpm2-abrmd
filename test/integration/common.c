@@ -4,6 +4,7 @@
 #include <glib.h>
 
 #include "common.h"
+#include "tcti-tabrmd.h"
 #include "tpm2-struct-init.h"
 
 /*
@@ -21,7 +22,7 @@ tcti_context_init (TSS2_TCTI_CONTEXT **tcti_context)
     rc = tss2_tcti_tabrmd_init (NULL, &context_size);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to get size of tcti context");
-    g_debug ("tcti size is: %d", context_size);
+    g_debug ("tcti size is: %zd", context_size);
     tmp_tcti_context = calloc (1, context_size);
     if (tmp_tcti_context == NULL)
         g_error ("failed to allocate memory for tcti context");
@@ -152,7 +153,6 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
 {
     TPM_RC rc;
     
-    TSS2_SYS_CMD_AUTHS      cmdAuthsArray    = { 0 };
     TPM2B_SENSITIVE_CREATE  in_sensitive     = { 0 };
     TPM2B_PUBLIC	    in_public        = { 0 };
     TPM2B_DATA	            outside_info     = { 0 };
@@ -205,7 +205,8 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
     if (rc == TSS2_RC_SUCCESS) {
         g_print ("Tss2_Sys_Create returned TSS2_RC_SUCCESS\n  parent handle: "
                  "0x%" PRIx32 "\n  out_private: 0x%" PRIxPTR "\n  out_public: "
-                 "0x%" PRIxPTR "\n", parent_handle, out_private, out_public);
+                 "0x%" PRIxPTR "\n", parent_handle, (uintptr_t)&out_private,
+                 (uintptr_t)&out_public);
     } else {
         g_warning ("Tss2_Sys_Create returned: 0x%" PRIx32, rc);
     }
@@ -232,7 +233,7 @@ load_key (TSS2_SYS_CONTEXT *sapi_context,
 
     g_print ("Tss2_Sys_Load with parent handle: 0x%" PRIx32 "\n  in_private: "
              "0x%" PRIxPTR "\n  in_public: 0x%" PRIxPTR "\n",
-             parent_handle, in_private, in_public);
+             parent_handle, (uintptr_t)in_private, (uintptr_t)in_public);
     rc = Tss2_Sys_Load (sapi_context,
                         parent_handle,
                         &cmd_auths,
@@ -260,7 +261,8 @@ save_context (TSS2_SYS_CONTEXT *sapi_context,
     TSS2_RC rc;
 
     g_debug ("save_context: sapi_context: 0x%" PRIxPTR " handle: 0x%"
-             PRIx32 " context: 0x%" PRIxPTR, sapi_context, handle, context);
+             PRIx32 " context: 0x%" PRIxPTR, (uintptr_t)sapi_context,
+             handle, (uintptr_t)context);
     if (sapi_context == NULL || context == NULL) {
         g_error ("save_context passed NULL reference");
     }
@@ -280,7 +282,7 @@ flush_context (TSS2_SYS_CONTEXT *sapi_context,
     TSS2_RC rc;
 
     g_debug ("flush_context: sapi_context: 0x%" PRIxPTR " handle: 0x%"
-             PRIx32, sapi_context, handle);
+             PRIx32, (uintptr_t)sapi_context, handle);
     if (sapi_context == NULL) {
         g_error ("flush_context passed NULL reference");
     }

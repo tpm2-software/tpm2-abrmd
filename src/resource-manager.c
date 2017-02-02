@@ -68,8 +68,6 @@ resource_manager_load_contexts (ResourceManager *resmgr,
     SessionData  *session;
     TSS2_RC       rc;
     TPM_HANDLE    handles[3] = { 0, };
-    TPM_HANDLE    phandle;
-    TPMS_CONTEXT *context;
     guint i, handle_count;;
 
     g_debug ("resource_manager_load_contexts");
@@ -130,7 +128,7 @@ resource_manager_flushsave_context (ResourceManager *resmgr,
     TSS2_RC         rc = TSS2_RC_SUCCESS;
 
     g_debug ("resource_manager_flushsave_context for entry: 0x%" PRIxPTR,
-             entry);
+             (uintptr_t)entry);
     if (resmgr == NULL || entry == NULL)
         g_error ("resource_manager_flushsave_context passed NULL parameter");
     phandle = handle_map_entry_get_phandle (entry);
@@ -186,7 +184,7 @@ resource_manager_virtualize_handle (ResourceManager *resmgr,
             g_error ("vhandle rolled over!");
         g_debug ("now has vhandle:0x%" PRIx32, vhandle);
         entry = handle_map_entry_new (phandle, vhandle);
-        g_debug ("handle map entry: 0x%" PRIxPTR, entry);
+        g_debug ("handle map entry: 0x%" PRIxPTR, (uintptr_t)entry);
         handle_map_insert (handle_map, vhandle, entry);
         tpm2_response_set_handle (response, vhandle);
         g_object_unref (session);
@@ -203,7 +201,7 @@ static void
 dump_command (Tpm2Command *command)
 {
     g_assert (command != NULL);
-    g_debug ("Tpm2Command: 0x%" PRIxPTR, command);
+    g_debug ("Tpm2Command: 0x%" PRIxPTR, (uintptr_t)command);
     g_debug_bytes (tpm2_command_get_buffer (command),
                    tpm2_command_get_size (command),
                    16,
@@ -214,7 +212,7 @@ static void
 dump_response (Tpm2Response *response)
 {
     g_assert (response != NULL);
-    g_debug ("Tpm2Response: 0x%" PRIxPTR, response);
+    g_debug ("Tpm2Response: 0x%" PRIxPTR, (uintptr_t)response);
     g_debug_bytes (tpm2_response_get_buffer (response),
                    tpm2_response_get_size (response),
                    16,
@@ -286,8 +284,8 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     HandleMapEntry *entries[4];
     guint           entry_count = 4;
 
-    g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%x, cmd: 0x%x",
-             resmgr, command);
+    g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%" PRIxPTR
+             ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
     dump_command (command);
     /*
      * if necessary, load all related contexts and switch virtual for physical
@@ -355,7 +353,7 @@ resource_manager_thread (gpointer data)
     while (TRUE) {
         obj = message_queue_dequeue (resmgr->in_queue);
         g_debug ("resource_manager_thread: message_queue_dequeue got obj: "
-                 "0x%x", obj);
+                 "0x%" PRIxPTR, (uintptr_t)obj);
         if (obj == NULL) {
             g_debug ("resource_manager_thread: dequeued a null object");
             break;
@@ -372,7 +370,9 @@ resource_manager_thread (gpointer data)
             g_object_unref (obj);
             process_control_code (code);
         }
-     }
+    }
+
+    return (void*)0;
 }
 /**
  * Thread creation / start function.
@@ -409,7 +409,8 @@ resource_manager_cancel (Thread *self)
         g_error ("ResourceManager not running, cannot cancel");
     ret = pthread_cancel (resmgr->thread);
     msg = control_message_new (CHECK_CANCEL);
-    g_debug ("resource_manager_cancel: enqueuing ControlMessage: 0x%x", msg);
+    g_debug ("resource_manager_cancel: enqueuing ControlMessage: 0x%" PRIxPTR,
+             (uintptr_t)msg);
     message_queue_enqueue (resmgr->in_queue, G_OBJECT (msg));
     g_object_unref (msg);
 
@@ -443,7 +444,8 @@ resource_manager_enqueue (Sink        *sink,
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (sink);
 
-    g_debug ("resource_manager_enqueue: ResourceManager: 0x%x obj: 0x%x", resmgr, obj);
+    g_debug ("resource_manager_enqueue: ResourceManager: 0x%" PRIxPTR " obj: "
+             "0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)obj);
     message_queue_enqueue (resmgr->in_queue, obj);
 }
 /**
@@ -458,8 +460,8 @@ resource_manager_add_sink (Source *self,
     ResourceManager *resmgr = RESOURCE_MANAGER (self);
     GValue value = G_VALUE_INIT;
 
-    g_debug ("resource_manager_add_sink: ResourceManager: 0x%x, Sink: 0x%x",
-             resmgr, sink);
+    g_debug ("resource_manager_add_sink: ResourceManager: 0x%" PRIxPTR
+             ", Sink: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)sink);
     g_value_init (&value, G_TYPE_OBJECT);
     g_value_set_object (&value, sink);
     g_object_set_property (G_OBJECT (resmgr), "sink", &value);
@@ -476,11 +478,12 @@ resource_manager_set_property (GObject        *object,
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (object);
 
-    g_debug ("resource_manager_set_property: 0x%x", resmgr);
+    g_debug ("resource_manager_set_property: 0x%" PRIxPTR,
+             (uintptr_t)resmgr);
     switch (property_id) {
     case PROP_QUEUE_IN:
         resmgr->in_queue = g_value_get_object (value);
-        g_debug ("  in_queue: 0x%x", resmgr->in_queue);
+        g_debug ("  in_queue: 0x%" PRIxPTR, (uintptr_t)resmgr->in_queue);
         break;
     case PROP_SINK:
         if (resmgr->sink != NULL) {
@@ -489,7 +492,7 @@ resource_manager_set_property (GObject        *object,
         }
         resmgr->sink = SINK (g_value_get_object (value));
         g_object_ref (resmgr->sink);
-        g_debug ("  sink: 0x%x", resmgr->sink);
+        g_debug ("  sink: 0x%" PRIxPTR, (uintptr_t)resmgr->sink);
         break;
     case PROP_ACCESS_BROKER:
         if (resmgr->access_broker != NULL) {
@@ -498,7 +501,7 @@ resource_manager_set_property (GObject        *object,
         }
         resmgr->access_broker = g_value_get_object (value);
         g_object_ref (resmgr->access_broker);
-        g_debug ("  access_broker: 0x%x", resmgr->access_broker);
+        g_debug ("  access_broker: 0x%" PRIxPTR, (uintptr_t)resmgr->access_broker);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -516,7 +519,7 @@ resource_manager_get_property (GObject     *object,
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (object);
 
-    g_debug ("resource_manager_get_property: 0x%x", resmgr);
+    g_debug ("resource_manager_get_property: 0x%" PRIxPTR, (uintptr_t)resmgr);
     switch (property_id) {
     case PROP_QUEUE_IN:
         g_value_set_object (value, resmgr->in_queue);
@@ -540,7 +543,7 @@ resource_manager_finalize (GObject *obj)
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (obj);
 
-    g_debug ("resource_manager_finalize: 0x%x", resmgr);
+    g_debug ("resource_manager_finalize: 0x%" PRIxPTR, (uintptr_t)resmgr);
     if (resmgr == NULL)
         g_error ("resource_manager_finalize passed NULL ResourceManager pointer");
     if (resmgr->thread != 0)

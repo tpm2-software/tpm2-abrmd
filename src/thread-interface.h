@@ -29,6 +29,7 @@ struct _ThreadInterface {
  * We prefix these functions with tab_ to prevent collisions with the thread
  * library functions.
  */
+GType           thread_get_type     (void);
 gint            thread_cancel       (Thread            *self);
 gint            thread_join         (Thread            *self);
 gint            thread_start        (Thread            *self);

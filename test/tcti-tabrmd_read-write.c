@@ -3,7 +3,7 @@
 
 #include "tcti-tabrmd.h"
 
-int
+void
 send_recv (TSS2_TCTI_CONTEXT *tcti_context)
 {
     /* send / receive */
@@ -15,13 +15,13 @@ send_recv (TSS2_TCTI_CONTEXT *tcti_context)
         g_debug ("tss2_tcti_transmit failed");
     char recv_str[10] = {0};
     size_t recv_size = 10;
-    ret = tss2_tcti_receive (tcti_context, &recv_size, recv_str, TSS2_TCTI_TIMEOUT_BLOCK);
+    ret = tss2_tcti_receive (tcti_context, &recv_size, (uint8_t*)recv_str, TSS2_TCTI_TIMEOUT_BLOCK);
     if (ret != TSS2_RC_SUCCESS)
         g_debug ("tss2_tcti_receive failed");
     g_debug ("received string: %s", recv_str);
 }
 
-int
+void
 send_recv_bytes (TSS2_TCTI_CONTEXT *tcti_context,
                  size_t             count)
 {
@@ -31,7 +31,7 @@ send_recv_bytes (TSS2_TCTI_CONTEXT *tcti_context,
     size_t recv_size = 1024, recv_total = 0;
     int i;
 
-    g_debug ("transmitting %d bytes in 1024 chunks", count);
+    g_debug ("transmitting %zd bytes in 1024 chunks", count);
     for (i = count / 1024; i > 0; --i) {
         ret = tss2_tcti_transmit (tcti_context, 1024, xmit_buf);
         if (ret != TSS2_RC_SUCCESS)
@@ -42,14 +42,14 @@ send_recv_bytes (TSS2_TCTI_CONTEXT *tcti_context,
         if (ret != TSS2_RC_SUCCESS)
             g_error ("tss2_tcti_transmit failed");
     }
-    g_debug ("receiving %d bytes in 1024 chunks", count);
+    g_debug ("receiving %zd bytes in 1024 chunks", count);
     do {
         ret = tss2_tcti_receive (tcti_context, &recv_size, recv_buf, TSS2_TCTI_TIMEOUT_BLOCK);
         if (ret != TSS2_RC_SUCCESS)
             g_error ("tss2_tcti_receive failed");
         recv_total += recv_size;
     } while (recv_total < count);
-    g_debug ("received %d byte response", recv_total);
+    g_debug ("received %zd byte response", recv_total);
 }
 
 int
@@ -62,7 +62,7 @@ main (void)
     ret = tss2_tcti_tabrmd_init (NULL, &context_size);
     if (ret != TSS2_RC_SUCCESS)
         g_error ("failed to get size of tcti context");
-    g_debug ("tcti size is: %d", context_size);
+    g_debug ("tcti size is: %zd", context_size);
     tcti_context = calloc (1, context_size);
     if (tcti_context == NULL)
         g_error ("failed to allocate memory for tcti context");

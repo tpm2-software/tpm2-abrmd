@@ -70,9 +70,7 @@ handle_map_entry_set_property (GObject        *object,
 static void
 handle_map_entry_finalize (GObject *object)
 {
-    HandleMapEntry *self = HANDLE_MAP_ENTRY (object);
-
-    g_debug ("handle_map_entry_finalize: 0x%" PRIxPTR, object);
+    g_debug ("handle_map_entry_finalize: 0x%" PRIxPTR, (uintptr_t)object);
     G_OBJECT_CLASS (handle_map_entry_parent_class)->finalize (object);
 }
 /*
@@ -147,7 +145,7 @@ handle_map_entry_new (TPM_HANDLE phandle,
                                             "vhandle", (guint)vhandle,
                                             NULL));
     g_debug ("handle_map_entry_new: 0x%" PRIxPTR " with vhandle: 0x%" PRIx32
-             " and phandle: 0x%" PRIx32, entry, vhandle, phandle);
+             " and phandle: 0x%" PRIx32, (uintptr_t)entry, vhandle, phandle);
     return entry;
 }
 /*

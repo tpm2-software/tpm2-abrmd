@@ -43,6 +43,8 @@ gboolean            tpm2_response_has_handle    (Tpm2Response    *response);
 guint32             tpm2_response_get_size      (Tpm2Response    *response);
 TPM_ST              tpm2_response_get_tag       (Tpm2Response    *response);
 SessionData*        tpm2_response_get_session   (Tpm2Response    *response);
+void                tpm2_response_set_handle    (Tpm2Response    *response,
+                                                 TPM_HANDLE       handle);
 
 G_END_DECLS
 

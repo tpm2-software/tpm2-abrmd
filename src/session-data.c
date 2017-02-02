@@ -1,8 +1,10 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <glib.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "session-data.h"
 
@@ -29,16 +31,18 @@ session_data_set_property (GObject        *object,
     switch (property_id) {
     case PROP_ID:
         self->id = g_value_get_uint (value);
-        g_debug ("SessionData 0x%x set id to 0x%x", self, self->id);
+        g_debug ("SessionData 0x%" PRIxPTR " set id to 0x%" PRIx64,
+                 (uintptr_t)self, self->id);
         break;
     case PROP_RECEIVE_FD:
         self->receive_fd = g_value_get_int (value);
-        g_debug ("SessionData 0x%x set receive_fd to 0x%x",
-                 self, self->receive_fd);
+        g_debug ("SessionData 0x%" PRIxPTR " set receive_fd to %d",
+                 (uintptr_t)self, self->receive_fd);
         break;
     case PROP_SEND_FD:
         self->send_fd = g_value_get_int (value);
-        g_debug ("SessionData 0x%x set send_fd to 0x%x", self, self->send_fd);
+        g_debug ("SessionData 0x%" PRIxPTR " set send_fd to %d",
+                 (uintptr_t)self, self->send_fd);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -85,7 +89,7 @@ session_data_finalize (GObject *obj)
 {
     SessionData *session = SESSION_DATA (obj);
 
-    g_debug ("session_data_finalize: 0x%x", session);
+    g_debug ("session_data_finalize: 0x%" PRIxPTR, (uintptr_t)session);
     if (session == NULL)
         return;
     close (session->receive_fd);
@@ -231,7 +235,7 @@ session_data_new (gint *receive_fd,
     ret = set_flags (session_fds [0], O_NONBLOCK);
     if (ret == -1)
         g_error ("Failed to set O_NONBLOCK for server receive fd %d: %s",
-                 session_fds [0]);
+                 session_fds [0], strerror (errno));
     ret = set_flags (session_fds [1], O_NONBLOCK);
     if (ret == -1)
         g_error ("Failed to set O_NONBLOCK for server send fd %d: %s",

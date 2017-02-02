@@ -15,7 +15,6 @@ main (int   argc,
     TPM_HANDLE         parent_handle, out_handle;
     TPM2B_PRIVATE      out_private = TPM2B_PRIVATE_STATIC_INIT;
     TPM2B_PUBLIC       out_public  = { 0 };
-    TPMS_CONTEXT       context     = { 0 };
     TSS2_RC rc;
 
     rc = tcti_context_init (&tcti_context);

@@ -5,6 +5,7 @@
 #include "tabrmd.h"
 
 #include "access-broker.h"
+#include "tcti.h"
 #include "tpm2-command.h"
 #include "tpm2-response.h"
 
@@ -28,11 +29,11 @@ access_broker_set_property (GObject        *object,
 {
     AccessBroker *self = ACCESS_BROKER (object);
 
-    g_debug ("access_broker_set_property: 0x%x", self);
+    g_debug ("access_broker_set_property: 0x%" PRIxPTR, (uintptr_t)self);
     switch (property_id) {
     case PROP_SAPI_CTX:
         self->sapi_context = g_value_get_pointer (value);
-        g_debug ("  sapi_context: 0x%x", self->sapi_context);
+        g_debug ("  sapi_context: 0x%" PRIxPTR, (uintptr_t)self->sapi_context);
         break;
     case PROP_TCTI:
         if (self->tcti != NULL) {
@@ -41,7 +42,7 @@ access_broker_set_property (GObject        *object,
         }
         self->tcti = g_value_get_object (value);
         g_object_ref (self->tcti);
-        g_debug ("  tcti: 0x%x", self->tcti);
+        g_debug ("  tcti: 0x%" PRIxPTR, (uintptr_t)self->tcti);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -59,7 +60,7 @@ access_broker_get_property (GObject     *object,
 {
     AccessBroker *self = ACCESS_BROKER (object);
 
-    g_debug ("access_broker_get_property: 0x%x", self);
+    g_debug ("access_broker_get_property: 0x%" PRIxPTR, (uintptr_t)self);
     switch (property_id) {
     case PROP_SAPI_CTX:
         g_value_set_pointer (value, self->sapi_context);
@@ -80,7 +81,7 @@ access_broker_finalize (GObject *obj)
 {
     AccessBroker *access_broker = ACCESS_BROKER (obj);
 
-    g_debug ("access_broker_finalize: 0x%x", access_broker);
+    g_debug ("access_broker_finalize: 0x%" PRIxPTR, (uintptr_t)access_broker);
     if (access_broker == NULL)
         g_error ("access_broker_free passed NULL AccessBroker pointer");
     if (access_broker->sapi_context != NULL)
@@ -156,12 +157,12 @@ sapi_context_init (Tcti *tcti)
         .tssVersion = TSS_SAPI_FIRST_VERSION,
     };
 
-    g_debug ("sapi_context_init w/ Tcti: 0x%x", tcti);
+    g_debug ("sapi_context_init w/ Tcti: 0x%" PRIxPTR, (uintptr_t)tcti);
     tcti_context = tcti_peek_context (tcti);
     if (tcti_context == NULL)
         g_error ("NULL TCTI_CONTEXT");
     size = Tss2_Sys_GetContextSize (0);
-    g_debug ("Allocating 0x%x bytes for SAPI context", size);
+    g_debug ("Allocating 0x%zx bytes for SAPI context", size);
     sapi_context = (TSS2_SYS_CONTEXT*)g_malloc0 (size);
     if (sapi_context == NULL) {
         g_error ("Failed to allocate 0x%zx bytes for the SAPI context", size);
@@ -182,7 +183,7 @@ access_broker_send_tpm_startup (AccessBroker *broker)
 
     rc = Tss2_Sys_Startup (broker->sapi_context, TPM_SU_CLEAR);
     if (rc != TSS2_RC_SUCCESS && rc != TPM_RC_INITIALIZE)
-        g_warning ("Tss2_Sys_Startup returned unexpected RC: 0x%x", rc);
+        g_warning ("Tss2_Sys_Startup returned unexpected RC: 0x%" PRIx32, rc);
     else
         rc = TSS2_RC_SUCCESS;
 
@@ -362,7 +363,7 @@ access_broker_send_cmd (AccessBroker *broker,
     if (rc != TSS2_RC_SUCCESS)
         g_warning ("AccessBroker 0x%" PRIxPTR " failed to transmit "
                    "Tpm2Command 0x%" PRIxPTR ": 0x%" PRIx32,
-                   broker, command, rc);
+                   (uintptr_t)broker, (uintptr_t)command, rc);
     return rc;
 }
 /*
@@ -414,12 +415,11 @@ access_broker_send_command (AccessBroker  *broker,
     Tpm2Response   *response = NULL;
     SessionData    *session = NULL;
     gint            error;
-    size_t          size;
-    guint32         max_resp_size;
     guint8         *buffer;
 
-    g_debug ("access_broker_send_command: AccessBroker: 0x%x, "
-             "Tpm2Command: 0x%x", broker, command);
+    g_debug ("access_broker_send_command: AccessBroker: 0x%" PRIxPTR
+             " Tpm2Command: 0x%" PRIxPTR, (uintptr_t)broker,
+             (uintptr_t)command);
     error = access_broker_lock (broker);
     if (error) {
         *rc = TSS2_TABRMD_INTERNAL_ERROR;
@@ -463,7 +463,6 @@ access_broker_new (Tcti *tcti)
 {
     AccessBroker       *broker;
     TSS2_SYS_CONTEXT   *sapi_context;
-    pthread_mutex_t    *mutex;
 
     if (tcti == NULL)
         g_error ("access_broker_new passed NULL Tcti");
@@ -488,9 +487,9 @@ access_broker_init (AccessBroker *broker)
 {
     TSS2_RC rc;
 
-    g_debug ("access_broker_init: 0x%x", broker);
+    g_debug ("access_broker_init: 0x%" PRIxPTR, (uintptr_t)broker);
     if (broker->initialized)
-        return;
+        return TSS2_RC_SUCCESS;
     pthread_mutex_init (&broker->sapi_mutex, NULL);
     rc = access_broker_send_tpm_startup (broker);
     if (rc != TSS2_RC_SUCCESS) {
@@ -551,13 +550,15 @@ access_broker_context_load (AccessBroker *broker,
     sapi_context = access_broker_lock_sapi (broker);
     rc = Tss2_Sys_ContextLoad (sapi_context, context, handle);
     access_broker_unlock (broker);
-    if (rc == TSS2_RC_SUCCESS)
+    if (rc == TSS2_RC_SUCCESS) {
         g_debug ("Tss2_Sys_ContextLoad: successfully load context at 0x%"
-                 PRIxPTR " got handle 0x%" PRIx32, context, *handle);
-    else
+                 PRIxPTR " got handle 0x%" PRIx32, (uintptr_t)context,
+                 *handle);
+    } else {
         g_warning ("Tss2_Sys_ContextLoad: failed to load context for "
                    "context at: 0x%" PRIxPTR ", TSS2_RC: 0x%" PRIx32,
-                   context, rc);
+                   (uintptr_t)context, rc);
+    }
 
     return rc;
 }
@@ -577,14 +578,14 @@ access_broker_context_saveflush (AccessBroker *broker,
     rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("Tss2_Sys_ContextSave: failed to save context for "
-                   "handle: 0x%" PRIxPTR " TSS2_RC: 0x%" PRIx32, handle, rc);
+                   "handle: 0x%" PRIx32 " TSS2_RC: 0x%" PRIx32, handle, rc);
         goto out;
     }
     g_debug ("access_broker_context_saveflush: handle 0x%" PRIx32, handle);
     rc = Tss2_Sys_FlushContext (sapi_context, handle);
     if (rc != TSS2_RC_SUCCESS)
         g_warning("Tss2_Sys_FlushContext: failed to flushed context for "
-                  "handle: 0x%" PRIxPTR ", TSS2_RC: 0x%" PRIx32, handle, rc);
+                  "handle: 0x%" PRIx32 ", TSS2_RC: 0x%" PRIx32, handle, rc);
 out:
     access_broker_unlock (broker);
     return rc;

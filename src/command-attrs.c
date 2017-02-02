@@ -13,7 +13,7 @@ command_attrs_finalize (GObject *obj)
 {
     CommandAttrs *attrs = COMMAND_ATTRS (obj);
 
-    g_debug ("command_attrs_finalize: 0x%" PRIxPTR, attrs);
+    g_debug ("command_attrs_finalize: 0x%" PRIxPTR, (uintptr_t)attrs);
     if (attrs->command_attrs)
         free (attrs->command_attrs);
     G_OBJECT_CLASS (command_attrs_parent_class)->finalize (obj);
@@ -121,5 +121,4 @@ command_attrs_from_cc (CommandAttrs *attrs,
         if (TPM_CC_FROM_TPMA_CC (attrs->command_attrs[i]) == command_code)
             return attrs->command_attrs[i];
 
-    return (TPMA_CC) { 0, };
-}
+    return (TPMA_CC) { 0 };}

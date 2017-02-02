@@ -75,7 +75,7 @@ tpm2_command_get_property (GObject     *object,
 {
     Tpm2Command *self = TPM2_COMMAND (object);
 
-    g_debug ("tpm2_command_get_property: 0x%x", self);
+    g_debug ("tpm2_command_get_property: 0x%" PRIxPTR, (uintptr_t)self);
     switch (property_id) {
     case PROP_ATTRIBUTES:
         g_value_set_uint (value, self->attributes.val);

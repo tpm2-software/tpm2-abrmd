@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <error.h>
 #include <glib.h>
+#include <inttypes.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -191,20 +192,23 @@ session_manager_remove (SessionManager    *manager,
 {
     gboolean ret;
 
-    g_debug ("session_manager 0x%x removing session 0x%x", manager, session);
+    g_debug ("session_manager 0x%" PRIxPTR " removing session 0x%" PRIxPTR,
+             (uintptr_t)manager, (uintptr_t)session);
     pthread_mutex_lock (&manager->mutex);
     ret = g_hash_table_remove (manager->session_from_fd_table,
                                session_data_key_fd (session));
     if (ret != TRUE)
-        g_error ("failed to remove session 0x%x from g_hash_table 0x%x using "
-                 "key %d", session, manager->session_from_fd_table,
-                 session_data_key_fd (session));
+        g_error ("failed to remove session 0x%" PRIxPTR " from g_hash_table "
+                 "0x%" PRIxPTR "using key 0x%" PRIxPTR, (uintptr_t)session,
+                 (uintptr_t)manager->session_from_fd_table,
+                 (uintptr_t)session_data_key_fd (session));
     ret = g_hash_table_remove (manager->session_from_id_table,
                                session_data_key_id (session));
     if (ret != TRUE)
-        g_error ("failed to remove session 0x%x from g_hash_table 0x%x using "
-                 "key %d", session, manager->session_from_fd_table,
-                 session_data_key_id (session));
+        g_error ("failed to remove session 0x%" PRIxPTR " from g_hash_table "
+                 "0x%" PRIxPTR " using key %" PRIxPTR, (uintptr_t)session,
+                 (uintptr_t)manager->session_from_fd_table,
+                 (uintptr_t)session_data_key_id (session));
     pthread_mutex_unlock (&manager->mutex);
 
     return ret;

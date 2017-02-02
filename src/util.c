@@ -25,8 +25,8 @@ g_debug_bytes (uint8_t const *byte_array,
     int byte_ctr;
     int indent_ctr;
     size_t line_length = indent + width * 3 + 1;
-    uint8_t line [line_length];
-    uint8_t *line_position = line;
+    char  line [line_length];
+    char  *line_position = line;
 
     line [line_length - 1] = '\0';
     for (byte_ctr = 0; byte_ctr < array_size; ++byte_ctr) {
@@ -60,9 +60,9 @@ write_all (const gint    fd,
     size_t written_total = 0;
 
     do {
-        g_debug ("writing 0x%x bytes starting at 0x%x to fd %d",
+        g_debug ("writing %ld bytes starting at 0x%" PRIxPTR " to fd %d",
                  size - written_total,
-                 buf + written_total,
+                 (uintptr_t)buf + written_total,
                  fd);
         written = write (fd,
                          buf  + written_total,
@@ -74,11 +74,11 @@ write_all (const gint    fd,
         case  0:
             return written_total;
         default:
-            g_debug ("wrote %d bytes to fd %d", written, fd);
+            g_debug ("wrote %ld bytes to fd %d", written, fd);
         }
         written_total += written;
     } while (written_total < size);
-    g_debug ("returning %d", written_total);
+    g_debug ("returning %lu", written_total);
 
     return written_total;
 }
@@ -99,15 +99,16 @@ read_till_block (const gint   fd,
 
     g_debug ("reading till EAGAIN on fd %d", fd);
     do {
-        g_debug ("reallocing buf at 0x%x to %d bytes", local_buf, bytes_total + UTIL_BUF_SIZE);
+        g_debug ("reallocing buf at 0x%" PRIxPTR " to %zu bytes",
+                 (uintptr_t)local_buf, bytes_total + UTIL_BUF_SIZE);
         tmp_buf = realloc (local_buf, bytes_total + UTIL_BUF_SIZE);
         if (tmp_buf == NULL) {
-            g_warning ("realloc of %d bytes failed: %s",
+            g_warning ("realloc of %zu bytes failed: %s",
                        bytes_total + UTIL_BUF_SIZE, strerror (errno));
             goto err_out;
         }
-        g_debug ("reallocated buf at 0x%x to %d bytes",
-                 local_buf, bytes_total + UTIL_BUF_SIZE);
+        g_debug ("reallocated buf at 0x%" PRIxPTR " to %zd bytes",
+                 (uintptr_t)local_buf, bytes_total + UTIL_BUF_SIZE);
         local_buf = tmp_buf;
 
         bytes_read = read (fd, (void*)(local_buf + bytes_total), UTIL_BUF_SIZE);
@@ -125,7 +126,7 @@ read_till_block (const gint   fd,
             g_info ("read returned 0 bytes -> fd %d closed", fd);
             goto err_out;
         default:
-            g_debug ("read %d bytes from fd %d", bytes_read, fd);
+            g_debug ("read %zd bytes from fd %d", bytes_read, fd);
             bytes_total += bytes_read;
             break;
         }
@@ -183,7 +184,7 @@ read_tpm_command_header_from_fd (int fd, uint8_t *buf, size_t buf_size)
         g_warning ("EOF trying to read tpm command header from fd: %d", fd);
         return NULL;
     default:
-        g_warning ("read %d bytes on fd %d, expecting %d",
+        g_warning ("read %d bytes on fd %d, expecting %lu",
                    num_read, fd, TPM_COMMAND_HEADER_SIZE);
         return NULL;
     }
@@ -214,7 +215,7 @@ read_tpm_command_body_from_fd (int fd, uint8_t *buf, size_t body_size)
         g_warning ("  EOF reading TPM command body from fd: %d", fd);
         return NULL;
     default:
-        g_warning ("  read %d bytes on fd %d, expecting %d",
+        g_warning ("  read %d bytes on fd %d, expecting %zd",
                    num_read, fd, body_size);
         return NULL;
     }

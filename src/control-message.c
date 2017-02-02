@@ -6,8 +6,6 @@ static gpointer control_message_parent_class = NULL;
 static void
 control_message_class_init (gpointer klass)
 {
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
     if (control_message_parent_class == NULL)
         control_message_parent_class = g_type_class_peek_parent (klass);
 }

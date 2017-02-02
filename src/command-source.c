@@ -45,8 +45,8 @@ command_source_add_sink (Source      *self,
     CommandSource *src = COMMAND_SOURCE (self);
     GValue value = G_VALUE_INIT;
 
-    g_debug ("command_soruce_add_sink: CommandSource: 0x%x, Sink: 0x%x",
-             src, sink);
+    g_debug ("command_soruce_add_sink: CommandSource: 0x%" PRIxPTR
+             " , Sink: 0x%" PRIxPTR, (uintptr_t)src, (uintptr_t)sink);
     g_value_init (&value, G_TYPE_OBJECT);
     g_value_set_object (&value, sink);
     g_object_set_property (G_OBJECT (src), "sink", &value);
@@ -61,11 +61,11 @@ command_source_set_property (GObject       *object,
 {
     CommandSource *self = COMMAND_SOURCE (object);
 
-    g_debug ("command_source_set_properties: 0x%x", self);
+    g_debug ("command_source_set_properties: 0x%" PRIxPTR, (uintptr_t)self);
     switch (property_id) {
     case PROP_COMMAND_ATTRS:
         self->command_attrs = COMMAND_ATTRS (g_value_dup_object (value));
-        g_debug ("  command_attrs: 0x" PRIxPTR, self->command_attrs);
+        g_debug ("  command_attrs: 0x%" PRIxPTR, (uintptr_t)self->command_attrs);
         break;
     case PROP_SESSION_MANAGER:
         self->session_manager = SESSION_MANAGER (g_value_get_object (value));
@@ -78,7 +78,7 @@ command_source_set_property (GObject       *object,
         }
         self->sink = SINK (g_value_get_object (value));
         g_object_ref (self->sink);
-        g_debug ("  sink: 0x%x", self->sink);
+        g_debug ("  sink: 0x%" PRIxPTR, (uintptr_t)self->sink);
         break;
     case PROP_WAKEUP_RECEIVE_FD:
         self->wakeup_receive_fd = g_value_get_int (value);
@@ -102,7 +102,7 @@ command_source_get_property (GObject      *object,
 {
     CommandSource *self = COMMAND_SOURCE (object);
 
-    g_debug ("command_source_get_properties: 0x%x", self);
+    g_debug ("command_source_get_properties: 0x%" PRIxPTR, (uintptr_t)self);
     switch (property_id) {
     case PROP_COMMAND_ATTRS:
         g_value_set_object (value, self->command_attrs);
@@ -130,16 +130,6 @@ command_source_on_new_session (SessionManager   *session_manager,
                                CommandSource    *command_source)
 {
     gint ret;
-
-    if (!IS_SESSION_MANAGER (session_manager))
-        g_error ("command_source_on_new_session: first parameter 0x%x is "
-                 "*not* a SessionManager!", session_manager);
-    if (!IS_SESSION_DATA (session_data))
-        g_error ("command_source_on_new_session: second parameter 0x%x is "
-                 "*not* a SessionData!", session_data);
-    if (!IS_COMMAND_SOURCE (command_source))
-        g_error ("command_source_on_new_session: third parameter 0x%x is "
-                 "*not* a CommandSource!");
 
     g_debug ("command_source_on_new_session: writing \"%s\" to fd: %d",
              WAKEUP_DATA, command_source->wakeup_send_fd);
@@ -284,14 +274,14 @@ command_source_session_responder (CommandSource      *source,
 {
     Tpm2Command *command;
     SessionData *session;
-    gint ret;
 
-    g_debug ("command_source_session_responder 0x%x", source);
+    g_debug ("command_source_session_responder 0x%" PRIxPTR, (uintptr_t)source);
     session = session_manager_lookup_fd (source->session_manager, fd);
     if (session == NULL)
         g_error ("failed to get session associated with fd: %d", fd);
     else
-        g_debug ("session_manager_lookup_fd for fd %d: 0x%x", fd, session);
+        g_debug ("session_manager_lookup_fd for fd %d: 0x%" PRIxPTR, fd,
+                 (uintptr_t)session);
     command = tpm2_command_new_from_fd (session, fd, source->command_attrs);
     if (command != NULL) {
         sink_enqueue (sink, G_OBJECT (command));
@@ -301,8 +291,8 @@ command_source_session_responder (CommandSource      *source,
         /* command will be NULL when read error on fd, or fd is closed (EOF)
          * In either case we remove the session and free it.
          */
-        g_debug ("removing session 0x%x from session_manager 0x%x",
-                 session, source->session_manager);
+        g_debug ("removing session 0x%" PRIxPTR " from session_manager 0x%"
+                 PRIxPTR, (uintptr_t)session, (uintptr_t)source->session_manager);
         session_manager_remove (source->session_manager,
                                 session);
     }
@@ -363,6 +353,8 @@ command_source_thread (void *data)
         }
     } while (TRUE);
     pthread_cleanup_pop (1);
+
+    return (void*)0;
 }
 
 CommandSource*

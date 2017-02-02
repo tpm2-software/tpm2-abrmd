@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <inttypes.h>
 #include <string.h>
 #include <tpm20.h>
 
@@ -76,7 +77,7 @@ tpm2_response_get_property (GObject     *object,
 {
     Tpm2Response *self = TPM2_RESPONSE (object);
 
-    g_debug ("tpm2_response_get_property: 0x%x", self);
+    g_debug ("tpm2_response_get_property: 0x%" PRIxPTR, (uintptr_t)self);
     switch (property_id) {
     case PROP_ATTRIBUTES:
         g_value_set_uint (value, self->attributes.val);
@@ -191,15 +192,15 @@ tpm2_response_new_rc (SessionData *session,
 
     buffer = calloc (1, TPM_RESPONSE_HEADER_SIZE);
     if (buffer == NULL) {
-        g_warning ("tpm2_response_new_rc: failed to allocate 0x%x bytes for "
-                   "response: errno: %d: %s",
+        g_warning ("tpm2_response_new_rc: failed to allocate 0x%zx"
+                   " bytes for response: errno: %d: %s",
                    TPM_RESPONSE_HEADER_SIZE, errno, strerror (errno));
         return NULL;
     }
     TPM_RESPONSE_TAG (buffer)  = htobe16 (TPM_ST_NO_SESSIONS);
     TPM_RESPONSE_SIZE (buffer) = htobe32 (TPM_RESPONSE_HEADER_SIZE);
     TPM_RESPONSE_CODE (buffer) = htobe32 (rc);
-    return tpm2_response_new (session, buffer, (TPMA_CC){ 0, });
+    return tpm2_response_new (session, buffer, (TPMA_CC){ 0 });
 }
 /* Simple "getter" to expose the attributes associated with the command. */
 TPMA_CC

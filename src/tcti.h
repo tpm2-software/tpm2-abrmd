@@ -28,6 +28,7 @@ struct _TctiClass {
 #define IS_TCTI_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE    ((klass), TYPE_TCTI))
 #define TCTI_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TCTI, TctiClass))
 
+GType               tcti_get_type        (void);
 TSS2_RC             tcti_initialize      (Tcti            *self);
 TSS2_RC             tcti_transmit        (Tcti            *self,
                                           size_t           size,
