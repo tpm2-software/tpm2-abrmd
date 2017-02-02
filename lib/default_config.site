@@ -1,2 +1,2 @@
-CFLAGS="-fdata-sections -ffunction-sections"
+CFLAGS="-std=gnu99 -fdata-sections -ffunction-sections"
 LDFLAGS="-Wl,--gc-sections"
