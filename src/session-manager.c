@@ -16,14 +16,67 @@ enum {
     N_SIGNALS,
 };
 
+enum {
+    PROP_0,
+    PROP_MAX_SESSIONS,
+    N_PROPERTIES,
+};
+static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
+
 static guint signals [N_SIGNALS] = { 0, };
 
+/*
+ * GObject property setter.
+ */
+static void
+session_manager_set_property (GObject        *object,
+                              guint           property_id,
+                              GValue const   *value,
+                              GParamSpec     *pspec)
+{
+    SessionManager *mgr = SESSION_MANAGER (object);
+
+    g_debug ("session_manager_set_property: 0x%" PRIxPTR,
+             (uintptr_t)mgr);
+    switch (property_id) {
+    case PROP_MAX_SESSIONS:
+        mgr->max_sessions = g_value_get_uint (value);
+        g_debug ("  max_sessions: 0x%" PRIxPTR, (uintptr_t)mgr->max_sessions);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+/*
+ * GObject property getter.
+ */
+static void
+session_manager_get_property (GObject     *object,
+                              guint        property_id,
+                              GValue      *value,
+                              GParamSpec  *pspec)
+{
+    SessionManager *mgr = SESSION_MANAGER (object);
+
+    g_debug ("session_manager_get_property: 0x%" PRIxPTR, (uintptr_t)mgr);
+    switch (property_id) {
+    case PROP_MAX_SESSIONS:
+        g_value_set_uint (value, mgr->max_sessions);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
 SessionManager*
-session_manager_new (void)
+session_manager_new (gint max_sessions)
 {
     SessionManager *session_manager;
 
     session_manager = SESSION_MANAGER (g_object_new (TYPE_SESSION_MANAGER,
+                                                     "max-sessions", max_sessions,
                                                      NULL));
     if (pthread_mutex_init (&session_manager->mutex, NULL) != 0)
         g_error ("Failed to initialize session _manager mutex: %s",
@@ -83,6 +136,8 @@ session_manager_class_init (gpointer klass)
     if (session_manager_parent_class == NULL)
         session_manager_parent_class = g_type_class_peek_parent (klass);
     object_class->finalize = session_manager_finalize;
+    object_class->get_property = session_manager_get_property;
+    object_class->set_property = session_manager_set_property;
     signals [SIGNAL_NEW_SESSION] =
         g_signal_new ("new-session",
                       G_TYPE_FROM_CLASS (object_class),
@@ -94,6 +149,17 @@ session_manager_class_init (gpointer klass)
                       G_TYPE_INT,
                       1,
                       TYPE_SESSION_DATA);
+    obj_properties [PROP_MAX_SESSIONS] =
+        g_param_spec_uint ("max-sessions",
+                           "max sessions",
+                           "Maximum nunmber of concurrent client sessions",
+                           0,
+                           MAX_SESSIONS,
+                           MAX_SESSIONS_DEFAULT,
+                           G_PARAM_READWRITE);
+    g_object_class_install_properties (object_class,
+                                       N_PROPERTIES,
+                                       obj_properties);
 }
 
 GType
@@ -122,6 +188,12 @@ session_manager_insert (SessionManager    *manager,
     if (ret != 0)
         g_error ("Error locking session_manager mutex: %s",
                  strerror (errno));
+    if (session_manager_is_full (manager)) {
+        g_warning ("session_manager: 0x%" PRIxPTR " max_sessions of %u exceeded",
+                   (uintptr_t)manager, manager->max_sessions);
+        pthread_mutex_unlock (&manager->mutex);
+        return -1;
+    }
     /*
      * Increase reference count on SessionData object on insert. The
      * corresponding call to g_hash_table_remove will cause the reference
@@ -240,4 +312,17 @@ guint
 session_manager_size (SessionManager   *manager)
 {
     return g_hash_table_size (manager->session_from_fd_table);
+}
+
+gboolean
+session_manager_is_full (SessionManager *manager)
+{
+    guint table_size;
+
+    table_size = g_hash_table_size (manager->session_from_fd_table);
+    if (table_size < manager->max_sessions) {
+        return FALSE;
+    } else {
+        return TRUE;
+    }
 }

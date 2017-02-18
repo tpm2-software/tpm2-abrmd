@@ -50,6 +50,19 @@ typedef struct gmain_data {
  */
 static GMainLoop *g_loop;
 
+#define TABRMD_POLICY_ERROR tabrmd_policy_error_quark ()
+typedef enum {
+    TABRMD_POLICY_ERROR_MAX_SESSIONS,
+} TabrmdPolicyErrorEnum;
+
+/*
+ */
+GQuark
+tabrmd_policy_error_quark (void)
+{
+    return g_quark_from_static_string ("tabrmd-policy");
+}
+
 /**
  * This is a utility function that builds an array of handles as a
  * GVariant object. The handles that make up the array are passed in
@@ -105,6 +118,13 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
     random_get_uint64 (data->random, &id);
+    if (session_manager_is_full (data->manager)) {
+        g_dbus_method_invocation_return_error (invocation,
+                                               TABRMD_POLICY_ERROR,
+                                               TABRMD_POLICY_ERROR_MAX_SESSIONS,
+                                               "MAX_SESSIONS exceeded. Try again later.");
+        return TRUE;
+    }
     session = session_data_new (&client_fds[0], &client_fds[1], id);
     if (session == NULL)
         g_error ("Failed to allocate new session.");
@@ -115,16 +135,17 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     response_variants[0] = handle_array_variant_from_fdlist (fd_list);
     response_variants[1] = g_variant_new_uint64 (id);
     response_tuple = g_variant_new_tuple (response_variants, 2);
+    /* add session to manager */
+    ret = session_manager_insert (data->manager, session);
+    if (ret != 0) {
+        g_warning ("Failed to add new session to session_manager.");
+    }
     /* send response */
     g_dbus_method_invocation_return_value_with_unix_fd_list (
         invocation,
         response_tuple,
         fd_list);
     g_object_unref (fd_list);
-    /* add session to manager */
-    ret = session_manager_insert (data->manager, session);
-    if (ret != 0)
-        g_error ("Failed to add new session to session_manager.");
     g_object_unref (session);
 
     return TRUE;
@@ -413,7 +434,7 @@ init_thread_func (gpointer user_data)
     if (ret != 0)
         g_error ("failed to seed Random object");
 
-    data->manager = session_manager_new();
+    data->manager = session_manager_new(data->options.max_sessions);
     if (data->manager == NULL)
         g_error ("failed to allocate connection_manager");
     g_debug ("SessionManager: 0x%" PRIxPTR, (uintptr_t)data->manager);
@@ -517,6 +538,8 @@ parse_opts (gint            argc,
     gboolean system_bus = FALSE;
     gint ret = 0;
 
+    options->max_sessions = MAX_SESSIONS_DEFAULT;
+
     GOptionEntry entries[] = {
         { "logger", 'l', 0, G_OPTION_ARG_STRING, &logger_name,
           "The name of desired logger, stdout is default.", "[stdout|syslog]"},
@@ -525,6 +548,8 @@ parse_opts (gint            argc,
         { "fail-on-loaded-trans", 't', 0, G_OPTION_ARG_NONE,
           &options->fail_on_loaded_trans,
           "Fail initialization if the TPM reports loaded transient objects" },
+        { "max-sessions", 'm', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
+          &options->max_sessions, "Maximum number of client sessions." },
         { NULL },
     };
 
@@ -544,6 +569,9 @@ parse_opts (gint            argc,
     if (set_logger (logger_name) == -1) {
         g_print ("Unknown logger: %s, try --help\n", logger_name);
         ret = 1;
+    }
+    if (options->max_sessions < 1 || options->max_sessions > MAX_SESSIONS) {
+        g_error ("MAX_SESSIONS must be between 1 and %d", MAX_SESSIONS);
     }
 out:
     g_option_context_free (ctx);

@@ -8,6 +8,9 @@
 
 G_BEGIN_DECLS
 
+#define MAX_SESSIONS 100
+#define MAX_SESSIONS_DEFAULT 27
+
 typedef struct _SessionManagerClass {
     GObjectClass      parent;
 } SessionManagerClass;
@@ -17,6 +20,7 @@ typedef struct _SessionManager {
     pthread_mutex_t   mutex;
     GHashTable       *session_from_fd_table;
     GHashTable       *session_from_id_table;
+    guint             max_sessions;
 } SessionManager;
 
 /* type for callbacks registered with the 'new-session' signal*/
@@ -32,7 +36,7 @@ typedef gint (*new_session_callback)(SessionManager *session_manager,
 #define SESSION_MANAGER_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_SESSION_MANAGER, SessionManagerClass))
 
 GType              session_manager_get_type    (void);
-SessionManager*    session_manager_new         (void);
+SessionManager*    session_manager_new         (gint             max_sessions);
 gint               session_manager_insert      (SessionManager  *manager,
                                                 SessionData     *session);
 gint               session_manager_remove      (SessionManager  *manager,
@@ -44,6 +48,7 @@ SessionData*       session_manager_lookup_id   (SessionManager  *manager,
 void               session_manager_set_fds     (SessionManager  *manager,
                                                 fd_set          *fds);
 guint              session_manager_size        (SessionManager  *manager);
+gboolean           session_manager_is_full     (SessionManager  *manager);
 
 G_END_DECLS
 #endif /* SESSION_MANAGER_H */
