@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
@@ -39,11 +40,12 @@ void
 fail_on_second (void **state)
 {
     ssize_t read;
-    ssize_t total_read;
+    size_t total_read;
     guint8 *buf, *priv_buf;
     gint fds[2] = {0}, ret = 0;
 
     ret = pipe (fds);
+    assert_int_equal (ret, 0);
     priv_buf = calloc (1, UTIL_BUF_SIZE);
     will_return (__wrap_realloc, 0);
     will_return (__wrap_realloc, priv_buf);

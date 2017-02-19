@@ -42,7 +42,6 @@ tss2_tcti_echo_teardown (void **state)
 static void
 tss2_tcti_echo_get_size_unit (void **state)
 {
-    test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
     size_t  size = 0;
 
@@ -57,7 +56,6 @@ tss2_tcti_echo_get_size_unit (void **state)
 static void
 tss2_tcti_echo_null_ctx_and_size_unit (void **state)
 {
-    test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
 
     rc = tss2_tcti_echo_init (NULL, NULL, TSS2_TCTI_ECHO_MAX_BUF);
@@ -70,7 +68,6 @@ tss2_tcti_echo_null_ctx_and_size_unit (void **state)
 static void
 tss2_tcti_echo_init_buf_lt_min_unit (void **state)
 {
-    test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
     size_t size = 0;
 
@@ -84,7 +81,6 @@ tss2_tcti_echo_init_buf_lt_min_unit (void **state)
 static void
 tss2_tcti_echo_init_buf_gt_max_unit (void **state)
 {
-    test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
     size_t size = 0;
 
@@ -212,7 +208,6 @@ tss2_tcti_echo_set_locality_unit (void **state)
 static void
 tss2_tcti_echo_transmit_null_context_unit (void **state)
 {
-    test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
 
     rc = tss2_tcti_transmit (NULL, 0, NULL);
@@ -313,7 +308,6 @@ tss2_tcti_echo_transmit_success_unit (void **state)
 static void
 tss2_tcti_echo_receive_null_context_unit (void **state)
 {
-    test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
 
     rc = tss2_tcti_receive (NULL, NULL, NULL, 0);

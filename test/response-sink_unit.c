@@ -5,6 +5,7 @@
 #include <cmocka.h>
 
 #include "response-sink.h"
+#include "thread-interface.h"
 
 /**
  * Test to allcoate and destroy a ResponseSink.
@@ -31,11 +32,11 @@ response_sink_start_stop_test (void **state)
     start_stop_data_t *data = (start_stop_data_t*)*state;
     gint ret = 0;
 
-    ret = response_sink_start (data->sink);
+    ret = thread_start (THREAD (data->sink));
     assert_int_equal (ret, 0);
-    ret = response_sink_cancel (data->sink);
+    ret = thread_cancel (THREAD (data->sink));
     assert_int_equal (ret, 0);
-    ret = response_sink_join (data->sink);
+    ret = thread_join (THREAD (data->sink));
     assert_int_equal (ret, 0);
 }
 static void

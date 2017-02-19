@@ -40,5 +40,12 @@ gpointer         session_data_key_id       (SessionData      *session);
 gint             session_data_receive_fd   (SessionData      *session);
 gint             session_data_send_fd      (SessionData      *session);
 HandleMap*       session_data_get_trans_map(SessionData      *session);
+/* not part of the public API but included here for testing */
+int              create_pipe_pair  (int *recv,
+                                    int *send,
+                                    int flags);
+int              create_pipe_pairs (int pipe_fds_a[],
+                                    int pipe_fds_b[],
+                                    int flags);
 
 #endif /* SESSION_H */

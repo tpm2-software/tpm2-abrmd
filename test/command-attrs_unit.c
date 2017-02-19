@@ -134,7 +134,6 @@ command_attrs_init_success_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
-    guint        max_command = 0;
     TPMA_CC      command_attributes [2] = {
         {
             .val = 0xdeadbeef,
@@ -180,7 +179,6 @@ command_attrs_init_fail_get_max_command_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
-    guint        max_command = 0;
 
     will_return (__wrap_access_broker_lock_sapi, 1);
     will_return (__wrap_access_broker_get_max_command, 2);
@@ -199,7 +197,6 @@ command_attrs_init_zero_get_max_command_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
-    guint        max_command = 0;
 
     will_return (__wrap_access_broker_lock_sapi, 1);
     will_return (__wrap_access_broker_get_max_command, 0);
@@ -207,11 +204,6 @@ command_attrs_init_zero_get_max_command_test (void **state)
 
     ret = command_attrs_init (data->command_attrs, data->access_broker);
     assert_int_equal (ret, -1);
-}
-static void
-command_attrs_setup_with_init (void **state)
-{
-
 }
 /*
  * Test case taht exercises the error handling path for a failed call to
@@ -222,7 +214,6 @@ command_attrs_init_fail_get_capability_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
-    guint        max_command = 0;
     TPMA_CC      command_attributes [2] = {
         {
             .val = 0xdeadbeef,

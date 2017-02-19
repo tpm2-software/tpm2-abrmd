@@ -16,6 +16,7 @@
 #include "session-manager.h"
 #include "sink-interface.h"
 #include "source-interface.h"
+#include "thread-interface.h"
 #include "command-attrs.h"
 #include "command-source.h"
 #include "tpm2-command.h"
@@ -63,7 +64,6 @@ static void
 command_source_allocate_test (void **state)
 {
     source_test_data_t *data = (source_test_data_t *)*state;
-    CommandSource *source = NULL;
 
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
@@ -77,7 +77,7 @@ command_source_allocate_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = session_manager_new ();
+    data->manager = session_manager_new (TPM_HT_TRANSIENT);
 
     *state = data;
 }
@@ -104,12 +104,12 @@ command_source_start_test (void **state)
     gint ret;
 
     data = (source_test_data_t*)*state;
-    command_source_start(data->source);
+    thread_start(THREAD (data->source));
     sleep (1);
     assert_true (data->source->running);
-    ret = command_source_cancel (data->source);
+    ret = thread_cancel (THREAD (data->source));
     assert_int_equal (ret, 0);
-    ret = command_source_join (data->source);
+    ret = thread_join (THREAD (data->source));
     assert_int_equal (ret, 0);
 }
 
@@ -117,10 +117,9 @@ static void
 command_source_start_setup (void **state)
 {
     source_test_data_t *data;
-    gint ret, fds[2] = { 0 };
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = session_manager_new ();
+    data->manager = session_manager_new (TPM_HT_TRANSIENT);
     if (data->manager == NULL)
         g_error ("failed to allocate new session_manager");
     data->command_attrs = command_attrs_new ();
@@ -159,7 +158,7 @@ command_source_wakeup_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = session_manager_new ();
+    data->manager = session_manager_new (MAX_SESSIONS_DEFAULT);
     data->command_attrs = command_attrs_new ();
     data->source  = command_source_new (data->manager,
                                         data->command_attrs);
@@ -171,21 +170,20 @@ command_source_session_insert_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
     CommandSource *source = data->source;
-    SessionManager *manager = data->manager;
     SessionData *session;
     gint ret, receive_fd, send_fd;
 
     /* */
     session = session_data_new (&receive_fd, &send_fd, 5);
     assert_false (FD_ISSET (session->receive_fd, &source->session_fdset));
-    ret = command_source_start(source);
+    ret = thread_start(THREAD (source));
     assert_int_equal (ret, 0);
     session_manager_insert (data->manager, session);
     sleep (1);
     assert_true (FD_ISSET (session->receive_fd, &source->session_fdset));
     session_manager_remove (data->manager, session);
-    command_source_cancel (source);
-    command_source_join (source);
+    thread_cancel (THREAD (source));
+    thread_join (THREAD (source));
 }
 /* command_source_sesion_insert_test end */
 /* command_source_session_data_test start */
@@ -193,10 +191,9 @@ static void
 command_source_session_data_setup (void **state)
 {
     source_test_data_t *data;
-    int fds[2] = { 0 }, ret;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = session_manager_new ();
+    data->manager = session_manager_new (TPM_HT_TRANSIENT);
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
                                        data->command_attrs);
@@ -208,8 +205,8 @@ command_source_session_data_teardown (void **state)
 {
     source_test_data_t *data = (source_test_data_t*)*state;
 
-    command_source_cancel (data->source);
-    command_source_join (data->source);
+    thread_cancel (THREAD (data->source));
+    thread_join (THREAD (data->source));
 
     g_object_unref (data->source);
     g_object_unref (data->manager);
@@ -259,6 +256,7 @@ command_source_session_responder_success_test (void **state)
     will_return (__wrap_tpm2_command_new_from_fd, command);
     will_return (__wrap_sink_enqueue, &command_out);
     result = command_source_session_responder (data->source, 0, NULL);
+    assert_true (result);
 
     assert_int_equal (command_out, command);
 }

@@ -38,6 +38,7 @@ tcti_echo_setup_with_init (void **state)
 
     tcti_echo_setup ((void**)&data);
     rc = tcti_initialize (data->tcti);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
 
     *state = data;
 }

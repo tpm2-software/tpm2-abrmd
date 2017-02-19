@@ -43,6 +43,8 @@ Tpm2Response*      access_broker_send_command   (AccessBroker    *broker,
                                                  TSS2_RC         *rc);
 TSS2_RC            access_broker_get_max_command    (AccessBroker   *broker,
                                                      guint32        *value);
+TSS2_RC            access_broker_get_max_response   (AccessBroker   *broker,
+                                                     guint32        *value);
 TSS2_RC            access_broker_get_total_commands (AccessBroker   *broker,
                                                      guint          *value);
 TSS2_SYS_CONTEXT*  access_broker_lock_sapi          (AccessBroker   *broker);

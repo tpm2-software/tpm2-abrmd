@@ -112,9 +112,6 @@ resource_manager_setup_two_transient_handles (void **state)
 {
     test_data_t *data;
     guint8 *buffer;
-    TPMA_CC         command_attrs = {
-        .val = (2 << 25) + TPM_CC_StartAuthSession, /* 2 handles + TPM2_StartAuthSession */
-    };
 
     resource_manager_setup (state);
     data = *state;
@@ -208,11 +205,10 @@ resource_manager_sink_enqueue_test (void **state)
     test_data_t *data = (test_data_t*)*state;
     Tpm2Command *command_out;
     guint8 *buffer;
-    gint   fds[2] = { 0, };
 
     buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
     data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
-    resource_manager_enqueue (SINK (data->resource_manager), G_OBJECT (data->command));
+    sink_enqueue (SINK (data->resource_manager), G_OBJECT (data->command));
     command_out = TPM2_COMMAND (message_queue_dequeue (data->resource_manager->in_queue));
 
     assert_int_equal (data->command, command_out);
@@ -230,7 +226,6 @@ resource_manager_process_tpm2_command_success_test (void **state)
     test_data_t *data = (test_data_t*)*state;
     Tpm2Response *response;
     guint8 *buffer;
-    gint fds[2] = { 0, };
 
     buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
     /**
@@ -330,7 +325,7 @@ resource_manager_load_contexts_test (void **state)
 {
     test_data_t    *data = (test_data_t*)*state;
     HandleMapEntry *entry;
-    HandleMapEntry  entries [3] = { 0 };
+    HandleMapEntry *entries [3] = { 0 };
     HandleMap      *map;
     TPM_HANDLE      phandles [2] = {
         HR_TRANSIENT + 0xeb,
@@ -339,7 +334,8 @@ resource_manager_load_contexts_test (void **state)
     TPM_HANDLE      vhandles [3] = { 0 };
     TPM_HANDLE      handle_ret;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
-    guint8          handle_count, i, entry_count = 2;
+    guint8          handle_count, i;
+    guint           entry_count = 2;
 
     will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_context_load, phandles [0]);

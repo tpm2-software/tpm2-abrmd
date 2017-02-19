@@ -48,6 +48,9 @@ CommandSource*  command_source_new            (SessionManager  *session_manager,
 gint            command_source_on_new_session (SessionManager  *session_manager,
                                                SessionData     *session_data,
                                                CommandSource   *command_source);
+gboolean        command_source_session_responder (CommandSource      *source,
+                                                  gint                fd,
+                                                  Sink               *sink);
 
 G_END_DECLS
 #endif /* COMMAND_SOURCE_H */

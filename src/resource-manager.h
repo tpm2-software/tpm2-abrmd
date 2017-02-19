@@ -34,6 +34,18 @@ typedef struct _ResourceManager {
 
 GType                 resource_manager_get_type       (void);
 ResourceManager*      resource_manager_new            (AccessBroker *broker);
+void                  resource_manager_process_tpm2_command (ResourceManager   *resmgr,
+                                                             Tpm2Command       *command);
+TSS2_RC               resource_manager_flushsave_context (ResourceManager *resmgr,
+                                                          HandleMapEntry  *entry);
+TSS2_RC               resource_manager_load_contexts     (ResourceManager *resmgr,
+                                                          Tpm2Command     *command,
+                                                          HandleMapEntry  *entries[],
+                                                          guint           *entry_count);
+TSS2_RC               resource_manager_virt_to_phys      (ResourceManager *resmgr,
+                                                          Tpm2Command     *command,
+                                                          HandleMapEntry  *entry,
+                                                          guint8           handle_number);
 
 G_END_DECLS
 #endif /* RESOURCE_MANAGER_H */

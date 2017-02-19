@@ -160,7 +160,6 @@ static void
 session_server_to_client_test (void **state)
 {
     session_test_data_t *data = (session_test_data_t*)*state;
-    gchar buf[256] = { 0 };
     gint ret = 0;
 
     ret = write_read (data->send_fd, data->session->receive_fd, "test", strlen ("test"));

@@ -21,7 +21,7 @@ session_manager_allocate_test (void **state)
 {
     SessionManager *manager = NULL;
 
-    manager = session_manager_new ();
+    manager = session_manager_new (MAX_SESSIONS_DEFAULT);
     assert_non_null (manager);
     g_object_unref (manager);
 }
@@ -31,7 +31,7 @@ session_manager_setup (void **state)
 {
     SessionManager *manager = NULL;
 
-    manager = session_manager_new ();
+    manager = session_manager_new (MAX_SESSIONS_DEFAULT);
     assert_non_null (manager);
     *state = manager;
 }
@@ -65,6 +65,7 @@ session_manager_lookup_fd_test (void **state)
 
     session = session_data_new (&receive_fd, &send_fd, 5);
     ret = session_manager_insert (manager, session);
+    assert_int_equal (ret, TSS2_RC_SUCCESS);
     session_lookup = session_manager_lookup_fd (manager, *(int*)session_data_key_fd (session));
     assert_int_equal (session, session_lookup);
     g_object_unref (session_lookup);
@@ -79,6 +80,7 @@ session_manager_lookup_id_test (void **state)
 
     session = session_data_new (&receive_fd, &send_fd, 5);
     ret = session_manager_insert (manager, session);
+    assert_int_equal (ret, TSS2_RC_SUCCESS);
     session_lookup = session_manager_lookup_id (manager, *(int*)session_data_key_id (session));
     assert_int_equal (session, session_lookup);
 }

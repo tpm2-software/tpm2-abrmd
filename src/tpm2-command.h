@@ -39,6 +39,8 @@ TPMA_CC               tpm2_command_get_attributes  (Tpm2Command      *command);
 guint8*               tpm2_command_get_buffer      (Tpm2Command      *command);
 TPM_CC                tpm2_command_get_code        (Tpm2Command      *command);
 guint8                tpm2_command_get_handle_count (Tpm2Command     *command);
+TPM_HANDLE            tpm2_command_get_handle      (Tpm2Command      *command,
+                                                    guint8            handle_number);
 gboolean              tpm2_command_get_handles     (Tpm2Command      *command,
                                                     TPM_HANDLE        handles[],
                                                     guint8            count);

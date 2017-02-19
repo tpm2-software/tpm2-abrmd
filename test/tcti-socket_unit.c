@@ -49,7 +49,6 @@ tcti_socket_new_unref_test (void **state)
 static void
 tcti_socket_initialize_success_unit (void **state)
 {
-    Tcti       *tcti      = *state;
     TctiSocket *tcti_sock = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 
@@ -69,7 +68,6 @@ static void
 tcti_socket_initialize_success_interface_unit (void **state)
 {
     Tcti       *tcti      = *state;
-    TctiSocket *tcti_sock = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 
     will_return (__wrap_InitSocketTcti, 512);
@@ -89,7 +87,6 @@ tcti_socket_initialize_success_interface_unit (void **state)
 static void
 tcti_socket_initialize_fail_on_first_init_unit (void **state)
 {
-    Tcti       *tcti      = *state;
     TctiSocket *tcti_sock = *state;
     TSS2_RC     rc        = TSS2_RC_SUCCESS;
 
@@ -107,7 +104,6 @@ tcti_socket_initialize_fail_on_first_init_unit (void **state)
 static void
 tcti_socket_initialize_fail_on_second_init_unit (void **state)
 {
-    Tcti       *tcti      = *state;
     TctiSocket *tcti_sock = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 

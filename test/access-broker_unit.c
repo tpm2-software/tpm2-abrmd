@@ -119,8 +119,6 @@ static void
 access_broker_setup_with_init (void **state)
 {
     test_data_t *data;
-    TSS2_RC      rc;
-    TSS2_TCTI_CONTEXT *ctx;
 
     access_broker_setup (state);
     data = (test_data_t*)*state;
@@ -228,6 +226,8 @@ lock_thread (void *param)
     assert_int_equal (access_broker_lock (data->broker), 0);
     data->acquired_lock = TRUE;
     assert_int_equal (access_broker_unlock (data->broker), 0);
+
+    return NULL;
 }
 
 static void

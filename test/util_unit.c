@@ -31,6 +31,7 @@ read_in_one (void **state)
     will_return (__wrap_read, EAGAIN);
     will_return (__wrap_read, -1);
     read = read_till_block (0, &buf, &total_read);
+    assert_int_equal (total_read, read);
     assert_int_equal (total_read, READ_SIZE - 1);
     free (buf);
 }
@@ -48,6 +49,7 @@ read_in_two (void **state)
     will_return (__wrap_read, EAGAIN);
     will_return (__wrap_read, -1);
     read = read_till_block (0, &buf, &total_read);
+    assert_int_equal (total_read, read);
     assert_int_equal (total_read, READ_SIZE + READ_SIZE - 1);
     free (buf);
 }
@@ -66,6 +68,7 @@ read_max (void **state)
         will_return (__wrap_read, READ_SIZE);
     }
     read = read_till_block (0, &buf, &total_read);
+    assert_int_equal (total_read, read);
     assert_int_equal (total_read, UTIL_BUF_MAX);
     free (buf);
 }

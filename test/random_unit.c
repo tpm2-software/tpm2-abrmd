@@ -228,7 +228,8 @@ random_get_uint32_range_success_test (void **state)
 
     ret = random_get_uint32_range (data->random, high, low, &dest);
     assert_int_equal (ret, 0);
-    assert_true (low < dest < high);
+    assert_true (low < dest);
+    assert_true (dest < high);
 }
 gint
 main (gint    argc,

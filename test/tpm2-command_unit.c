@@ -281,7 +281,7 @@ static void
 tpm2_command_set_handle_fail_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE   handle_in = 0xdeadbeef, handle_out = 0;
+    TPM_HANDLE   handle_in = 0xdeadbeef;
     gboolean     ret;
 
     ret = tpm2_command_set_handle (data->command, handle_in, 2);
