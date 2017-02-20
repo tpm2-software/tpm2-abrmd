@@ -94,6 +94,7 @@ static void
 resource_manager_setup (void **state)
 {
     test_data_t *data;
+    HandleMap   *handle_map;
     TSS2_RC rc;
 
     data = calloc (1, sizeof (test_data_t));
@@ -101,9 +102,11 @@ resource_manager_setup (void **state)
     rc = tcti_echo_initialize (data->tcti_echo);
     if (rc != TSS2_RC_SUCCESS)
         g_debug ("tcti_echo_initialize FAILED");
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
     data->access_broker = access_broker_new (TCTI (data->tcti_echo));
     data->resource_manager = resource_manager_new (data->access_broker);
-    data->session = session_data_new (&data->recv_fd, &data->send_fd, 10);
+    data->session = session_data_new (&data->recv_fd, &data->send_fd, 10, handle_map);
+    g_object_unref (handle_map);
 
     *state = data;
 }

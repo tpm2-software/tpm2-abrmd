@@ -14,6 +14,7 @@
 
 typedef struct test_data {
     AccessBroker *broker;
+    HandleMap    *transient_handle_map;
     SessionData  *session;
     TctiEcho     *tcti;
     Tpm2Command  *command;
@@ -147,7 +148,8 @@ access_broker_setup_with_command (void **state)
     access_broker_setup_with_init (state);
     data = (test_data_t*)*state;
     buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
-    data->session = session_data_new (&fds[0], &fds[1], 0);
+    data->transient_handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    data->session = session_data_new (&fds[0], &fds[1], 0, data->transient_handle_map);
     data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
 }
 /*
@@ -159,6 +161,7 @@ access_broker_teardown (void **state)
     test_data_t *data = (test_data_t*)*state;
 
     g_object_unref (data->broker);
+    g_object_unref (data->transient_handle_map);
     if (G_IS_OBJECT (data->session))
         g_object_unref (data->session);
     if (G_IS_OBJECT (data->command))

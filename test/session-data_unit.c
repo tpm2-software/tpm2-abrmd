@@ -66,13 +66,16 @@ session_create_pipe_pairs_test (void **state)
 static void
 session_allocate_test (void **state)
 {
+    HandleMap   *handle_map = NULL;
     SessionData *session = NULL;
     gint receive_fd, send_fd;
 
-    session = session_data_new (&receive_fd, &send_fd, 0);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    session = session_data_new (&receive_fd, &send_fd, 0, handle_map);
     assert_non_null (session);
     assert_true (receive_fd >= 0);
     assert_true (send_fd >= 0);
+    g_object_unref (handle_map);
     g_object_unref (session);
 }
 
@@ -80,11 +83,14 @@ static void
 session_setup (void **state)
 {
     session_test_data_t *data = NULL;
+    HandleMap *handle_map = NULL;
 
     data = calloc (1, sizeof (session_test_data_t));
     assert_non_null (data);
-    data->session = session_data_new (&data->receive_fd, &data->send_fd, 0);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    data->session = session_data_new (&data->receive_fd, &data->send_fd, 0, handle_map);
     assert_non_null (data->session);
+    g_object_unref (handle_map);
     *state = data;
 }
 

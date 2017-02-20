@@ -107,6 +107,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
                              gpointer               user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
+    HandleMap   *handle_map = NULL;
     SessionData *session = NULL;
     gint client_fds[2] = { 0, 0 }, ret = 0;
     GVariant *response_variants[2], *response_tuple;
@@ -125,7 +126,11 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
                                                "MAX_SESSIONS exceeded. Try again later.");
         return TRUE;
     }
-    session = session_data_new (&client_fds[0], &client_fds[1], id);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    if (handle_map == NULL)
+        g_error ("Failed to allocate new HandleMap");
+    session = session_data_new (&client_fds[0], &client_fds[1], id, handle_map);
+    g_object_unref (handle_map);
     if (session == NULL)
         g_error ("Failed to allocate new session.");
     g_debug ("Created connection with fds: %d, %d and id: 0x%" PRIx64,

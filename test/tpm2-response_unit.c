@@ -24,11 +24,14 @@ tpm2_response_setup_base (void **state)
 {
     test_data_t *data   = NULL;
     gint         fds[2] = { 0, };
+    HandleMap   *handle_map;
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold a TPM2 header and a handle */
     data->buffer   = calloc (1, TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE));
-    data->session  = session_data_new (&fds[0], &fds[1], 0);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    data->session  = session_data_new (&fds[0], &fds[1], 0, handle_map);
+    g_object_unref (handle_map);
 
     *state = data;
 }
@@ -212,10 +215,13 @@ tpm2_response_new_rc_setup (void **state)
 {
     test_data_t *data   = NULL;
     gint         fds[2] = { 0, };
+    HandleMap   *handle_map;
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold a TPM2 header */
-    data->session  = session_data_new (&fds[0], &fds[1], 0);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    data->session  = session_data_new (&fds[0], &fds[1], 0, handle_map);
+    g_object_unref (handle_map);
     data->response = tpm2_response_new_rc (data->session, TPM_RC_BINDING);
 
     *state = data;

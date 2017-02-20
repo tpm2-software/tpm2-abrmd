@@ -170,11 +170,14 @@ command_source_session_insert_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
     CommandSource *source = data->source;
+    HandleMap     *handle_map;
     SessionData *session;
     gint ret, receive_fd, send_fd;
 
     /* */
-    session = session_data_new (&receive_fd, &send_fd, 5);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    session = session_data_new (&receive_fd, &send_fd, 5, handle_map);
+    g_object_unref (handle_map);
     assert_false (FD_ISSET (session->receive_fd, &source->session_fdset));
     ret = thread_start(THREAD (source));
     assert_int_equal (ret, 0);
@@ -232,6 +235,7 @@ static void
 command_source_session_responder_success_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
+    HandleMap   *handle_map;
     SessionData *session;
     Tpm2Command *command, *command_out;
     gint fds[2] = { 0, };
@@ -242,7 +246,9 @@ command_source_session_responder_success_test (void **state)
                           0x0,  0x0,  0x0,  0x7f, 0x0a };
     gboolean result = FALSE;
 
-    session = session_data_new (&fds[0], &fds[1], 0);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    session = session_data_new (&fds[0], &fds[1], 0, handle_map);
+    g_object_unref (handle_map);
     /**
      * We must dynamically allocate the buffer for the Tpm2Command since
      * it takes ownership of the data buffer and frees it as part of it's

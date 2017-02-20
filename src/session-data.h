@@ -17,7 +17,7 @@ typedef struct _SessionData {
     gint                receive_fd;
     gint                send_fd;
     guint64             id;
-    HandleMap          *handle_map;
+    HandleMap          *transient_handle_map;
 } SessionData;
 
 #define TYPE_SESSION_DATA              (session_data_get_type ())
@@ -30,7 +30,8 @@ typedef struct _SessionData {
 GType            session_data_get_type     (void);
 SessionData*     session_data_new          (gint             *receive_fd,
                                             gint             *send_fd,
-                                            guint64           id);
+                                            guint64           id,
+                                            HandleMap        *transient_handle_map);
 gboolean         session_data_equal_fd     (gconstpointer     a,
                                             gconstpointer     b);
 gboolean         session_data_equal_id     (gconstpointer     a,

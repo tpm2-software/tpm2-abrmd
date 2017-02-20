@@ -49,9 +49,12 @@ session_manager_insert_test (void **state)
 {
     SessionManager *manager = SESSION_MANAGER (*state);
     SessionData *session = NULL;
+    HandleMap   *handle_map = NULL;
     gint ret, receive_fd, send_fd;
 
-    session = session_data_new (&receive_fd, &send_fd, 5);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    session = session_data_new (&receive_fd, &send_fd, 5, handle_map);
+    g_object_unref (handle_map);
     ret = session_manager_insert (manager, session);
     assert_int_equal (ret, 0);
 }
@@ -61,9 +64,12 @@ session_manager_lookup_fd_test (void **state)
 {
     SessionManager *manager = SESSION_MANAGER (*state);
     SessionData *session = NULL, *session_lookup = NULL;
+    HandleMap   *handle_map = NULL;
     gint ret, receive_fd, send_fd;
 
-    session = session_data_new (&receive_fd, &send_fd, 5);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    session = session_data_new (&receive_fd, &send_fd, 5, handle_map);
+    g_object_unref (handle_map);
     ret = session_manager_insert (manager, session);
     assert_int_equal (ret, TSS2_RC_SUCCESS);
     session_lookup = session_manager_lookup_fd (manager, *(int*)session_data_key_fd (session));
@@ -76,9 +82,12 @@ session_manager_lookup_id_test (void **state)
 {
     SessionManager *manager = SESSION_MANAGER (*state);
     SessionData *session = NULL, *session_lookup = NULL;
+    HandleMap   *handle_map = NULL;
     gint ret, receive_fd, send_fd;
 
-    session = session_data_new (&receive_fd, &send_fd, 5);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    session = session_data_new (&receive_fd, &send_fd, 5, handle_map);
+    g_object_unref (handle_map);
     ret = session_manager_insert (manager, session);
     assert_int_equal (ret, TSS2_RC_SUCCESS);
     session_lookup = session_manager_lookup_id (manager, *(int*)session_data_key_id (session));
@@ -90,10 +99,13 @@ session_manager_remove_test (void **state)
 {
     SessionManager *manager = SESSION_MANAGER (*state);
     SessionData *session = NULL;
+    HandleMap   *handle_map = NULL;
     gint ret_int, receive_fd, send_fd;
     gboolean ret_bool;
 
-    session = session_data_new (&receive_fd, &send_fd, 5);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    session = session_data_new (&receive_fd, &send_fd, 5, handle_map);
+    g_object_unref (handle_map);
     ret_int = session_manager_insert (manager, session);
     assert_int_equal (ret_int, 0);
     ret_bool = session_manager_remove (manager, session);
@@ -105,13 +117,18 @@ session_manager_set_fds_test (void **state)
 {
     SessionManager *manager = SESSION_MANAGER (*state);
     SessionData *first_session = NULL, *second_session = NULL;
+    HandleMap   *first_handle_map = NULL, *second_handle_map = NULL;
     gint ret_int, receive_fd0, send_fd0, receive_fd1, send_fd1;
     fd_set manager_fds = { 0 };
 
-    first_session = session_data_new (&receive_fd0, &send_fd0, 5);
+    first_handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    first_session = session_data_new (&receive_fd0, &send_fd0, 5, first_handle_map);
+    g_object_unref (first_handle_map);
     ret_int = session_manager_insert (manager, first_session);
     assert_int_equal (ret_int, 0);
-    second_session = session_data_new (&receive_fd1, &send_fd1, 5);
+    second_handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    second_session = session_data_new (&receive_fd1, &send_fd1, 5, second_handle_map);
+    g_object_unref (second_handle_map);
     ret_int = session_manager_insert (manager, second_session);
     assert_int_equal (ret_int, 0);
     session_manager_set_fds (manager, &manager_fds);

@@ -15,6 +15,7 @@ enum {
     PROP_ID,
     PROP_RECEIVE_FD,
     PROP_SEND_FD,
+    PROP_TRANSIENT_HANDLE_MAP,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -44,6 +45,13 @@ session_data_set_property (GObject        *object,
         g_debug ("SessionData 0x%" PRIxPTR " set send_fd to %d",
                  (uintptr_t)self, self->send_fd);
         break;
+    case PROP_TRANSIENT_HANDLE_MAP:
+        self->transient_handle_map = g_value_get_object (value);
+        g_object_ref (self->transient_handle_map);
+        g_debug ("SessionData 0x%" PRIxPTR " set trans_handel_map to 0x%"
+                  PRIxPTR, (uintptr_t)self,
+                  (uintptr_t)self->transient_handle_map);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -68,22 +76,14 @@ session_data_get_property (GObject     *object,
     case PROP_SEND_FD:
         g_value_set_int (value, self->send_fd);
         break;
+    case PROP_TRANSIENT_HANDLE_MAP:
+        g_value_set_object (value, self->transient_handle_map);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
     }
 }
-/* GObject instance initialization. */
-static void
-session_data_init (GTypeInstance *instance,
-                   gpointer       klass)
-{
-    SessionData *session = SESSION_DATA (instance);
-
-    g_debug ("session_data_init");
-    session->handle_map = handle_map_new (TPM_HT_TRANSIENT);
-}
-
 static void
 session_data_finalize (GObject *obj)
 {
@@ -94,7 +94,7 @@ session_data_finalize (GObject *obj)
         return;
     close (session->receive_fd);
     close (session->send_fd);
-    g_object_unref (session->handle_map);
+    g_object_unref (session->transient_handle_map);
     if (session_data_parent_class)
         G_OBJECT_CLASS (session_data_parent_class)->finalize (obj);
 }
@@ -136,6 +136,12 @@ session_data_class_init (gpointer klass)
                           INT_MAX,
                           0,
                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_TRANSIENT_HANDLE_MAP] =
+        g_param_spec_object ("transient-handle-map",
+                             "HandleMap",
+                             "HandleMap object to map handles to transient object contexts",
+                             G_TYPE_OBJECT,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
@@ -152,7 +158,7 @@ session_data_get_type (void)
                                               sizeof (SessionDataClass),
                                               (GClassInitFunc) session_data_class_init,
                                               sizeof (SessionData),
-                                              session_data_init,
+                                              NULL,
                                               0);
     }
     return type;
@@ -217,9 +223,10 @@ set_flags (const int fd,
  * respectively.
  */
 SessionData*
-session_data_new (gint *receive_fd,
-                  gint *send_fd,
-                  guint64 id)
+session_data_new (gint       *receive_fd,
+                  gint       *send_fd,
+                  guint64     id,
+                  HandleMap  *transient_handle_map)
 {
 
     g_info ("CreateConnection");
@@ -248,6 +255,7 @@ session_data_new (gint *receive_fd,
                                        "id", id,
                                        "receive_fd", session_fds [0],
                                        "send_fd", session_fds [1],
+                                       "transient-handle-map", transient_handle_map,
                                        NULL));
 }
 
@@ -307,6 +315,6 @@ session_data_send_fd (SessionData *session)
 HandleMap*
 session_data_get_trans_map (SessionData *session)
 {
-    g_object_ref (session->handle_map);
-    return session->handle_map;
+    g_object_ref (session->transient_handle_map);
+    return session->transient_handle_map;
 }
