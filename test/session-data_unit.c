@@ -70,7 +70,7 @@ session_allocate_test (void **state)
     SessionData *session = NULL;
     gint receive_fd, send_fd;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     session = session_data_new (&receive_fd, &send_fd, 0, handle_map);
     assert_non_null (session);
     assert_true (receive_fd >= 0);
@@ -87,7 +87,7 @@ session_setup (void **state)
 
     data = calloc (1, sizeof (session_test_data_t));
     assert_non_null (data);
-    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->session = session_data_new (&data->receive_fd, &data->send_fd, 0, handle_map);
     assert_non_null (data->session);
     g_object_unref (handle_map);

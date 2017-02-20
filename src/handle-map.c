@@ -9,6 +9,7 @@ static gpointer handle_map_parent_class = NULL;
 enum {
     PROP_0,
     PROP_HANDLE_TYPE,
+    PROP_MAX_ENTRIES,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -26,6 +27,9 @@ handle_map_get_property (GObject    *object,
     switch (property_id) {
     case PROP_HANDLE_TYPE:
         g_value_set_uint (value, map->handle_count);
+        break;
+    case PROP_MAX_ENTRIES:
+        g_value_set_uint (value, map->max_entries);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -46,6 +50,10 @@ handle_map_set_property (GObject        *object,
     switch (property_id) {
     case PROP_HANDLE_TYPE:
         map->handle_type = g_value_get_uint (value);
+        break;
+    case PROP_MAX_ENTRIES:
+        map->max_entries = g_value_get_uint (value);
+        g_debug ("handle_map_set_property: 0x%" PRIxPTR " max-entries: %u", (intptr_t)map, map->max_entries);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -116,6 +124,14 @@ handle_map_class_init (gpointer klass)
                            0xff,
                            0x80,
                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_MAX_ENTRIES] =
+        g_param_spec_uint ("max-entries",
+                           "max number of entries",
+                           "maximum number of entries permitted",
+                           0,
+                           MAX_ENTRIES_MAX,
+                           MAX_ENTRIES_DEFAULT,
+                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
@@ -144,10 +160,14 @@ handle_map_get_type (void)
  * and create the instance.
  */
 HandleMap*
-handle_map_new (TPM_HT handle_type)
+handle_map_new (TPM_HT handle_type,
+                guint  max_entries)
 {
+    g_debug ("handle_map_new with handle_type 0x%" PRIx32
+             ", max_entries: 0x%x", handle_type, max_entries);
     return HANDLE_MAP (g_object_new (TYPE_HANDLE_MAP,
                                      "handle-type", handle_type,
+                                     "max-entries", max_entries,
                                      NULL));
 }
 /*
@@ -169,13 +189,29 @@ handle_map_unlock (HandleMap *map)
         g_error ("Error unlocking HandleMap: %s", strerror (errno));
 }
 /*
+ * Return false if the number of entries in the map is greater than or equal
+ * to max_entries.
+ */
+gboolean
+handle_map_is_full (HandleMap *map)
+{
+    guint table_size;
+
+    table_size = g_hash_table_size (map->vhandle_to_entry_table);
+    if (table_size < map->max_entries) {
+        return FALSE;
+    } else {
+        return TRUE;
+    }
+}
+/*
  * Insert GObject into the hash table with the key being the provided handle.
  * We take a reference to the object before we insert the object since when
  * it is removed or if the hash table is destroyed the object will be unref'd.
  * If a handle provided is 0 we do not insert the entry in the corresponding
  * map.
  */
-void
+gboolean
 handle_map_insert (HandleMap      *map,
                    TPM_HANDLE      vhandle,
                    HandleMapEntry *entry)
@@ -183,6 +219,12 @@ handle_map_insert (HandleMap      *map,
     g_debug ("handle_map_insert: vhandle: 0x%" PRIx32 ", entry: 0x%" PRIxPTR,
              vhandle, (uintptr_t)entry);
     handle_map_lock (map);
+    if (handle_map_is_full (map)) {
+        g_warning ("HandleMap: 0x%" PRIxPTR " max_entries of %u exceeded",
+                   (uintptr_t)map, map->max_entries);
+        handle_map_unlock (map);
+        return FALSE;
+    }
     if (entry && vhandle != 0) {
         g_object_ref (entry);
         g_hash_table_insert (map->vhandle_to_entry_table,
@@ -190,6 +232,7 @@ handle_map_insert (HandleMap      *map,
                              entry);
     }
     handle_map_unlock (map);
+    return TRUE;
 }
 /*
  * Remove the entry from the hash table associated with the provided handle.

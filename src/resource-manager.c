@@ -6,6 +6,7 @@
 #include "resource-manager.h"
 #include "sink-interface.h"
 #include "source-interface.h"
+#include "tabrmd.h"
 #include "tpm2-command.h"
 #include "tpm2-response.h"
 #include "thread-interface.h"
@@ -257,6 +258,34 @@ resource_manager_flush_context (ResourceManager *resmgr,
 
     return rc;
 }
+/*
+ * Determine whether the command may return a transient handle. If so
+ * be sure we have room in the handle map for it.
+ */
+gboolean
+resource_manager_is_over_object_quota (ResourceManager *resmgr,
+                                       Tpm2Command     *command)
+{
+    HandleMap   *handle_map;
+    SessionData *session;
+    gboolean     ret = FALSE;
+
+    switch (tpm2_command_get_code (command)) {
+    /* These commands load transient objects. */
+    case TPM_CC_CreatePrimary:
+    case TPM_CC_Load:
+    case TPM_CC_LoadExternal:
+        session = tpm2_command_get_session (command);
+        handle_map = session_data_get_trans_map (session);
+        if (handle_map_is_full (handle_map)) {
+            ret = TRUE;
+        }
+        g_object_unref (session);
+        g_object_unref (handle_map);
+    }
+
+    return ret;
+}
 /**
  * This function is invoked in response to the receipt of a Tpm2Command.
  * This is the place where we send the command buffer out to the TPM
@@ -287,6 +316,16 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%" PRIxPTR
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
     dump_command (command);
+    session = tpm2_command_get_session (command);
+    /* If session has reached quota limit kill command & send error response */
+    if (resource_manager_is_over_object_quota (resmgr, command)) {
+        response = tpm2_response_new_rc (session,
+                                         TSS2_TABRMD_OBJECT_MEMORY);
+        sink_enqueue (resmgr->sink, G_OBJECT (response));
+        g_object_unref (response);
+        g_object_unref (session);
+        return;
+    }
     /*
      * if necessary, load all related contexts and switch virtual for physical
      * handles in Tpm2Command
@@ -295,7 +334,6 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     case TPM_CC_FlushContext:
         g_debug ("processing TPM_CC_FlushContext");
         rc = resource_manager_flush_context (resmgr, command);
-        session = tpm2_command_get_session (command);
         response = tpm2_response_new_rc (session, rc);
         entry_count = 0;
         g_object_unref (session);
@@ -313,7 +351,6 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         if (response == NULL)
             g_error ("access_broker_send_command returned NULL Tpm2Response?");
         } else {
-            session = tpm2_command_get_session (command);
             response = tpm2_response_new_rc (session, rc);
             g_object_unref (session);
         }
@@ -328,6 +365,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     }
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
+    g_object_unref (session);
     /* flush contexts loaded for and created by the command */
     guint i;
     g_debug ("flushsave_context for %" PRIu32 " entries", entry_count);

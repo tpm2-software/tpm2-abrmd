@@ -175,7 +175,7 @@ command_source_session_insert_test (void **state)
     gint ret, receive_fd, send_fd;
 
     /* */
-    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     session = session_data_new (&receive_fd, &send_fd, 5, handle_map);
     g_object_unref (handle_map);
     assert_false (FD_ISSET (session->receive_fd, &source->session_fdset));
@@ -246,7 +246,7 @@ command_source_session_responder_success_test (void **state)
                           0x0,  0x0,  0x0,  0x7f, 0x0a };
     gboolean result = FALSE;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     session = session_data_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
     /**

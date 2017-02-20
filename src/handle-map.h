@@ -10,6 +10,9 @@
 
 G_BEGIN_DECLS
 
+#define MAX_ENTRIES_DEFAULT 27
+#define MAX_ENTRIES_MAX     100
+
 typedef struct _HandleMapClass {
     GObjectClass      parent;
 } HandleMapClass;
@@ -20,6 +23,7 @@ typedef struct _HandleMap {
     TPM_HT              handle_type;
     TPM_HANDLE          handle_count;
     GHashTable         *vhandle_to_entry_table;
+    guint               max_entries;
 } HandleMap;
 
 #define TYPE_HANDLE_MAP              (handle_map_get_type   ())
@@ -30,8 +34,9 @@ typedef struct _HandleMap {
 #define HANDLE_MAP_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_HANDLE_MAP, HandleMapClass))
 
 GType            handle_map_get_type    (void);
-HandleMap*       handle_map_new         (TPM_HT          handle_type);
-void             handle_map_insert      (HandleMap      *map,
+HandleMap*       handle_map_new         (TPM_HT          handle_type,
+                                         guint           max_entries);
+gboolean         handle_map_insert      (HandleMap      *map,
                                          TPM_HANDLE      vhandle,
                                          HandleMapEntry *entry);
 gint             handle_map_remove      (HandleMap     *map,
@@ -45,6 +50,7 @@ TPM_HANDLE       handle_map_next_vhandle (HandleMap    *map);
 void             handle_map_foreach      (HandleMap    *map,
                                           GHFunc        callback,
                                           gpointer      user_data);
+gboolean         handle_map_is_full      (HandleMap *map);
 
 G_END_DECLS
 #endif /* HANDLE_MAP_H */

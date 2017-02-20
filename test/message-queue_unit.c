@@ -47,7 +47,7 @@ message_queue_enqueue_dequeue_test (void **state)
     HandleMap    *handle_map;
     gint          fds[2] = { 0, };
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     obj_in = session_data_new (&fds[0], &fds[1], 0, handle_map);
     message_queue_enqueue (queue, G_OBJECT (obj_in));
     obj_out = SESSION_DATA (message_queue_dequeue (queue));
@@ -65,9 +65,9 @@ message_queue_dequeue_order_test (void **state)
     SessionData *obj_0, *obj_1, *obj_2, *obj_tmp;
     gint fds[2] = { 0, };
 
-    map_0 = handle_map_new (TPM_HT_TRANSIENT);
-    map_1 = handle_map_new (TPM_HT_TRANSIENT);
-    map_2 = handle_map_new (TPM_HT_TRANSIENT);
+    map_0 = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    map_1 = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    map_2 = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
 
     obj_0 = session_data_new (&fds[0], &fds[1], 0, map_0);
     obj_1 = session_data_new (&fds[0], &fds[1], 0, map_1);

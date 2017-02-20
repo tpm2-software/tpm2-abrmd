@@ -102,7 +102,7 @@ resource_manager_setup (void **state)
     rc = tcti_echo_initialize (data->tcti_echo);
     if (rc != TSS2_RC_SUCCESS)
         g_debug ("tcti_echo_initialize FAILED");
-    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->access_broker = access_broker_new (TCTI (data->tcti_echo));
     data->resource_manager = resource_manager_new (data->access_broker);
     data->session = session_data_new (&data->recv_fd, &data->send_fd, 10, handle_map);

@@ -22,7 +22,7 @@ handle_map_setup_base (void **state)
     test_data_t *data = NULL;
 
     data = calloc (1, sizeof (test_data_t));
-    data->map = handle_map_new (TPM_HT_TRANSIENT);
+    data->map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->entry = handle_map_entry_new (PHANDLE, VHANDLE);
 
     *state = data;

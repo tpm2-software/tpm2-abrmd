@@ -31,7 +31,7 @@ tpm2_command_setup_base (void **state)
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold a TPM2 header and 3 handles */
     data->buffer = calloc (1, TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE) * 3);
-    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->session = session_data_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
     *state = data;

@@ -126,7 +126,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
                                                "MAX_SESSIONS exceeded. Try again later.");
         return TRUE;
     }
-    handle_map = handle_map_new (TPM_HT_TRANSIENT);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, data->options.max_transient_objects);
     if (handle_map == NULL)
         g_error ("Failed to allocate new HandleMap");
     session = session_data_new (&client_fds[0], &client_fds[1], id, handle_map);
@@ -544,6 +544,7 @@ parse_opts (gint            argc,
     gint ret = 0;
 
     options->max_sessions = MAX_SESSIONS_DEFAULT;
+    options->max_transient_objects = MAX_TRANSIENT_OBJECTS_DEFAULT;
 
     GOptionEntry entries[] = {
         { "logger", 'l', 0, G_OPTION_ARG_STRING, &logger_name,
@@ -555,6 +556,9 @@ parse_opts (gint            argc,
           "Fail initialization if the TPM reports loaded transient objects" },
         { "max-sessions", 'm', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_sessions, "Maximum number of client sessions." },
+        { "max-transient-objects", 'o', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
+          &options->max_transient_objects,
+          "Maximum number of loaded transient objects per client." },
         { NULL },
     };
 
@@ -577,6 +581,12 @@ parse_opts (gint            argc,
     }
     if (options->max_sessions < 1 || options->max_sessions > MAX_SESSIONS) {
         g_error ("MAX_SESSIONS must be between 1 and %d", MAX_SESSIONS);
+    }
+    if (options->max_transient_objects < 1 ||
+        options->max_transient_objects > MAX_TRANSIENT_OBJECTS)
+    {
+        g_error ("max-trans-obj parameter must be between 1 and %d",
+                 MAX_TRANSIENT_OBJECTS);
     }
 out:
     g_option_context_free (ctx);
