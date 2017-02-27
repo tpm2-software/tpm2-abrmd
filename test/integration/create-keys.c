@@ -6,6 +6,13 @@
 #include "common.h"
 
 #define NUM_KEYS 5
+
+/*
+ * This is a test program that creates and loads a configurable number of
+ * transient objects in the NULL hierarchy. The number of keys created
+ * undert the NULL primary key can be provided as a base 10 integer on
+ * the command line. This is the only parameter the program takes.
+ */
 int
 main (int   argc,
       char *argv[])
@@ -16,6 +23,10 @@ main (int   argc,
     TPM2B_PRIVATE      out_private = TPM2B_PRIVATE_STATIC_INIT;
     TPM2B_PUBLIC       out_public  = { 0 };
     TSS2_RC rc;
+    uint8_t            loops = NUM_KEYS;
+
+    if (argc == 2)
+        loops = strtol (argv[1], NULL, 10);
 
     rc = tcti_context_init (&tcti_context);
     if (rc != TSS2_RC_SUCCESS)
@@ -29,7 +40,7 @@ main (int   argc,
         g_error ("Failed to create primary key: 0x%" PRIx32, rc);
     g_print ("primary handle: 0x%" PRIx32 "\n", parent_handle);
     guint i;
-    for (i = 0; i < NUM_KEYS; ++i) {
+    for (i = 0; i < loops; ++i) {
         rc = create_key (sapi_context,
                          parent_handle,
                          &out_private,
