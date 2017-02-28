@@ -6,8 +6,7 @@
 tabd \- TPM2 access broker daemon
 .SH SYNOPSIS
 .B tabd 
-.RB [ \-l\ logger-name ]
-
+.RB [\-o][\-l\ logger-name][\-s][\-t\ tcti-name][tcti-specific-options]
 .SH DESCRIPTION
 .B tabd
 is a daemon that implements the TPM access broker as described by the Trusted
@@ -18,6 +17,11 @@ This daemon used DBus and some pipes to communicate with clients. Eventually,
 it will implement the functionality of both both a TPM access broker (TAB)
 and a resource manager (RM).
 .SH OPTIONS
+.TP
+\fB\-o,\ \-\-fail-on-loaded-trans\fR
+Cause the daemon to fail on startup when the TPM is found to already have
+transient objects loaded. This is intended as a safe-guard to keep the
+daemon from stomping on the TPM state setup by another process.
 .TP
 \fB\-l,\ \-\-logger\fR
 Direct logging output to named logging target. Supported targets are
