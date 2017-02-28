@@ -427,12 +427,16 @@ init_thread_func (gpointer user_data)
     uint32_t loaded_trans_objs;
     TSS2_RC rc;
     CommandAttrs *command_attrs;
+    struct sigaction action = {
+        .sa_handler = signal_handler,
+        .sa_flags   = 0,
+    };
 
     g_info ("init_thread_func start");
     g_mutex_lock (&data->init_mutex);
     /* Setup program signals */
-    signal (SIGINT, signal_handler);
-    signal (SIGTERM, signal_handler);
+    sigaction (SIGINT,  &action, NULL);
+    sigaction (SIGTERM, &action, NULL);
 
     data->random = random_new();
     ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
