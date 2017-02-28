@@ -6,7 +6,7 @@
 tabd \- TPM2 access broker daemon
 .SH SYNOPSIS
 .B tabd 
-.RB [\-c][\-o][\-l\ logger-name][\-s][\-t\ tcti-name][tcti-specific-options]
+.RB [\-c][\-o][\-l\ logger-name][\-r][\-s][\-t\ tcti-name][tcti-specific-options]
 .SH DESCRIPTION
 .B tabd
 is a daemon that implements the TPM access broker as described by the Trusted
@@ -32,6 +32,11 @@ daemon from stomping on the TPM state setup by another process.
 Direct logging output to named logging target. Supported targets are
 \fBstdout\fR and \fBsyslog\fR. If the logger option is not specified the
 default is \fBstdout\fR.
+.TP
+\fB\-r,\ \-\-max-transient-objects\fR
+Set an upper bound on the number of transient objects that each client
+connection allowed to load. Once this number of objects is reached attempts
+to load new transient objects will produce an error.
 .TP
 \fB\-s,\ \-\-system\fR
 Connect daemon to the system dbus. If this option is omitted the session bus
