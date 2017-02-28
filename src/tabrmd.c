@@ -439,7 +439,7 @@ init_thread_func (gpointer user_data)
     if (ret != 0)
         g_error ("failed to seed Random object");
 
-    data->manager = session_manager_new(data->options.max_sessions);
+    data->manager = session_manager_new(data->options.max_connections);
     if (data->manager == NULL)
         g_error ("failed to allocate connection_manager");
     g_debug ("SessionManager: 0x%" PRIxPTR, (uintptr_t)data->manager);
@@ -543,7 +543,7 @@ parse_opts (gint            argc,
     gboolean system_bus = FALSE;
     gint ret = 0;
 
-    options->max_sessions = MAX_SESSIONS_DEFAULT;
+    options->max_connections = MAX_CONNECTIONS_DEFAULT;
     options->max_transient_objects = MAX_TRANSIENT_OBJECTS_DEFAULT;
 
     GOptionEntry entries[] = {
@@ -554,8 +554,8 @@ parse_opts (gint            argc,
         { "fail-on-loaded-trans", 't', 0, G_OPTION_ARG_NONE,
           &options->fail_on_loaded_trans,
           "Fail initialization if the TPM reports loaded transient objects" },
-        { "max-sessions", 'm', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
-          &options->max_sessions, "Maximum number of client sessions." },
+        { "max-connections", 'c', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
+          &options->max_connections, "Maximum number of client connections." },
         { "max-transient-objects", 'o', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_transient_objects,
           "Maximum number of loaded transient objects per client." },
@@ -579,8 +579,10 @@ parse_opts (gint            argc,
         g_print ("Unknown logger: %s, try --help\n", logger_name);
         ret = 1;
     }
-    if (options->max_sessions < 1 || options->max_sessions > MAX_SESSIONS) {
-        g_error ("MAX_SESSIONS must be between 1 and %d", MAX_SESSIONS);
+    if (options->max_connections < 1 ||
+        options->max_connections > MAX_CONNECTIONS)
+    {
+        g_error ("MAX_SESSIONS must be between 1 and %d", MAX_CONNECTIONS);
     }
     if (options->max_transient_objects < 1 ||
         options->max_transient_objects > MAX_TRANSIENT_OBJECTS)

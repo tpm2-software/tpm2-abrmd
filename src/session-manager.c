@@ -18,7 +18,7 @@ enum {
 
 enum {
     PROP_0,
-    PROP_MAX_SESSIONS,
+    PROP_MAX_CONNECTIONS,
     N_PROPERTIES,
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -39,9 +39,10 @@ session_manager_set_property (GObject        *object,
     g_debug ("session_manager_set_property: 0x%" PRIxPTR,
              (uintptr_t)mgr);
     switch (property_id) {
-    case PROP_MAX_SESSIONS:
-        mgr->max_sessions = g_value_get_uint (value);
-        g_debug ("  max_sessions: 0x%" PRIxPTR, (uintptr_t)mgr->max_sessions);
+    case PROP_MAX_CONNECTIONS:
+        mgr->max_connections = g_value_get_uint (value);
+        g_debug ("  max_connections: 0x%" PRIxPTR,
+                 (uintptr_t)mgr->max_connections);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -61,8 +62,8 @@ session_manager_get_property (GObject     *object,
 
     g_debug ("session_manager_get_property: 0x%" PRIxPTR, (uintptr_t)mgr);
     switch (property_id) {
-    case PROP_MAX_SESSIONS:
-        g_value_set_uint (value, mgr->max_sessions);
+    case PROP_MAX_CONNECTIONS:
+        g_value_set_uint (value, mgr->max_connections);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -71,12 +72,12 @@ session_manager_get_property (GObject     *object,
 }
 
 SessionManager*
-session_manager_new (gint max_sessions)
+session_manager_new (gint max_connections)
 {
     SessionManager *session_manager;
 
     session_manager = SESSION_MANAGER (g_object_new (TYPE_SESSION_MANAGER,
-                                                     "max-sessions", max_sessions,
+                                                     "max-connections", max_connections,
                                                      NULL));
     if (pthread_mutex_init (&session_manager->mutex, NULL) != 0)
         g_error ("Failed to initialize session _manager mutex: %s",
@@ -149,13 +150,13 @@ session_manager_class_init (gpointer klass)
                       G_TYPE_INT,
                       1,
                       TYPE_SESSION_DATA);
-    obj_properties [PROP_MAX_SESSIONS] =
-        g_param_spec_uint ("max-sessions",
-                           "max sessions",
-                           "Maximum nunmber of concurrent client sessions",
+    obj_properties [PROP_MAX_CONNECTIONS] =
+        g_param_spec_uint ("max-connections",
+                           "max connections",
+                           "Maximum nunmber of concurrent client connections",
                            0,
-                           MAX_SESSIONS,
-                           MAX_SESSIONS_DEFAULT,
+                           MAX_CONNECTIONS,
+                           MAX_CONNECTIONS_DEFAULT,
                            G_PARAM_READWRITE);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
@@ -189,8 +190,8 @@ session_manager_insert (SessionManager    *manager,
         g_error ("Error locking session_manager mutex: %s",
                  strerror (errno));
     if (session_manager_is_full (manager)) {
-        g_warning ("session_manager: 0x%" PRIxPTR " max_sessions of %u exceeded",
-                   (uintptr_t)manager, manager->max_sessions);
+        g_warning ("session_manager: 0x%" PRIxPTR " max_connections of %u exceeded",
+                   (uintptr_t)manager, manager->max_connections);
         pthread_mutex_unlock (&manager->mutex);
         return -1;
     }
@@ -320,7 +321,7 @@ session_manager_is_full (SessionManager *manager)
     guint table_size;
 
     table_size = g_hash_table_size (manager->session_from_fd_table);
-    if (table_size < manager->max_sessions) {
+    if (table_size < manager->max_connections) {
         return FALSE;
     } else {
         return TRUE;
