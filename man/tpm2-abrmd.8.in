@@ -6,7 +6,7 @@
 tabd \- TPM2 access broker daemon
 .SH SYNOPSIS
 .B tabd 
-.RB [\-o][\-l\ logger-name][\-s][\-t\ tcti-name][tcti-specific-options]
+.RB [\-c][\-o][\-l\ logger-name][\-s][\-t\ tcti-name][tcti-specific-options]
 .SH DESCRIPTION
 .B tabd
 is a daemon that implements the TPM access broker as described by the Trusted
@@ -17,6 +17,11 @@ This daemon used DBus and some pipes to communicate with clients. Eventually,
 it will implement the functionality of both both a TPM access broker (TAB)
 and a resource manager (RM).
 .SH OPTIONS
+.TP
+\fB\-c,\ \-\-max-connections\fR
+Set an upper bound on the number of concurrent client connections allowed.
+Once this number of client connections is reached new connections will be
+rejected with an error.
 .TP
 \fB\-o,\ \-\-fail-on-loaded-trans\fR
 Cause the daemon to fail on startup when the TPM is found to already have
