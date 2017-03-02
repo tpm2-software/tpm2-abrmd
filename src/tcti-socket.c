@@ -134,7 +134,7 @@ tcti_socket_get_type (void)
  */
 TctiSocket*
 tcti_socket_new (const gchar *address,
-                 guint16      port)
+                 guint        port)
 {
     TctiSocket *tcti;
 
@@ -156,7 +156,7 @@ tcti_socket_initialize (TctiSocket *self)
 
     TCTI_SOCKET_CONF config = {
         .hostname          = self->address,
-        .port              = self->port,
+        .port              = (guint16)self->port,
         .logCallback       = NULL,
         .logBufferCallback = NULL,
         .logData           = NULL,

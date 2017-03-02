@@ -521,10 +521,15 @@ access_broker_get_trans_object_count (AccessBroker *broker,
     if (broker == NULL || count == NULL)
         g_error ("get_loaded_transient_object_count: got NULL parameter");
     sapi_context = access_broker_lock_sapi (broker);
+    /*
+     * GCC gets confused by the TRANSIENT_FIRST constant being used for the
+     * 4th parameter. It assumes that it's a signed type which causes
+     * -Wsign-conversion to complain. Casting to UINT32 is all we can do.
+     */
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
                                  TPM_CAP_HANDLES,
-                                 TRANSIENT_FIRST,
+                                 (UINT32)TRANSIENT_FIRST,
                                  TRANSIENT_LAST - TRANSIENT_FIRST,
                                  &more_data,
                                  &capability_data,

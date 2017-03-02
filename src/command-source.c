@@ -129,7 +129,7 @@ command_source_on_new_session (SessionManager   *session_manager,
                                SessionData      *session_data,
                                CommandSource    *command_source)
 {
-    gint ret;
+    ssize_t ret;
 
     g_debug ("command_source_on_new_session: writing \"%s\" to fd: %d",
              WAKEUP_DATA, command_source->wakeup_send_fd);
@@ -300,14 +300,16 @@ command_source_session_responder (CommandSource      *source,
     return TRUE;
 }
 
-int
+ssize_t
 wakeup_responder (CommandSource *source)
 {
     g_debug ("Got new session, updating fd_set");
     char buf[3] = { 0 };
-    gint ret = read (source->wakeup_receive_fd, buf, WAKEUP_SIZE);
+    ssize_t ret;
+
+    ret = read (source->wakeup_receive_fd, buf, WAKEUP_SIZE);
     if (ret != WAKEUP_SIZE)
-        g_error ("read on wakeup_receive_fd returned %d, was expecting %d",
+        g_error ("read on wakeup_receive_fd returned %zd, was expecting %d",
                  ret, WAKEUP_SIZE);
     return ret;
 }

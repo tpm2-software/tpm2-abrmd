@@ -22,8 +22,8 @@ g_debug_bytes (uint8_t const *byte_array,
                size_t         width,
                size_t         indent)
 {
-    int byte_ctr;
-    int indent_ctr;
+    guint byte_ctr;
+    guint indent_ctr;
     size_t line_length = indent + width * 3 + 1;
     char  line [line_length];
     char  *line_position = line;
@@ -72,15 +72,15 @@ write_all (const gint    fd,
             g_warning ("failed to write to fd %d: %s", fd, strerror (errno));
             return written;
         case  0:
-            return written_total;
+            return (ssize_t)written_total;
         default:
             g_debug ("wrote %ld bytes to fd %d", written, fd);
         }
-        written_total += written;
+        written_total += (size_t)written;
     } while (written_total < size);
     g_debug ("returning %lu", written_total);
 
-    return written_total;
+    return (ssize_t)written_total;
 }
 /** Read as many bytes as possible from fd into a newly allocated buffer up to
  * UTIL_BUF_MAX or a call to read that would block.
@@ -127,7 +127,7 @@ read_till_block (const gint   fd,
             goto err_out;
         default:
             g_debug ("read %zd bytes from fd %d", bytes_read, fd);
-            bytes_total += bytes_read;
+            bytes_total += (size_t)bytes_read;
             break;
         }
     } while (bytes_total < UTIL_BUF_MAX);
@@ -135,7 +135,7 @@ out:
     *size = bytes_total;
     *buf = local_buf;
 
-    return bytes_total;
+    return (ssize_t)bytes_total;
 err_out:
     if (local_buf != NULL)
         free (local_buf);
@@ -163,7 +163,7 @@ process_control_code (ControlCode code)
 uint8_t*
 read_tpm_command_header_from_fd (int fd, uint8_t *buf, size_t buf_size)
 {
-    int num_read = 0;
+    ssize_t num_read = 0;
 
     g_debug ("read_tpm_command_header_from_fd");
     if (buf_size < TPM_COMMAND_HEADER_SIZE) {
@@ -174,8 +174,8 @@ read_tpm_command_header_from_fd (int fd, uint8_t *buf, size_t buf_size)
     num_read = read (fd, buf, TPM_COMMAND_HEADER_SIZE);
     switch (num_read) {
     case TPM_COMMAND_HEADER_SIZE:
-        g_debug ("  read 0x%x bytes", num_read);
-        g_debug_bytes (buf, num_read, 16, 4);
+        g_debug ("  read %zd bytes", num_read);
+        g_debug_bytes (buf, (size_t)num_read, 16, 4);
         return buf;
     case -1:
         g_warning ("error reading from fd %d: %s", fd, strerror (errno));
@@ -184,7 +184,7 @@ read_tpm_command_header_from_fd (int fd, uint8_t *buf, size_t buf_size)
         g_warning ("EOF trying to read tpm command header from fd: %d", fd);
         return NULL;
     default:
-        g_warning ("read %d bytes on fd %d, expecting %lu",
+        g_warning ("read %zd bytes on fd %d, expecting %lu",
                    num_read, fd, TPM_COMMAND_HEADER_SIZE);
         return NULL;
     }
@@ -198,12 +198,12 @@ read_tpm_command_header_from_fd (int fd, uint8_t *buf, size_t buf_size)
 uint8_t*
 read_tpm_command_body_from_fd (int fd, uint8_t *buf, size_t body_size)
 {
-    int num_read = 0;
+    ssize_t num_read = 0;
 
     g_debug ("read_tpm_command_body_from_fd");
     num_read = read (fd, buf, body_size);
     if (num_read == body_size) {
-        g_debug ("  read 0x%x bytes as expected", num_read);
+        g_debug ("  read %zu bytes as expected", num_read);
         g_debug_bytes (buf, body_size, 16, 4);
         return buf;
     }
@@ -215,7 +215,7 @@ read_tpm_command_body_from_fd (int fd, uint8_t *buf, size_t body_size)
         g_warning ("  EOF reading TPM command body from fd: %d", fd);
         return NULL;
     default:
-        g_warning ("  read %d bytes on fd %d, expecting %zd",
+        g_warning ("  read %zd bytes on fd %d, expecting %zd",
                    num_read, fd, body_size);
         return NULL;
     }

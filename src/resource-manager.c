@@ -69,7 +69,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
     SessionData  *session;
     TSS2_RC       rc;
     TPM_HANDLE    handles[3] = { 0, };
-    guint i, handle_count;;
+    guint8 i, handle_count;;
 
     g_debug ("resource_manager_load_contexts");
     if (!resmgr || !command || !entries || !entry_count) {

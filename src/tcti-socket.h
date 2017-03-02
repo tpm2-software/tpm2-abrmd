@@ -21,7 +21,7 @@ typedef struct _TctiSocket
 {
     Tcti               parent_instance;
     gchar             *address;
-    guint16            port;
+    guint              port;
 } TctiSocket;
 
 #define TYPE_TCTI_SOCKET             (tcti_socket_get_type       ())
@@ -33,7 +33,7 @@ typedef struct _TctiSocket
 
 GType                tcti_socket_get_type       (void);
 TctiSocket*          tcti_socket_new            (gchar const   *address,
-                                                 guint16        port);
+                                                 guint          port);
 TSS2_RC              tcti_socket_initialize     (TctiSocket    *tcti);
 
 G_END_DECLS

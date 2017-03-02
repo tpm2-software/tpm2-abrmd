@@ -63,7 +63,7 @@ tcti_options_set_property (GObject      *object,
         g_debug ("TctiOptions set socket_address: %s", self->socket_address);
         break;
     case PROP_SOCKET_PORT:
-        self->socket_port = g_value_get_int (value);
+        self->socket_port = g_value_get_uint (value);
         g_debug ("TctiOptions set socket_port: %d", self->socket_port);
         break;
 #endif
@@ -101,7 +101,7 @@ tcti_options_get_property (GObject    *object,
         g_value_set_string (value, self->socket_address);
         break;
     case PROP_SOCKET_PORT:
-        g_value_set_int (value, self->socket_port);
+        g_value_set_uint (value, self->socket_port);
         break;
 #endif
     default:
@@ -169,13 +169,13 @@ tcti_options_class_init (gpointer klass)
                              TCTI_SOCKET_DEFAULT_HOST,
                              G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
     obj_properties[PROP_SOCKET_PORT] =
-        g_param_spec_int ("socket-port",
-                          "Port",
-                          "Port for socket TCTI connection",
-                          0,
-                          65535,
-                          TCTI_SOCKET_DEFAULT_PORT,
-                          G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
+        g_param_spec_uint ("socket-port",
+                           "Port",
+                           "Port for socket TCTI connection",
+                           0,
+                           65535,
+                           TCTI_SOCKET_DEFAULT_PORT,
+                           G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
 #endif
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,

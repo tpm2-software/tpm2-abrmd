@@ -49,7 +49,7 @@ handle_map_set_property (GObject        *object,
 
     switch (property_id) {
     case PROP_HANDLE_TYPE:
-        map->handle_type = g_value_get_uint (value);
+        map->handle_type = (TPM_HT)g_value_get_uint (value);
         break;
     case PROP_MAX_ENTRIES:
         map->max_entries = g_value_get_uint (value);
@@ -314,7 +314,7 @@ handle_map_next_vhandle (HandleMap *map)
     /* (2 ^ 24) - 1 handles max, return 0 if we roll over*/
     if (map->handle_count & HR_RANGE_MASK)
         return 0;
-    handle = map->handle_count + (map->handle_type << HR_SHIFT);
+    handle = map->handle_count + (TPM_HANDLE)(map->handle_type << HR_SHIFT);
     ++map->handle_count;
     return handle;
 }

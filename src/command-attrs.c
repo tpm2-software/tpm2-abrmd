@@ -90,10 +90,10 @@ command_attrs_init (CommandAttrs *attrs,
                                  NULL);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("failed to get TPM command attributes: 0x%" PRIx32, rc);
-        rc = access_broker_unlock (broker);
+        access_broker_unlock (broker);
         return -1;
     }
-    rc = access_broker_unlock (broker);
+    access_broker_unlock (broker);
 
     attrs->count = capability_data.data.command.count;
     g_debug ("got attributes for 0x%" PRIx32 " commands", attrs->count);

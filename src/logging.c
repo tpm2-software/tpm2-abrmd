@@ -48,11 +48,12 @@ set_logger (gchar *name)
 {
    if (g_strcmp0 (name, "syslog") == 0) {
         g_info ("logging to syslog");
-        return g_log_set_handler (NULL,
-                                  LOG_LEVEL_ALL | G_LOG_FLAG_FATAL | \
-                                  G_LOG_FLAG_RECURSION,
-                                  syslog_log_handler,
-                                  NULL);
+        g_log_set_handler (NULL,
+                           LOG_LEVEL_ALL | G_LOG_FLAG_FATAL | \
+                           G_LOG_FLAG_RECURSION,
+                           syslog_log_handler,
+                           NULL);
+        return 0;
     }
-    return 0;
+    return -1;
 }

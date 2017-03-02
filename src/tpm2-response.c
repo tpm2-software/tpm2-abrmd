@@ -285,5 +285,10 @@ tpm2_response_set_handle (Tpm2Response *response,
 TPM_HT
 tpm2_response_get_handle_type (Tpm2Response *response)
 {
-    return tpm2_response_get_handle (response) >> HR_SHIFT;
+    /*
+     * Explicit cast required to keep compiler type checking happy. The
+     * shift operation preserves the 8bits we want to return but compiler
+     * must consider the result a TPM_HANDLE (32bits).
+     */
+    return (TPM_HT)(tpm2_response_get_handle (response) >> HR_SHIFT);
 }

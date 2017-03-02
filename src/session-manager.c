@@ -72,7 +72,7 @@ session_manager_get_property (GObject     *object,
 }
 
 SessionManager*
-session_manager_new (gint max_connections)
+session_manager_new (guint max_connections)
 {
     SessionManager *session_manager;
 

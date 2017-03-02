@@ -17,7 +17,7 @@ typedef struct _TctiOptions
     TctiTypeEnum     tcti_type;
     gchar           *device_name;
     gchar           *socket_address;
-    gint             socket_port;
+    guint            socket_port;
     guint            echo_size;
 } TctiOptions;
 

@@ -26,10 +26,10 @@ handle_map_entry_get_property (GObject        *object,
 
     switch (property_id) {
     case PROP_PHANDLE:
-        g_value_set_uint (value, (gint)self->phandle);
+        g_value_set_uint (value, (guint)self->phandle);
         break;
     case PROP_VHANDLE:
-        g_value_set_uint (value, (gint)self->vhandle);
+        g_value_set_uint (value, (guint)self->vhandle);
         break;
     case PROP_CONTEXT:
         g_value_set_pointer (value, &self->context);

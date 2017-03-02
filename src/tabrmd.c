@@ -482,8 +482,8 @@ init_thread_func (gpointer user_data)
      */
     command_attrs = command_attrs_new ();
     g_debug ("created CommandAttrs: 0x%" PRIxPTR, (uintptr_t)command_attrs);
-    rc = command_attrs_init (command_attrs, data->access_broker);
-    if (rc != TSS2_RC_SUCCESS)
+    ret = command_attrs_init (command_attrs, data->access_broker);
+    if (ret != 0)
         g_error ("failed to initialize CommandAttribute object: 0x%" PRIxPTR,
                  (uintptr_t)command_attrs);
 

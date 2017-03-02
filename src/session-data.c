@@ -31,7 +31,7 @@ session_data_set_property (GObject        *object,
     g_debug ("session_data_set_property");
     switch (property_id) {
     case PROP_ID:
-        self->id = g_value_get_uint (value);
+        self->id = g_value_get_uint64 (value);
         g_debug ("SessionData 0x%" PRIxPTR " set id to 0x%" PRIx64,
                  (uintptr_t)self, self->id);
         break;
@@ -68,7 +68,7 @@ session_data_get_property (GObject     *object,
     g_debug ("session_data_get_property");
     switch (property_id) {
     case PROP_ID:
-        g_value_set_uint (value, self->id);
+        g_value_set_uint64 (value, self->id);
         break;
     case PROP_RECEIVE_FD:
         g_value_set_int (value, self->receive_fd);
@@ -113,13 +113,13 @@ session_data_class_init (gpointer klass)
     object_class->set_property = session_data_set_property;
 
     obj_properties [PROP_ID] =
-        g_param_spec_uint ("id",
-                           "session identifier",
-                           "Unique identifier for the session",
-                           0,
-                           UINT_MAX,
-                           0,
-                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+        g_param_spec_uint64 ("id",
+                             "session identifier",
+                             "Unique identifier for the session",
+                             0,
+                             UINT64_MAX,
+                             0,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_RECEIVE_FD] =
         g_param_spec_int ("receive_fd",
                           "Receie File Descriptor",
