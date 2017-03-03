@@ -158,7 +158,7 @@ command_source_wakeup_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = session_manager_new (MAX_SESSIONS_DEFAULT);
+    data->manager = session_manager_new (MAX_CONNECTIONS_DEFAULT);
     data->command_attrs = command_attrs_new ();
     data->source  = command_source_new (data->manager,
                                         data->command_attrs);

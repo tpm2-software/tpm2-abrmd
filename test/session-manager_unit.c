@@ -21,7 +21,7 @@ session_manager_allocate_test (void **state)
 {
     SessionManager *manager = NULL;
 
-    manager = session_manager_new (MAX_SESSIONS_DEFAULT);
+    manager = session_manager_new (MAX_CONNECTIONS_DEFAULT);
     assert_non_null (manager);
     g_object_unref (manager);
 }
@@ -31,7 +31,7 @@ session_manager_setup (void **state)
 {
     SessionManager *manager = NULL;
 
-    manager = session_manager_new (MAX_SESSIONS_DEFAULT);
+    manager = session_manager_new (MAX_CONNECTIONS_DEFAULT);
     assert_non_null (manager);
     *state = manager;
 }
