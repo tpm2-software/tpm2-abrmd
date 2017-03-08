@@ -16,28 +16,28 @@ syslog_log_handler (const char     *log_domain,
 {
     switch (log_level) {
     case G_LOG_FLAG_FATAL:
-        syslog (LOG_ALERT, message);
+        syslog (LOG_ALERT, "%s", message);
         break;
     case G_LOG_LEVEL_ERROR:
-        syslog (LOG_ERR, message);
+        syslog (LOG_ERR, "%s", message);
         break;
     case G_LOG_LEVEL_CRITICAL:
-        syslog (LOG_CRIT, message);
+        syslog (LOG_CRIT, "%s", message);
         break;
     case G_LOG_LEVEL_WARNING:
-        syslog (LOG_WARNING, message);
+        syslog (LOG_WARNING, "%s", message);
         break;
     case G_LOG_LEVEL_MESSAGE:
-        syslog (LOG_NOTICE, message);
+        syslog (LOG_NOTICE, "%s", message);
         break;
     case G_LOG_LEVEL_INFO:
-        syslog (LOG_INFO, message);
+        syslog (LOG_INFO, "%s", message);
         break;
     case G_LOG_LEVEL_DEBUG:
-        syslog (LOG_DEBUG, message);
+        syslog (LOG_DEBUG, "%s", message);
         break;
     default:
-        syslog (LOG_INFO, message);
+        syslog (LOG_INFO, "%s", message);
     }
 }
 /**

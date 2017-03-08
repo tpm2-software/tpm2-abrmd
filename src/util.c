@@ -45,7 +45,7 @@ g_debug_bytes (uint8_t const *byte_array,
         if (byte_ctr % width != width - 1 && byte_ctr != array_size - 1) {
             sprintf (line_position + 2, " ");
         } else {
-            g_debug (line);
+            g_debug ("%s", line);
         }
     }
 }

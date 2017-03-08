@@ -206,7 +206,7 @@ int
 set_flags (const int fd,
            const int flags)
 {
-    int local_flags, ret;
+    int local_flags, ret = 0;
 
     local_flags = fcntl(fd, F_GETFL, 0);
     if (!(local_flags && flags)) {

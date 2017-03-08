@@ -1,8 +1,9 @@
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CFLAGS = -I$(srcdir)/src -I$(srcdir)/src/include \
+AM_CFLAGS = $(EXTRA_CFLAGS) -I$(srcdir)/src -I$(srcdir)/src/include \
     $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
     $(SAPI_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS)
+AM_LDFLAGS = $(EXTRA_LDFLAGS)
 UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 
 sbin_PROGRAMS   = src/tpm2-abrmd

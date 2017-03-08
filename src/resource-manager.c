@@ -67,7 +67,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
     HandleMap    *map;
     HandleMapEntry *entry;
     SessionData  *session;
-    TSS2_RC       rc;
+    TSS2_RC       rc = TSS2_RC_SUCCESS;
     TPM_HANDLE    handles[3] = { 0, };
     guint8 i, handle_count;;
 

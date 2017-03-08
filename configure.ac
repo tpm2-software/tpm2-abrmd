@@ -47,4 +47,27 @@ AS_IF([test "x$use_tcti_socket" != xno],
                          [AC_DEFINE([HAVE_TCTI_SOCKET],
                                     [1])])])
 AM_CONDITIONAL([TCTI_SOCKET], [test "x$use_tcti_socket" != xno])
+
+# preprocessor / compiler / linker flags
+#   these macros are defined in m4/flags.m4
+AX_ADD_COMPILER_FLAG([-Wall])
+AX_ADD_COMPILER_FLAG([-Werror])
+AX_ADD_COMPILER_FLAG([-std=gnu99])
+AX_ADD_COMPILER_FLAG([-Wformat])
+AX_ADD_COMPILER_FLAG([-Wformat-security])
+AX_ADD_COMPILER_FLAG([-Wno-missing-braces])
+AX_ADD_COMPILER_FLAG([-fdata-sections])
+AX_ADD_COMPILER_FLAG([-ffunction-sections])
+AX_ADD_COMPILER_FLAG([-fstack-protector-all])
+AX_ADD_COMPILER_FLAG([-fpic])
+AX_ADD_COMPILER_FLAG([-fPIC])
+AX_ADD_PREPROC_FLAG([-D_GNU_SOURCE])
+AX_ADD_PREPROC_FLAG([-D_FORTIFY_SOURCE=2])
+AX_ADD_PREPROC_FLAG([-U_FORTIFY_SOURCE])
+AX_ADD_LINK_FLAG([-Wl,--gc-sections])
+AX_ADD_LINK_FLAG([-Wl,--no-undefined])
+AX_ADD_LINK_FLAG([-Wl,-z,noexecstack])
+AX_ADD_LINK_FLAG([-Wl,-z,now])
+AX_ADD_LINK_FLAG([-Wl,-z,relro])
+
 AC_OUTPUT
