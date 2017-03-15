@@ -341,6 +341,8 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     default:
         if (tpm2_command_get_handle_count (command) > 0) {
             resource_manager_load_contexts (resmgr, command, entries, &entry_count);
+        } else {
+            entry_count = 0;
         }
         if (rc == TSS2_RC_SUCCESS) {
             response = access_broker_send_command (resmgr->access_broker,
