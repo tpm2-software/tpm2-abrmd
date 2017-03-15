@@ -108,8 +108,11 @@ src_libutil_la_LIBADD  += $(TCTI_SOCKET_LIBS)
 src_libutil_la_SOURCES += src/tcti-socket.c
 endif
 
-test_integration_libtest_la_LIBADD  = $(SAPI_LIBS) $(GLIB_LIBS)
-test_integration_libtest_la_SOURCES = test/integration/common.c
+test_integration_libtest_la_LIBADD  = $(SAPI_LIBS) $(TCTI_SOCKET_LIBS) $(TCTI_DEVICE_LIBS) $(GLIB_LIBS)
+test_integration_libtest_la_SOURCES = \
+    test/integration/common.c \
+    test/integration/context-util.c \
+    test/integration/test-options.c
 
 src_libtcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(SAPI_LIBS)
@@ -269,8 +272,9 @@ test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(libtcti_echo)
 test_tss2_tcti_echo_unit_SOURCES = test/tss2-tcti-echo_unit.c
 
 test_integration_create_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
-test_integration_create_keys_SOURCES = test/integration/create-keys.c
+    $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) \
+    $(TCTI_SOCKET_LIBS)
+test_integration_create_keys_SOURCES = test/integration/main.c test/integration/create-keys.c
 
 test_integration_tcti_sessions_max_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_integration_tcti_sessions_max_SOURCES = test/integration/tcti-sessions-max.c

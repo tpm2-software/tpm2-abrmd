@@ -6,6 +6,7 @@
 #include "common.h"
 
 #define NUM_KEYS 5
+#define ENV_NUM_KEYS "TABRMD_TEST_NUM_KEYS"
 
 /*
  * This is a test program that creates and loads a configurable number of
@@ -14,27 +15,21 @@
  * the command line. This is the only parameter the program takes.
  */
 int
-main (int   argc,
-      char *argv[])
+test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
-    TSS2_TCTI_CONTEXT *tcti_context = NULL;
-    TSS2_SYS_CONTEXT  *sapi_context = NULL;
+    TSS2_TCTI_CONTEXT *tcti_context;
     TPM_HANDLE         parent_handle, out_handle;
     TPM2B_PRIVATE      out_private = TPM2B_PRIVATE_STATIC_INIT;
     TPM2B_PUBLIC       out_public  = { 0 };
-    TSS2_RC rc;
+    TSS2_RC            rc = TSS2_RC_SUCCESS;
+    char              *env_str = NULL, *end_ptr = NULL;
     uint8_t            loops = NUM_KEYS;
 
-    if (argc == 2)
-        loops = strtol (argv[1], NULL, 10);
+    env_str = getenv (ENV_NUM_KEYS);
+    if (env_str != NULL)
+        loops = strtol (env_str, &end_ptr, 10);
 
-    rc = tcti_context_init (&tcti_context);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("Failed to initialize TCTI context");
-    rc = sapi_context_init (&sapi_context, tcti_context);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("Failed to initialize SAPI context");
-
+    g_print ("%s: %d", ENV_NUM_KEYS, loops);
     rc = create_primary (sapi_context, &parent_handle);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("Failed to create primary key: 0x%" PRIx32, rc);
@@ -57,12 +52,12 @@ main (int   argc,
         out_public.t.size = 0;
     }
 
-    rc = tss2_tcti_tabrmd_dump_trans_state (tcti_context);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to dump transient object state");
-
-    tss2_tcti_finalize (tcti_context);
-    free (tcti_context);
+    rc = Tss2_Sys_GetTctiContext (sapi_context, &tcti_context);
+    if (rc != TSS2_RC_SUCCESS && tcti_context != NULL) {
+        rc = tss2_tcti_tabrmd_dump_trans_state (tcti_context);
+        if (rc != TSS2_RC_SUCCESS)
+            g_error ("failed to dump transient object state");
+    }
 
     return rc;
 }
