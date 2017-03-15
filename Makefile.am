@@ -92,7 +92,6 @@ src_libutil_la_SOURCES = \
     src/source-interface.c \
     src/tcti.c \
     src/tcti-options.c \
-    src/tcti-echo.c \
     src/tcti-type-enum.c \
     src/tpm2-command.c \
     src/tpm2-response.c \
@@ -119,7 +118,8 @@ src_libtcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
 src_libtcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
 src_libtcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c
 
-src_libtcti_echo_la_SOURCES = src/tss2-tcti-echo.c
+src_libtcti_echo_la_LIBADD  = $(DBUS_LIBS) $(GLIB_LIBS)
+src_libtcti_echo_la_SOURCES = src/tss2-tcti-echo.c src/tcti-echo.c
 
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(libutil) $(libtcti_echo)

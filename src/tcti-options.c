@@ -1,8 +1,6 @@
 #include <stdio.h>
 
 #include "tcti-options.h"
-#include "tcti-echo.h"
-#include "tss2-tcti-echo.h"
 #ifdef HAVE_TCTI_DEVICE
 #include "tcti-device.h"
 #endif
@@ -17,7 +15,6 @@ enum
 {
     PROP_0,
     PROP_TCTI_TYPE,
-    PROP_ECHO_SIZE,
 #ifdef HAVE_TCTI_DEVICE
     PROP_DEVICE_NAME,
 #endif
@@ -44,11 +41,6 @@ tcti_options_set_property (GObject      *object,
         g_debug ("  PROP_TCTI_TYPE");
         self->tcti_type = g_value_get_enum (value);
         g_debug ("  value: 0x%x", self->tcti_type);
-        break;
-    case PROP_ECHO_SIZE:
-        g_debug ("  PROP_ECHO_SIZE");
-        self->echo_size = g_value_get_uint (value);
-        g_debug ("  value: 0x%x", self->echo_size);
         break;
 #ifdef HAVE_TCTI_DEVICE
     case PROP_DEVICE_NAME:
@@ -86,10 +78,6 @@ tcti_options_get_property (GObject    *object,
     case PROP_TCTI_TYPE:
         g_debug ("  PROP_TCTI_TYPE: 0x%x", self->tcti_type);
         g_value_set_enum (value, self->tcti_type);
-        break;
-    case PROP_ECHO_SIZE:
-        g_debug ("  PROP_ECHO_SIZE: 0x%x", self->echo_size);
-        g_value_set_uint (value, self->echo_size);
         break;
 #ifdef HAVE_TCTI_DEVICE
     case PROP_DEVICE_NAME:
@@ -143,15 +131,7 @@ tcti_options_class_init (gpointer klass)
                            "TCTI",
                            "TCTI used by tpm2-abrmd to communicate with the TPM",
                            TYPE_TCTI_TYPE_ENUM,
-                           TCTI_TYPE_ECHO,
-                           G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
-    obj_properties[PROP_ECHO_SIZE] =
-        g_param_spec_uint ("tcti-echo-size",
-                           "Echo buffer size",
-                           "Size of buffer to allocate for echo TCTI",
-                           TSS2_TCTI_ECHO_MIN_BUF,
-                           TSS2_TCTI_ECHO_MAX_BUF,
-                           TSS2_TCTI_ECHO_MAX_BUF,
+                           TCTI_TYPE_NONE,
                            G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
 #ifdef HAVE_TCTI_DEVICE
     obj_properties[PROP_DEVICE_NAME] =
@@ -213,8 +193,8 @@ typedef struct tcty_map_entry {
  */
 tcti_map_entry_t tcti_map[] = {
     {
-        .name      = "echo",
-        .tcti_type = TCTI_TYPE_ECHO
+        .name      = "none",
+        .tcti_type = TCTI_TYPE_NONE
     },
 #ifdef HAVE_TCTI_DEVICE
     {
@@ -282,23 +262,14 @@ tcti_options_get_group (TctiOptions *options)
             .arg             = G_OPTION_ARG_CALLBACK,
             .arg_data        = tcti_parse_opt_callback,
             .description     = "Downstream TCTI",
-            .arg_description = "[echo"
+            .arg_description = "[ none"
 #ifdef HAVE_TCTI_DEVICE
-            "|device"
+            " | device"
 #endif
 #ifdef HAVE_TCTI_SOCKET
-            "|socket"
+            " | socket"
 #endif
-            "]"
-        },
-        {
-            .long_name       = "tcti-echo-size",
-            .short_name      = 'e',
-            .flags           = G_OPTION_FLAG_NONE,
-            .arg             = G_OPTION_ARG_INT,
-            .arg_data        = &options->echo_size,
-            .description     = "Size of buffer to allocate for echo TCTI",
-            .arg_description = "[1024-8192]"
+            " ]"
         },
 #ifdef HAVE_TCTI_DEVICE
         {
@@ -351,8 +322,8 @@ tcti_options_get_tcti (TctiOptions *self)
 {
     g_debug ("tcti_options_get_tcti");
     switch (self->tcti_type) {
-    case TCTI_TYPE_ECHO:
-        return TCTI (tcti_echo_new (self->echo_size));
+    case TCTI_TYPE_NONE:
+        return NULL;
 #ifdef HAVE_TCTI_DEVICE
     case TCTI_TYPE_DEVICE:
         g_assert (self->device_name);

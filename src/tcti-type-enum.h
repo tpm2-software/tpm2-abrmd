@@ -6,7 +6,7 @@
 G_BEGIN_DECLS
 
 typedef enum TCTI_TYPE {
-    TCTI_TYPE_ECHO,
+    TCTI_TYPE_NONE,
 #ifdef HAVE_TCTI_DEVICE
     TCTI_TYPE_DEVICE,
 #endif

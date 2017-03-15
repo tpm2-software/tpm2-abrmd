@@ -45,7 +45,7 @@ is used instead.
 \fB\-t,\ \-\-tcti\fR
 Select the TCTI used by tabd for communication with the next component down
 the TSS stack. In most configurations this will be the TPM but it could be
-a simulator or proxy. Supported TCTIs are \fB\*(lqecho\*(rq\fR
+a simulator or proxy. Supported TCTIs are \fB\*(lqnone\*(rq\fR
 .if (\n[HAVE_DEVICE_TCTI]) or \fB\*(lqdevice\*(rq\fR
 .if (\n[HAVE_SOCKET_TCTI]) or \fB\*(lqsocket\*(rq\fR
 \[char46]
