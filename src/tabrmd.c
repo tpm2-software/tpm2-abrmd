@@ -11,10 +11,10 @@
 #include "tabrmd.h"
 #include "access-broker.h"
 #include "connection.h"
+#include "connection-manager.h"
 #include "tabrmd-priv.h"
 #include "logging.h"
 #include "thread-interface.h"
-#include "session-manager.h"
 #include "command-source.h"
 #include "random.h"
 #include "resource-manager.h"
@@ -37,7 +37,7 @@ typedef struct gmain_data {
     AccessBroker           *access_broker;
     ResourceManager        *resource_manager;
     TctiTabrmd             *skeleton;
-    SessionManager         *manager;
+    ConnectionManager         *manager;
     CommandSource         *command_source;
     Random                 *random;
     Sink                   *response_sink;
@@ -52,7 +52,7 @@ static GMainLoop *g_loop;
 
 #define TABRMD_POLICY_ERROR tabrmd_policy_error_quark ()
 typedef enum {
-    TABRMD_POLICY_ERROR_MAX_SESSIONS,
+    TABRMD_POLICY_ERROR_MAX_CONNECTIONS,
 } TabrmdPolicyErrorEnum;
 
 /*
@@ -97,7 +97,7 @@ handle_array_variant_from_fdlist (GUnixFDList *fdlist)
  * - Build up a dbus response to the client with their connection ID and
  *   send / receive FDs.
  * - Send the response message back to the client.
- * - Insert the new Connection object into the SessionManager.
+ * - Insert the new Connection object into the ConnectionManager.
  * - Notify the CommandSource of the new Connection that it needs to
  *   watch by writing a magic value to the wakeup_send_fd.
  */
@@ -119,11 +119,11 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
     random_get_uint64 (data->random, &id);
-    if (session_manager_is_full (data->manager)) {
+    if (connection_manager_is_full (data->manager)) {
         g_dbus_method_invocation_return_error (invocation,
                                                TABRMD_POLICY_ERROR,
-                                               TABRMD_POLICY_ERROR_MAX_SESSIONS,
-                                               "MAX_SESSIONS exceeded. Try again later.");
+                                               TABRMD_POLICY_ERROR_MAX_CONNECTIONS,
+                                               "MAX_COMMANDS exceeded. Try again later.");
         return TRUE;
     }
     handle_map = handle_map_new (TPM_HT_TRANSIENT, data->options.max_transient_objects);
@@ -141,9 +141,9 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     response_variants[1] = g_variant_new_uint64 (id);
     response_tuple = g_variant_new_tuple (response_variants, 2);
     /* add Connection to manager */
-    ret = session_manager_insert (data->manager, connection);
+    ret = connection_manager_insert (data->manager, connection);
     if (ret != 0) {
-        g_warning ("Failed to add new connection to session_manager.");
+        g_warning ("Failed to add new connection to connection_manager.");
     }
     /* send response */
     g_dbus_method_invocation_return_value_with_unix_fd_list (
@@ -164,7 +164,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
  * - Ensure the init thread has completed successfully by locking and then
  *   unlocking the init mutex.
  * - Locate the Connection object associted with the 'id' parameter in
- *   the SessionManager.
+ *   the ConnectionManager.
  * - If the connection has a command being processed by the tabrmd then it's
  *   removed from the processing queue.
  * - If the connection has a command being processed by the TPM then the
@@ -185,7 +185,7 @@ on_handle_cancel (TctiTabrmd           *skeleton,
     g_info ("on_handle_cancel for id 0x%" PRIx64, id);
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
-    connection = session_manager_lookup_id (data->manager, id);
+    connection = connection_manager_lookup_id (data->manager, id);
     if (connection == NULL) {
         g_warning ("no active connection for id: 0x%" PRIx64, id);
         return FALSE;
@@ -225,7 +225,7 @@ on_handle_set_locality (TctiTabrmd            *skeleton,
     g_info ("on_handle_set_locality for id 0x%" PRIx64, id);
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
-    connection = session_manager_lookup_id (data->manager, id);
+    connection = connection_manager_lookup_id (data->manager, id);
     if (connection == NULL) {
         g_warning ("no active connection for id: 0x%" PRIx64, id);
         return FALSE;
@@ -283,7 +283,7 @@ on_handle_dump_trans_state (TctiTabrmd            *skeleton,
     g_info ("on_handle_dump_trans_state for id 0x%" PRIx64, id);
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
-    connection = session_manager_lookup_id (data->manager, id);
+    connection = connection_manager_lookup_id (data->manager, id);
     if (connection == NULL)
         g_error ("no active connection for id: 0x%" PRIx64, id);
     g_info ("dumping transient handle map for for connection 0x%" PRIxPTR,
@@ -411,7 +411,7 @@ signal_handler (int signum)
  * - Locks the init_mutex.
  * - Registers a handler for UNIX signals for SIGINT and SIGTERM.
  * - Seeds the RNG state from an entropy source.
- * - Creates the SessionManager.
+ * - Creates the ConnectionManager.
  * - Creates the TCTI instance used by the Tab.
  * - Creates an access broker and verify the current state of the TPM.
  * - Creates and wires up the objects that make up the TPM command
@@ -443,10 +443,10 @@ init_thread_func (gpointer user_data)
     if (ret != 0)
         g_error ("failed to seed Random object");
 
-    data->manager = session_manager_new(data->options.max_connections);
+    data->manager = connection_manager_new(data->options.max_connections);
     if (data->manager == NULL)
         g_error ("failed to allocate connection_manager");
-    g_debug ("SessionManager: 0x%" PRIxPTR, (uintptr_t)data->manager);
+    g_debug ("ConnectionManager: 0x%" PRIxPTR, (uintptr_t)data->manager);
 
     /**
      * this isn't strictly necessary but it allows us to detect a failure in
@@ -586,7 +586,7 @@ parse_opts (gint            argc,
     if (options->max_connections < 1 ||
         options->max_connections > MAX_CONNECTIONS)
     {
-        g_error ("MAX_SESSIONS must be between 1 and %d", MAX_CONNECTIONS);
+        g_error ("MAX_CONNECTIONS must be between 1 and %d", MAX_CONNECTIONS);
     }
     if (options->max_transient_objects < 1 ||
         options->max_transient_objects > MAX_TRANSIENT_OBJECTS)

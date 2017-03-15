@@ -16,10 +16,10 @@ check_PROGRAMS  = \
     test/access-broker_unit \
     test/command-attrs_unit \
     test/connection_unit \
+    test/connection-manager_unit \
     test/message-queue_unit \
     test/resource-manager_unit \
     test/response-sink_unit \
-    test/session-manager_unit \
     test/command-source_unit \
     test/handle-map-entry_unit \
     test/handle-map_unit \
@@ -77,6 +77,7 @@ src_libutil_la_SOURCES = \
     src/access-broker.c \
     src/command-attrs.c \
     src/connection.c \
+    src/connection-manager.c \
     src/control-message.c \
     src/handle-map.c \
     src/handle-map-entry.c \
@@ -84,7 +85,6 @@ src_libutil_la_SOURCES = \
     src/logging.c \
     src/thread-interface.c \
     src/command-source.c \
-    src/session-manager.c \
     src/random.c \
     src/resource-manager.c \
     src/response-sink.c \
@@ -175,9 +175,9 @@ test_connection_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_connection_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_connection_unit_SOURCES = test/connection_unit.c
 
-test_session_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_session_manager_unit_SOURCES = test/session-manager_unit.c
+test_connection_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_connection_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_connection_manager_unit_SOURCES = test/connection-manager_unit.c
 
 test_command_attrs_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
 test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
@@ -186,7 +186,7 @@ test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
 test_command_source_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_command_source_unit_LDFLAGS = -Wl,--wrap=session_manager_lookup_fd,--wrap=tpm2_command_new_from_fd,--wrap=sink_enqueue
+test_command_source_unit_LDFLAGS = -Wl,--wrap=connection_manager_lookup_fd,--wrap=tpm2_command_new_from_fd,--wrap=sink_enqueue
 test_command_source_unit_SOURCES = test/command-source_unit.c
 
 test_handle_map_entry_unit_CFLAGS  = $(UNIT_AM_CFLAGS)

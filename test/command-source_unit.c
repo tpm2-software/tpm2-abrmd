@@ -13,7 +13,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include "session-manager.h"
+#include "connection-manager.h"
 #include "sink-interface.h"
 #include "source-interface.h"
 #include "thread-interface.h"
@@ -22,7 +22,7 @@
 #include "tpm2-command.h"
 
 typedef struct source_test_data {
-    SessionManager *manager;
+    ConnectionManager *manager;
     CommandAttrs   *command_attrs;
     CommandSource *source;
     Connection *connection;
@@ -31,10 +31,10 @@ typedef struct source_test_data {
 
 
 Connection*
-__wrap_session_manager_lookup_fd (SessionManager *manager,
+__wrap_connection_manager_lookup_fd (ConnectionManager *manager,
                                   gint            fd_in)
 {
-    g_debug ("__wrap_session_manager_lookup_fd");
+    g_debug ("__wrap_connection_manager_lookup_fd");
     return CONNECTION (mock ());
 }
 
@@ -77,7 +77,7 @@ command_source_allocate_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = session_manager_new (TPM_HT_TRANSIENT);
+    data->manager = connection_manager_new (TPM_HT_TRANSIENT);
 
     *state = data;
 }
@@ -119,9 +119,9 @@ command_source_start_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = session_manager_new (TPM_HT_TRANSIENT);
+    data->manager = connection_manager_new (TPM_HT_TRANSIENT);
     if (data->manager == NULL)
-        g_error ("failed to allocate new session_manager");
+        g_error ("failed to allocate new connection_manager");
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
                                        data->command_attrs);
@@ -158,7 +158,7 @@ command_source_wakeup_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = session_manager_new (MAX_CONNECTIONS_DEFAULT);
+    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
     data->command_attrs = command_attrs_new ();
     data->source  = command_source_new (data->manager,
                                         data->command_attrs);
@@ -181,10 +181,10 @@ command_source_connection_insert_test (void **state)
     assert_false (FD_ISSET (connection->receive_fd, &source->connection_fdset));
     ret = thread_start(THREAD (source));
     assert_int_equal (ret, 0);
-    session_manager_insert (data->manager, connection);
+    connection_manager_insert (data->manager, connection);
     sleep (1);
     assert_true (FD_ISSET (connection->receive_fd, &source->connection_fdset));
-    session_manager_remove (data->manager, connection);
+    connection_manager_remove (data->manager, connection);
     thread_cancel (THREAD (source));
     thread_join (THREAD (source));
 }
@@ -196,7 +196,7 @@ command_source_connection_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = session_manager_new (TPM_HT_TRANSIENT);
+    data->manager = connection_manager_new (TPM_HT_TRANSIENT);
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
                                        data->command_attrs);
@@ -220,7 +220,7 @@ command_source_connection_teardown (void **state)
  * by creating a new Connection object, associating it with a new
  * Tpm2Command object (that we populate with a command body), and then
  * calling the command_source_connection_responder.
- * This function will in turn call the session_manager_lookup_fd,
+ * This function will in turn call the connection_manager_lookup_fd,
  * tpm2_command_new_from_fd, before finally calling the sink_enqueue function.
  * We mock these 3 functions to control the flow through the function under
  * test.
@@ -258,7 +258,7 @@ command_source_connection_responder_success_test (void **state)
     memcpy (buffer, data_in, sizeof (data_in));
     command = tpm2_command_new (connection, buffer, (TPMA_CC){ 0, });
     /* prime wraps */
-    will_return (__wrap_session_manager_lookup_fd, connection);
+    will_return (__wrap_connection_manager_lookup_fd, connection);
     will_return (__wrap_tpm2_command_new_from_fd, command);
     will_return (__wrap_sink_enqueue, &command_out);
     result = command_source_connection_responder (data->source, 0, NULL);

@@ -7,7 +7,7 @@
 #include <sys/select.h>
 
 #include "command-attrs.h"
-#include "session-manager.h"
+#include "connection-manager.h"
 #include "sink-interface.h"
 
 G_BEGIN_DECLS
@@ -25,7 +25,7 @@ typedef struct _CommandSourceClass {
 
 typedef struct _CommandSource {
     GObject            parent_instance;
-    SessionManager    *session_manager;
+    ConnectionManager *connection_manager;
     CommandAttrs      *command_attrs;
     pthread_t          thread;
     gint               wakeup_receive_fd;
@@ -42,12 +42,12 @@ typedef struct _CommandSource {
 #define IS_COMMAND_SOURCE_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE    ((klass), TYPE_COMMAND_SOURCE))
 #define COMMAND_SOURCE_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_COMMAND_SOURCE, CommandSourceClass))
 
-GType           command_source_get_type       (void);
-CommandSource*  command_source_new            (SessionManager  *session_manager,
-                                               CommandAttrs    *command_attrs);
-gint            command_source_on_new_connection (SessionManager  *session_manager,
-                                                  Connection      *connection,
-                                                  CommandSource   *command_source);
+GType           command_source_get_type          (void);
+CommandSource*  command_source_new               (ConnectionManager  *connection_manager,
+                                                  CommandAttrs       *command_attrs);
+gint            command_source_on_new_connection (ConnectionManager  *connection_manager,
+                                                  Connection         *connection,
+                                                  CommandSource      *command_source);
 gboolean        command_source_connection_responder (CommandSource      *source,
                                                      gint                fd,
                                                      Sink               *sink);

@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "connection.h"
+#include "connection-manager.h"
 #include "command-source.h"
 #include "source-interface.h"
 #include "tpm2-command.h"
@@ -21,7 +22,7 @@ static gpointer command_source_parent_class = NULL;
 enum {
     PROP_0,
     PROP_COMMAND_ATTRS,
-    PROP_SESSION_MANAGER,
+    PROP_CONNECTION_MANAGER,
     PROP_SINK,
     PROP_WAKEUP_RECEIVE_FD,
     PROP_WAKEUP_SEND_FD,
@@ -67,8 +68,8 @@ command_source_set_property (GObject       *object,
         self->command_attrs = COMMAND_ATTRS (g_value_dup_object (value));
         g_debug ("  command_attrs: 0x%" PRIxPTR, (uintptr_t)self->command_attrs);
         break;
-    case PROP_SESSION_MANAGER:
-        self->session_manager = SESSION_MANAGER (g_value_get_object (value));
+    case PROP_CONNECTION_MANAGER:
+        self->connection_manager = CONNECTION_MANAGER (g_value_get_object (value));
         break;
     case PROP_SINK:
         /* be rigid intially, add flexiblity later if we need it */
@@ -107,8 +108,8 @@ command_source_get_property (GObject      *object,
     case PROP_COMMAND_ATTRS:
         g_value_set_object (value, self->command_attrs);
         break;
-    case PROP_SESSION_MANAGER:
-        g_value_set_object (value, self->session_manager);
+    case PROP_CONNECTION_MANAGER:
+        g_value_set_object (value, self->connection_manager);
         break;
     case PROP_SINK:
         g_value_set_object (value, self->sink);
@@ -125,9 +126,9 @@ command_source_get_property (GObject      *object,
     }
 }
 gint
-command_source_on_new_connection (SessionManager   *session_manager,
-                               Connection      *connection,
-                               CommandSource    *command_source)
+command_source_on_new_connection (ConnectionManager   *connection_manager,
+                                  Connection          *connection,
+                                  CommandSource       *command_source)
 {
     ssize_t ret;
 
@@ -150,8 +151,8 @@ command_source_finalize (GObject  *object)
 
     if (source->sink)
         g_object_unref (source->sink);
-    if (source->session_manager)
-        g_object_unref (source->session_manager);
+    if (source->connection_manager)
+        g_object_unref (source->connection_manager);
     if (source->command_attrs) {
         g_object_unref (source->command_attrs);
         source->command_attrs = NULL;
@@ -181,11 +182,11 @@ command_source_class_init (gpointer klass)
                              "CommandAttrs instance.",
                              TYPE_COMMAND_ATTRS,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties [PROP_SESSION_MANAGER] =
-        g_param_spec_object ("session-manager",
-                             "SessionManager object",
-                             "SessionManager instance.",
-                             TYPE_SESSION_MANAGER,
+    obj_properties [PROP_CONNECTION_MANAGER] =
+        g_param_spec_object ("connection-manager",
+                             "ConnectionManager object",
+                             "ConnectionManager instance.",
+                             TYPE_CONNECTION_MANAGER,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_SINK] =
         g_param_spec_object ("sink",
@@ -269,14 +270,14 @@ command_source_thread_cleanup (void *data)
 
 gboolean
 command_source_connection_responder (CommandSource      *source,
-                                  gint                fd,
-                                  Sink               *sink)
+                                     gint                fd,
+                                     Sink               *sink)
 {
     Tpm2Command *command;
     Connection  *connection;
 
     g_debug ("command_source_connection_responder 0x%" PRIxPTR, (uintptr_t)source);
-    connection = session_manager_lookup_fd (source->session_manager, fd);
+    connection = connection_manager_lookup_fd (source->connection_manager, fd);
     if (connection == NULL)
         g_error ("failed to get connection associated with fd: %d", fd);
     else
@@ -291,10 +292,12 @@ command_source_connection_responder (CommandSource      *source,
         /* command will be NULL when read error on fd, or fd is closed (EOF)
          * In either case we remove the connection and free it.
          */
-        g_debug ("removing connection 0x%" PRIxPTR " from session_manager 0x%"
-                 PRIxPTR, (uintptr_t)connection, (uintptr_t)source->session_manager);
-        session_manager_remove (source->session_manager,
-                                connection);
+        g_debug ("removing connection 0x%" PRIxPTR " from connection_manager "
+                 "0x%" PRIxPTR,
+                 (uintptr_t)connection,
+                 (uintptr_t)source->connection_manager);
+        connection_manager_remove (source->connection_manager,
+                                   connection);
     }
     g_object_unref (connection);
     return TRUE;
@@ -318,7 +321,7 @@ wakeup_responder (CommandSource *source)
  * active connections with clients. It also monitors an additional file
  * descriptor that we call the wakeup_receive_fd. This pipe is the mechanism used
  * by the code that handles dbus calls to notify the command_source that
- * it's added a new connection to the session_manager. When this happens the
+ * it's added a new connection to the connection_manager. When this happens the
  * command_source will begin to watch for data from this new connection.
  */
 void*
@@ -331,8 +334,8 @@ command_source_thread (void *data)
     pthread_cleanup_push (command_source_thread_cleanup, source);
     do {
         FD_ZERO (&source->connection_fdset);
-        session_manager_set_fds (source->session_manager,
-                                 &source->connection_fdset);
+        connection_manager_set_fds (source->connection_manager,
+                                    &source->connection_fdset);
         FD_SET (source->wakeup_receive_fd, &source->connection_fdset);
         ret = select (FD_SETSIZE, &source->connection_fdset, NULL, NULL, NULL);
         if (ret == -1) {
@@ -360,25 +363,25 @@ command_source_thread (void *data)
 }
 
 CommandSource*
-command_source_new (SessionManager    *session_manager,
-                    CommandAttrs      *command_attrs)
+command_source_new (ConnectionManager    *connection_manager,
+                    CommandAttrs         *command_attrs)
 {
     CommandSource *source;
     gint wakeup_fds [2] = { 0, };
 
-    if (session_manager == NULL)
-        g_error ("command_source_new passed NULL SessionManager");
-    g_object_ref (session_manager);
+    if (connection_manager == NULL)
+        g_error ("command_source_new passed NULL ConnectionManager");
+    g_object_ref (connection_manager);
     if (pipe2 (wakeup_fds, O_CLOEXEC) != 0)
         g_error ("failed to make wakeup pipe: %s", strerror (errno));
     source = COMMAND_SOURCE (g_object_new (TYPE_COMMAND_SOURCE,
                                              "command-attrs", command_attrs,
-                                             "session-manager", session_manager,
+                                             "connection-manager", connection_manager,
                                              "wakeup-receive-fd", wakeup_fds [0],
                                              "wakeup-send-fd", wakeup_fds [1],
                                              NULL));
     source->running = FALSE;
-    g_signal_connect (session_manager,
+    g_signal_connect (connection_manager,
                       "new-connection",
                       (GCallback) command_source_on_new_connection,
                       source);
