@@ -198,9 +198,11 @@ resource_manager_thread_lifecycle_test (void **state)
 }
 /**
  * A test: Ensure that the Sink interface to the ResourceManager works. We
- * create a Tpm2Command, send it through the Sink 'enqueue' interface, then
- * pull it out the other end by reaching in to the ResourceManagers internal
- * MessageQueue.
+ * create a Tpm2Command, send it through the ResourceManager enqueue
+ * function then pull it out the other end by reaching in to the
+ * ResourceManagers internal MessageQueue.
+ * We *DO NOT* use the sink interface here since we've mock'd that for
+ * other purposes and it would make the test largely meaningless.
  */
 static void
 resource_manager_sink_enqueue_test (void **state)
@@ -211,7 +213,7 @@ resource_manager_sink_enqueue_test (void **state)
 
     buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
     data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
-    sink_enqueue (SINK (data->resource_manager), G_OBJECT (data->command));
+    resource_manager_enqueue (SINK (data->resource_manager), G_OBJECT (data->command));
     command_out = TPM2_COMMAND (message_queue_dequeue (data->resource_manager->in_queue));
 
     assert_int_equal (data->command, command_out);

@@ -46,6 +46,8 @@ TSS2_RC               resource_manager_virt_to_phys      (ResourceManager *resmg
                                                           Tpm2Command     *command,
                                                           HandleMapEntry  *entry,
                                                           guint8           handle_number);
+void                  resource_manager_enqueue           (Sink            *sink,
+                                                          GObject         *obj);
 
 G_END_DECLS
 #endif /* RESOURCE_MANAGER_H */
