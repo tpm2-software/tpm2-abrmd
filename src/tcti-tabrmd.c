@@ -39,7 +39,7 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
         tss2_ret = TSS2_TCTI_RC_NO_CONNECTION;
         break;
     default:
-        if (ret != size) {
+        if (write_ret != size) {
             g_debug ("tss2_tcti_tabrmd_transmit: short write");
             tss2_ret = TSS2_TCTI_RC_GENERAL_FAILURE;
         }
