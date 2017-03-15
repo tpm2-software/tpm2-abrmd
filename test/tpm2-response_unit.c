@@ -13,7 +13,7 @@
 typedef struct {
     Tpm2Response *response;
     guint8       *buffer;
-    SessionData  *session;
+    Connection   *connection;
 } test_data_t;
 /*
  * This function does all of the setup required to run a test *except*
@@ -30,7 +30,7 @@ tpm2_response_setup_base (void **state)
     /* allocate a buffer large enough to hold a TPM2 header and a handle */
     data->buffer   = calloc (1, TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE));
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->session  = session_data_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection  = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
 
     *state = data;
@@ -46,7 +46,7 @@ tpm2_response_setup (void **state)
 
     tpm2_response_setup_base (state);
     data = (test_data_t*)*state;
-    data->response = tpm2_response_new (data->session,
+    data->response = tpm2_response_new (data->connection,
                                         data->buffer,
                                         (TPMA_CC){ 0, });
 }
@@ -65,7 +65,7 @@ tpm2_response_setup_with_handle (void **state)
 
     tpm2_response_setup_base (state);
     data = (test_data_t*)*state;
-    data->response = tpm2_response_new (data->session,
+    data->response = tpm2_response_new (data->connection,
                                         data->buffer,
                                         attributes);
     data->buffer [TPM_RESPONSE_HEADER_SIZE]     = 0xde;
@@ -83,7 +83,7 @@ tpm2_response_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
 
-    g_object_unref (data->session);
+    g_object_unref (data->connection);
     g_object_unref (data->response);
     free (data);
 }
@@ -101,20 +101,20 @@ tpm2_response_type_test (void **state)
     assert_true (IS_TPM2_RESPONSE (data->response));
 }
 /**
- * In the setup function we save a reference to the SessionData object
+ * In the setup function we save a reference to the Connection object
  * instantiated as well as passing it into the Tpm2Response object. Here we
- * check to be sure that the SessionData object returned by the Tpm2Response
+ * check to be sure that the Connection object returned by the Tpm2Response
  * object is the same one that we passed it.
  */
 static void
-tpm2_response_get_session_test (void **state)
+tpm2_response_get_connection_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    SessionData *session;
+    Connection *connection;
 
-    session = tpm2_response_get_session (data->response);
-    assert_int_equal (data->session, session);
-    g_object_unref (session);
+    connection = tpm2_response_get_connection (data->response);
+    assert_int_equal (data->connection, connection);
+    g_object_unref (connection);
 }
 /**
  * In the setup function we passed the Tpm2Response object a data buffer.
@@ -142,7 +142,7 @@ tpm2_response_get_tag_test (void **state)
     guint8       *buffer = tpm2_response_get_buffer (data->response);
     TPM_ST        tag_ret;
 
-    /* this is tpm_st_sessions in network byte order */
+    /* this is TPM_ST_SESSIONS in network byte order */
     buffer[0] = 0x80;
     buffer[1] = 0x02;
 
@@ -163,7 +163,7 @@ tpm2_response_get_size_test (void **state)
     guint8      *buffer   = tpm2_response_get_buffer (data->response);
     guint32      size_ret = 0;
 
-    /* this is tpm_st_sessions in network byte order */
+    /* this is TPM_ST_SESSIONS in network byte order */
     buffer[0] = 0x80;
     buffer[1] = 0x02;
     buffer[2] = 0x00;
@@ -220,15 +220,15 @@ tpm2_response_new_rc_setup (void **state)
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold a TPM2 header */
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->session  = session_data_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection  = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
-    data->response = tpm2_response_new_rc (data->session, TPM_RC_BINDING);
+    data->response = tpm2_response_new_rc (data->connection, TPM_RC_BINDING);
 
     *state = data;
 }
 /**
  * The tpm2_response_new_rc sets the TPM_ST_NO_SESSIONS tag for us since
- * it's just returning an RC and cannot have sessions. Here we check to be
+ * it's just returning an RC and cannot have connections. Here we check to be
  * sure we can retrieve this tag and that's it's returned in host byte order.
  */
 static void
@@ -271,17 +271,17 @@ tpm2_response_new_rc_code_test (void **state)
     assert_int_equal (rc, TPM_RC_BINDING);
 }
 /**
- * The tpm2_resonse_new_rc takes a session as a parameter. We save a
+ * The tpm2_resonse_new_rc takes a connection as a parameter. We save a
  * reference to this in the test_data_t structure. Here we ensure that the
- * tpm2_response_get_session function returns the same session to us.
+ * tpm2_response_get_connection function returns the same connection to us.
  */
 static void
-tpm2_response_new_rc_session_test (void **state)
+tpm2_response_new_rc_connection_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    SessionData *session = data->session;
+    Connection *connection = data->connection;
 
-    assert_int_equal (session, tpm2_response_get_session (data->response));
+    assert_int_equal (connection, tpm2_response_get_connection (data->response));
 }
 /*
  * This test ensures that a tpm2_response_has_handle reports the
@@ -362,7 +362,7 @@ main (gint    argc,
         unit_test_setup_teardown (tpm2_response_type_test,
                                   tpm2_response_setup,
                                   tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_get_session_test,
+        unit_test_setup_teardown (tpm2_response_get_connection_test,
                                   tpm2_response_setup,
                                   tpm2_response_teardown),
         unit_test_setup_teardown (tpm2_response_get_buffer_test,
@@ -386,7 +386,7 @@ main (gint    argc,
         unit_test_setup_teardown (tpm2_response_new_rc_code_test,
                                   tpm2_response_new_rc_setup,
                                   tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_new_rc_session_test,
+        unit_test_setup_teardown (tpm2_response_new_rc_connection_test,
                                   tpm2_response_new_rc_setup,
                                   tpm2_response_teardown),
         unit_test_setup_teardown (tpm2_response_no_handle_test,

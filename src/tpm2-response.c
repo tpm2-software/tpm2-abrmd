@@ -54,12 +54,12 @@ tpm2_response_set_property (GObject        *object,
         self->buffer = (guint8*)g_value_get_pointer (value);
         break;
     case PROP_SESSION:
-        if (self->session != NULL) {
-            g_warning ("  session already set");
+        if (self->connection != NULL) {
+            g_warning ("  connection already set");
             break;
         }
-        self->session = g_value_get_object (value);
-        g_object_ref (self->session);
+        self->connection = g_value_get_object (value);
+        g_object_ref (self->connection);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -86,7 +86,7 @@ tpm2_response_get_property (GObject     *object,
         g_value_set_pointer (value, self->buffer);
         break;
     case PROP_SESSION:
-        g_value_set_object (value, self->session);
+        g_value_set_object (value, self->connection);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -105,8 +105,8 @@ tpm2_response_finalize (GObject *obj)
     g_debug ("tpm2_response_finalize");
     if (self->buffer)
         g_free (self->buffer);
-    if (self->session)
-        g_object_unref (self->session);
+    if (self->connection)
+        g_object_unref (self->connection);
     G_OBJECT_CLASS (tpm2_response_parent_class)->finalize (obj);
 }
 /**
@@ -138,10 +138,10 @@ tpm2_response_class_init (gpointer klass)
                               "memory buffer holding a TPM2 response",
                               G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_SESSION] =
-        g_param_spec_object ("session",
-                             "Session object",
-                             "The Session object that sent the response",
-                             TYPE_SESSION_DATA,
+        g_param_spec_object ("connection",
+                             "Connection object",
+                             "The Connection object that sent the response",
+                             TYPE_CONNECTION,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
@@ -170,14 +170,14 @@ tpm2_response_get_type (void)
  * Boilerplate constructor, but some GObject properties would be nice.
  */
 Tpm2Response*
-tpm2_response_new (SessionData     *session,
+tpm2_response_new (Connection     *connection,
                    guint8          *buffer,
                    TPMA_CC          attributes)
 {
     return TPM2_RESPONSE (g_object_new (TYPE_TPM2_RESPONSE,
                                         "attributes", attributes,
                                        "buffer",  buffer,
-                                       "session", session,
+                                       "connection", connection,
                                        NULL));
 }
 /**
@@ -185,7 +185,7 @@ tpm2_response_new (SessionData     *session,
  * where all we need is a header with the RC set to something specific.
  */
 Tpm2Response*
-tpm2_response_new_rc (SessionData *session,
+tpm2_response_new_rc (Connection *connection,
                       TPM_RC       rc)
 {
     guint8 *buffer;
@@ -200,7 +200,7 @@ tpm2_response_new_rc (SessionData *session,
     TPM_RESPONSE_TAG (buffer)  = htobe16 (TPM_ST_NO_SESSIONS);
     TPM_RESPONSE_SIZE (buffer) = htobe32 (TPM_RESPONSE_HEADER_SIZE);
     TPM_RESPONSE_CODE (buffer) = htobe32 (rc);
-    return tpm2_response_new (session, buffer, (TPMA_CC){ 0 });
+    return tpm2_response_new (connection, buffer, (TPMA_CC){ 0 });
 }
 /* Simple "getter" to expose the attributes associated with the command. */
 TPMA_CC
@@ -237,18 +237,18 @@ tpm2_response_get_tag (Tpm2Response *response)
     return be16toh (TPM_RESPONSE_TAG (response->buffer));
 }
 /*
- * Return the SessionData object associated with this Tpm2Response. This
- * is the SessionData object representing the client that should receive
+ * Return the Connection object associated with this Tpm2Response. This
+ * is the Connection object representing the client that should receive
  * this response. The reference count on this object is incremented before
  * the object is returned to the caller. The caller is responsible for
- * decrementing the reference count when it is done using the session
+ * decrementing the reference count when it is done using the connection
  * object.
  */
-SessionData*
-tpm2_response_get_session (Tpm2Response *response)
+Connection*
+tpm2_response_get_connection (Tpm2Response *response)
 {
-    g_object_ref (response->session);
-    return response->session;
+    g_object_ref (response->connection);
+    return response->connection;
 }
 /* Return the number of handles in the command. */
 gboolean

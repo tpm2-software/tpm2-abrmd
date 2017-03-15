@@ -25,21 +25,21 @@ typedef struct source_test_data {
     SessionManager *manager;
     CommandAttrs   *command_attrs;
     CommandSource *source;
-    SessionData *session;
+    Connection *connection;
     gboolean match;
 } source_test_data_t;
 
 
-SessionData*
+Connection*
 __wrap_session_manager_lookup_fd (SessionManager *manager,
                                   gint            fd_in)
 {
     g_debug ("__wrap_session_manager_lookup_fd");
-    return SESSION_DATA (mock ());
+    return CONNECTION (mock ());
 }
 
 Tpm2Command*
-__wrap_tpm2_command_new_from_fd (SessionData *session,
+__wrap_tpm2_command_new_from_fd (Connection *connection,
                                  gint         fd,
                                  TPMA_CC      attributes)
 {
@@ -143,14 +143,14 @@ command_source_start_teardown (void **state)
 }
 /* command_source_start_test end */
 
-/* command_source_session_insert_test begin
- * In this test we create a session source and all that that entails. We then
- * create a new session and insert it into the session manager. We then signal
- * to the source that there's a new session in the manager by sending data to
+/* command_source_connection_insert_test begin
+ * In this test we create a connection source and all that that entails. We then
+ * create a new connection and insert it into the connection manager. We then signal
+ * to the source that there's a new connection in the manager by sending data to
  * it over the send end of the wakeup pipe "wakeup_send_fd". We then check the
- * session_fdset in the source structure to be sure the receive end of the
- * session pipe is set. This is how we know that the source is now watching
- * for data from the new session.
+ * connection_fdset in the source structure to be sure the receive end of the
+ * connection pipe is set. This is how we know that the source is now watching
+ * for data from the new connection.
  */
 static void
 command_source_wakeup_setup (void **state)
@@ -166,32 +166,32 @@ command_source_wakeup_setup (void **state)
 }
 
 static void
-command_source_session_insert_test (void **state)
+command_source_connection_insert_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
     CommandSource *source = data->source;
     HandleMap     *handle_map;
-    SessionData *session;
+    Connection *connection;
     gint ret, receive_fd, send_fd;
 
     /* */
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    session = session_data_new (&receive_fd, &send_fd, 5, handle_map);
+    connection = connection_new (&receive_fd, &send_fd, 5, handle_map);
     g_object_unref (handle_map);
-    assert_false (FD_ISSET (session->receive_fd, &source->session_fdset));
+    assert_false (FD_ISSET (connection->receive_fd, &source->connection_fdset));
     ret = thread_start(THREAD (source));
     assert_int_equal (ret, 0);
-    session_manager_insert (data->manager, session);
+    session_manager_insert (data->manager, connection);
     sleep (1);
-    assert_true (FD_ISSET (session->receive_fd, &source->session_fdset));
-    session_manager_remove (data->manager, session);
+    assert_true (FD_ISSET (connection->receive_fd, &source->connection_fdset));
+    session_manager_remove (data->manager, connection);
     thread_cancel (THREAD (source));
     thread_join (THREAD (source));
 }
 /* command_source_sesion_insert_test end */
-/* command_source_session_data_test start */
+/* command_source_connection_test start */
 static void
-command_source_session_data_setup (void **state)
+command_source_connection_setup (void **state)
 {
     source_test_data_t *data;
 
@@ -204,7 +204,7 @@ command_source_session_data_setup (void **state)
     *state = data;
 }
 static void
-command_source_session_data_teardown (void **state)
+command_source_connection_teardown (void **state)
 {
     source_test_data_t *data = (source_test_data_t*)*state;
 
@@ -216,10 +216,10 @@ command_source_session_data_teardown (void **state)
     free (data);
 }
 /**
- * A test: Test the command_source_session_responder function. We do this
- * by creating a new SessionData object, associating it with a new
+ * A test: Test the command_source_connection_responder function. We do this
+ * by creating a new Connection object, associating it with a new
  * Tpm2Command object (that we populate with a command body), and then
- * calling the command_source_session_responder.
+ * calling the command_source_connection_responder.
  * This function will in turn call the session_manager_lookup_fd,
  * tpm2_command_new_from_fd, before finally calling the sink_enqueue function.
  * We mock these 3 functions to control the flow through the function under
@@ -229,14 +229,14 @@ command_source_session_data_teardown (void **state)
  * Tpm2Command pointer. It sets this to the Tpm2Command that it receives.
  * We determine success /failure for this test by verifying that the
  * sink_enqueue function receives the same Tpm2Command that we passed to
- * the command under test (command_source_session_responder).
+ * the command under test (command_source_connection_responder).
  */
 static void
-command_source_session_responder_success_test (void **state)
+command_source_connection_responder_success_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
     HandleMap   *handle_map;
-    SessionData *session;
+    Connection *connection;
     Tpm2Command *command, *command_out;
     gint fds[2] = { 0, };
     guint8 *buffer;
@@ -247,7 +247,7 @@ command_source_session_responder_success_test (void **state)
     gboolean result = FALSE;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    session = session_data_new (&fds[0], &fds[1], 0, handle_map);
+    connection = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
     /**
      * We must dynamically allocate the buffer for the Tpm2Command since
@@ -256,17 +256,17 @@ command_source_session_responder_success_test (void **state)
      */
     buffer = calloc (1, sizeof (data_in));
     memcpy (buffer, data_in, sizeof (data_in));
-    command = tpm2_command_new (session, buffer, (TPMA_CC){ 0, });
+    command = tpm2_command_new (connection, buffer, (TPMA_CC){ 0, });
     /* prime wraps */
-    will_return (__wrap_session_manager_lookup_fd, session);
+    will_return (__wrap_session_manager_lookup_fd, connection);
     will_return (__wrap_tpm2_command_new_from_fd, command);
     will_return (__wrap_sink_enqueue, &command_out);
-    result = command_source_session_responder (data->source, 0, NULL);
+    result = command_source_connection_responder (data->source, 0, NULL);
     assert_true (result);
 
     assert_int_equal (command_out, command);
 }
-/* command_source_session_data_test end */
+/* command_source_connection_test end */
 int
 main (int argc,
       char* argv[])
@@ -278,12 +278,12 @@ main (int argc,
         unit_test_setup_teardown (command_source_start_test,
                                   command_source_start_setup,
                                   command_source_start_teardown),
-        unit_test_setup_teardown (command_source_session_insert_test,
+        unit_test_setup_teardown (command_source_connection_insert_test,
                                   command_source_wakeup_setup,
                                   command_source_start_teardown),
-        unit_test_setup_teardown (command_source_session_responder_success_test,
-                                  command_source_session_data_setup,
-                                  command_source_session_data_teardown),
+        unit_test_setup_teardown (command_source_connection_responder_success_test,
+                                  command_source_connection_setup,
+                                  command_source_connection_teardown),
     };
     return run_tests (tests);
 }

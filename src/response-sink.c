@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <pthread.h>
 
+#include "connection.h"
 #include "sink-interface.h"
 #include "thread-interface.h"
 #include "response-sink.h"
@@ -201,8 +202,8 @@ response_sink_process_response (Tpm2Response *response)
     ssize_t      written = 0;
     guint32      size    = tpm2_response_get_size (response);
     guint8      *buffer  = tpm2_response_get_buffer (response);
-    SessionData *session = tpm2_response_get_session (response);
-    gint         fd      = session_data_send_fd (session);
+    Connection  *connection = tpm2_response_get_connection (response);
+    gint         fd      = connection_send_fd (connection);
 
     g_debug ("response_sink_thread got response: 0x%" PRIxPTR " size %d",
              (uintptr_t)response, size);
@@ -210,9 +211,9 @@ response_sink_process_response (Tpm2Response *response)
     g_debug_bytes (buffer, size, 16, 4);
     written = write_all (fd, buffer, size);
     if (written <= 0)
-        g_warning ("write failed (%zu) on fd %d for session 0x%" PRIxPTR ": %s",
-                   written, fd, (uintptr_t)session, strerror (errno));
-    g_object_unref (session);
+        g_warning ("write failed (%zu) on fd %d for connection 0x%" PRIxPTR ": %s",
+                   written, fd, (uintptr_t)connection, strerror (errno));
+    g_object_unref (connection);
 
     return written;
 }

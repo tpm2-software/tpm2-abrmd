@@ -15,10 +15,10 @@ noinst_PROGRAMS = \
 check_PROGRAMS  = \
     test/access-broker_unit \
     test/command-attrs_unit \
+    test/connection_unit \
     test/message-queue_unit \
     test/resource-manager_unit \
     test/response-sink_unit \
-    test/session-data_unit \
     test/session-manager_unit \
     test/command-source_unit \
     test/handle-map-entry_unit \
@@ -76,6 +76,7 @@ src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
 src_libutil_la_SOURCES = \
     src/access-broker.c \
     src/command-attrs.c \
+    src/connection.c \
     src/control-message.c \
     src/handle-map.c \
     src/handle-map-entry.c \
@@ -84,7 +85,6 @@ src_libutil_la_SOURCES = \
     src/thread-interface.c \
     src/command-source.c \
     src/session-manager.c \
-    src/session-data.c \
     src/random.c \
     src/resource-manager.c \
     src/response-sink.c \
@@ -160,20 +160,20 @@ test_response_sink_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(GOBJECT_LIBS)
 test_response_sink_unit_SOURCES = \
+    src/connection.c \
     src/control-message.c \
     src/handle-map.c \
     src/handle-map-entry.c \
     src/thread-interface.c \
     src/message-queue.c \
     src/response-sink.c \
-    src/session-data.c \
     src/sink-interface.c \
     src/tpm2-response.c \
     test/response-sink_unit.c
 
-test_session_data_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_session_data_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_session_data_unit_SOURCES = test/session-data_unit.c
+test_connection_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_connection_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_connection_unit_SOURCES = test/connection_unit.c
 
 test_session_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_session_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)

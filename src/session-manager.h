@@ -4,7 +4,7 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include "session-data.h"
+#include "connection.h"
 
 G_BEGIN_DECLS
 
@@ -18,14 +18,14 @@ typedef struct _SessionManagerClass {
 typedef struct _SessionManager {
     GObject           parent_instance;
     pthread_mutex_t   mutex;
-    GHashTable       *session_from_fd_table;
-    GHashTable       *session_from_id_table;
+    GHashTable       *connection_from_fd_table;
+    GHashTable       *connection_from_id_table;
     guint             max_connections;
 } SessionManager;
 
-/* type for callbacks registered with the 'new-session' signal*/
-typedef gint (*new_session_callback)(SessionManager *session_manager,
-                                     SessionData    *session_data,
+/* type for callbacks registered with the 'new-connection' signal*/
+typedef gint (*new_connection_callback)(SessionManager *session_manager,
+                                     Connection    *connection_data,
                                      gpointer       *data);
 
 #define TYPE_SESSION_MANAGER              (session_manager_get_type   ())
@@ -38,12 +38,12 @@ typedef gint (*new_session_callback)(SessionManager *session_manager,
 GType              session_manager_get_type    (void);
 SessionManager*    session_manager_new         (guint            max_connections);
 gint               session_manager_insert      (SessionManager  *manager,
-                                                SessionData     *session);
+                                                Connection      *connection);
 gint               session_manager_remove      (SessionManager  *manager,
-                                                SessionData     *session);
-SessionData*       session_manager_lookup_fd   (SessionManager  *manager,
+                                                Connection      *connection);
+Connection*        session_manager_lookup_fd   (SessionManager  *manager,
                                                 gint             fd_in);
-SessionData*       session_manager_lookup_id   (SessionManager  *manager,
+Connection*        session_manager_lookup_id   (SessionManager  *manager,
                                                 gint64           id_in);
 void               session_manager_set_fds     (SessionManager  *manager,
                                                 fd_set          *fds);

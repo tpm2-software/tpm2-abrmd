@@ -31,7 +31,7 @@ typedef struct _CommandSource {
     gint               wakeup_receive_fd;
     gint               wakeup_send_fd;
     gboolean           running;
-    fd_set             session_fdset;
+    fd_set             connection_fdset;
     Sink              *sink;
 } CommandSource;
 
@@ -45,12 +45,12 @@ typedef struct _CommandSource {
 GType           command_source_get_type       (void);
 CommandSource*  command_source_new            (SessionManager  *session_manager,
                                                CommandAttrs    *command_attrs);
-gint            command_source_on_new_session (SessionManager  *session_manager,
-                                               SessionData     *session_data,
-                                               CommandSource   *command_source);
-gboolean        command_source_session_responder (CommandSource      *source,
-                                                  gint                fd,
-                                                  Sink               *sink);
+gint            command_source_on_new_connection (SessionManager  *session_manager,
+                                                  Connection      *connection,
+                                                  CommandSource   *command_source);
+gboolean        command_source_connection_responder (CommandSource      *source,
+                                                     gint                fd,
+                                                     Sink               *sink);
 
 G_END_DECLS
 #endif /* COMMAND_SOURCE_H */

@@ -12,7 +12,7 @@ static gpointer session_manager_parent_class = NULL;
 
 enum {
     SIGNAL_0,
-    SIGNAL_NEW_SESSION,
+    SIGNAL_NEW_CONNECTION,
     N_SIGNALS,
 };
 
@@ -83,19 +83,19 @@ session_manager_new (guint max_connections)
         g_error ("Failed to initialize session _manager mutex: %s",
                  strerror (errno));
     /* These two data structures must be kept in sync. When the
-     * session-manager object is destoryed the session-data objects in these
+     * session-manager object is destoryed the Connection objects in these
      * hash tables will be free'd by the g_object_unref function. We only
      * set this for one of the hash tables because we only want to free
-     * each session-data object once.
+     * each Connection object once.
      */
-    session_manager->session_from_fd_table =
+    session_manager->connection_from_fd_table =
         g_hash_table_new_full (g_int_hash,
-                               session_data_equal_fd,
+                               connection_equal_fd,
                                NULL,
                                NULL);
-    session_manager->session_from_id_table =
+    session_manager->connection_from_id_table =
         g_hash_table_new_full (g_int64_hash,
-                               session_data_equal_id,
+                               connection_equal_id,
                                NULL,
                                (GDestroyNotify)g_object_unref);
     return session_manager;
@@ -111,8 +111,8 @@ session_manager_finalize (GObject *obj)
     if (ret != 0)
         g_error ("Error locking session_manager mutex: %s",
                  strerror (errno));
-    g_hash_table_unref (manager->session_from_fd_table);
-    g_hash_table_unref (manager->session_from_id_table);
+    g_hash_table_unref (manager->connection_from_fd_table);
+    g_hash_table_unref (manager->connection_from_id_table);
     ret = pthread_mutex_unlock (&manager->mutex);
     if (ret != 0)
         g_error ("Error unlocking session_manager mutex: %s",
@@ -124,10 +124,11 @@ session_manager_finalize (GObject *obj)
 }
 /**
  * Boilerplate GObject class init function. The only interesting thing that
- * we do here is creating / registering the 'new-session'signal. This signal
- * invokes callbacks with the new_session_callback type (see header). This
- * signal is emitted by the session_manager_insert function which is where
- * we add new sessions to those tracked by the SessionManager.
+ * we do here is creating / registering the 'new_connection' signal. This
+ * signal invokes callbacks with the new_connection_callback type (see
+ * header). This signal is emitted by the session_manager_insert function
+ * which is where we add new Connection objects to those tracked by the
+ * SessionManager.
  */
 static void
 session_manager_class_init (gpointer klass)
@@ -139,8 +140,8 @@ session_manager_class_init (gpointer klass)
     object_class->finalize = session_manager_finalize;
     object_class->get_property = session_manager_get_property;
     object_class->set_property = session_manager_set_property;
-    signals [SIGNAL_NEW_SESSION] =
-        g_signal_new ("new-session",
+    signals [SIGNAL_NEW_CONNECTION] =
+        g_signal_new ("new-connection",
                       G_TYPE_FROM_CLASS (object_class),
                       G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
                       0,
@@ -149,7 +150,7 @@ session_manager_class_init (gpointer klass)
                       NULL,
                       G_TYPE_INT,
                       1,
-                      TYPE_SESSION_DATA);
+                      TYPE_CONNECTION);
     obj_properties [PROP_MAX_CONNECTIONS] =
         g_param_spec_uint ("max-connections",
                            "max connections",
@@ -181,7 +182,7 @@ session_manager_get_type (void)
 }
 gint
 session_manager_insert (SessionManager    *manager,
-                        SessionData       *session)
+                        Connection        *connection)
 {
     gint ret;
 
@@ -196,92 +197,96 @@ session_manager_insert (SessionManager    *manager,
         return -1;
     }
     /*
-     * Increase reference count on SessionData object on insert. The
+     * Increase reference count on Connection object on insert. The
      * corresponding call to g_hash_table_remove will cause the reference
      * count to be decreased (see g_hash_table_new_full).
      */
-    g_object_ref (session);
-    g_hash_table_insert (manager->session_from_fd_table,
-                         session_data_key_fd (session),
-                         session);
-    g_hash_table_insert (manager->session_from_id_table,
-                         session_data_key_id (session),
-                         session);
+    g_object_ref (connection);
+    g_hash_table_insert (manager->connection_from_fd_table,
+                         connection_key_fd (connection),
+                         connection);
+    g_hash_table_insert (manager->connection_from_id_table,
+                         connection_key_id (connection),
+                         connection);
     ret = pthread_mutex_unlock (&manager->mutex);
     if (ret != 0)
         g_error ("Error unlocking session_manager mutex: %s",
                  strerror (errno));
     /* not sure what to do about reference count on SEssionData obj */
-    g_signal_emit (manager, signals [SIGNAL_NEW_SESSION], 0, session, &ret);
+    g_signal_emit (manager,
+                   signals [SIGNAL_NEW_CONNECTION],
+                   0,
+                   connection,
+                   &ret);
     return ret;
 }
 /*
- * Lookup a SessionData object from the provided session fd. This function
- * returns a reference to the SessionData object. The reference count for
+ * Lookup a Connection object from the provided session fd. This function
+ * returns a reference to the Connection object. The reference count for
  * this object is incremented before it is returned and must be decremented
  * by the caller.
  */
-SessionData*
+Connection*
 session_manager_lookup_fd (SessionManager *manager,
                            gint fd_in)
 {
-    SessionData *session;
+    Connection *connection;
 
     pthread_mutex_lock (&manager->mutex);
-    session = g_hash_table_lookup (manager->session_from_fd_table,
-                                   &fd_in);
+    connection = g_hash_table_lookup (manager->connection_from_fd_table,
+                                      &fd_in);
     pthread_mutex_unlock (&manager->mutex);
-    g_object_ref (session);
+    g_object_ref (connection);
 
-    return session;
+    return connection;
 }
 /*
- * Lookup a SessionData object from the provided session ID. This function
- * returns a reference to the SessionData object. The reference count for
+ * Lookup a Connection object from the provided Connection ID. This function
+ * returns a reference to the Connection object. The reference count for
  * this object is incremented before it is returned and must be decremented
  * by the caller.
  */
-SessionData*
+Connection*
 session_manager_lookup_id (SessionManager   *manager,
                            gint64 id)
 {
-    SessionData *session;
+    Connection *connection;
 
     g_debug ("locking manager mutex");
     pthread_mutex_lock (&manager->mutex);
-    g_debug ("g_hash_table_lookup: session_from_id_table");
-    session = g_hash_table_lookup (manager->session_from_id_table,
-                                   &id);
+    g_debug ("g_hash_table_lookup: connection_from_id_table");
+    connection = g_hash_table_lookup (manager->connection_from_id_table,
+                                      &id);
     g_debug ("unlocking manager mutex");
     pthread_mutex_unlock (&manager->mutex);
-    g_object_ref (session);
+    g_object_ref (connection);
 
-    return session;
+    return connection;
 }
 
 gboolean
 session_manager_remove (SessionManager    *manager,
-                        SessionData       *session)
+                        Connection        *connection)
 {
     gboolean ret;
 
-    g_debug ("session_manager 0x%" PRIxPTR " removing session 0x%" PRIxPTR,
-             (uintptr_t)manager, (uintptr_t)session);
+    g_debug ("session_manager 0x%" PRIxPTR " removing Connection 0x%" PRIxPTR,
+             (uintptr_t)manager, (uintptr_t)connection);
     pthread_mutex_lock (&manager->mutex);
-    ret = g_hash_table_remove (manager->session_from_fd_table,
-                               session_data_key_fd (session));
+    ret = g_hash_table_remove (manager->connection_from_fd_table,
+                               connection_key_fd (connection));
     if (ret != TRUE)
-        g_error ("failed to remove session 0x%" PRIxPTR " from g_hash_table "
-                 "0x%" PRIxPTR "using key 0x%" PRIxPTR, (uintptr_t)session,
-                 (uintptr_t)manager->session_from_fd_table,
-                 (uintptr_t)session_data_key_fd (session));
-    ret = g_hash_table_remove (manager->session_from_id_table,
-                               session_data_key_id (session));
+        g_error ("failed to remove Connection 0x%" PRIxPTR " from g_hash_table "
+                 "0x%" PRIxPTR "using key 0x%" PRIxPTR, (uintptr_t)connection,
+                 (uintptr_t)manager->connection_from_fd_table,
+                 (uintptr_t)connection_key_fd (connection));
+    ret = g_hash_table_remove (manager->connection_from_id_table,
+                               connection_key_id (connection));
     if (ret != TRUE)
-        g_error ("failed to remove session 0x%" PRIxPTR " from g_hash_table "
-                 "0x%" PRIxPTR " using key %" PRIxPTR, (uintptr_t)session,
-                 (uintptr_t)manager->session_from_fd_table,
-                 (uintptr_t)session_data_key_id (session));
+        g_error ("failed to remove Connection 0x%" PRIxPTR " from g_hash_table "
+                 "0x%" PRIxPTR " using key %" PRIxPTR, (uintptr_t)connection,
+                 (uintptr_t)manager->connection_from_fd_table,
+                 (uintptr_t)connection_key_id (connection));
     pthread_mutex_unlock (&manager->mutex);
 
     return ret;
@@ -293,9 +298,9 @@ set_fd (gpointer key,
         gpointer user_data)
 {
     fd_set *fds = (fd_set*)user_data;
-    SessionData *session = SESSION_DATA (value);
+    Connection *connection = CONNECTION (value);
 
-    FD_SET (session_data_receive_fd (session), fds);
+    FD_SET (connection_receive_fd (connection), fds);
 }
 
 void
@@ -303,7 +308,7 @@ session_manager_set_fds (SessionManager   *manager,
                          fd_set *fds)
 {
     pthread_mutex_lock (&manager->mutex);
-    g_hash_table_foreach (manager->session_from_fd_table,
+    g_hash_table_foreach (manager->connection_from_fd_table,
                           set_fd,
                           fds);
     pthread_mutex_unlock (&manager->mutex);
@@ -312,7 +317,7 @@ session_manager_set_fds (SessionManager   *manager,
 guint
 session_manager_size (SessionManager   *manager)
 {
-    return g_hash_table_size (manager->session_from_fd_table);
+    return g_hash_table_size (manager->connection_from_fd_table);
 }
 
 gboolean
@@ -320,7 +325,7 @@ session_manager_is_full (SessionManager *manager)
 {
     guint table_size;
 
-    table_size = g_hash_table_size (manager->session_from_fd_table);
+    table_size = g_hash_table_size (manager->connection_from_fd_table);
     if (table_size < manager->max_connections) {
         return FALSE;
     } else {

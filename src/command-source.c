@@ -6,7 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "session-data.h"
+#include "connection.h"
 #include "command-source.h"
 #include "source-interface.h"
 #include "tpm2-command.h"
@@ -125,13 +125,13 @@ command_source_get_property (GObject      *object,
     }
 }
 gint
-command_source_on_new_session (SessionManager   *session_manager,
-                               SessionData      *session_data,
+command_source_on_new_connection (SessionManager   *session_manager,
+                               Connection      *connection,
                                CommandSource    *command_source)
 {
     ssize_t ret;
 
-    g_debug ("command_source_on_new_session: writing \"%s\" to fd: %d",
+    g_debug ("command_source_on_new_connection: writing \"%s\" to fd: %d",
              WAKEUP_DATA, command_source->wakeup_send_fd);
     ret = write (command_source->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
     if (ret < 1)
@@ -268,42 +268,42 @@ command_source_thread_cleanup (void *data)
 }
 
 gboolean
-command_source_session_responder (CommandSource      *source,
+command_source_connection_responder (CommandSource      *source,
                                   gint                fd,
                                   Sink               *sink)
 {
     Tpm2Command *command;
-    SessionData *session;
+    Connection  *connection;
 
-    g_debug ("command_source_session_responder 0x%" PRIxPTR, (uintptr_t)source);
-    session = session_manager_lookup_fd (source->session_manager, fd);
-    if (session == NULL)
-        g_error ("failed to get session associated with fd: %d", fd);
+    g_debug ("command_source_connection_responder 0x%" PRIxPTR, (uintptr_t)source);
+    connection = session_manager_lookup_fd (source->session_manager, fd);
+    if (connection == NULL)
+        g_error ("failed to get connection associated with fd: %d", fd);
     else
-        g_debug ("session_manager_lookup_fd for fd %d: 0x%" PRIxPTR, fd,
-                 (uintptr_t)session);
-    command = tpm2_command_new_from_fd (session, fd, source->command_attrs);
+        g_debug ("connection_manager_lookup_fd for fd %d: 0x%" PRIxPTR, fd,
+                 (uintptr_t)connection);
+    command = tpm2_command_new_from_fd (connection, fd, source->command_attrs);
     if (command != NULL) {
         sink_enqueue (sink, G_OBJECT (command));
         /* the sink now owns this message */
         g_object_unref (command);
     } else {
         /* command will be NULL when read error on fd, or fd is closed (EOF)
-         * In either case we remove the session and free it.
+         * In either case we remove the connection and free it.
          */
-        g_debug ("removing session 0x%" PRIxPTR " from session_manager 0x%"
-                 PRIxPTR, (uintptr_t)session, (uintptr_t)source->session_manager);
+        g_debug ("removing connection 0x%" PRIxPTR " from session_manager 0x%"
+                 PRIxPTR, (uintptr_t)connection, (uintptr_t)source->session_manager);
         session_manager_remove (source->session_manager,
-                                session);
+                                connection);
     }
-    g_object_unref (session);
+    g_object_unref (connection);
     return TRUE;
 }
 
 ssize_t
 wakeup_responder (CommandSource *source)
 {
-    g_debug ("Got new session, updating fd_set");
+    g_debug ("Got new connection, updating fd_set");
     char buf[3] = { 0 };
     ssize_t ret;
 
@@ -315,11 +315,11 @@ wakeup_responder (CommandSource *source)
 }
 
 /* This function is run as a separate thread dedicated to monitoring the
- * active sessions with clients. It also monitors an additional file
+ * active connections with clients. It also monitors an additional file
  * descriptor that we call the wakeup_receive_fd. This pipe is the mechanism used
  * by the code that handles dbus calls to notify the command_source that
- * it's added a new session to the session_manager. When this happens the
- * command_source will begin to watch for data from this new session.
+ * it's added a new connection to the session_manager. When this happens the
+ * command_source will begin to watch for data from this new connection.
  */
 void*
 command_source_thread (void *data)
@@ -330,23 +330,23 @@ command_source_thread (void *data)
     source = COMMAND_SOURCE (data);
     pthread_cleanup_push (command_source_thread_cleanup, source);
     do {
-        FD_ZERO (&source->session_fdset);
+        FD_ZERO (&source->connection_fdset);
         session_manager_set_fds (source->session_manager,
-                                 &source->session_fdset);
-        FD_SET (source->wakeup_receive_fd, &source->session_fdset);
-        ret = select (FD_SETSIZE, &source->session_fdset, NULL, NULL, NULL);
+                                 &source->connection_fdset);
+        FD_SET (source->wakeup_receive_fd, &source->connection_fdset);
+        ret = select (FD_SETSIZE, &source->connection_fdset, NULL, NULL, NULL);
         if (ret == -1) {
             g_debug ("Error selecting on pipes: %s", strerror (errno));
             break;
         }
         for (i = 0; i < FD_SETSIZE; ++i) {
-            if (FD_ISSET (i, &source->session_fdset) &&
+            if (FD_ISSET (i, &source->connection_fdset) &&
                 i != source->wakeup_receive_fd)
             {
-                g_debug ("data ready on session fd: %d", i);
-                command_source_session_responder (source, i, source->sink);
+                g_debug ("data ready on connection fd: %d", i);
+                command_source_connection_responder (source, i, source->sink);
             }
-            if (FD_ISSET (i, &source->session_fdset) &&
+            if (FD_ISSET (i, &source->connection_fdset) &&
                 i == source->wakeup_receive_fd)
             {
                 g_debug ("data ready on wakeup_receive_fd");
@@ -379,8 +379,8 @@ command_source_new (SessionManager    *session_manager,
                                              NULL));
     source->running = FALSE;
     g_signal_connect (session_manager,
-                      "new-session",
-                      (GCallback) command_source_on_new_session,
+                      "new-connection",
+                      (GCallback) command_source_on_new_connection,
                       source);
     return source;
 }

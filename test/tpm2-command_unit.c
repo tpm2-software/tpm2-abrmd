@@ -13,11 +13,11 @@
 typedef struct {
     Tpm2Command *command;
     guint8      *buffer;
-    SessionData *session;
+    Connection *connection;
 } test_data_t;
 /**
  * This is the minimum work required to instantiate a Tpm2Command. It needs
- * a data buffer to hold the command and a SessionData object. We also
+ * a data buffer to hold the command and a Connection object. We also
  * allocate a structure to hold these things so that we can free them in
  * the teardown.
  */
@@ -32,7 +32,7 @@ tpm2_command_setup_base (void **state)
     /* allocate a buffer large enough to hold a TPM2 header and 3 handles */
     data->buffer = calloc (1, TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE) * 3);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->session = session_data_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
     *state = data;
 }
@@ -46,7 +46,7 @@ tpm2_command_setup (void **state)
 
     tpm2_command_setup_base (state);
     data = (test_data_t*)*state;
-    data->command = tpm2_command_new (data->session,
+    data->command = tpm2_command_new (data->connection,
                                       data->buffer,
                                       attributes);
     *state = data;
@@ -61,7 +61,7 @@ tpm2_command_setup_two_handles (void **state)
 
     tpm2_command_setup_base (state);
     data = (test_data_t*)*state;
-    data->command = tpm2_command_new (data->session,
+    data->command = tpm2_command_new (data->connection,
                                       data->buffer,
                                       attributes);
     /*
@@ -82,7 +82,7 @@ tpm2_command_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
 
-    g_object_unref (data->session);
+    g_object_unref (data->connection);
     g_object_unref (data->command);
     free (data);
 }
@@ -103,11 +103,11 @@ tpm2_command_type_test (void **state)
 }
 
 static void
-tpm2_command_get_session_test (void **state)
+tpm2_command_get_connection_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
 
-    assert_int_equal (data->session, tpm2_command_get_session (data->command));
+    assert_int_equal (data->connection, tpm2_command_get_connection (data->command));
 }
 
 static void
@@ -125,7 +125,7 @@ tpm2_command_get_tag_test (void **state)
     guint8              *buffer = tpm2_command_get_buffer (data->command);
     TPMI_ST_COMMAND_TAG  tag_ret;
 
-    /* this is tpm_st_sessions in network byte order */
+    /* this is TPM_ST_SESSIONS in network byte order */
     buffer[0] = 0x80;
     buffer[1] = 0x02;
 
@@ -140,7 +140,7 @@ tpm2_command_get_size_test (void **state)
     guint8      *buffer   = tpm2_command_get_buffer (data->command);
     guint32      size_ret = 0;
 
-    /* this is tpm_st_sessions in network byte order */
+    /* this is tpm_st_connections in network byte order */
     buffer[0] = 0x80;
     buffer[1] = 0x02;
     buffer[2] = 0x00;
@@ -298,7 +298,7 @@ main (gint    argc,
         unit_test_setup_teardown (tpm2_command_type_test,
                                   tpm2_command_setup,
                                   tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_session_test,
+        unit_test_setup_teardown (tpm2_command_get_connection_test,
                                   tpm2_command_setup,
                                   tpm2_command_teardown),
         unit_test_setup_teardown (tpm2_command_get_buffer_test,

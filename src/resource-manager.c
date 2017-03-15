@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <inttypes.h>
 
+#include "connection.h"
 #include "control-message.h"
 #include "message-queue.h"
 #include "resource-manager.h"
@@ -66,7 +67,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
 {
     HandleMap    *map;
     HandleMapEntry *entry;
-    SessionData  *session;
+    Connection  *connection;
     TSS2_RC       rc = TSS2_RC_SUCCESS;
     TPM_HANDLE    handles[3] = { 0, };
     guint8 i, handle_count;;
@@ -76,7 +77,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
         g_warning ("resource_manager_load_contexts received NULL parameter.");
         return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
     }
-    session = tpm2_command_get_session (command);
+    connection = tpm2_command_get_connection (command);
     handle_count = tpm2_command_get_handle_count (command);
     if (handle_count > *entry_count) {
         g_warning ("resource_manager_load_contexts handle count > entry_count");
@@ -89,7 +90,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
         switch (handles [i] >> HR_SHIFT) {
         case TPM_HT_TRANSIENT:
             g_debug ("processing TPM_HT_TRANSIENT: 0x%" PRIx32, handles [i]);
-            map = session_data_get_trans_map (session);
+            map = connection_get_trans_map (connection);
             g_debug ("handle 0x%" PRIx32 " is virtual TPM_HT_TRANSIENT, "
                      "loading", handles [i]);
             entry = handle_map_vlookup (map, handles [i]);
@@ -110,7 +111,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
         }
     }
     g_debug ("resource_manager_load_contexts end");
-    g_object_unref (session);
+    g_object_unref (connection);
 
     return rc;
 }
@@ -169,7 +170,7 @@ resource_manager_virtualize_handle (ResourceManager *resmgr,
                                     Tpm2Response    *response)
 {
     TPM_HANDLE      phandle, vhandle = 0;
-    SessionData    *session;
+    Connection    *connection;
     HandleMap      *handle_map;
     HandleMapEntry *entry = NULL;
 
@@ -178,8 +179,8 @@ resource_manager_virtualize_handle (ResourceManager *resmgr,
     switch (phandle >> HR_SHIFT) {
     case TPM_HT_TRANSIENT:
         g_debug ("handle is transient, virtualizing");
-        session = tpm2_response_get_session (response);
-        handle_map = session_data_get_trans_map (session);
+        connection = tpm2_response_get_connection (response);
+        handle_map = connection_get_trans_map (connection);
         vhandle = handle_map_next_vhandle (handle_map);
         if (vhandle == 0)
             g_error ("vhandle rolled over!");
@@ -188,7 +189,7 @@ resource_manager_virtualize_handle (ResourceManager *resmgr,
         g_debug ("handle map entry: 0x%" PRIxPTR, (uintptr_t)entry);
         handle_map_insert (handle_map, vhandle, entry);
         tpm2_response_set_handle (response, vhandle);
-        g_object_unref (session);
+        g_object_unref (connection);
         g_object_unref (handle_map);
         break;
     default:
@@ -224,7 +225,7 @@ TSS2_RC
 resource_manager_flush_context (ResourceManager *resmgr,
                                 Tpm2Command     *command)
 {
-    SessionData *session;
+    Connection *connection;
     HandleMap   *map;
     HandleMapEntry *entry;
     TPM_HANDLE      vhandle;
@@ -234,9 +235,9 @@ resource_manager_flush_context (ResourceManager *resmgr,
         g_warning ("resource_manager_flush_context with wrong command");
         return TSS2_RC_SUCCESS;
     }
-    session = tpm2_command_get_session (command);
-    map = session_data_get_trans_map (session);
-    g_object_unref (session);
+    connection = tpm2_command_get_connection (command);
+    map = connection_get_trans_map (connection);
+    g_object_unref (connection);
 
     vhandle = tpm2_command_get_flush_handle (command);
     g_debug ("resource_manager_flush_context vhandle: 0x%" PRIx32, vhandle);
@@ -267,7 +268,7 @@ resource_manager_is_over_object_quota (ResourceManager *resmgr,
                                        Tpm2Command     *command)
 {
     HandleMap   *handle_map;
-    SessionData *session;
+    Connection *connection;
     gboolean     ret = FALSE;
 
     switch (tpm2_command_get_code (command)) {
@@ -275,12 +276,12 @@ resource_manager_is_over_object_quota (ResourceManager *resmgr,
     case TPM_CC_CreatePrimary:
     case TPM_CC_Load:
     case TPM_CC_LoadExternal:
-        session = tpm2_command_get_session (command);
-        handle_map = session_data_get_trans_map (session);
+        connection = tpm2_command_get_connection (command);
+        handle_map = connection_get_trans_map (connection);
         if (handle_map_is_full (handle_map)) {
             ret = TRUE;
         }
-        g_object_unref (session);
+        g_object_unref (connection);
         g_object_unref (handle_map);
     }
 
@@ -307,7 +308,7 @@ void
 resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                        Tpm2Command       *command)
 {
-    SessionData    *session;
+    Connection    *connection;
     Tpm2Response   *response;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     HandleMapEntry *entries[4];
@@ -316,14 +317,14 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%" PRIxPTR
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
     dump_command (command);
-    session = tpm2_command_get_session (command);
-    /* If session has reached quota limit kill command & send error response */
+    connection = tpm2_command_get_connection (command);
+    /* If connection has reached quota limit kill command & send error response */
     if (resource_manager_is_over_object_quota (resmgr, command)) {
-        response = tpm2_response_new_rc (session,
+        response = tpm2_response_new_rc (connection,
                                          TSS2_TABRMD_OBJECT_MEMORY);
         sink_enqueue (resmgr->sink, G_OBJECT (response));
         g_object_unref (response);
-        g_object_unref (session);
+        g_object_unref (connection);
         return;
     }
     /*
@@ -334,9 +335,9 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     case TPM_CC_FlushContext:
         g_debug ("processing TPM_CC_FlushContext");
         rc = resource_manager_flush_context (resmgr, command);
-        response = tpm2_response_new_rc (session, rc);
+        response = tpm2_response_new_rc (connection, rc);
         entry_count = 0;
-        g_object_unref (session);
+        g_object_unref (connection);
         break;
     default:
         if (tpm2_command_get_handle_count (command) > 0) {
@@ -353,8 +354,8 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         if (response == NULL)
             g_error ("access_broker_send_command returned NULL Tpm2Response?");
         } else {
-            response = tpm2_response_new_rc (session, rc);
-            g_object_unref (session);
+            response = tpm2_response_new_rc (connection, rc);
+            g_object_unref (connection);
         }
         dump_response (response);
         /* transform the Tpm2Response */
@@ -367,7 +368,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     }
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
-    g_object_unref (session);
+    g_object_unref (connection);
     /* flush contexts loaded for and created by the command */
     guint i;
     g_debug ("flushsave_context for %" PRIu32 " entries", entry_count);

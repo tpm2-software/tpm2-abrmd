@@ -4,7 +4,7 @@
 #include <glib-object.h>
 #include <tpm20.h>
 
-#include "session-data.h"
+#include "connection.h"
 
 G_BEGIN_DECLS
 
@@ -14,7 +14,7 @@ typedef struct _Tpm2ResponseClass {
 
 typedef struct _Tpm2Response {
     GObject         parent_instance;
-    SessionData    *session;
+    Connection     *connection;
     guint8         *buffer;
     TPMA_CC         attributes;
 } Tpm2Response;
@@ -29,10 +29,10 @@ typedef struct _Tpm2Response {
 #define TPM2_RESPONSE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TPM2_RESPONSE, Tpm2ResponseClass))
 
 GType               tpm2_response_get_type      (void);
-Tpm2Response*       tpm2_response_new           (SessionData     *session,
+Tpm2Response*       tpm2_response_new           (Connection      *connection,
                                                  guint8          *buffer,
                                                  TPMA_CC          attributes);
-Tpm2Response*       tpm2_response_new_rc        (SessionData     *session,
+Tpm2Response*       tpm2_response_new_rc        (Connection      *connection,
                                                  TPM_RC           rc);
 TPMA_CC             tpm2_response_get_attributes (Tpm2Response   *response);
 guint8*             tpm2_response_get_buffer    (Tpm2Response    *response);
@@ -42,7 +42,7 @@ TPM_HT              tpm2_response_get_handle_type (Tpm2Response  *response);
 gboolean            tpm2_response_has_handle    (Tpm2Response    *response);
 guint32             tpm2_response_get_size      (Tpm2Response    *response);
 TPM_ST              tpm2_response_get_tag       (Tpm2Response    *response);
-SessionData*        tpm2_response_get_session   (Tpm2Response    *response);
+Connection*         tpm2_response_get_connection (Tpm2Response    *response);
 void                tpm2_response_set_handle    (Tpm2Response    *response,
                                                  TPM_HANDLE       handle);
 

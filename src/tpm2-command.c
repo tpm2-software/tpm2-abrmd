@@ -52,12 +52,12 @@ tpm2_command_set_property (GObject        *object,
         self->buffer = (guint8*)g_value_get_pointer (value);
         break;
     case PROP_SESSION:
-        if (self->session != NULL) {
-            g_warning ("  session already set");
+        if (self->connection != NULL) {
+            g_warning ("  connection already set");
             break;
         }
-        self->session = g_value_get_object (value);
-        g_object_ref (self->session);
+        self->connection = g_value_get_object (value);
+        g_object_ref (self->connection);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -84,7 +84,7 @@ tpm2_command_get_property (GObject     *object,
         g_value_set_pointer (value, self->buffer);
         break;
     case PROP_SESSION:
-        g_value_set_object (value, self->session);
+        g_value_set_object (value, self->connection);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -103,8 +103,8 @@ tpm2_command_finalize (GObject *obj)
     g_debug ("tpm2_command_finalize");
     if (cmd->buffer)
         g_free (cmd->buffer);
-    if (cmd->session)
-        g_object_unref (cmd->session);
+    if (cmd->connection)
+        g_object_unref (cmd->connection);
     G_OBJECT_CLASS (tpm2_command_parent_class)->finalize (obj);
 }
 /**
@@ -136,10 +136,10 @@ tpm2_command_class_init (gpointer klass)
                               "memory buffer holding a TPM2 command",
                               G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_SESSION] =
-        g_param_spec_object ("session",
+        g_param_spec_object ("connection",
                              "Session object",
-                             "The Session object that sent the command",
-                             TYPE_SESSION_DATA,
+                             "The Connection object that sent the command",
+                             TYPE_CONNECTION,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
@@ -168,14 +168,14 @@ tpm2_command_get_type (void)
  * Boilerplate constructor, but some GObject properties would be nice.
  */
 Tpm2Command*
-tpm2_command_new (SessionData     *session,
+tpm2_command_new (Connection     *connection,
                   guint8          *buffer,
                   TPMA_CC          attributes)
 {
     return TPM2_COMMAND (g_object_new (TYPE_TPM2_COMMAND,
                                        "attributes", attributes,
                                        "buffer",  buffer,
-                                       "session", session,
+                                       "connection", connection,
                                        NULL));
 }
 /**
@@ -183,7 +183,7 @@ tpm2_command_new (SessionData     *session,
  * as a parameter we read it from the 'fd' parameter (file descriptor).
  */
 Tpm2Command*
-tpm2_command_new_from_fd (SessionData *session,
+tpm2_command_new_from_fd (Connection *connection,
                           gint         fd,
                           CommandAttrs *command_attrs)
 {
@@ -206,7 +206,7 @@ tpm2_command_new_from_fd (SessionData *session,
         free (command_buf);
         return NULL;
     }
-    return tpm2_command_new (session, command_buf, attributes);
+    return tpm2_command_new (connection, command_buf, attributes);
 }
 /* Simple "getter" to expose the attributes associated with the command. */
 TPMA_CC
@@ -246,17 +246,17 @@ tpm2_command_get_tag (Tpm2Command *command)
     return be16toh (*(TPMI_ST_COMMAND_TAG*)(command->buffer));
 }
 /*
- * Return the SessionData object associated with this Tpm2Command. This
- * is the SessionData object representing the client that sent this command.
- * The reference count on this object is incremented before the SessionData
+ * Return the Connection object associated with this Tpm2Command. This
+ * is the Connection object representing the client that sent this command.
+ * The reference count on this object is incremented before the Connection
  * object is returned to the caller. The caller is responsible for
- * decrementing the reference count when it is done using the session object.
+ * decrementing the reference count when it is done using the connection object.
  */
-SessionData*
-tpm2_command_get_session (Tpm2Command *command)
+Connection*
+tpm2_command_get_connection (Tpm2Command *command)
 {
-    g_object_ref (command->session);
-    return command->session;
+    g_object_ref (command->connection);
+    return command->connection;
 }
 /* Return the number of handles in the command. */
 guint8

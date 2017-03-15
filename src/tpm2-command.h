@@ -4,7 +4,7 @@
 #include <glib-object.h>
 #include <tpm20.h>
 
-#include "session-data.h"
+#include "connection.h"
 
 G_BEGIN_DECLS
 
@@ -15,7 +15,7 @@ typedef struct _Tpm2CommandClass {
 typedef struct _Tpm2Command {
     GObject         parent_instance;
     TPMA_CC         attributes;
-    SessionData    *session;
+    Connection     *connection;
     guint8         *buffer;
 } Tpm2Command;
 
@@ -29,10 +29,10 @@ typedef struct _Tpm2Command {
 #define TPM2_COMMAND_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TPM2_COMMAND, Tpm2CommandClass))
 
 GType                 tpm2_command_get_type        (void);
-Tpm2Command*          tpm2_command_new             (SessionData      *session,
+Tpm2Command*          tpm2_command_new             (Connection      *connection,
                                                     guint8           *buffer,
                                                     TPMA_CC           attrs);
-Tpm2Command*          tpm2_command_new_from_fd     (SessionData      *session,
+Tpm2Command*          tpm2_command_new_from_fd     (Connection      *connection,
                                                     gint              fd,
                                                     CommandAttrs     *attrs);
 TPMA_CC               tpm2_command_get_attributes  (Tpm2Command      *command);
@@ -53,7 +53,7 @@ gboolean              tpm2_command_set_handles     (Tpm2Command      *command,
 TPM_HANDLE            tpm2_command_get_flush_handle (Tpm2Command     *command);
 guint32               tpm2_command_get_size        (Tpm2Command      *command);
 TPMI_ST_COMMAND_TAG   tpm2_command_get_tag         (Tpm2Command      *command);
-SessionData*          tpm2_command_get_session     (Tpm2Command      *command);
+Connection*           tpm2_command_get_connection  (Tpm2Command      *command);
 
 G_END_DECLS
 

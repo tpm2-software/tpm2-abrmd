@@ -16,7 +16,7 @@
 typedef struct test_data {
     AccessBroker    *access_broker;
     ResourceManager *resource_manager;
-    SessionData     *session;
+    Connection      *connection;
     TctiEcho        *tcti_echo;
     Tpm2Command     *command;
     Tpm2Response    *response;
@@ -105,7 +105,7 @@ resource_manager_setup (void **state)
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->access_broker = access_broker_new (TCTI (data->tcti_echo));
     data->resource_manager = resource_manager_new (data->access_broker);
-    data->session = session_data_new (&data->recv_fd, &data->send_fd, 10, handle_map);
+    data->connection = connection_new (&data->recv_fd, &data->send_fd, 10, handle_map);
     g_object_unref (handle_map);
 
     *state = data;
@@ -143,7 +143,7 @@ resource_manager_setup_two_transient_handles (void **state)
     buffer [15] = 0x00;
     buffer [16] = 0x00;
     buffer [17] = data->vhandles [1] & 0xff; /* second virtual handle */
-    data->command = tpm2_command_new (data->session,
+    data->command = tpm2_command_new (data->connection,
                                       buffer,
                                       data->command_attrs);
 }
@@ -162,9 +162,9 @@ resource_manager_teardown (void **state)
         g_debug ("resource_manager unref TctiEcho");
         g_object_unref (data->tcti_echo);
     }
-    if (data->session) {
-        g_debug ("resource_manager unref SessionData");
-        g_object_unref (data->session);
+    if (data->connection) {
+        g_debug ("resource_manager unref Connection");
+        g_object_unref (data->connection);
     }
     if (data->command) {
         g_debug ("resource_manager unref Tpm2Command");
@@ -212,7 +212,7 @@ resource_manager_sink_enqueue_test (void **state)
     guint8 *buffer;
 
     buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
-    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
+    data->command = tpm2_command_new (data->connection, buffer, (TPMA_CC){ 0, });
     resource_manager_enqueue (SINK (data->resource_manager), G_OBJECT (data->command));
     command_out = TPM2_COMMAND (message_queue_dequeue (data->resource_manager->in_queue));
 
@@ -238,8 +238,8 @@ resource_manager_process_tpm2_command_success_test (void **state)
      * it will be freed by the call to resource_manager_process_tpm2_command
      * and the teardown function will attempt to free it again if set.
      */
-    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
-    response = tpm2_response_new_rc (data->session, TSS2_RC_SUCCESS);
+    data->command = tpm2_command_new (data->connection, buffer, (TPMA_CC){ 0, });
+    response = tpm2_response_new_rc (data->connection, TSS2_RC_SUCCESS);
     /*
      * This response object will be freed by the process_tpm2_command
      * function. We take an extra reference and free when we're done.
@@ -349,7 +349,7 @@ resource_manager_load_contexts_test (void **state)
 
     handle_count = tpm2_command_get_handle_count (data->command);
     tpm2_command_get_handles (data->command, vhandles, 3);
-    map = session_data_get_trans_map (data->session);
+    map = connection_get_trans_map (data->connection);
     for (i = 0; i < handle_count; ++i) {
         entry = handle_map_entry_new (phandles [i], vhandles [i]);
         handle_map_insert (map, vhandles [i], entry);

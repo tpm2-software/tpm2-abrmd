@@ -6,9 +6,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "session-data.h"
+#include "connection.h"
 
-static gpointer session_data_parent_class = NULL;
+static gpointer connection_parent_class = NULL;
 
 enum {
     PROP_0,
@@ -21,34 +21,34 @@ enum {
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
 
 static void
-session_data_set_property (GObject        *object,
-                           guint          property_id,
-                           const GValue  *value,
-                           GParamSpec    *pspec)
+connection_set_property (GObject       *object,
+                         guint          property_id,
+                         const GValue  *value,
+                         GParamSpec    *pspec)
 {
-    SessionData *self = SESSION_DATA (object);
+    Connection *self = CONNECTION (object);
 
-    g_debug ("session_data_set_property");
+    g_debug ("connection_set_property");
     switch (property_id) {
     case PROP_ID:
         self->id = g_value_get_uint64 (value);
-        g_debug ("SessionData 0x%" PRIxPTR " set id to 0x%" PRIx64,
+        g_debug ("Connection 0x%" PRIxPTR " set id to 0x%" PRIx64,
                  (uintptr_t)self, self->id);
         break;
     case PROP_RECEIVE_FD:
         self->receive_fd = g_value_get_int (value);
-        g_debug ("SessionData 0x%" PRIxPTR " set receive_fd to %d",
+        g_debug ("Connection 0x%" PRIxPTR " set receive_fd to %d",
                  (uintptr_t)self, self->receive_fd);
         break;
     case PROP_SEND_FD:
         self->send_fd = g_value_get_int (value);
-        g_debug ("SessionData 0x%" PRIxPTR " set send_fd to %d",
+        g_debug ("Connection 0x%" PRIxPTR " set send_fd to %d",
                  (uintptr_t)self, self->send_fd);
         break;
     case PROP_TRANSIENT_HANDLE_MAP:
         self->transient_handle_map = g_value_get_object (value);
         g_object_ref (self->transient_handle_map);
-        g_debug ("SessionData 0x%" PRIxPTR " set trans_handel_map to 0x%"
+        g_debug ("Connection 0x%" PRIxPTR " set trans_handel_map to 0x%"
                   PRIxPTR, (uintptr_t)self,
                   (uintptr_t)self->transient_handle_map);
         break;
@@ -58,14 +58,14 @@ session_data_set_property (GObject        *object,
     }
 }
 static void
-session_data_get_property (GObject     *object,
-                           guint        property_id,
-                           GValue      *value,
-                           GParamSpec  *pspec)
+connection_get_property (GObject     *object,
+                         guint        property_id,
+                         GValue      *value,
+                         GParamSpec  *pspec)
 {
-    SessionData *self = SESSION_DATA (object);
+    Connection *self = CONNECTION (object);
 
-    g_debug ("session_data_get_property");
+    g_debug ("connection_get_property");
     switch (property_id) {
     case PROP_ID:
         g_value_set_uint64 (value, self->id);
@@ -85,37 +85,37 @@ session_data_get_property (GObject     *object,
     }
 }
 static void
-session_data_finalize (GObject *obj)
+connection_finalize (GObject *obj)
 {
-    SessionData *session = SESSION_DATA (obj);
+    Connection *connection = CONNECTION (obj);
 
-    g_debug ("session_data_finalize: 0x%" PRIxPTR, (uintptr_t)session);
-    if (session == NULL)
+    g_debug ("connection_finalize: 0x%" PRIxPTR, (uintptr_t)connection);
+    if (connection == NULL)
         return;
-    close (session->receive_fd);
-    close (session->send_fd);
-    g_object_unref (session->transient_handle_map);
-    if (session_data_parent_class)
-        G_OBJECT_CLASS (session_data_parent_class)->finalize (obj);
+    close (connection->receive_fd);
+    close (connection->send_fd);
+    g_object_unref (connection->transient_handle_map);
+    if (connection_parent_class)
+        G_OBJECT_CLASS (connection_parent_class)->finalize (obj);
 }
 
 static void
-session_data_class_init (gpointer klass)
+connection_class_init (gpointer klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    g_debug ("session_data_class_init");
-    if (session_data_parent_class == NULL)
-        session_data_parent_class = g_type_class_peek_parent (klass);
+    g_debug ("connection_class_init");
+    if (connection_parent_class == NULL)
+        connection_parent_class = g_type_class_peek_parent (klass);
 
-    object_class->finalize     = session_data_finalize;
-    object_class->get_property = session_data_get_property;
-    object_class->set_property = session_data_set_property;
+    object_class->finalize     = connection_finalize;
+    object_class->get_property = connection_get_property;
+    object_class->set_property = connection_set_property;
 
     obj_properties [PROP_ID] =
         g_param_spec_uint64 ("id",
-                             "session identifier",
-                             "Unique identifier for the session",
+                             "connection identifier",
+                             "Unique identifier for the connection",
                              0,
                              UINT64_MAX,
                              0,
@@ -147,17 +147,17 @@ session_data_class_init (gpointer klass)
                                        obj_properties);
 }
 GType
-session_data_get_type (void)
+connection_get_type (void)
 {
     static GType type = 0;
 
-    g_debug ("session_data_get_type");
+    g_debug ("connection_get_type");
     if (type == 0) {
         type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "SessionData",
-                                              sizeof (SessionDataClass),
-                                              (GClassInitFunc) session_data_class_init,
-                                              sizeof (SessionData),
+                                              "Connection",
+                                              sizeof (ConnectionClass),
+                                              (GClassInitFunc) connection_class_init,
+                                              sizeof (Connection),
                                               NULL,
                                               0);
     }
@@ -210,7 +210,7 @@ set_flags (const int fd,
 
     local_flags = fcntl(fd, F_GETFL, 0);
     if (!(local_flags && flags)) {
-        g_debug ("session_data: setting flags for fd %d to %d",
+        g_debug ("connection: setting flags for fd %d to %d",
                  fd, local_flags | flags);
         ret = fcntl(fd, F_SETFL, local_flags | flags);
     }
@@ -222,86 +222,86 @@ set_flags (const int fd,
  * and it returns this array populated with the receiving and sending pipe fds
  * respectively.
  */
-SessionData*
-session_data_new (gint       *receive_fd,
-                  gint       *send_fd,
-                  guint64     id,
-                  HandleMap  *transient_handle_map)
+Connection*
+connection_new (gint       *receive_fd,
+                gint       *send_fd,
+                guint64     id,
+                HandleMap  *transient_handle_map)
 {
 
     g_info ("CreateConnection");
-    int ret, session_fds[2], client_fds[2];
+    int ret, connection_fds[2], client_fds[2];
 
-    g_debug ("session_data_new creating pipe pairs");
-    ret = create_pipe_pairs (session_fds, client_fds, O_CLOEXEC);
+    g_debug ("connection_new creating pipe pairs");
+    ret = create_pipe_pairs (connection_fds, client_fds, O_CLOEXEC);
     if (ret == -1)
         g_error ("CreateConnection failed to make pipe pair %s", strerror (errno));
     /* Make the fds used by the server non-blocking, the client will have to
      * set its own flags.
      */
-    ret = set_flags (session_fds [0], O_NONBLOCK);
+    ret = set_flags (connection_fds [0], O_NONBLOCK);
     if (ret == -1)
         g_error ("Failed to set O_NONBLOCK for server receive fd %d: %s",
-                 session_fds [0], strerror (errno));
-    ret = set_flags (session_fds [1], O_NONBLOCK);
+                 connection_fds [0], strerror (errno));
+    ret = set_flags (connection_fds [1], O_NONBLOCK);
     if (ret == -1)
         g_error ("Failed to set O_NONBLOCK for server send fd %d: %s",
-                 session_fds [1], strerror (errno));
+                 connection_fds [1], strerror (errno));
     /* return a receive & send end back for the client */
     *receive_fd = client_fds[0];
     *send_fd = client_fds[1];
 
-    return SESSION_DATA (g_object_new (TYPE_SESSION_DATA,
-                                       "id", id,
-                                       "receive_fd", session_fds [0],
-                                       "send_fd", session_fds [1],
-                                       "transient-handle-map", transient_handle_map,
-                                       NULL));
+    return CONNECTION (g_object_new (TYPE_CONNECTION,
+                                     "id", id,
+                                     "receive_fd", connection_fds [0],
+                                     "send_fd", connection_fds [1],
+                                     "transient-handle-map", transient_handle_map,
+                                     NULL));
 }
 
 gpointer
-session_data_key_fd (SessionData *session)
+connection_key_fd (Connection *connection)
 {
-    return &session->receive_fd;
+    return &connection->receive_fd;
 }
 
 gpointer
-session_data_key_id (SessionData *session)
+connection_key_id (Connection *connection)
 {
-    return &session->id;
+    return &connection->id;
 }
 
 gboolean
-session_data_equal_fd (gconstpointer a,
+connection_equal_fd (gconstpointer a,
                        gconstpointer b)
 {
     return g_int_equal (a, b);
 }
 
 gboolean
-session_data_equal_id (gconstpointer a,
+connection_equal_id (gconstpointer a,
                        gconstpointer b)
 {
     return g_int_equal (a, b);
 }
 gint
-session_data_receive_fd (SessionData *session)
+connection_receive_fd (Connection *connection)
 {
     GValue value = G_VALUE_INIT;
 
     g_value_init (&value, G_TYPE_INT);
-    g_object_get_property (G_OBJECT (session),
+    g_object_get_property (G_OBJECT (connection),
                            "receive_fd",
                            &value);
     return g_value_get_int (&value);
 }
 gint
-session_data_send_fd (SessionData *session)
+connection_send_fd (Connection *connection)
 {
     GValue value = G_VALUE_INIT;
 
     g_value_init (&value, G_TYPE_INT);
-    g_object_get_property (G_OBJECT (session),
+    g_object_get_property (G_OBJECT (connection),
                            "send_fd",
                            &value);
     return g_value_get_int (&value);
@@ -313,8 +313,8 @@ session_data_send_fd (SessionData *session)
  * object.
  */
 HandleMap*
-session_data_get_trans_map (SessionData *session)
+connection_get_trans_map (Connection *connection)
 {
-    g_object_ref (session->transient_handle_map);
-    return session->transient_handle_map;
+    g_object_ref (connection->transient_handle_map);
+    return connection->transient_handle_map;
 }

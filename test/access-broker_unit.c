@@ -14,7 +14,7 @@
 
 typedef struct test_data {
     AccessBroker *broker;
-    SessionData  *session;
+    Connection  *connection;
     TctiEcho     *tcti;
     Tpm2Command  *command;
     Tpm2Response *response;
@@ -134,7 +134,7 @@ access_broker_setup_with_init (void **state)
 }
 /*
  * This setup function chains up to the 'setup_with_init' function.
- * Additionally it creates a SessionData and Tpm2Command object for use in
+ * Additionally it creates a Connection and Tpm2Command object for use in
  * the unit test.
  */
 static void
@@ -149,9 +149,9 @@ access_broker_setup_with_command (void **state)
     data = (test_data_t*)*state;
     buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->session = session_data_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
-    data->command = tpm2_command_new (data->session, buffer, (TPMA_CC){ 0, });
+    data->command = tpm2_command_new (data->connection, buffer, (TPMA_CC){ 0, });
 }
 /*
  * Function to teardown data created for tests.
@@ -162,8 +162,8 @@ access_broker_teardown (void **state)
     test_data_t *data = (test_data_t*)*state;
 
     g_object_unref (data->broker);
-    if (G_IS_OBJECT (data->session))
-        g_object_unref (data->session);
+    if (G_IS_OBJECT (data->connection))
+        g_object_unref (data->connection);
     if (G_IS_OBJECT (data->command))
         g_object_unref (data->command);
     if (G_IS_OBJECT (data->response))
@@ -260,7 +260,7 @@ access_broker_send_command_tcti_transmit_fail_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = 99;
-    SessionData *session;
+    Connection *connection;
 
     will_return (__wrap_tcti_echo_transmit, rc_expected);
     data->response = access_broker_send_command (data->broker, data->command, &rc);
@@ -269,12 +269,12 @@ access_broker_send_command_tcti_transmit_fail_test (void **state)
     /* the Tpm2Response object we get back should have the same RC */
     assert_int_equal (tpm2_response_get_code (data->response), rc_expected);
     /**
-     * the Tpm2Response object we get back should have the same session as
+     * the Tpm2Response object we get back should have the same connection as
      * the Tpm2Command we tried to send.
      */
-    session = tpm2_response_get_session (data->response);
-    assert_int_equal (session, data->session);
-    g_object_unref (session);
+    connection = tpm2_response_get_connection (data->response);
+    assert_int_equal (connection, data->connection);
+    g_object_unref (connection);
 }
 /*
  * This test exercises a failure path through the access_broker_send_command
@@ -286,7 +286,7 @@ access_broker_send_command_tcti_receive_fail_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = 99;
-    SessionData *session;
+    Connection *connection;
 
     will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
     will_return (__wrap_tcti_echo_receive, rc_expected);
@@ -296,12 +296,12 @@ access_broker_send_command_tcti_receive_fail_test (void **state)
     /* the Tpm2Response object we get back should have the same RC */
     assert_int_equal (tpm2_response_get_code (data->response), rc_expected);
     /**
-     * the Tpm2Response object we get back should have the same session as
+     * the Tpm2Response object we get back should have the same connection as
      * the Tpm2Command we tried to send.
      */
-    session = tpm2_response_get_session (data->response);
-    assert_int_equal (session, data->session);
-    g_object_unref (session);
+    connection = tpm2_response_get_connection (data->response);
+    assert_int_equal (connection, data->connection);
+    g_object_unref (connection);
 }
 /*
  * This test exercises the success path through the
@@ -312,7 +312,7 @@ access_broker_send_command_success (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
-    SessionData *session;
+    Connection *connection;
 
     will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
     will_return (__wrap_tcti_echo_receive,  TSS2_RC_SUCCESS);
@@ -322,12 +322,12 @@ access_broker_send_command_success (void **state)
     /* the Tpm2Response object we get back should have the same RC */
     assert_int_equal (tpm2_response_get_code (data->response), TSS2_RC_SUCCESS);
     /**
-     * the Tpm2Response object we get back should have the same session as
+     * the Tpm2Response object we get back should have the same connection as
      * the Tpm2Command we tried to send.
      */
-    session = tpm2_response_get_session (data->response);
-    assert_int_equal (session, data->session);
-    g_object_unref (session);
+    connection = tpm2_response_get_connection (data->response);
+    assert_int_equal (connection, data->connection);
+    g_object_unref (connection);
 }
 
 int

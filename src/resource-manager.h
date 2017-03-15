@@ -8,7 +8,6 @@
 
 #include "access-broker.h"
 #include "message-queue.h"
-#include "session-data.h"
 #include "sink-interface.h"
 
 G_BEGIN_DECLS

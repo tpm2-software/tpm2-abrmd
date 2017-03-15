@@ -10,12 +10,12 @@
 #include <sapi/tpm20.h>
 #include "tabrmd.h"
 #include "access-broker.h"
+#include "connection.h"
 #include "tabrmd-priv.h"
 #include "logging.h"
 #include "thread-interface.h"
 #include "session-manager.h"
 #include "command-source.h"
-#include "session-data.h"
 #include "random.h"
 #include "resource-manager.h"
 #include "response-sink.h"
@@ -92,13 +92,13 @@ handle_array_variant_from_fdlist (GUnixFDList *fdlist)
  * request from a client to create a new connection with the tabrmd. This
  * requires a few things be done:
  * - Create a new ID (uint64) for the connection.
- * - Create a new SessionData object getting the FDs that must be returned
+ * - Create a new Connection object getting the FDs that must be returned
  *   to the client.
- * - Build up a dbus response to the client with their session ID and
+ * - Build up a dbus response to the client with their connection ID and
  *   send / receive FDs.
  * - Send the response message back to the client.
- * - Insert the new SessionData object into the SessionManager.
- * - Notify the CommandSource of the new SessionData that it needs to
+ * - Insert the new Connection object into the SessionManager.
+ * - Notify the CommandSource of the new Connection that it needs to
  *   watch by writing a magic value to the wakeup_send_fd.
  */
 static gboolean
@@ -108,7 +108,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     HandleMap   *handle_map = NULL;
-    SessionData *session = NULL;
+    Connection *connection = NULL;
     gint client_fds[2] = { 0, 0 }, ret = 0;
     GVariant *response_variants[2], *response_tuple;
     GUnixFDList *fd_list = NULL;
@@ -129,10 +129,10 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     handle_map = handle_map_new (TPM_HT_TRANSIENT, data->options.max_transient_objects);
     if (handle_map == NULL)
         g_error ("Failed to allocate new HandleMap");
-    session = session_data_new (&client_fds[0], &client_fds[1], id, handle_map);
+    connection = connection_new (&client_fds[0], &client_fds[1], id, handle_map);
     g_object_unref (handle_map);
-    if (session == NULL)
-        g_error ("Failed to allocate new session.");
+    if (connection == NULL)
+        g_error ("Failed to allocate new connection.");
     g_debug ("Created connection with fds: %d, %d and id: 0x%" PRIx64,
              client_fds[0], client_fds[1], id);
     /* prepare tuple variant for response message */
@@ -140,10 +140,10 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     response_variants[0] = handle_array_variant_from_fdlist (fd_list);
     response_variants[1] = g_variant_new_uint64 (id);
     response_tuple = g_variant_new_tuple (response_variants, 2);
-    /* add session to manager */
-    ret = session_manager_insert (data->manager, session);
+    /* add Connection to manager */
+    ret = session_manager_insert (data->manager, connection);
     if (ret != 0) {
-        g_warning ("Failed to add new session to session_manager.");
+        g_warning ("Failed to add new connection to session_manager.");
     }
     /* send response */
     g_dbus_method_invocation_return_value_with_unix_fd_list (
@@ -151,7 +151,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
         response_tuple,
         fd_list);
     g_object_unref (fd_list);
-    g_object_unref (session);
+    g_object_unref (connection);
 
     return TRUE;
 }
@@ -163,13 +163,13 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
  * on the dbus (on_name_acquired). It does X things:
  * - Ensure the init thread has completed successfully by locking and then
  *   unlocking the init mutex.
- * - Locate the SessionData object associted with the 'id' parameter in
+ * - Locate the Connection object associted with the 'id' parameter in
  *   the SessionManager.
- * - If the session has a command being processed by the tabrmd then it's
+ * - If the connection has a command being processed by the tabrmd then it's
  *   removed from the processing queue.
- * - If the session has a command being processed by the TPM then the
+ * - If the connection has a command being processed by the TPM then the
  *   request to cancel the command will be sent down to the TPM.
- * - If the session has no commands outstanding then an error is
+ * - If the connection has no commands outstanding then an error is
  *   returned.
  */
 static gboolean
@@ -179,20 +179,20 @@ on_handle_cancel (TctiTabrmd           *skeleton,
                   gpointer               user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
-    SessionData *session = NULL;
+    Connection *connection = NULL;
     GVariant *uint32_variant, *tuple_variant;
 
     g_info ("on_handle_cancel for id 0x%" PRIx64, id);
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
-    session = session_manager_lookup_id (data->manager, id);
-    if (session == NULL) {
-        g_warning ("no active session for id: 0x%" PRIx64, id);
+    connection = session_manager_lookup_id (data->manager, id);
+    if (connection == NULL) {
+        g_warning ("no active connection for id: 0x%" PRIx64, id);
         return FALSE;
     }
-    g_info ("canceling command for session 0x%" PRIxPTR, (uintptr_t)session);
-    /* cancel any existing commands for the session */
-    g_object_unref (session);
+    g_info ("canceling command for connection 0x%" PRIxPTR, (uintptr_t)connection);
+    /* cancel any existing commands for the connection */
+    g_object_unref (connection);
     /* setup and send return value */
     uint32_variant = g_variant_new_uint32 (TSS2_RC_SUCCESS);
     tuple_variant = g_variant_new_tuple (&uint32_variant, 1);
@@ -204,11 +204,11 @@ on_handle_cancel (TctiTabrmd           *skeleton,
  * This is a signal handler for the handle-set-locality signal from the
  * Tabrmd DBus interface. This signal is triggered by a request
  * from a client to set the locality for TPM commands associated with the
- * session (the 'id' parameter). This requires a few things be done:
+ * connection (the 'id' parameter). This requires a few things be done:
  * - Ensure the initialization thread has completed successfully by
  *   locking and unlocking the init_mutex.
- * - Find the SessionData object associated with the 'id' parameter.
- * - Set the locality for the SessionData object.
+ * - Find the Connection object associated with the 'id' parameter.
+ * - Set the locality for the Connection object.
  * - Pass result of the operation back to the user.
  */
 static gboolean
@@ -219,21 +219,21 @@ on_handle_set_locality (TctiTabrmd            *skeleton,
                         gpointer               user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
-    SessionData *session = NULL;
+    Connection *connection = NULL;
     GVariant *uint32_variant, *tuple_variant;
 
     g_info ("on_handle_set_locality for id 0x%" PRIx64, id);
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
-    session = session_manager_lookup_id (data->manager, id);
-    if (session == NULL) {
-        g_warning ("no active session for id: 0x%" PRIx64, id);
+    connection = session_manager_lookup_id (data->manager, id);
+    if (connection == NULL) {
+        g_warning ("no active connection for id: 0x%" PRIx64, id);
         return FALSE;
     }
-    g_info ("setting locality for session 0x%" PRIxPTR " to: %" PRIx8,
-            (uintptr_t)session, locality);
-    /* set locality for an existing session */
-    g_object_unref (session);
+    g_info ("setting locality for connection 0x%" PRIxPTR " to: %" PRIx8,
+            (uintptr_t)connection, locality);
+    /* set locality for an existing connection */
+    g_object_unref (connection);
     /* setup and send return value */
     uint32_variant = g_variant_new_uint32 (TSS2_RC_SUCCESS);
     tuple_variant = g_variant_new_tuple (&uint32_variant, 1);
@@ -277,19 +277,19 @@ on_handle_dump_trans_state (TctiTabrmd            *skeleton,
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     HandleMap      *map     = NULL;
-    SessionData    *session = NULL;
+    Connection   *connection = NULL;
     GVariant *uint32_variant, *tuple_variant;
 
     g_info ("on_handle_dump_trans_state for id 0x%" PRIx64, id);
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
-    session = session_manager_lookup_id (data->manager, id);
-    if (session == NULL)
-        g_error ("no active session for id: 0x%" PRIx64, id);
-    g_info ("dumping transient handle map for for session 0x%" PRIxPTR,
-            (uintptr_t)session);
-    map = session_data_get_trans_map (session);
-    g_object_unref (session);
+    connection = session_manager_lookup_id (data->manager, id);
+    if (connection == NULL)
+        g_error ("no active connection for id: 0x%" PRIx64, id);
+    g_info ("dumping transient handle map for for connection 0x%" PRIxPTR,
+            (uintptr_t)connection);
+    map = connection_get_trans_map (connection);
+    g_object_unref (connection);
     g_info ("  number of entries in map: %" PRIu32, handle_map_size (map));
     handle_map_foreach (map, dump_trans_state_callback, NULL);
     g_object_unref (map);
@@ -489,7 +489,7 @@ init_thread_func (gpointer user_data)
 
     data->command_source =
         command_source_new (data->manager, command_attrs);
-    g_debug ("created session source: 0x%" PRIxPTR,
+    g_debug ("created command source: 0x%" PRIxPTR,
              (uintptr_t)data->command_source);
     data->resource_manager = resource_manager_new (data->access_broker);
     g_debug ("created ResourceManager: 0x%" PRIxPTR,
