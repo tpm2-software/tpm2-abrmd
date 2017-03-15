@@ -54,6 +54,10 @@ set_logger (gchar *name)
                            syslog_log_handler,
                            NULL);
         return 0;
+    } else if (g_strcmp0 (name, "stdout") == 0) {
+        /* stdout is the default for g_log, nothing to do but return 0 */
+        g_info ("logging to stdout");
+        return 0;
     }
     return -1;
 }
