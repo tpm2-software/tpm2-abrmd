@@ -94,8 +94,10 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *tcti_context)
     int ret = 0;
 
     g_debug ("tss2_tcti_tabrmd_finalize");
-    if (tcti_context == NULL)
+    if (tcti_context == NULL) {
         g_warning ("tss2_tcti_tabrmm_finalize: NULL context");
+        return;
+    }
     if (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) != 0) {
         ret = close (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context));
         TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context) = 0;
