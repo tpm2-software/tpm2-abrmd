@@ -345,17 +345,12 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         } else {
             entry_count = 0;
         }
-        if (rc == TSS2_RC_SUCCESS) {
-            response = access_broker_send_command (resmgr->access_broker,
-                                                   command,
-                                                   &rc);
-            if (rc != TSS2_RC_SUCCESS)
-                g_warning ("access_broker_send_command returned error: 0x%x", rc);
-        if (response == NULL)
-            g_error ("access_broker_send_command returned NULL Tpm2Response?");
-        } else {
+        response = access_broker_send_command (resmgr->access_broker,
+                                               command,
+                                               &rc);
+        if (response == NULL) {
+            g_warning ("access_broker_send_command returned error: 0x%x", rc);
             response = tpm2_response_new_rc (connection, rc);
-            g_object_unref (connection);
         }
         dump_response (response);
         /* transform the Tpm2Response */
