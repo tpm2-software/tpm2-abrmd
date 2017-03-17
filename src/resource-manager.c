@@ -304,6 +304,7 @@ resource_manager_is_over_object_quota (ResourceManager *resmgr,
  * - Flush all objects loaded for the command or as part of executing the
  *   command..
  */
+#define ENTRY_COUNT 4
 void
 resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                        Tpm2Command       *command)
@@ -311,8 +312,8 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     Connection    *connection;
     Tpm2Response   *response;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
-    HandleMapEntry *entries[4];
-    guint           entry_count = 4;
+    HandleMapEntry *entries[ENTRY_COUNT];
+    guint           entry_count = ENTRY_COUNT - 1;
 
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%" PRIxPTR
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
