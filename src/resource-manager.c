@@ -221,43 +221,60 @@ dump_response (Tpm2Response *response)
                    4);
     g_debug_tpma_cc (tpm2_response_get_attributes (response));
 }
-TSS2_RC
+Tpm2Response*
 resource_manager_flush_context (ResourceManager *resmgr,
                                 Tpm2Command     *command)
 {
-    Connection *connection;
-    HandleMap   *map;
+    Connection     *connection;
+    HandleMap      *map;
     HandleMapEntry *entry;
-    TPM_HANDLE      vhandle;
-    TSS2_RC rc;
+    Tpm2Response   *response;
+    TPM_HANDLE      handle;
+    TPM_HT          handle_type;
+    TSS2_RC         rc;
 
     if (tpm2_command_get_code (command) != TPM_CC_FlushContext) {
         g_warning ("resource_manager_flush_context with wrong command");
         return TSS2_RC_SUCCESS;
     }
-    connection = tpm2_command_get_connection (command);
-    map = connection_get_trans_map (connection);
-    g_object_unref (connection);
-
-    vhandle = tpm2_command_get_flush_handle (command);
-    g_debug ("resource_manager_flush_context vhandle: 0x%" PRIx32, vhandle);
-    entry = handle_map_vlookup (map, vhandle);
-    if (entry != NULL) {
-        handle_map_remove (map, vhandle);
-        g_object_unref (entry);
-        rc = TSS2_RC_SUCCESS;
-    } else {
-        /*
-         * If the handle doesn't map to a HandleMapEntry then it's not one
-         * that we're managing and so we can't flush it. Return an error
-         * indicating that error is related to a handle, that it's a parameter
-         * and that it's the first parameter.
-         */
-        rc = RM_RC (TPM_RC_HANDLE + TPM_RC_P + TPM_RC_1);
+    handle = tpm2_command_get_flush_handle (command);
+    g_debug ("resource_manager_flush_context handle: 0x%" PRIx32, handle);
+    handle_type = handle >> HR_SHIFT;
+    switch (handle_type) {
+    case TPM_HT_TRANSIENT:
+        g_debug ("handle is TPM_HT_TRANSIENT, virtualizing");
+        connection = tpm2_command_get_connection (command);
+        map = connection_get_trans_map (connection);
+        entry = handle_map_vlookup (map, handle);
+        if (entry != NULL) {
+            handle_map_remove (map, handle);
+            g_object_unref (entry);
+            rc = TSS2_RC_SUCCESS;
+        } else {
+            /*
+             * If the handle doesn't map to a HandleMapEntry then it's not one
+             * that we're managing and so we can't flush it. Return an error
+             * indicating that error is related to a handle, that it's a parameter
+             * and that it's the first parameter.
+             */
+            rc = RM_RC (TPM_RC_HANDLE + TPM_RC_P + TPM_RC_1);
+        }
+        g_object_unref (map);
+        response = tpm2_response_new_rc (connection, rc);
+        g_object_unref (connection);
+        break;
+    case TPM_HT_POLICY_SESSION:
+        g_debug ("handle is TPM_HT_POLICY_SESSION");
+        /* fallthrough */
+    default:
+        g_debug ("handle is for unmanaged object, sending command to TPM");
+        response = access_broker_send_command (resmgr->access_broker,
+                                               command,
+                                               &rc);
+        break;
     }
-    g_object_unref (map);
 
-    return rc;
+    return response;
 }
 /*
  * Determine whether the command may return a transient handle. If so
@@ -335,8 +352,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     switch (tpm2_command_get_code (command)) {
     case TPM_CC_FlushContext:
         g_debug ("processing TPM_CC_FlushContext");
-        rc = resource_manager_flush_context (resmgr, command);
-        response = tpm2_response_new_rc (connection, rc);
+        response = resource_manager_flush_context (resmgr, command);
         entry_count = 0;
         g_object_unref (connection);
         break;
@@ -358,7 +374,9 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         if (tpm2_response_has_handle (response)) {
             entries [entry_count] =
                 resource_manager_virtualize_handle (resmgr, response);
-            ++entry_count;
+            if (entries [entry_count] != NULL) {
+                ++entry_count;
+            }
         }
         break;
     }
