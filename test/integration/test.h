@@ -1,4 +1,4 @@
-#include "sapi/tpm20.h"
+#include <sapi/tpm20.h>
 
 /*
  * This is the prototype for all integration tests in the TPM2.0-TSS

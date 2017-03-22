@@ -9,8 +9,9 @@ UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 sbin_PROGRAMS   = src/tpm2-abrmd
 noinst_PROGRAMS = \
     test/integration/create-keys \
-    test/integration/tcti-sessions-max \
     test/integration/manage-transient-keys \
+    test/integration/start-auth-session \
+    test/integration/tcti-sessions-max \
     test/tcti-tabrmd_read-write
 check_PROGRAMS  = \
     test/access-broker_unit \
@@ -275,6 +276,9 @@ test_integration_create_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) \
     $(TCTI_SOCKET_LIBS)
 test_integration_create_keys_SOURCES = test/integration/main.c test/integration/create-keys.c
+
+test_integration_start_auth_session_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS)
+test_integration_start_auth_session_SOURCES = test/integration/main.c test/integration/start-auth-session.c
 
 test_integration_tcti_sessions_max_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_integration_tcti_sessions_max_SOURCES = test/integration/tcti-sessions-max.c
