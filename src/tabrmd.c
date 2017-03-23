@@ -572,10 +572,7 @@ parse_opts (gint            argc,
     g_option_context_add_main_entries (ctx, entries, NULL);
     g_option_context_add_group (ctx, tcti_options_get_group (options->tcti_options));
     if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
-        g_warning ("Failed to initialize: %s", err->message);
-        g_clear_error (&err);
-        ret = 1;
-        goto out;
+        g_error ("Failed to parse options. %s", err->message);
     }
     /* select the bus type, default to G_BUS_TYPE_SESSION */
     options->bus = system_bus ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION;
@@ -594,7 +591,6 @@ parse_opts (gint            argc,
         g_error ("max-trans-obj parameter must be between 1 and %d",
                  MAX_TRANSIENT_OBJECTS);
     }
-out:
     g_option_context_free (ctx);
     return ret;
 }

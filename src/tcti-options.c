@@ -11,6 +11,8 @@
 
 static gpointer tcti_options_parent_class = NULL;
 
+G_DEFINE_QUARK("tabrmd-tcti-options-quark", tabrmd_tcti_options)
+
 enum
 {
     PROP_0,
@@ -244,6 +246,13 @@ tcti_parse_opt_callback (const gchar   *option_name,
             g_object_set_property (G_OBJECT (options), "tcti", &gvalue);
             ret = TRUE;
         }
+    }
+    if (ret != TRUE) {
+        g_set_error (error,
+                     tabrmd_tcti_options_quark (),
+                     1,
+                     "unknown TCTI: %s",
+                     value);
     }
 
     return ret;
