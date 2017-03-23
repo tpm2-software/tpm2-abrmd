@@ -15,14 +15,18 @@ typedef struct {
  * provided on the command line to the enumeration.
  */
 tcti_map_entry_t tcti_map_table[] = {
+#ifdef HAVE_TCTI_DEVICE
     {
         .name = "device",
         .type = DEVICE_TCTI,
     },
+#endif
+#ifdef HAVE_TCTI_SOCKET
     {
         .name = "socket",
         .type = SOCKET_TCTI,
     },
+#endif
     {
         .name = "tabrmd",
         .type = TABRMD_TCTI,
@@ -40,7 +44,7 @@ TCTI_TYPE
 tcti_type_from_name (char const *tcti_str)
 {
     int i;
-    for (i = 0; i < N_TCTI; ++i)
+    for (i = 0; i < N_TCTI - 1; ++i)
         if (strcmp (tcti_str, tcti_map_table[i].name) == 0)
             return tcti_map_table[i].type;
     return UNKNOWN_TCTI;
@@ -53,7 +57,7 @@ char* const
 tcti_name_from_type (TCTI_TYPE tcti_type)
 {
     int i;
-    for (i = 0; i < N_TCTI; ++i)
+    for (i = 0; i < N_TCTI - 1; ++i)
         if (tcti_type == tcti_map_table[i].type)
             return tcti_map_table[i].name;
     return NULL;
@@ -66,12 +70,15 @@ int
 sanity_check_test_opts (test_opts_t  *opts)
 {
     switch (opts->tcti_type) {
+#ifdef HAVE_TCTI_DEVICE
     case DEVICE_TCTI:
         if (opts->device_file == NULL) {
             fprintf (stderr, "device-path is NULL, check env\n");
             return 1;
         }
         break;
+#endif
+#ifdef HAVE_TCTI_SOCKET
     case SOCKET_TCTI:
         if (opts->socket_address == NULL || opts->socket_port == 0) {
             fprintf (stderr,
@@ -79,6 +86,7 @@ sanity_check_test_opts (test_opts_t  *opts)
             return 1;
         }
         break;
+#endif
     case TABRMD_TCTI:
         /*
          * No options for tabrmd TCTI yet. Would be smart to pass the dbus

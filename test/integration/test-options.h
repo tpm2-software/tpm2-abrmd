@@ -23,8 +23,12 @@
 
 typedef enum {
     UNKNOWN_TCTI,
+#ifdef HAVE_TCTI_DEVICE
     DEVICE_TCTI,
+#endif
+#ifdef HAVE_TCTI_SOCKET
     SOCKET_TCTI,
+#endif
     TABRMD_TCTI,
     N_TCTI,
 } TCTI_TYPE;

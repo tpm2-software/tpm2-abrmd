@@ -13,6 +13,7 @@
 /*
  * Initialize a TSS2_TCTI_CONTEXT for the device TCTI.
  */
+#ifdef HAVE_TCTI_DEVICE
 TSS2_TCTI_CONTEXT*
 tcti_device_init (char const *device_path)
 {
@@ -49,6 +50,7 @@ tcti_device_init (char const *device_path)
     }
     return tcti_ctx;
 }
+#endif /* HAVE_TCTI_DEVICE */
 /*
  * Initialize a socket TCTI instance using the provided options structure.
  * The hostname and port are the only configuration options used. Callbacks
@@ -56,6 +58,7 @@ tcti_device_init (char const *device_path)
  * The caller is returned a TCTI context structure that is allocated by this
  * function. This structure must be freed by the caller.
  */
+#ifdef HAVE_TCTI_SOCKET
 TSS2_TCTI_CONTEXT*
 tcti_socket_init (char const *address,
                   uint16_t    port)
@@ -90,6 +93,7 @@ tcti_socket_init (char const *address,
     }
     return tcti_ctx;
 }
+#endif /* HAVE_TCTI_SOCKET */
 /*
  * Initialize a TCTI context for the tabrmd. Currently it requires no options.
  */
@@ -181,11 +185,15 @@ TSS2_TCTI_CONTEXT*
 tcti_init_from_opts (test_opts_t *options)
 {
     switch (options->tcti_type) {
+#ifdef HAVE_TCTI_DEVICE
     case DEVICE_TCTI:
         return tcti_device_init (options->device_file);
+#endif
+#ifdef HAVE_TCTI_SOCKET
     case SOCKET_TCTI:
         return tcti_socket_init (options->socket_address,
                                  options->socket_port);
+#endif
     case TABRMD_TCTI:
         return tcti_tabrmd_init ();
     default:
