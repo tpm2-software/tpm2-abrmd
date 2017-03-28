@@ -23,6 +23,7 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
     ret = pthread_mutex_lock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error acquiring TCTI lock: %s", strerror (errno));
+    g_debug_bytes (command, size, 16, 4);
     g_debug ("blocking on PIPE_TRANSMIT: %d", TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context));
     write_ret = write_all (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context),
                            command,
@@ -80,6 +81,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
     default:
         g_debug ("tss2_tcti_tabrmd_receive: read returned: %" PRIdMAX, ret);
         *size = (size_t)ret;
+        g_debug_bytes (response, *size, 16, 4);
         break;
     }
     ret = pthread_mutex_unlock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
