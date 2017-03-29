@@ -5,6 +5,9 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include <sapi/tpm20.h>
+#include <sapi/marshal.h>
+
 #include "tabrmd.h"
 #include "tcti-tabrmd.h"
 #include "tcti-tabrmd-priv.h"
@@ -20,6 +23,11 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
 
     g_debug ("tss2_tcti_tabrmd_transmit");
+    if (TSS2_TCTI_MAGIC (tcti_context) != TSS2_TCTI_TABRMD_MAGIC ||
+        TSS2_TCTI_VERSION (tcti_context) != TSS2_TCTI_TABRMD_VERSION)
+    {
+        return TSS2_TCTI_RC_BAD_CONTEXT;
+    }
     ret = pthread_mutex_lock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error acquiring TCTI lock: %s", strerror (errno));
@@ -51,6 +59,66 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
         g_error ("Error unlocking TCTI mutex: %s", strerror (errno));
     return tss2_ret;
 }
+/*
+ * This function receives the tpm response header from the tabrmd. It is
+ * not exposed externally and so has no parameter validation. These checks
+ * should already be done by the caller.
+ *
+ * NOTE: this function changes the contents of the context blob.
+ */
+static TSS2_RC
+tss2_tcti_tabrmd_receive_header (TSS2_TCTI_CONTEXT *tcti_context,
+                                 size_t *size,
+                                 uint8_t *response,
+                                 int32_t  timeout)
+{
+    int     ret;
+    size_t  header_offset = 0;
+    TSS2_RC rc;
+
+    ret = read (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context),
+                response,
+                TPM_HEADER_SIZE);
+    switch (ret) {
+    case -1:
+        g_debug ("tss2_tcti_tabrmd_receive: error reading from fd: %s",
+                 strerror (errno));
+        rc = TSS2_TCTI_RC_IO_ERROR;
+        break;
+    case 0:
+        g_debug ("tss2_tcti_tabrmd_receive: read returned 0 / EOF");
+        rc = TSS2_TCTI_RC_IO_ERROR;
+        break;
+    default:
+        if (ret != TPM_HEADER_SIZE) {
+            g_warning ("tss2_tcti_tabrmd_receive got short read: %d",
+                       ret);
+            return TSS2_TCTI_RC_IO_ERROR;
+        }
+        g_debug ("tss2_tcti_tabrmd_receive: read returned: %d", ret);
+        break;
+    }
+
+    rc = TPM_ST_Unmarshal (response,
+                           TPM_HEADER_SIZE,
+                           &header_offset,
+                           &TSS2_TCTI_TABRMD_HEADER (tcti_context).tag);
+    if (rc != TSS2_RC_SUCCESS) {
+        return rc;
+    }
+    rc = UINT32_Unmarshal (response,
+                           TPM_HEADER_SIZE,
+                           &header_offset,
+                           &TSS2_TCTI_TABRMD_HEADER (tcti_context).size);
+    if (rc != TSS2_RC_SUCCESS) {
+        return rc;
+    }
+    rc = UINT32_Unmarshal (response,
+                           TPM_HEADER_SIZE,
+                           &header_offset,
+                           &TSS2_TCTI_TABRMD_HEADER (tcti_context).code);
+    return rc;
+}
 
 static TSS2_RC
 tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
@@ -62,12 +130,45 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
 
     g_debug ("tss2_tcti_tabrmd_receive");
+    if (TSS2_TCTI_MAGIC (tcti_context) != TSS2_TCTI_TABRMD_MAGIC ||
+        TSS2_TCTI_VERSION (tcti_context) != TSS2_TCTI_TABRMD_VERSION)
+    {
+        return TSS2_TCTI_RC_BAD_CONTEXT;
+    }
+    /* async not yet supported */
     if (timeout != TSS2_TCTI_TIMEOUT_BLOCK)
         return TSS2_TCTI_RC_BAD_VALUE;
+    if (size == NULL && response == NULL) {
+        return TSS2_TCTI_RC_BAD_REFERENCE;
+    }
+    /* the size of a TPM response header is 10 bytes */
+    if (*size < TPM_HEADER_SIZE) {
+        return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
+    }
     ret = pthread_mutex_lock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error acquiring TCTI lock: %s", strerror (errno));
-    ret = read (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context), response, *size);
+    tss2_ret = tss2_tcti_tabrmd_receive_header (tcti_context,
+                                                size,
+                                                response,
+                                                timeout);
+    if (TSS2_TCTI_TABRMD_HEADER (tcti_context).size > *size) {
+        g_warning ("tss2_tcti_tabrmd_receive got response with size larger "
+                   "than the supplied buffer");
+        return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
+    }
+    if (TSS2_TCTI_TABRMD_HEADER (tcti_context).size == TPM_HEADER_SIZE) {
+        g_debug ("tss2_tcti_tabrmd_receive got response header with size "
+                 "equal to header size: no response body to read");
+        *size = TPM_HEADER_SIZE;
+        return tss2_ret;
+    }
+    /* read the response body */
+    g_debug ("tss2_tcti_tabrmd_receive reading command body of size %" PRIu32,
+             TSS2_TCTI_TABRMD_HEADER (tcti_context).size - TPM_HEADER_SIZE);
+    ret = read (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context),
+                response + TPM_HEADER_SIZE,
+                TSS2_TCTI_TABRMD_HEADER (tcti_context).size - TPM_HEADER_SIZE);
     switch (ret) {
     case -1:
         g_debug ("tss2_tcti_tabrmd_receive: error reading from pipe: %s",
@@ -80,7 +181,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
         break;
     default:
         g_debug ("tss2_tcti_tabrmd_receive: read returned: %" PRIdMAX, ret);
-        *size = (size_t)ret;
+        *size = (size_t)ret + TPM_HEADER_SIZE;
         g_debug_bytes (response, *size, 16, 4);
         break;
     }
@@ -199,7 +300,7 @@ void
 init_function_pointers (TSS2_TCTI_CONTEXT *tcti_context)
 {
     TSS2_TCTI_MAGIC (tcti_context)            = TSS2_TCTI_TABRMD_MAGIC;
-    TSS2_TCTI_VERSION (tcti_context)          = 1;
+    TSS2_TCTI_VERSION (tcti_context)          = TSS2_TCTI_TABRMD_VERSION;
     TSS2_TCTI_TRANSMIT (tcti_context)         = tss2_tcti_tabrmd_transmit;
     TSS2_TCTI_RECEIVE (tcti_context)          = tss2_tcti_tabrmd_receive;
     TSS2_TCTI_FINALIZE (tcti_context)         = tss2_tcti_tabrmd_finalize;

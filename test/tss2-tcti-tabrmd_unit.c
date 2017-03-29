@@ -256,6 +256,38 @@ tcti_tabrmd_transmit_success_test (void **state)
     assert_memory_equal (command_in, command_out, size);
 }
 /*
+ * This test ensures that the magic value in the context structure is checked
+ * before the transmit function executes and that the RC is what we expect.
+ */
+static void
+tcti_tabrmd_transmit_bad_magic_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_RC rc;
+    uint8_t command [12] = { 0 };
+    size_t size = 12;
+
+    TSS2_TCTI_MAGIC (data->context) = 1;
+    rc = tss2_tcti_transmit (data->context, size, command);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+/*
+ * This test ensures that the version in the context structure is checked
+ * before the transmit function executes and that the RC is what we expect.
+ */
+static void
+tcti_tabrmd_transmit_bad_version_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_RC rc;
+    uint8_t command [12] = { 0 };
+    size_t size = 12;
+
+    TSS2_TCTI_VERSION (data->context) = -1;
+    rc = tss2_tcti_transmit (data->context, size, command);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+/*
  * This test makes a single call to the receive function in the
  * TSS2_TCTI_CONTEXT function pointer table.
  */
@@ -283,6 +315,38 @@ tcti_tabrmd_receive_success_test (void **state)
     assert_memory_equal (command_in, command_out, size);
 }
 /*
+ * This test ensures that the magic value in the context structure is checked
+ * before the receive function executes and that the RC is what we expect.
+ */
+static void
+tcti_tabrmd_receive_bad_magic_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_RC rc;
+    uint8_t buf [12] = { 0 };
+    size_t size = 12;
+
+    TSS2_TCTI_MAGIC (data->context) = 1;
+    rc = tss2_tcti_receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+/*
+ * This test ensures that the version in the context structure is checked
+ * before the transmit function executes and that the RC is what we expect.
+ */
+static void
+tcti_tabrmd_receive_bad_version_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_RC rc;
+    uint8_t buf [12] = { 0 };
+    size_t size = 12;
+
+    TSS2_TCTI_VERSION (data->context) = -1;
+    rc = tss2_tcti_receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+/*
  * This test makes a single call to the receive function in the
  * TSS2_TCTI_CONTEXT function pointer table with a relatively short
  * timeout.
@@ -306,6 +370,43 @@ tcti_tabrmd_receive_timeout_test (void **state)
                             command_out,
                             1000);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
+}
+/*
+ */
+static void
+tcti_tabrmd_receive_size_lt_header_test (void **state)
+{
+    data_t *data = *state;
+    uint8_t response [TPM_HEADER_SIZE] = { 0 };
+    size_t size = sizeof (response) - 1;
+    TSS2_RC rc;
+
+    rc = tss2_tcti_receive (data->context,
+                            &size,
+                            response,
+                            TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_INSUFFICIENT_BUFFER);
+}
+static void
+tcti_tabrmd_receive_size_lt_body_test (void **state)
+{
+    data_t *data = *state;
+    uint8_t response [] = { 0x80, 0x02,
+                            0x00, 0x00, 0x00, 0x0e,
+                            0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00 };
+    size_t size = sizeof (response);
+    TSS2_RC rc;
+    ssize_t written;
+
+    written = write (data->fd_transmit_server, response, size);
+    assert_int_equal (written, size);
+    size -= 1; /* tell the receive function we have less space */
+    rc = tss2_tcti_receive (data->context,
+                            &size,
+                            response,
+                            TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_INSUFFICIENT_BUFFER);
 }
 /*
  * This test sets up the call_cancel mock function to return values
@@ -372,13 +473,31 @@ main(int argc, char* argv[])
         unit_test_setup_teardown (tcti_tabrmd_transmit_success_test,
                                   tcti_tabrmd_setup,
                                   tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_transmit_bad_magic_test,
+                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_transmit_bad_version_test,
+                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_receive_success_test,
+                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_receive_bad_magic_test,
+                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_receive_bad_version_test,
                                   tcti_tabrmd_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_receive_timeout_test,
                                   tcti_tabrmd_setup,
                                   tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_cancel_test,
+        unit_test_setup_teardown (tcti_tabrmd_receive_size_lt_header_test,
+                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_receive_size_lt_body_test,
+                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+         unit_test_setup_teardown (tcti_tabrmd_cancel_test,
                                   tcti_tabrmd_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_test,
