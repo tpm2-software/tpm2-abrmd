@@ -82,66 +82,6 @@ write_all (const gint    fd,
 
     return (ssize_t)written_total;
 }
-/** Read as many bytes as possible from fd into a newly allocated buffer up to
- * UTIL_BUF_MAX or a call to read that would block.
- * THE fd PARAMETER MUST BE AN FD WITH O_NONBLOCK SET.
- * We return -1 for an unrecoverable error or when the fd has been closed.
- * The rest of the time we return the number of bytes read.
- */
-ssize_t
-read_till_block (const gint   fd,
-                 guint8     **buf,
-                 size_t      *size)
-{
-    guint8  *local_buf = NULL, *tmp_buf;
-    ssize_t bytes_read  = 0;
-    size_t  bytes_total = 0;
-
-    g_debug ("reading till EAGAIN on fd %d", fd);
-    do {
-        g_debug ("reallocing buf at 0x%" PRIxPTR " to %zu bytes",
-                 (uintptr_t)local_buf, bytes_total + UTIL_BUF_SIZE);
-        tmp_buf = realloc (local_buf, bytes_total + UTIL_BUF_SIZE);
-        if (tmp_buf == NULL) {
-            g_warning ("realloc of %zu bytes failed: %s",
-                       bytes_total + UTIL_BUF_SIZE, strerror (errno));
-            goto err_out;
-        }
-        g_debug ("reallocated buf at 0x%" PRIxPTR " to %zd bytes",
-                 (uintptr_t)local_buf, bytes_total + UTIL_BUF_SIZE);
-        local_buf = tmp_buf;
-
-        bytes_read = read (fd, (void*)(local_buf + bytes_total), UTIL_BUF_SIZE);
-        switch (bytes_read) {
-        case -1:
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                g_debug ("would block on fd %d", fd);
-                goto out;
-            } else {
-                g_warning ("unexpected error reading from fd %d: errno %d: %s",
-                           fd, errno, strerror (errno));
-                goto err_out;
-            }
-        case 0:
-            g_info ("read returned 0 bytes -> fd %d closed", fd);
-            goto err_out;
-        default:
-            g_debug ("read %zd bytes from fd %d", bytes_read, fd);
-            bytes_total += (size_t)bytes_read;
-            break;
-        }
-    } while (bytes_total < UTIL_BUF_MAX);
-out:
-    *size = bytes_total;
-    *buf = local_buf;
-
-    return (ssize_t)bytes_total;
-err_out:
-    if (local_buf != NULL)
-        free (local_buf);
-    return -1;
-}
-
 void
 process_control_code (ControlCode code)
 {

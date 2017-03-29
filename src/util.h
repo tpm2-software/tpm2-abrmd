@@ -28,9 +28,6 @@
 ssize_t     write_all                       (gint const        fd,
                                              void const       *buf,
                                              size_t const      size);
-ssize_t     read_till_block                 (gint const        fd,
-                                             guint8          **buf,
-                                             size_t           *size);
 void        process_control_code            (ControlCode       code);
 uint8_t*    read_tpm_command_header_from_fd (int               fd,
                                              uint8_t          *buf,
