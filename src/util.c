@@ -114,7 +114,7 @@ tpm_header_from_fd (int       fd,
 
     g_debug ("tpm_header_from_fd");
     if (buf_size < TPM_HEADER_SIZE) {
-        g_error ("buffer size too small for tpm header");
+        g_warning ("buffer size too small for tpm header");
         return -2;
     }
 

@@ -237,7 +237,7 @@ test_tpm2_response_unit_SOURCES = test/tpm2-response_unit.c
 
 test_util_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(libutil)
-test_util_unit_LDFLAGS = -Wl,--wrap=write
+test_util_unit_LDFLAGS = -Wl,--wrap=read,--wrap=write
 test_util_unit_SOURCES = test/util_unit.c
 
 test_message_queue_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
