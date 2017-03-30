@@ -205,7 +205,9 @@ read_tpm_command_from_fd (int       fd,
         return NULL;
     }
     memcpy (tpm_command, header, header_size);
-    ret = tpm_body_from_fd (fd, tpm_command + header_size, *command_size - header_size);
+    ret = tpm_body_from_fd (fd,
+                            &tpm_command [header_size],
+                            *command_size - header_size);
     if (ret != 0) {
         g_free (tpm_command);
         return NULL;
