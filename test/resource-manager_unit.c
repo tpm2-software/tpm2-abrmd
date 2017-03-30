@@ -124,13 +124,13 @@ resource_manager_setup_two_transient_handles (void **state)
     data->command_attrs.val = (2 << 25) + TPM_CC_StartAuthSession; /* 2 handles + TPM2_StartAuthSession */
 
     /* create Tpm2Command that we'll be transforming */
-    buffer = calloc (1, TPM_COMMAND_HEADER_SIZE + 2 * sizeof (TPM_HANDLE));
+    buffer = calloc (1, TPM_HEADER_SIZE + 2 * sizeof (TPM_HANDLE));
     buffer [0]  = 0x80;
     buffer [1]  = 0x02;
     buffer [2]  = 0x00;
     buffer [3]  = 0x00;
     buffer [4]  = 0x00;
-    buffer [5]  = TPM_COMMAND_HEADER_SIZE + 2 * sizeof (TPM_HANDLE);
+    buffer [5]  = TPM_HEADER_SIZE + 2 * sizeof (TPM_HANDLE);
     buffer [6]  = 0x00;
     buffer [7]  = 0x00;
     buffer [8]  = TPM_CC_StartAuthSession >> 8;
@@ -211,7 +211,7 @@ resource_manager_sink_enqueue_test (void **state)
     Tpm2Command *command_out;
     guint8 *buffer;
 
-    buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
+    buffer = calloc (1, TPM_HEADER_SIZE);
     data->command = tpm2_command_new (data->connection, buffer, (TPMA_CC){ 0, });
     resource_manager_enqueue (SINK (data->resource_manager), G_OBJECT (data->command));
     command_out = TPM2_COMMAND (message_queue_dequeue (data->resource_manager->in_queue));
@@ -232,7 +232,7 @@ resource_manager_process_tpm2_command_success_test (void **state)
     Tpm2Response *response;
     guint8 *buffer;
 
-    buffer = calloc (1, TPM_COMMAND_HEADER_SIZE);
+    buffer = calloc (1, TPM_HEADER_SIZE);
     /**
      * we don't use the test data structure to hold the command object since
      * it will be freed by the call to resource_manager_process_tpm2_command

@@ -60,6 +60,27 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
     return tss2_ret;
 }
 /*
+ * This function maps errno values to TCTI RCs.
+ */
+static TSS2_RC
+errno_to_tcti_rc (int error_number)
+{
+    switch (error_number) {
+    case 0:
+        return TSS2_RC_SUCCESS;
+    case -1:
+        return TSS2_TCTI_RC_NO_CONNECTION;
+    case EAGAIN:
+#if EAGAIN != EWOULDBLOCK
+    case EWOULDBLOCK:
+#endif
+    case EINTR:
+        return TSS2_TCTI_RC_TRY_AGAIN;
+    default:
+        return TSS2_TCTI_RC_IO_ERROR;
+    }
+}
+/*
  * This function receives the tpm response header from the tabrmd. It is
  * not exposed externally and so has no parameter validation. These checks
  * should already be done by the caller.
@@ -76,27 +97,12 @@ tss2_tcti_tabrmd_receive_header (TSS2_TCTI_CONTEXT *tcti_context,
     size_t  header_offset = 0;
     TSS2_RC rc;
 
-    ret = read (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context),
-                response,
-                TPM_HEADER_SIZE);
-    switch (ret) {
-    case -1:
-        g_debug ("tss2_tcti_tabrmd_receive: error reading from fd: %s",
-                 strerror (errno));
-        rc = TSS2_TCTI_RC_IO_ERROR;
-        break;
-    case 0:
-        g_debug ("tss2_tcti_tabrmd_receive: read returned 0 / EOF");
-        rc = TSS2_TCTI_RC_IO_ERROR;
-        break;
-    default:
-        if (ret != TPM_HEADER_SIZE) {
-            g_warning ("tss2_tcti_tabrmd_receive got short read: %d",
-                       ret);
-            return TSS2_TCTI_RC_IO_ERROR;
-        }
-        g_debug ("tss2_tcti_tabrmd_receive: read returned: %d", ret);
-        break;
+    ret = tpm_header_from_fd (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context),
+                              response,
+                              TPM_HEADER_SIZE);
+    rc = errno_to_tcti_rc (ret);
+    if (rc != TSS2_RC_SUCCESS) {
+        return rc;
     }
 
     rc = TPM_ST_Unmarshal (response,
@@ -119,15 +125,18 @@ tss2_tcti_tabrmd_receive_header (TSS2_TCTI_CONTEXT *tcti_context,
                            &TSS2_TCTI_TABRMD_HEADER (tcti_context).code);
     return rc;
 }
-
+/*
+ * This is the receive function that is exposed to clients through the TCTI
+ * API.
+ */
 static TSS2_RC
 tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
                         size_t *size,
                         uint8_t *response,
                         int32_t timeout)
 {
-    ssize_t ret = 0;
-    TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
+    int ret = 0;
+    TSS2_RC rc = TSS2_RC_SUCCESS;
 
     g_debug ("tss2_tcti_tabrmd_receive");
     if (TSS2_TCTI_MAGIC (tcti_context) != TSS2_TCTI_TABRMD_MAGIC ||
@@ -141,54 +150,48 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
     if (size == NULL && response == NULL) {
         return TSS2_TCTI_RC_BAD_REFERENCE;
     }
-    /* the size of a TPM response header is 10 bytes */
     if (*size < TPM_HEADER_SIZE) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
     ret = pthread_mutex_lock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error acquiring TCTI lock: %s", strerror (errno));
-    tss2_ret = tss2_tcti_tabrmd_receive_header (tcti_context,
-                                                size,
-                                                response,
-                                                timeout);
+    rc = tss2_tcti_tabrmd_receive_header (tcti_context,
+                                          size,
+                                          response,
+                                          timeout);
+    if (rc != TSS2_RC_SUCCESS) {
+        goto unlock_out;
+    }
     if (TSS2_TCTI_TABRMD_HEADER (tcti_context).size > *size) {
         g_warning ("tss2_tcti_tabrmd_receive got response with size larger "
                    "than the supplied buffer");
-        return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
+        rc = TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
+        goto unlock_out;
     }
     if (TSS2_TCTI_TABRMD_HEADER (tcti_context).size == TPM_HEADER_SIZE) {
         g_debug ("tss2_tcti_tabrmd_receive got response header with size "
                  "equal to header size: no response body to read");
         *size = TPM_HEADER_SIZE;
-        return tss2_ret;
+        goto unlock_out;
     }
-    /* read the response body */
     g_debug ("tss2_tcti_tabrmd_receive reading command body of size %" PRIu32,
              TSS2_TCTI_TABRMD_HEADER (tcti_context).size - TPM_HEADER_SIZE);
-    ret = read (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context),
-                response + TPM_HEADER_SIZE,
-                TSS2_TCTI_TABRMD_HEADER (tcti_context).size - TPM_HEADER_SIZE);
-    switch (ret) {
-    case -1:
-        g_debug ("tss2_tcti_tabrmd_receive: error reading from pipe: %s",
-                 strerror (errno));
-        tss2_ret = TSS2_TCTI_RC_IO_ERROR;
-        break;
-    case 0:
-        g_debug ("tss2_tcti_tabrmd_receive: read returned 0: EOF!");
-        tss2_ret = TSS2_TCTI_RC_NO_CONNECTION;
-        break;
-    default:
-        g_debug ("tss2_tcti_tabrmd_receive: read returned: %" PRIdMAX, ret);
-        *size = (size_t)ret + TPM_HEADER_SIZE;
+    ret = tpm_body_from_fd (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context),
+                            response + TPM_HEADER_SIZE,
+                            TSS2_TCTI_TABRMD_HEADER (tcti_context).size - \
+                                TPM_HEADER_SIZE);
+    rc = errno_to_tcti_rc (ret);
+    if (rc == TSS2_RC_SUCCESS) {
+        g_debug ("tss2_tcti_tabrmd_receive: read returned: %d", ret);
+        *size = TSS2_TCTI_TABRMD_HEADER (tcti_context).size;
         g_debug_bytes (response, *size, 16, 4);
-        break;
     }
+unlock_out:
     ret = pthread_mutex_unlock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
     if (ret != 0)
         g_error ("Error unlocking TCTI mutex: %s", strerror (errno));
-    return tss2_ret;
+    return rc;
 }
 
 static void

@@ -29,10 +29,10 @@ ssize_t     write_all                       (gint const        fd,
                                              void const       *buf,
                                              size_t const      size);
 void        process_control_code            (ControlCode       code);
-uint8_t*    read_tpm_command_header_from_fd (int               fd,
+int         tpm_header_from_fd              (int               fd,
                                              uint8_t          *buf,
                                              size_t            buf_size);
-uint8_t*    read_tpm_command_body_from_fd   (int               fd,
+int         tpm_body_from_fd                (int               fd,
                                              uint8_t          *buf,
                                              size_t            body_size);
 uint8_t*    read_tpm_command_from_fd        (int               fd,
