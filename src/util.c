@@ -111,6 +111,7 @@ tpm_header_from_fd (int       fd,
                     size_t    buf_size)
 {
     ssize_t num_read = 0;
+    int errno_tmp;
 
     g_debug ("tpm_header_from_fd");
     if (buf_size < TPM_HEADER_SIZE) {
@@ -119,6 +120,7 @@ tpm_header_from_fd (int       fd,
     }
 
     num_read = read (fd, buf, TPM_HEADER_SIZE);
+    errno_tmp = errno;
     switch (num_read) {
     case TPM_HEADER_SIZE:
         g_debug ("  read %zd bytes", num_read);
@@ -126,7 +128,7 @@ tpm_header_from_fd (int       fd,
         return 0;
     case -1:
         g_warning ("error reading from fd %d: %s", fd, strerror (errno));
-        return errno;
+        return errno_tmp;
     case 0:
         g_warning ("EOF trying to read tpm command header from fd: %d", fd);
         return -1;
@@ -152,9 +154,11 @@ tpm_body_from_fd (int       fd,
                   size_t    body_size)
 {
     ssize_t num_read = 0;
+    int errno_tmp;
 
     g_debug ("read_tpm_command_body_from_fd");
     num_read = read (fd, buf, body_size);
+    errno_tmp = errno;
     if (num_read == body_size) {
         g_debug ("  read %zu bytes as expected", num_read);
         g_debug_bytes (buf, body_size, 16, 4);
@@ -163,7 +167,7 @@ tpm_body_from_fd (int       fd,
     switch (num_read) {
     case -1:
         g_warning ("  error reading from fd %d: %s", fd, strerror (errno));
-        return errno;
+        return errno_tmp;
     case 0:
         g_warning ("  EOF reading TPM command body from fd: %d", fd);
         return -1;

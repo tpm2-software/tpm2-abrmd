@@ -228,6 +228,125 @@ tpm_header_from_fd_size_lt_header_test (void **state)
     assert_int_equal (ret, -2);
     assert_memory_equal (data->header_out, data->header_zero, data->size);
 }
+/*
+ * This structure holds a few buffers and the size field used to test the
+ * tpm_body_from_fd function.
+ */
+#define BODY_SIZE 16
+typedef struct {
+    uint8_t body_in [BODY_SIZE];
+    uint8_t body_out [BODY_SIZE];
+    uint8_t body_zero [BODY_SIZE];
+    size_t  size;
+} body_from_fd_data_t;
+/*
+ * Setup a body_from_fd_data_t structure for use in the tpm_body_from_fd*
+ * tests below. Specifically we populate the body_in array with random data.
+ * The size field is initialized to BODY_SIZE.
+ */
+static void
+tpm_body_from_fd_setup (void **state)
+{
+    body_from_fd_data_t *data = calloc (1, sizeof (body_from_fd_data_t));
+    uint8_t body_in [] = { 0xde, 0xad, 0xbe, 0xef,
+                           0xde, 0xad, 0xbe, 0xef,
+                           0xde, 0xad, 0xbe, 0xef,
+                           0xde, 0xad, 0xbe, 0xef };
+
+    memcpy (data->body_in, body_in, BODY_SIZE);
+    data->size = BODY_SIZE;
+
+    *state = data;
+}
+/*
+ * Teardown function paired to the above _setup.
+ */
+static void
+tpm_body_from_fd_teardown (void **state)
+{
+    if (*state != NULL)
+        free (*state);
+}
+/*
+ * This function tests a successful call to the tpm_body_from_fd function.
+ * We attempt to read the full data->size of the body (this value is
+ * calculated as the size of the header - command size from the header).
+ * This should return 0 and the body_in / body_out buffers should be
+ * identical.
+ */
+static void
+tpm_body_from_fd_success_test (void **state)
+{
+    body_from_fd_data_t *data = *state;
+    int ret;
+
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, data->size);
+
+    ret = tpm_body_from_fd (0, data->body_out, data->size);
+    assert_int_equal (ret, 0);
+    assert_memory_equal (data->body_in, data->body_out, data->size);
+}
+/*
+ * This test covers a typical error condition for the read system call.
+ * The errno is set to EAGAIN, and the return value will be -1.
+ * In this case the tpm_body_from_fd function should return the errno
+ * and the body_out buffer should be unchanged (all 0's).
+ */
+static void
+tpm_body_from_fd_errno_test (void **state)
+{
+    body_from_fd_data_t *data = *state;
+    int ret = 0;
+    
+    will_return (__wrap_read, EAGAIN);
+    will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, -1);
+
+    ret = tpm_body_from_fd (0, data->body_out, data->size);
+    assert_int_equal (ret, EAGAIN);
+    assert_memory_equal (data->body_out, data->body_zero, data->size);
+}
+/*
+ * This test covers an error case where reading from the fd results in 0
+ * bytes being read. This happens when a file reaches EOF or the other end
+ * of an IPC mechanism has been closed. In this case the return value should
+ * be -1 and the body_out buffer should remain unchanged.
+ */
+static void
+tpm_body_from_fd_eof_test (void **state)
+{
+    body_from_fd_data_t *data = *state;
+    int ret = 0;
+    
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, 0);
+
+    ret = tpm_body_from_fd (0, data->body_out, data->size);
+    assert_int_equal (ret, -1);
+    assert_memory_equal (data->body_out, data->body_zero, data->size);
+}
+/*
+ * This test covers an error case where reading from the fd results in fewer
+ * bytes returned than requested (aka a "short read"). In this case the
+ * function should return -1.
+ */
+static void
+tpm_body_from_fd_short_test (void **state)
+{
+    body_from_fd_data_t *data = *state;
+    int ret = 0;
+    
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, 3);
+
+    ret = tpm_body_from_fd (0, data->body_out, data->size);
+    assert_int_equal (ret, -1);
+}
+
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -253,6 +372,18 @@ main (gint    argc,
         unit_test_setup_teardown (tpm_header_from_fd_size_lt_header_test,
                                   tpm_header_from_fd_setup,
                                   tpm_header_from_fd_teardown),
+        unit_test_setup_teardown (tpm_body_from_fd_success_test,
+                                  tpm_body_from_fd_setup,
+                                  tpm_body_from_fd_teardown),
+        unit_test_setup_teardown (tpm_body_from_fd_errno_test,
+                                  tpm_body_from_fd_setup,
+                                  tpm_body_from_fd_teardown),
+        unit_test_setup_teardown (tpm_body_from_fd_eof_test,
+                                  tpm_body_from_fd_setup,
+                                  tpm_body_from_fd_teardown),
+        unit_test_setup_teardown (tpm_body_from_fd_short_test,
+                                  tpm_body_from_fd_setup,
+                                  tpm_body_from_fd_teardown),
     };
     return run_tests (tests);
 }
