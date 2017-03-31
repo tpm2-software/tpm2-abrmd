@@ -1,9 +1,12 @@
 #include <errno.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
+
+#include <sapi/marshal.h>
 
 #include "util.h"
 #include "tpm2-header.h"
@@ -346,6 +349,136 @@ tpm_body_from_fd_short_test (void **state)
     ret = tpm_body_from_fd (0, data->body_out, data->size);
     assert_int_equal (ret, -1);
 }
+/*
+ */
+typedef struct {
+    header_from_fd_data_t *header_from_fd;
+    body_from_fd_data_t   *body_from_fd;
+    UINT32                 command_size;
+} command_from_fd_data_t;
+/*
+ */
+static void
+tpm_command_from_fd_setup (void **state)
+{
+    command_from_fd_data_t *data;
+
+    data = calloc (1, sizeof (command_from_fd_data_t));
+    tpm_header_from_fd_setup ((void**)&data->header_from_fd);
+    tpm_body_from_fd_setup ((void**)&data->body_from_fd);
+
+    /* set size field in header to sizeof header + sizeof body */
+    data->command_size = data->header_from_fd->size + data->body_from_fd->size;
+    data->header_from_fd->header_in[5] = data->command_size;
+
+    *state = data;
+}
+/*
+ */
+static void
+tpm_command_from_fd_teardown (void **state)
+{
+    command_from_fd_data_t *command_from_fd = *state;
+
+    if (command_from_fd != NULL) {
+        tpm_header_from_fd_teardown ((void**)&command_from_fd->header_from_fd);
+        tpm_body_from_fd_teardown ((void**)&command_from_fd->body_from_fd);
+        free (command_from_fd);
+    }
+}
+/*
+ */
+static void
+tpm_command_from_fd_header_err_test (void **state)
+{
+    command_from_fd_data_t *data = *state;
+    uint8_t *buf;
+    UINT32 size = 0;
+
+    will_return (__wrap_read, EAGAIN);
+    will_return (__wrap_read, data->header_from_fd->header_in);
+    will_return (__wrap_read, -1);
+
+    buf = read_tpm_command_from_fd (0, &size);
+    assert_null (buf);
+    assert_int_equal (size, 0);
+}
+/*
+ * This test causes the header read in the read_tpm_command_from_fd
+ * to exceed the maximum buffer size (UTIL_BUF_MAX). This should cause
+ * the function under test to return a NULL pointer and the size parameter
+ * to be set to the size from the header.
+ */
+static void
+tpm_command_from_fd_header_size_gt_max_test (void **state)
+{
+    command_from_fd_data_t *data = *state;
+    uint8_t *buf;
+    UINT32 size = 0, size_from_header;
+    size_t offset = 2;
+    TSS2_RC rc = 0;
+
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->header_from_fd->header_in);
+    will_return (__wrap_read, data->header_from_fd->size);
+
+    /* set the MSB in the size field of the header to something huge */
+    data->header_from_fd->header_in[2] = 0xff;
+
+    buf = read_tpm_command_from_fd (0, &size);
+    assert_null (buf);
+    rc = UINT32_Unmarshal (data->header_from_fd->header_in,
+                           data->header_from_fd->size,
+                           &offset,
+                           &size_from_header);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_int_equal (size, size_from_header);
+}
+/*
+ */
+static void
+tpm_command_from_fd_body_err_test (void **state)
+{
+    command_from_fd_data_t *data = *state;
+    uint8_t *buf;
+    UINT32 size = 0;
+
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->header_from_fd->header_in);
+    will_return (__wrap_read, data->header_from_fd->size);
+
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->body_from_fd->body_in);
+    /*
+     * cause error by forcing a short read when
+     * read_tpm_command_from_fd reads the body (second read)
+     */
+    will_return (__wrap_read, data->body_from_fd->size - 5);
+
+    buf = read_tpm_command_from_fd (0, &size);
+    assert_null (buf);
+}
+
+static void
+tpm_command_from_fd_success_test (void **state)
+{
+     command_from_fd_data_t *data = *state;
+    uint8_t *buf;
+    UINT32 size = 0;
+
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->header_from_fd->header_in);
+    will_return (__wrap_read, data->header_from_fd->size);
+
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->body_from_fd->body_in);
+    will_return (__wrap_read, data->body_from_fd->size);
+
+    buf = read_tpm_command_from_fd (0, &size);
+    assert_non_null (buf);
+    assert_int_equal (size, data->command_size);
+    g_free (buf);
+}
 
 gint
 main (gint    argc,
@@ -384,6 +517,18 @@ main (gint    argc,
         unit_test_setup_teardown (tpm_body_from_fd_short_test,
                                   tpm_body_from_fd_setup,
                                   tpm_body_from_fd_teardown),
+        unit_test_setup_teardown (tpm_command_from_fd_header_err_test,
+                                  tpm_command_from_fd_setup,
+                                  tpm_command_from_fd_teardown),
+        unit_test_setup_teardown (tpm_command_from_fd_header_size_gt_max_test,
+                                  tpm_command_from_fd_setup,
+                                  tpm_command_from_fd_teardown),
+        unit_test_setup_teardown (tpm_command_from_fd_body_err_test,
+                                  tpm_command_from_fd_setup,
+                                  tpm_command_from_fd_teardown),
+        unit_test_setup_teardown (tpm_command_from_fd_success_test,
+                                  tpm_command_from_fd_setup,
+                                  tpm_command_from_fd_teardown),
     };
     return run_tests (tests);
 }
