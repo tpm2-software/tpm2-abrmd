@@ -1,3 +1,5 @@
+# we have BUILT_SOURCES so builddir must be in VPATH
+VPATH = $(srcdir) $(builddir)
 ACLOCAL_AMFLAGS = -I m4
 
 .PHONY: unit-count
@@ -5,7 +7,8 @@ ACLOCAL_AMFLAGS = -I m4
 unit-count: check
 	sh scripts/unit-count.sh
 
-AM_CFLAGS = $(EXTRA_CFLAGS) -I$(srcdir)/src -I$(srcdir)/src/include \
+AM_CFLAGS = $(EXTRA_CFLAGS) \
+    -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
     $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
     $(SAPI_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS)
 AM_LDFLAGS = $(EXTRA_LDFLAGS)
@@ -147,6 +150,7 @@ endif
 	cat $^ >> $@
 
 %-generated.c %-generated.h : src/tabrmd.xml
+	mkdir -p src/
 	$(GDBUS_CODEGEN) --interface-prefix=com.intel.tss2. \
 	    --generate-c-code=src/tabrmd-generated $^
 
