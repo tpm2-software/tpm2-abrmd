@@ -1,5 +1,10 @@
 ACLOCAL_AMFLAGS = -I m4
 
+.PHONY: unit-count
+
+unit-count: check
+	sh scripts/unit-count.sh
+
 AM_CFLAGS = $(EXTRA_CFLAGS) -I$(srcdir)/src -I$(srcdir)/src/include \
     $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
     $(SAPI_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS)
