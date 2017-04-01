@@ -58,6 +58,19 @@ AS_IF([test "x$use_tcti_socket" != xno],
                                     [1])])])
 AM_CONDITIONAL([TCTI_SOCKET], [test "x$use_tcti_socket" != xno])
 
+#
+# systemd
+#
+AC_ARG_WITH([systemdsystemunitdir],
+            AS_HELP_STRING([--with-systemdsystemunitdir=DIR],
+                           [Directory for systemd service files]),
+            [],
+            [with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
+AS_IF([test "x$with_systemdsystemunitdir" != xno],
+      [AC_SUBST([systemdsystemunitdir],
+      [$with_systemdsystemunitdir])])
+AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno ])
+
 # preprocessor / compiler / linker flags
 #   these macros are defined in m4/flags.m4
 AX_ADD_COMPILER_FLAG([-Wall])

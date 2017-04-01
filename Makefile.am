@@ -78,10 +78,15 @@ tpm2_abrmddir      = $(includedir)/tss2
 tpm2_abrmd_HEADERS = $(srcdir)/src/include/tabrmd.h
 libtcti_tabrmddir      = $(includedir)/tcti
 libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
+
+if HAVE_SYSTEMD
+systemdsystemunit_DATA = dist/tabrmd.service
+endif # HAVE_SYSTEMD
+
 CLEANFILES = \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
-    dist/*.service
+    $(systemdsystemunit_DATA)
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
 pkgconfigdir          = $(libdir)/pkgconfig
