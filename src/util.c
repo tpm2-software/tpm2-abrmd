@@ -60,7 +60,7 @@ write_all (const gint    fd,
     size_t written_total = 0;
 
     do {
-        g_debug ("writing %ld bytes starting at 0x%" PRIxPTR " to fd %d",
+        g_debug ("writing %zu bytes starting at 0x%" PRIxPTR " to fd %d",
                  size - written_total,
                  (uintptr_t)buf + written_total,
                  fd);
@@ -74,11 +74,11 @@ write_all (const gint    fd,
         case  0:
             return (ssize_t)written_total;
         default:
-            g_debug ("wrote %ld bytes to fd %d", written, fd);
+            g_debug ("wrote %zd bytes to fd %d", written, fd);
         }
         written_total += (size_t)written;
     } while (written_total < size);
-    g_debug ("returning %lu", written_total);
+    g_debug ("returning %zu", written_total);
 
     return (ssize_t)written_total;
 }
@@ -133,7 +133,7 @@ tpm_header_from_fd (int       fd,
         g_warning ("EOF trying to read tpm command header from fd: %d", fd);
         return -1;
     default:
-        g_warning ("read %zd bytes on fd %d, expecting %lu",
+        g_warning ("read %zd bytes on fd %d, expecting %" PRIu32,
                    num_read, fd, TPM_HEADER_SIZE);
         return -1;
     }

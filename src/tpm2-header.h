@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <sapi/tpm20.h>
 
-#define TPM_HEADER_SIZE (sizeof (TPM_ST) + sizeof (UINT32) + sizeof (TPM_CC))
+#define TPM_HEADER_SIZE (UINT32)(sizeof (TPM_ST) + sizeof (UINT32) + sizeof (TPM_CC))
 
 TPMI_ST_COMMAND_TAG    get_command_tag        (uint8_t      *command_header);
 UINT32                 get_command_size       (uint8_t      *command_header);

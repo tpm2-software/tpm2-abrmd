@@ -58,8 +58,7 @@ sapi_context_init (TSS2_SYS_CONTEXT  **sapi_context,
     size = Tss2_Sys_GetContextSize (0);
     tmp_sapi_context = (TSS2_SYS_CONTEXT*)calloc (1, size);
     if (tmp_sapi_context == NULL) {
-        g_error ("Failed to allocate 0x%" PRIxMAX " bytes for the SAPI "
-                 "context", size);
+        g_error ("Failed to allocate %zd bytes for the SAPI context", size);
     }
     rc = Tss2_Sys_Initialize (tmp_sapi_context, size, tcti_context, &abi_version);
     if (rc != TSS2_RC_SUCCESS) {
