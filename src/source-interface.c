@@ -32,9 +32,9 @@ source_add_sink (Source       *self,
     SourceInterface *iface;
 
     g_debug ("source_add_sink");
-    g_return_val_if_fail (IS_SOURCE (self), NULL);
+    g_return_if_fail (IS_SOURCE (self));
     iface = SOURCE_GET_INTERFACE (self);
-    g_return_val_if_fail (iface->add_sink != NULL, NULL);
+    g_return_if_fail (iface->add_sink != NULL);
 
     iface->add_sink (self, sink);
 }

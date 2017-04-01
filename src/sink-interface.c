@@ -32,9 +32,9 @@ sink_enqueue (Sink       *self,
     SinkInterface *iface;
 
     g_debug ("sink_enqueue");
-    g_return_val_if_fail (IS_SINK (self), NULL);
+    g_return_if_fail (IS_SINK (self));
     iface = SINK_GET_INTERFACE (self);
-    g_return_val_if_fail (iface->enqueue != NULL, NULL);
+    g_return_if_fail (iface->enqueue != NULL);
 
     iface->enqueue (self, obj);
 }
