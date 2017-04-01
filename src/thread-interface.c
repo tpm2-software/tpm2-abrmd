@@ -34,9 +34,9 @@ thread_cancel (Thread *self)
     ThreadInterface *iface;
 
     g_debug ("tab_pthread_cancel");
-    g_return_val_if_fail (IS_THREAD (self), NULL);
+    g_return_val_if_fail (IS_THREAD (self), -1);
     iface = THREAD_GET_INTERFACE (self);
-    g_return_val_if_fail (iface->cancel != NULL, NULL);
+    g_return_val_if_fail (iface->cancel != NULL, -1);
 
     return iface->cancel (self);
 }
@@ -46,9 +46,9 @@ thread_join (Thread *self)
     ThreadInterface *iface;
 
     g_debug ("thread_join");
-    g_return_val_if_fail (IS_THREAD (self), NULL);
+    g_return_val_if_fail (IS_THREAD (self), -1);
     iface = THREAD_GET_INTERFACE (self);
-    g_return_val_if_fail (iface->join != NULL, NULL);
+    g_return_val_if_fail (iface->join != NULL, -1);
 
     return iface->join (self);
 }
@@ -58,9 +58,9 @@ thread_start (Thread *self)
     ThreadInterface *iface;
 
     g_debug ("thread_start");
-    g_return_val_if_fail (IS_THREAD (self), NULL);
+    g_return_val_if_fail (IS_THREAD (self), -1);
     iface = THREAD_GET_INTERFACE (self);
-    g_return_val_if_fail (iface->start != NULL, NULL);
+    g_return_val_if_fail (iface->start != NULL, -1);
 
     return iface->start (self);
 }
