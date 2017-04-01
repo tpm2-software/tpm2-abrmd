@@ -14,14 +14,9 @@ AM_CFLAGS = $(EXTRA_CFLAGS) \
 AM_LDFLAGS = $(EXTRA_LDFLAGS)
 UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 
-sbin_PROGRAMS   = src/tpm2-abrmd
-noinst_PROGRAMS = \
-    test/integration/create-keys \
-    test/integration/manage-transient-keys \
-    test/integration/start-auth-session \
-    test/integration/tcti-sessions-max \
-    test/tcti-tabrmd_read-write
-check_PROGRAMS  = \
+TESTS_UNIT = ""
+if UNIT
+TESTS_UNIT += \
     test/access-broker_unit \
     test/command-attrs_unit \
     test/connection_unit \
@@ -41,6 +36,23 @@ check_PROGRAMS  = \
     test/tss2-tcti-tabrmd_unit \
     test/tss2-tcti-echo_unit \
     test/util_unit
+if TCTI_DEVICE
+    TESTS_UNIT += test/tcti-device_unit
+endif
+if TCTI_SOCKET
+    TESTS_UNIT += test/tcti-socket_unit
+endif
+endif #UNIT
+
+sbin_PROGRAMS   = src/tpm2-abrmd
+noinst_PROGRAMS = \
+    test/integration/create-keys \
+    test/integration/manage-transient-keys \
+    test/integration/start-auth-session \
+    test/integration/tcti-sessions-max \
+    test/tcti-tabrmd_read-write
+check_PROGRAMS  = $(TESTS_UNIT)
+
 if TCTI_DEVICE
 check_PROGRAMS += test/tcti-device_unit
 endif
@@ -162,6 +174,7 @@ dist/%.service : dist/%.service.in
 	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g; \
                 s,[@]includedir[@],$(includedir),g;" $^ > $@
 
+if UNIT
 test_test_skeleton_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_test_skeleton_unit_LDADD   = $(CMOCKA_LIBS)
 test_test_skeleton_unit_SOURCES = test/test-skeleton_unit.c
@@ -233,9 +246,6 @@ test_tcti_options_unit_LDADD   += $(TCTI_SOCKET_LIBS)
 test_tcti_options_unit_SOURCES += src/tcti-socket.c
 endif
 
-test_tcti_tabrmd_read_write_LDADD   = $(GLIB_LIBS) $(libtcti_tabrmd)
-test_tcti_tabrmd_read_write_SOURCES = test/tcti-tabrmd_read-write.c
-
 test_tpm2_command_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
 test_tpm2_command_unit_SOURCES = test/tpm2-command_unit.c
@@ -280,6 +290,10 @@ test_tss2_tcti_tabrmd_unit_SOURCES = src/tcti-tabrmd.c test/tss2-tcti-tabrmd_uni
 test_tss2_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(libtcti_echo)
 test_tss2_tcti_echo_unit_SOURCES = test/tss2-tcti-echo_unit.c
+endif
+
+test_tcti_tabrmd_read_write_LDADD   = $(GLIB_LIBS) $(libtcti_tabrmd)
+test_tcti_tabrmd_read_write_SOURCES = test/tcti-tabrmd_read-write.c
 
 test_integration_create_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) \
