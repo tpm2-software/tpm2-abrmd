@@ -1,21 +1,20 @@
 .\" Process this file with
 .\" groff -man -Tascii foo.1
 .\"
-.TH TABD 8 "APRIL 2016" Intel "TPM2 Software Stack"
+.TH TPM2-ABRMD 8 "APRIL 2017" Intel "TPM2 Software Stack"
 .SH NAME
-tabd \- TPM2 access broker daemon
+tpm2-abrmd \- TPM2 access broker and resource management daemon
 .SH SYNOPSIS
-.B tabd 
+.B tpm2-abrmd 
 .RB [\-c][\-o][\-l\ logger-name][\-r][\-s][\-t\ tcti-name][tcti-specific-options]
 .SH DESCRIPTION
-.B tabd
-is a daemon that implements the TPM access broker as described by the Trusted
-Computing Group (TGC) in the
+.B tpm2-abrmd
+is a daemon that implements the TPM access broker and resource manager as
+described by the Trusted Computing Group (TGC) in the
 .B \*(lqTSS System Level API and TPM Command Transmission Interface
 .B Specification\*(rq.
 This daemon uses the DBus system bus and some pipes to communicate with
-clients. Eventually, it will implement the functionality of both a TPM
-access broker (TAB) and a resource manager (RM).
+clients.
 .SH OPTIONS
 .TP
 \fB\-c,\ \-\-max-connections\fR
