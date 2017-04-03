@@ -80,7 +80,7 @@ libtcti_tabrmddir      = $(includedir)/tcti
 libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
 
 if HAVE_SYSTEMD
-systemdsystemunit_DATA = dist/tabrmd.service
+dist_systemdsystemunit_DATA = dist/tpm2-abrmd.service
 endif # HAVE_SYSTEMD
 
 CLEANFILES = \
