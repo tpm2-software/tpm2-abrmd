@@ -79,10 +79,6 @@ tpm2_abrmd_HEADERS = $(srcdir)/src/include/tabrmd.h
 libtcti_tabrmddir      = $(includedir)/tcti
 libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
 
-if HAVE_SYSTEMD
-dist_systemdsystemunit_DATA = dist/tpm2-abrmd.service
-endif # HAVE_SYSTEMD
-
 CLEANFILES = \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
@@ -90,9 +86,13 @@ CLEANFILES = \
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
 pkgconfigdir          = $(libdir)/pkgconfig
-nodist_pkgconfig_DATA = lib/tcti-tabrmd.pc
+dist_pkgconfig_DATA   = dist/tcti-tabrmd.pc
 dist_dbuspolicy_DATA  = dist/tpm2-abrmd.conf
 dist_udevrules_DATA   = dist/tpm-udev.rules
+if HAVE_SYSTEMD
+dist_systemdsystemunit_DATA = dist/tpm2-abrmd.service
+endif # HAVE_SYSTEMD
+
 
 @VALGRIND_CHECK_RULES@
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
