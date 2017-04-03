@@ -363,7 +363,7 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *tcti_context,
 
     TSS2_TCTI_TABRMD_PROXY (tcti_context) =
         tcti_tabrmd_proxy_new_for_bus_sync (
-            G_BUS_TYPE_SESSION,
+            G_BUS_TYPE_SYSTEM,
             G_DBUS_PROXY_FLAGS_NONE,
             TABRMD_DBUS_NAME,              /* bus name */
             TABRMD_DBUS_PATH, /* object */

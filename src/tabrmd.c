@@ -544,7 +544,7 @@ parse_opts (gint            argc,
     gchar *logger_name = "stdout";
     GOptionContext *ctx;
     GError *err = NULL;
-    gboolean system_bus = FALSE;
+    gboolean session_bus = FALSE;
     gint ret = 0;
 
     options->max_connections = MAX_CONNECTIONS_DEFAULT;
@@ -553,8 +553,8 @@ parse_opts (gint            argc,
     GOptionEntry entries[] = {
         { "logger", 'l', 0, G_OPTION_ARG_STRING, &logger_name,
           "The name of desired logger, stdout is default.", "[stdout|syslog]"},
-        { "system", 's', 0, G_OPTION_ARG_NONE, &system_bus,
-          "Connect to the system dbus." },
+        { "session", 's', 0, G_OPTION_ARG_NONE, &session_bus,
+          "Connect to the session bus (system bus is default)." },
         { "fail-on-loaded-trans", 't', 0, G_OPTION_ARG_NONE,
           &options->fail_on_loaded_trans,
           "Fail initialization if the TPM reports loaded transient objects" },
@@ -575,7 +575,7 @@ parse_opts (gint            argc,
         g_error ("Failed to parse options. %s", err->message);
     }
     /* select the bus type, default to G_BUS_TYPE_SESSION */
-    options->bus = system_bus ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION;
+    options->bus = session_bus ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
     if (set_logger (logger_name) == -1) {
         g_print ("Unknown logger: %s, try --help\n", logger_name);
         ret = 1;
