@@ -1,0 +1,2 @@
+# tpm2-abrmd should be run as unprivileged tss user
+KERNEL=="tpm[0-9]*", MODE="0600", OWNER="tss", GROUP="tss"

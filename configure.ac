@@ -80,6 +80,15 @@ AC_ARG_WITH([dbuspolicydir],
             [with_dbuspolicydir=${sysconfdir}/dbus-1/system.d])
 AX_NORMALIZE_PATH([with_dbuspolicydir])
 AC_SUBST([dbuspolicydir], [$with_dbuspolicydir])
+#
+# udev
+#
+AC_ARG_WITH([udevrulesdir],
+            [AS_HELP_STRING([--with-udevrulesdir=DIR],[udev rules directory])],
+            [],
+            [with_udevrulesdir=${libdir}/udev/rules.d])
+AX_NORMALIZE_PATH([with_udevrulesdir])
+AC_SUBST([udevrulesdir], [$with_udevrulesdir])
 
 # preprocessor / compiler / linker flags
 #   these macros are defined in m4/flags.m4
