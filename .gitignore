@@ -21,7 +21,7 @@ depcomp
 install-sh
 libtool
 ltmain.sh
-lib/tcti-tabrmd.pc
+dist/tcti-tabrmd.pc
 m4/libtool.m4
 m4/lt~obsolete.m4
 m4/ltoptions.m4
