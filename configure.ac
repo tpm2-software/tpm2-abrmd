@@ -71,6 +71,16 @@ AS_IF([test "x$with_systemdsystemunitdir" != xno],
       [$with_systemdsystemunitdir])])
 AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno ])
 
+#
+# dbus
+#
+AC_ARG_WITH([dbuspolicydir],
+            [AS_HELP_STRING([--with-dbuspolicydir=DIR],[D-Bus policy directory])],
+            [],
+            [with_dbuspolicydir=${sysconfdir}/dbus-1/system.d])
+AX_NORMALIZE_PATH([with_dbuspolicydir])
+AC_SUBST([dbuspolicydir], [$with_dbuspolicydir])
+
 # preprocessor / compiler / linker flags
 #   these macros are defined in m4/flags.m4
 AX_ADD_COMPILER_FLAG([-Wall])

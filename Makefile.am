@@ -91,6 +91,7 @@ BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
 pkgconfigdir          = $(libdir)/pkgconfig
 nodist_pkgconfig_DATA = lib/tcti-tabrmd.pc
+dist_dbuspolicy_DATA  = lib/tpm2-abrmd.conf
 
 @VALGRIND_CHECK_RULES@
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
