@@ -91,7 +91,7 @@ BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
 pkgconfigdir          = $(libdir)/pkgconfig
 nodist_pkgconfig_DATA = lib/tcti-tabrmd.pc
-dist_dbuspolicy_DATA  = lib/tpm2-abrmd.conf
+dist_dbuspolicy_DATA  = dist/tpm2-abrmd.conf
 dist_udevrules_DATA   = dist/tpm-udev.rules
 
 @VALGRIND_CHECK_RULES@
