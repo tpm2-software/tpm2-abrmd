@@ -50,17 +50,17 @@ typedef struct gmain_data {
  */
 static GMainLoop *g_loop;
 
-#define TABRMD_POLICY_ERROR tabrmd_policy_error_quark ()
+#define TABRMD_ERROR tabrmd_error_quark ()
 typedef enum {
-    TABRMD_POLICY_ERROR_MAX_CONNECTIONS,
-} TabrmdPolicyErrorEnum;
+    TABRMD_ERROR_MAX_CONNECTIONS,
+} TabrmdErrorEnum;
 
 /*
  */
 GQuark
-tabrmd_policy_error_quark (void)
+tabrmd_error_quark (void)
 {
-    return g_quark_from_static_string ("tabrmd-policy");
+    return g_quark_from_static_string ("tabrmd-error");
 }
 
 /**
@@ -121,8 +121,8 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     random_get_uint64 (data->random, &id);
     if (connection_manager_is_full (data->manager)) {
         g_dbus_method_invocation_return_error (invocation,
-                                               TABRMD_POLICY_ERROR,
-                                               TABRMD_POLICY_ERROR_MAX_CONNECTIONS,
+                                               TABRMD_ERROR,
+                                               TABRMD_ERROR_MAX_CONNECTIONS,
                                                "MAX_COMMANDS exceeded. Try again later.");
         return TRUE;
     }
