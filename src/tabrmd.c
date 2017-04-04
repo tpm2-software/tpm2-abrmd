@@ -546,7 +546,7 @@ init_thread_func (gpointer user_data)
  * Then we do a bit of sanity checking and setting up default values if
  * none were supplied.
  */
-gint
+void
 parse_opts (gint            argc,
             gchar          *argv[],
             tabrmd_options_t *options)
@@ -555,7 +555,6 @@ parse_opts (gint            argc,
     GOptionContext *ctx;
     GError *err = NULL;
     gboolean session_bus = FALSE;
-    gint ret = 0;
 
     options->max_connections = MAX_CONNECTIONS_DEFAULT;
     options->max_transient_objects = MAX_TRANSIENT_OBJECTS_DEFAULT;
@@ -587,8 +586,7 @@ parse_opts (gint            argc,
     /* select the bus type, default to G_BUS_TYPE_SESSION */
     options->bus = session_bus ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
     if (set_logger (logger_name) == -1) {
-        g_print ("Unknown logger: %s, try --help\n", logger_name);
-        ret = 1;
+        g_error ("Unknown logger: %s, try --help\n", logger_name);
     }
     if (options->max_connections < 1 ||
         options->max_connections > MAX_CONNECTIONS)
@@ -602,7 +600,6 @@ parse_opts (gint            argc,
                  MAX_TRANSIENT_OBJECTS);
     }
     g_option_context_free (ctx);
-    return ret;
 }
 void
 thread_cleanup (Thread *thread)
@@ -634,8 +631,7 @@ main (int argc, char *argv[])
     GThread *init_thread;
 
     g_info ("tabrmd startup");
-    if (parse_opts (argc, argv, &gmain_data.options) != 0)
-        return 1;
+    parse_opts (argc, argv, &gmain_data.options);
     gmain_data.tcti = tcti_options_get_tcti (gmain_data.options.tcti_options);
     if (gmain_data.tcti == NULL)
         g_error ("Invalid TCTI selected.");
