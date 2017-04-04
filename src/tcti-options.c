@@ -133,7 +133,7 @@ tcti_options_class_init (gpointer klass)
                            "TCTI",
                            "TCTI used by tpm2-abrmd to communicate with the TPM",
                            TYPE_TCTI_TYPE_ENUM,
-                           TCTI_TYPE_NONE,
+                           TCTI_TYPE_DEFAULT,
                            G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
 #ifdef HAVE_TCTI_DEVICE
     obj_properties[PROP_DEVICE_NAME] =
