@@ -266,6 +266,13 @@ connection_manager_lookup_id (ConnectionManager   *manager,
 }
 
 gboolean
+connection_manager_contains_id (ConnectionManager *manager,
+                                gint64             id)
+{
+    return g_hash_table_contains (manager->connection_from_id_table, &id);
+}
+
+gboolean
 connection_manager_remove (ConnectionManager   *manager,
                            Connection          *connection)
 {
