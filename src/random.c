@@ -137,53 +137,47 @@ random_get_bytes (Random    *random,
  * we successfully fill in the supplied 'dest' parameter with random
  * data we return 0. On error return -1.
  */
-int
-random_get_uint64 (Random      *random,
-                   uint64_t    *dest)
+uint64_t
+random_get_uint64 (Random      *random)
 {
     size_t ret;
+    uint64_t dest;
 
-    ret = random_get_bytes (random, (uint8_t*)dest, sizeof (uint64_t));
-    if (ret != sizeof (uint64_t))
-        return -1;
-    else
-        return 0;
+    ret = random_get_bytes (random, (uint8_t*)&dest, sizeof (uint64_t));
+    g_assert_true (ret == sizeof (uint64_t));
+
+    return dest;
 }
 /*
  * Get 32 bits of random data from the parameter 'random' object. If
  * we successfully fill in the supplied 'dest' parameter with random
  * data we return 0, on error return -1.
  */
-int
-random_get_uint32 (Random       *random,
-                   uint32_t     *dest)
+uint32_t
+random_get_uint32 (Random       *random)
 {
     size_t ret;
+    uint32_t dest;
 
-    ret = random_get_bytes (random, (uint8_t*)dest, sizeof (uint32_t));
-    if (ret == sizeof (uint32_t))
-        return 0;
-    else
-        return -1;
+    ret = random_get_bytes (random, (uint8_t*)&dest, sizeof (uint32_t));
+    g_assert_true (ret == sizeof (uint32_t));
+
+    return dest;
 }
 /*
  * Get random 32bit number in the given range.
  */
-int
+uint32_t
 random_get_uint32_range (Random *random,
                          uint32_t high,
-                         uint32_t low,
-                         uint32_t *dest)
+                         uint32_t low)
 {
     size_t ret;
+    uint32_t dest;
 
-    if (dest == NULL)
-        return -1;
-    ret = random_get_bytes (random, (uint8_t*)dest, sizeof (*dest));
+    ret = random_get_bytes (random, (uint8_t*)&dest, sizeof (dest));
     if (ret != sizeof (uint32_t))
         return -1;
 
-    *dest = low + (*dest / (UINT32_MAX / (high - low)));
-
-    return 0;
+    return low + (dest / (UINT32_MAX / (high - low)));
 }

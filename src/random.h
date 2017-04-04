@@ -35,14 +35,11 @@ int           random_seed_from_file        (Random       *random,
 size_t        random_get_bytes             (Random       *random,
                                             uint8_t       dest[],
                                             size_t        count);
-int           random_get_uint32            (Random       *random,
-                                            uint32_t     *dest);
-int           random_get_uint32_range      (Random       *random,
+uint32_t      random_get_uint32            (Random       *random);
+uint32_t      random_get_uint32_range      (Random       *random,
                                             uint32_t      high,
-                                            uint32_t      low,
-                                            uint32_t     *dest);
-int           random_get_uint64            (Random       *random,
-                                            uint64_t     *dest);
+                                            uint32_t      low);
+uint64_t      random_get_uint64            (Random       *random);
 
 G_END_DECLS
 #endif /* RANDOM_H */

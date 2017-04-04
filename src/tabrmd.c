@@ -53,7 +53,6 @@ static GMainLoop *g_loop;
 #define TABRMD_ERROR tabrmd_error_quark ()
 typedef enum {
     TABRMD_ERROR_MAX_CONNECTIONS,
-    TABRMD_ERROR_GENERATE_ID,
 } TabrmdErrorEnum;
 
 /*
@@ -119,15 +118,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
      */
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
-    ret = random_get_uint64 (data->random, &id);
-    if (ret == -1) {
-        g_dbus_method_invocation_return_error (
-            invocation,
-            TABRMD_ERROR,
-            TABRMD_ERROR_GENERATE_ID,
-            "Failed to allocate connection ID. Try again later.");
-        return TRUE;
-    }
+    id = random_get_uint64 (data->random);
     if (connection_manager_is_full (data->manager)) {
         g_dbus_method_invocation_return_error (invocation,
                                                TABRMD_ERROR,
