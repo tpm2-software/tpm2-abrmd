@@ -14,9 +14,8 @@ AM_CFLAGS = $(EXTRA_CFLAGS) \
 AM_LDFLAGS = $(EXTRA_LDFLAGS)
 UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 
-TESTS_UNIT = ""
 if UNIT
-TESTS_UNIT += \
+TESTS_UNIT = \
     test/access-broker_unit \
     test/command-attrs_unit \
     test/connection_unit \
@@ -52,13 +51,6 @@ noinst_PROGRAMS = \
     test/integration/tcti-sessions-max \
     test/tcti-tabrmd_read-write
 check_PROGRAMS  = $(TESTS_UNIT)
-
-if TCTI_DEVICE
-check_PROGRAMS += test/tcti-device_unit
-endif
-if TCTI_SOCKET
-check_PROGRAMS += test/tcti-socket_unit
-endif
 
 # libraries
 libtcti_tabrmd = src/libtcti-tabrmd.la
