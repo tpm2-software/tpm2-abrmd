@@ -342,7 +342,7 @@ command_source_thread (void *data)
     } while (TRUE);
     pthread_cleanup_pop (1);
 
-    return (void*)0;
+    return NULL;
 }
 
 CommandSource*

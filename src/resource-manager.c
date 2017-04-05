@@ -442,7 +442,7 @@ resource_manager_thread (gpointer data)
         }
     }
 
-    return (void*)0;
+    return NULL;
 }
 /**
  * Thread creation / start function.

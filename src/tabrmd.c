@@ -534,7 +534,7 @@ init_thread_func (gpointer user_data)
     g_mutex_unlock (&data->init_mutex);
     g_info ("init_thread_func done");
 
-    return (void*)0;
+    return NULL;
 }
 /**
  * This function parses the parameter argument vector and populates the
