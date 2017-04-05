@@ -1,26 +1,13 @@
 #include "source-interface.h"
 
+G_DEFINE_INTERFACE (Source, source, G_TYPE_INVALID);
+
 static void
 source_default_init (SourceInterface *iface)
 {
     /* noop, requied by G_DEFINE_INTERFACE */
 }
 
-GType
-source_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_INTERFACE,
-                                              "source",
-                                              sizeof (SourceInterface),
-                                              (GClassInitFunc)source_default_init,
-                                              0,
-                                              (GInstanceInitFunc)NULL,
-                                              (GTypeFlags) 0);
-    }
-    return type;
-}
 /**
  * boilerplate code to call enqueue function in class implementing the
  * interface
