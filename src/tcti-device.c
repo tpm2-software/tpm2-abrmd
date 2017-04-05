@@ -1,7 +1,6 @@
 #include "tcti-device.h"
 
-/* Boiler-plate gobject code. */
-static gpointer tcti_device_parent_class = NULL;
+G_DEFINE_TYPE (TctiDevice, tcti_device, TYPE_TCTI);
 
 enum {
     PROP_0,
@@ -65,10 +64,13 @@ tcti_device_finalize (GObject *obj)
     if (tcti_device_parent_class)
         G_OBJECT_CLASS (tcti_device_parent_class)->finalize (obj);
 }
+static void
+tcti_device_init (TctiDevice *tcti)
+{ /* noop */ }
 /* When the class is initialized we set the pointer to our finalize function.
  */
 static void
-tcti_device_class_init (gpointer klass)
+tcti_device_class_init (TctiDeviceClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     TctiClass    *tcti_class   = TCTI_CLASS (klass);
@@ -91,25 +93,6 @@ tcti_device_class_init (gpointer klass)
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
-}
-
-/* Upon first call to *_get_type we register the type with the GType system.
- * We keep a static GType around to speed up future calls.
- */
-GType
-tcti_device_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (TYPE_TCTI,
-                                              "TctiDevice",
-                                              sizeof (TctiDeviceClass),
-                                              (GClassInitFunc) tcti_device_class_init,
-                                              sizeof (TctiDevice),
-                                              NULL,
-                                              0);
-    }
-    return type;
 }
 /**
  * Allocate a new TctiDevice object and initialize the 'tcti_context'
