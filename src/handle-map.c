@@ -4,8 +4,8 @@
 
 #include "handle-map.h"
 
-/* Boiler-plate gobject code. */
-static gpointer handle_map_parent_class = NULL;
+G_DEFINE_TYPE (HandleMap, handle_map, G_TYPE_OBJECT);
+
 enum {
     PROP_0,
     PROP_HANDLE_TYPE,
@@ -70,11 +70,8 @@ handle_map_set_property (GObject        *object,
  * allocated by the TPM.
  */
 static void
-handle_map_init (GTypeInstance *instance,
-                 gpointer       klass)
+handle_map_init (HandleMap     *map)
 {
-    HandleMap *map = HANDLE_MAP (instance);
-
     g_debug ("handle_map_init");
     pthread_mutex_init (&map->mutex, NULL);
     map->vhandle_to_entry_table =
@@ -106,7 +103,7 @@ handle_map_finalize (GObject *object)
  * and properties.
  */
 static void
-handle_map_class_init (gpointer klass)
+handle_map_class_init (HandleMapClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -135,25 +132,6 @@ handle_map_class_init (gpointer klass)
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
-}
-/*
- * Boiler-plate GObject 'get_type' function.
- */
-GType
-handle_map_get_type (void)
-{
-    static GType type = 0;
-
-    if (type == 0)
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "HandleMap",
-                                              sizeof (HandleMapClass),
-                                              (GClassInitFunc) handle_map_class_init,
-                                              sizeof (HandleMap),
-                                              handle_map_init,
-                                              0);
-
-    return type;
 }
 /*
  * Instance initialization function. Create the resources the HandleMap needs
