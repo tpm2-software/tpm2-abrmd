@@ -5,9 +5,15 @@
 
 #include "command-attrs.h"
 
-static gpointer command_attrs_parent_class = NULL;
+G_DEFINE_TYPE (CommandAttrs, command_attrs, G_TYPE_OBJECT);
 
-/* Boilerplate GObject mgmt code. */
+/*
+ * G_DEFINE_TYPE requires an instance init even though we don't use it.
+ */
+static void
+command_attrs_init (CommandAttrs *attrs)
+{ /* noop */ }
+
 static void
 command_attrs_finalize (GObject *obj)
 {
@@ -20,7 +26,7 @@ command_attrs_finalize (GObject *obj)
 }
 
 static void
-command_attrs_class_init (gpointer klass)
+command_attrs_class_init (CommandAttrsClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -31,21 +37,6 @@ command_attrs_class_init (gpointer klass)
     object_class->finalize = command_attrs_finalize;
 }
 
-GType
-command_attrs_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "CommandAttrs",
-                                              sizeof (CommandAttrsClass),
-                                              (GClassInitFunc) command_attrs_class_init,
-                                              sizeof (CommandAttrs),
-                                              NULL,
-                                              0);
-    }
-    return type;
-}
 /*
  * Create a new CommandAttrs object. Do no initialization in the
  * constructor since initialization requires a round-trip to the TPM
@@ -59,8 +50,8 @@ command_attrs_new (void)
 /*
  */
 gint
-command_attrs_init (CommandAttrs *attrs,
-                    AccessBroker *broker)
+command_attrs_init_tpm (CommandAttrs *attrs,
+                        AccessBroker *broker)
 {
     TSS2_RC               rc;
     TPMS_CAPABILITY_DATA  capability_data;

@@ -34,7 +34,7 @@ command_attrs_setup (void **state)
 }
 /* Setup function to allocate and initialize the object. */
 static void
-command_attrs_init_setup (void **state)
+command_attrs_init_tpm_setup (void **state)
 {
     test_data_t *data;
     gint         ret;
@@ -57,7 +57,7 @@ command_attrs_init_setup (void **state)
     will_return (__wrap_Tss2_Sys_GetCapability, &command_attributes);
     will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
 
-    ret = command_attrs_init (data->command_attrs, data->access_broker);
+    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, 0);
 }
 /* Teardown function to deallocate the Random object. */
@@ -130,7 +130,7 @@ __wrap_access_broker_unlock (AccessBroker *access_broker)
  * function calls return the values expected by the function under test.
  */
 static void
-command_attrs_init_success_test (void **state)
+command_attrs_init_tpm_success_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
@@ -149,7 +149,7 @@ command_attrs_init_success_test (void **state)
     will_return (__wrap_Tss2_Sys_GetCapability, &command_attributes);
     will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
 
-    ret = command_attrs_init (data->command_attrs, data->access_broker);
+    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, 0);
     assert_memory_equal (command_attributes,
                          data->command_attrs->command_attrs,
@@ -160,13 +160,13 @@ command_attrs_init_success_test (void **state)
  * init function when a NULL SAPI context is returned by the AccessBroker.
  */
 static void
-command_attrs_init_null_sapi_test (void **state)
+command_attrs_init_tpm_null_sapi_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
 
     will_return (__wrap_access_broker_lock_sapi, NULL);
-    ret = command_attrs_init (data->command_attrs, data->access_broker);
+    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, -1);
 }
 /*
@@ -175,7 +175,7 @@ command_attrs_init_null_sapi_test (void **state)
  * init function.
  */
 static void
-command_attrs_init_fail_get_max_command_test (void **state)
+command_attrs_init_tpm_fail_get_max_command_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
@@ -184,7 +184,7 @@ command_attrs_init_fail_get_max_command_test (void **state)
     will_return (__wrap_access_broker_get_max_command, 2);
     will_return (__wrap_access_broker_get_max_command, 1);
 
-    ret = command_attrs_init (data->command_attrs, data->access_broker);
+    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, -1);
 }
 /*
@@ -193,7 +193,7 @@ command_attrs_init_fail_get_max_command_test (void **state)
  * This would mean that the TPM supports no commands.
  */
 static void
-command_attrs_init_zero_get_max_command_test (void **state)
+command_attrs_init_tpm_zero_get_max_command_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
@@ -202,7 +202,7 @@ command_attrs_init_zero_get_max_command_test (void **state)
     will_return (__wrap_access_broker_get_max_command, 0);
     will_return (__wrap_access_broker_get_max_command, TSS2_RC_SUCCESS);
 
-    ret = command_attrs_init (data->command_attrs, data->access_broker);
+    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, -1);
 }
 /*
@@ -210,7 +210,7 @@ command_attrs_init_zero_get_max_command_test (void **state)
  * Tss2_Sys_GetCapability.
  */
 static void
-command_attrs_init_fail_get_capability_test (void **state)
+command_attrs_init_tpm_fail_get_capability_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
@@ -229,12 +229,12 @@ command_attrs_init_fail_get_capability_test (void **state)
     will_return (__wrap_Tss2_Sys_GetCapability, &command_attributes);
     will_return (__wrap_Tss2_Sys_GetCapability, 1);
 
-    ret = command_attrs_init (data->command_attrs, data->access_broker);
+    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, -1);
 }
 /*
  * Test a successful call to the command_attrs_from_cc function. This relies
- * on command_attrs_init_setup to call the _init function successfully which
+ * on command_attrs_init_tpm_setup to call the _init function successfully which
  * populates the CommandAttrs object with TPMA_CCs.
  */
 static void
@@ -253,7 +253,7 @@ command_attrs_from_cc_success_test (void **state)
 }
 /*
  * Test a failed call to the command_attrs_from_cc function. This relies
- * on command_attrs_init_setup to call the _init function successfully which
+ * on command_attrs_init_tpm_setup to call the _init function successfully which
  * populates the CommandAttrs object with TPMA_CCs. This time we supply a
  * TPM_CC that isn't populated in the _init function so the call fails.
  */
@@ -279,26 +279,26 @@ main (gint    argc,
         unit_test_setup_teardown (command_attrs_type_test,
                                   command_attrs_setup,
                                   command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_init_success_test,
+        unit_test_setup_teardown (command_attrs_init_tpm_success_test,
                                   command_attrs_setup,
                                   command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_init_null_sapi_test,
+        unit_test_setup_teardown (command_attrs_init_tpm_null_sapi_test,
                                   command_attrs_setup,
                                   command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_init_fail_get_max_command_test,
+        unit_test_setup_teardown (command_attrs_init_tpm_fail_get_max_command_test,
                                   command_attrs_setup,
                                   command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_init_zero_get_max_command_test,
+        unit_test_setup_teardown (command_attrs_init_tpm_zero_get_max_command_test,
                                   command_attrs_setup,
                                   command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_init_fail_get_capability_test,
+        unit_test_setup_teardown (command_attrs_init_tpm_fail_get_capability_test,
                                   command_attrs_setup,
                                   command_attrs_teardown),
         unit_test_setup_teardown (command_attrs_from_cc_success_test,
-                                  command_attrs_init_setup,
+                                  command_attrs_init_tpm_setup,
                                   command_attrs_teardown),
         unit_test_setup_teardown (command_attrs_from_cc_fail_test,
-                                  command_attrs_init_setup,
+                                  command_attrs_init_tpm_setup,
                                   command_attrs_teardown),
         NULL,
     };

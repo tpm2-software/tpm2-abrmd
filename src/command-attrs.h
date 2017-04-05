@@ -31,7 +31,7 @@ typedef struct _CommandAttrs {
 
 GType            command_attrs_get_type    (void);
 CommandAttrs*    command_attrs_new         (void);
-gint             command_attrs_init        (CommandAttrs     *attrs,
+gint             command_attrs_init_tpm    (CommandAttrs     *attrs,
                                             AccessBroker     *broker);
 TPMA_CC          command_attrs_from_cc     (CommandAttrs     *attrs,
                                             TPM_CC            command_code);
