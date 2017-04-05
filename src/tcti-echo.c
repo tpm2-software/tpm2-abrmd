@@ -4,7 +4,7 @@
 #include "tcti-echo.h"
 #include "tss2-tcti-echo.h"
 
-static gpointer tcti_echo_parent_class = NULL;
+G_DEFINE_TYPE (TctiEcho, tcti_echo, TYPE_TCTI);
 
 enum {
     PROP_0,
@@ -69,10 +69,13 @@ tcti_echo_finalize (GObject *obj)
     if (tcti_echo_parent_class)
         G_OBJECT_CLASS (tcti_echo_parent_class)->finalize (obj);
 }
+static void
+tcti_echo_init (TctiEcho *tcti)
+{ /* noop */ }
 /* When the class is initialized we set the pointer to our finalize function.
  */
 static void
-tcti_echo_class_init (gpointer klass)
+tcti_echo_class_init (TctiEchoClass *klass)
 {
     GObjectClass  *object_class = G_OBJECT_CLASS  (klass);
     TctiClass *base_class   = TCTI_CLASS (klass);
@@ -99,24 +102,6 @@ tcti_echo_class_init (gpointer klass)
                                        obj_properties);
 }
 
-/* Upon first call to *_get_type we register the type with the GType system.
- * We keep a static GType around to speed up future calls.
- */
-GType
-tcti_echo_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (TYPE_TCTI,
-                                              "TctiEcho",
-                                              sizeof (TctiEchoClass),
-                                              (GClassInitFunc) tcti_echo_class_init,
-                                              sizeof (TctiEcho),
-                                              NULL,
-                                              0);
-    }
-    return type;
-}
 TctiEcho*
 tcti_echo_new (guint size)
 {
