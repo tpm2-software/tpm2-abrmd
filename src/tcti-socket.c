@@ -1,7 +1,6 @@
 #include "tcti-socket.h"
 
-/* Boiler-plate gobject code. */
-static gpointer tcti_socket_parent_class = NULL;
+G_DEFINE_TYPE (TctiSocket, tcti_socket, TYPE_TCTI);
 
 enum {
     PROP_0,
@@ -74,10 +73,13 @@ tcti_socket_finalize (GObject *obj)
     if (tcti_socket_parent_class)
         G_OBJECT_CLASS (tcti_socket_parent_class)->finalize (obj);
 }
+static void
+tcti_socket_init (TctiSocket *socket)
+{ /* noop */ }
 /* When the class is initialized we set the pointer to our finalize function.
  */
 static void
-tcti_socket_class_init (gpointer klass)
+tcti_socket_class_init (TctiSocketClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     TctiClass    *tcti_class   = TCTI_CLASS (klass);
@@ -109,24 +111,6 @@ tcti_socket_class_init (gpointer klass)
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
-}
-/* Upon first call to *_get_type we register the type with the GType system.
- * We keep a static GType around to speed up future calls.
- */
-GType
-tcti_socket_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (TYPE_TCTI,
-                                              "TctiSocket",
-                                              sizeof (TctiSocketClass),
-                                              (GClassInitFunc) tcti_socket_class_init,
-                                              sizeof (TctiSocket),
-                                              NULL,
-                                              0);
-    }
-    return type;
 }
 /**
  * Allocate a new TctiSocket object and initialize the 'tcti_context'
