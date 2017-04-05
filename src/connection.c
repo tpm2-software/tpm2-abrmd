@@ -8,7 +8,7 @@
 
 #include "connection.h"
 
-static gpointer connection_parent_class = NULL;
+G_DEFINE_TYPE (Connection, connection, G_TYPE_OBJECT);
 
 enum {
     PROP_0,
@@ -84,6 +84,14 @@ connection_get_property (GObject     *object,
         break;
     }
 }
+
+/*
+ * G_DEFINE_TYPE requires an instance init even though we don't use it.
+ */
+static void
+connection_init (Connection *connection)
+{ /* noop */ }
+
 static void
 connection_finalize (GObject *obj)
 {
@@ -100,7 +108,7 @@ connection_finalize (GObject *obj)
 }
 
 static void
-connection_class_init (gpointer klass)
+connection_class_init (ConnectionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -146,24 +154,6 @@ connection_class_init (gpointer klass)
                                        N_PROPERTIES,
                                        obj_properties);
 }
-GType
-connection_get_type (void)
-{
-    static GType type = 0;
-
-    g_debug ("connection_get_type");
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "Connection",
-                                              sizeof (ConnectionClass),
-                                              (GClassInitFunc) connection_class_init,
-                                              sizeof (Connection),
-                                              NULL,
-                                              0);
-    }
-    return type;
-}
-
 /* Create a pipe and return the recv and send fds. */
 int
 create_pipe_pair (int *recv,
