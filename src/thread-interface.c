@@ -1,26 +1,11 @@
 #include "thread-interface.h"
 
+G_DEFINE_INTERFACE (Thread, thread, G_TYPE_INVALID);
 
 static void
 thread_default_init (ThreadInterface *iface)
 {
 /* noop, required by G_DEFINE_INTERFACE */
-}
-
-GType
-thread_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_INTERFACE,
-                                              "thread",
-                                              sizeof (ThreadInterface),
-                                              (GClassInitFunc)thread_default_init,
-                                              0,
-                                              (GInstanceInitFunc)NULL,
-                                              (GTypeFlags) 0);
-    }
-    return type;
 }
 /**
  * AFAIK this is boilerplate for 'interface' / abstract objects. All we do
