@@ -1,26 +1,13 @@
 #include "sink-interface.h"
 
+G_DEFINE_INTERFACE (Sink, sink, G_TYPE_INVALID);
+
 static void
 sink_default_init (SinkInterface *iface)
 {
     /* noop, requied by G_DEFINE_INTERFACE */
 }
 
-GType
-sink_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_INTERFACE,
-                                              "sink",
-                                              sizeof (SinkInterface),
-                                              (GClassInitFunc)sink_default_init,
-                                              0,
-                                              (GInstanceInitFunc)NULL,
-                                              (GTypeFlags) 0);
-    }
-    return type;
-}
 /**
  * boilerplate code to call enqueue function in class implementing the
  * interface
