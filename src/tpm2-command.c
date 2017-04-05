@@ -13,13 +13,7 @@
                                                   HANDLE_INDEX (count)))
 #define HANDLE_START(buffer) (buffer + HANDLE_OFFSET)
 
-/**
- * Boiler-plate gobject code.
- * NOTE: I tried to use the G_DEFINE_TYPE macro to take care of this boiler
- * plate for us but ended up with weird segfaults in the type checking macros.
- * Going back to doing this by hand resolved the issue thankfully.
- */
-static gpointer tpm2_command_parent_class = NULL;
+G_DEFINE_TYPE (Tpm2Command, tpm2_command, G_TYPE_OBJECT);
 
 enum {
     PROP_0,
@@ -107,12 +101,15 @@ tpm2_command_finalize (GObject *obj)
         g_object_unref (cmd->connection);
     G_OBJECT_CLASS (tpm2_command_parent_class)->finalize (obj);
 }
+static void
+tpm2_command_init (Tpm2Command *command)
+{ /* noop */ }
 /**
  * Boilerplate GObject initialization. Get a pointer to the parent class,
  * setup a finalize function.
  */
 static void
-tpm2_command_class_init (gpointer klass)
+tpm2_command_class_init (Tpm2CommandClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -144,25 +141,6 @@ tpm2_command_class_init (gpointer klass)
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
-}
-/**
- * Upon first call to *_get_type we register the type with the GType system.
- * We keep a static GType around to speed up future calls.
- */
-GType
-tpm2_command_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "Tpm2Command",
-                                              sizeof (Tpm2CommandClass),
-                                              (GClassInitFunc) tpm2_command_class_init,
-                                              sizeof (Tpm2Command),
-                                              NULL,
-                                              0);
-    }
-    return type;
 }
 /**
  * Boilerplate constructor, but some GObject properties would be nice.
