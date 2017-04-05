@@ -633,8 +633,6 @@ main (int argc, char *argv[])
     g_info ("tabrmd startup");
     parse_opts (argc, argv, &gmain_data.options);
     gmain_data.tcti = tcti_options_get_tcti (gmain_data.options.tcti_options);
-    if (gmain_data.tcti == NULL)
-        g_error ("Invalid TCTI selected.");
 
     g_mutex_init (&gmain_data.init_mutex);
     g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);

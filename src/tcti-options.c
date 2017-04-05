@@ -314,8 +314,6 @@ tcti_options_get_tcti (TctiOptions *self)
 {
     g_debug ("tcti_options_get_tcti");
     switch (self->tcti_type) {
-    case TCTI_TYPE_NONE:
-        return NULL;
 #ifdef HAVE_TCTI_DEVICE
     case TCTI_TYPE_DEVICE:
         g_assert (self->device_name);
