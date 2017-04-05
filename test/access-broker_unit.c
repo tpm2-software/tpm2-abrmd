@@ -90,7 +90,7 @@ __wrap_tcti_echo_receive (TSS2_TCTI_CONTEXT *tcti_context,
 }
 /**
  * Do the minimum setup required by the AccessBroker object. This does not
- * call the access_broker_init function intentionally. We test that function
+ * call the access_broker_init_tpm function intentionally. We test that function
  * in a separate test.
  */
 static void
@@ -130,7 +130,7 @@ access_broker_setup_with_init (void **state)
     will_return (__wrap_Tss2_Sys_GetCapability, MAX_COMMAND_VALUE);
     will_return (__wrap_Tss2_Sys_GetCapability, MAX_RESPONSE_VALUE);
     will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
-    access_broker_init (data->broker);
+    access_broker_init_tpm (data->broker);
 }
 /*
  * This setup function chains up to the 'setup_with_init' function.
@@ -187,7 +187,7 @@ access_broker_type_test (void **state)
  * flag should be set to 'true'.
  */
 static void
-access_broker_init_test (void **state)
+access_broker_init_tpm_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
 
@@ -195,7 +195,7 @@ access_broker_init_test (void **state)
     will_return (__wrap_Tss2_Sys_GetCapability, MAX_COMMAND_VALUE);
     will_return (__wrap_Tss2_Sys_GetCapability, MAX_RESPONSE_VALUE);
     will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
-    assert_int_equal (access_broker_init (data->broker), TSS2_RC_SUCCESS);
+    assert_int_equal (access_broker_init_tpm (data->broker), TSS2_RC_SUCCESS);
     assert_true (data->broker->initialized);
 }
 
@@ -338,7 +338,7 @@ main (int   argc,
         unit_test_setup_teardown (access_broker_type_test,
                                   access_broker_setup,
                                   access_broker_teardown),
-        unit_test_setup_teardown (access_broker_init_test,
+        unit_test_setup_teardown (access_broker_init_tpm_test,
                                   access_broker_setup,
                                   access_broker_teardown),
         unit_test_setup_teardown (access_broker_get_max_command_test,

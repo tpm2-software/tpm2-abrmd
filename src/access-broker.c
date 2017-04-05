@@ -9,7 +9,7 @@
 #include "tpm2-command.h"
 #include "tpm2-response.h"
 
-static gpointer access_broker_parent_class = NULL;
+G_DEFINE_TYPE (AccessBroker, access_broker, G_TYPE_OBJECT);
 
 enum {
     PROP_0,
@@ -92,6 +92,12 @@ access_broker_finalize (GObject *obj)
     if (access_broker_parent_class)
         G_OBJECT_CLASS (access_broker_parent_class)->finalize (obj);
 }
+/*
+ * G_DEFINE_TYPE requires an instance init even though we don't use it.
+ */
+static void
+access_broker_init (AccessBroker *broker)
+{ /* noop */ }
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.
@@ -99,7 +105,7 @@ access_broker_finalize (GObject *obj)
  * - Install properties.
  */
 static void
-access_broker_class_init (gpointer klass)
+access_broker_class_init (AccessBrokerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -123,25 +129,6 @@ access_broker_class_init (gpointer klass)
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
-}
-/**
- * GObject boilerplate get_type.
- */
-GType
-access_broker_get_type (void)
-{
-    static GType type = 0;
-
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "AccessBroker",
-                                              sizeof (AccessBrokerClass),
-                                              (GClassInitFunc) access_broker_class_init,
-                                              sizeof (AccessBroker),
-                                              NULL,
-                                              0);
-    }
-    return type;
 }
 static TSS2_SYS_CONTEXT*
 sapi_context_init (Tcti *tcti)
@@ -486,11 +473,11 @@ access_broker_new (Tcti *tcti)
  * been instantiated.
  */
 TSS2_RC
-access_broker_init (AccessBroker *broker)
+access_broker_init_tpm (AccessBroker *broker)
 {
     TSS2_RC rc;
 
-    g_debug ("access_broker_init: 0x%" PRIxPTR, (uintptr_t)broker);
+    g_debug ("access_broker_init_tpm: 0x%" PRIxPTR, (uintptr_t)broker);
     if (broker->initialized)
         return TSS2_RC_SUCCESS;
     pthread_mutex_init (&broker->sapi_mutex, NULL);

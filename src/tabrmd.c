@@ -469,7 +469,7 @@ init_thread_func (gpointer user_data)
     data->access_broker = access_broker_new (data->tcti);
     g_debug ("created AccessBroker: 0x%" PRIxPTR,
              (uintptr_t)data->access_broker);
-    rc = access_broker_init (data->access_broker);
+    rc = access_broker_init_tpm (data->access_broker);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize AccessBroker: 0x%" PRIx32, rc);
     /*
