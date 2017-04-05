@@ -40,7 +40,7 @@ typedef struct gmain_data {
     ConnectionManager         *manager;
     CommandSource         *command_source;
     Random                 *random;
-    Sink                   *response_sink;
+    ResponseSink           *response_sink;
     GMutex                  init_mutex;
     Tcti                   *tcti;
 } gmain_data_t;
@@ -504,7 +504,7 @@ init_thread_func (gpointer user_data)
     data->resource_manager = resource_manager_new (data->access_broker);
     g_debug ("created ResourceManager: 0x%" PRIxPTR,
              (uintptr_t)data->resource_manager);
-    data->response_sink = SINK (response_sink_new ());
+    data->response_sink = response_sink_new ();
     g_debug ("created response source: 0x%" PRIxPTR,
              (uintptr_t)data->response_sink);
     g_object_unref (command_attrs);
