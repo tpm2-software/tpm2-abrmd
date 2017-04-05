@@ -43,6 +43,9 @@ AC_DEFUN([MY_ARG_WITH],
                       [use_[]$1=$withval],
                       [use_[]$1=$2])
          ])
+#
+# TCTIs
+#
 MY_ARG_WITH([tcti_device], [yes])
 AS_IF([test "x$use_tcti_device" != xno],
       [PKG_CHECK_MODULES([TCTI_DEVICE],
@@ -57,6 +60,9 @@ AS_IF([test "x$use_tcti_socket" != xno],
                          [AC_DEFINE([HAVE_TCTI_SOCKET],
                                     [1])])])
 AM_CONDITIONAL([TCTI_SOCKET], [test "x$use_tcti_socket" != xno])
+AS_IF([test "x$use_tcti_device" == xno -a \
+            "x$use_tcti_socket" == xno],
+      [AC_MSG_ERROR([At least one TCTI must be enabled.])])
 
 #
 # systemd
