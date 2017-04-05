@@ -1,33 +1,19 @@
 #include "control-message.h"
 
+G_DEFINE_TYPE (ControlMessage, control_message, G_TYPE_OBJECT);
+/*
+ * G_DEFINE_TYPE requires an instance init even though we don't use it.
+ */
+static void
+control_message_init (ControlMessage *obj)
+{ /* noop */ }
 /* Boiler-plate gobject code.
  */
-static gpointer control_message_parent_class = NULL;
 static void
-control_message_class_init (gpointer klass)
+control_message_class_init (ControlMessageClass *klass)
 {
     if (control_message_parent_class == NULL)
         control_message_parent_class = g_type_class_peek_parent (klass);
-}
-/**
- * Boilerplate GObject get_type function. Upon first call to *_get_type
- * we register the type with the GType system. We keep a static GType
- * around to speed up future calls.
- */
-GType
-control_message_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "ControlMessage",
-                                              sizeof (ControlMessageClass),
-                                              (GClassInitFunc) control_message_class_init,
-                                              sizeof (ControlMessage),
-                                              NULL,
-                                              0);
-    }
-    return type;
 }
 /**
  * Boilerplate constructor.
