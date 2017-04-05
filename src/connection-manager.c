@@ -9,7 +9,7 @@
 
 #include "connection-manager.h"
 
-static gpointer connection_manager_parent_class = NULL;
+G_DEFINE_TYPE (ConnectionManager, connection_manager, G_TYPE_OBJECT);
 
 enum {
     SIGNAL_0,
@@ -101,7 +101,12 @@ connection_manager_new (guint max_connections)
                                (GDestroyNotify)g_object_unref);
     return mgr;
 }
-
+/*
+ * G_DEFINE_TYPE requires an instance init even though we don't need it.
+ */
+static void
+connection_manager_init (ConnectionManager *obj)
+{ /* noop */ }
 static void
 connection_manager_finalize (GObject *obj)
 {
@@ -132,7 +137,7 @@ connection_manager_finalize (GObject *obj)
  * ConnectionManager.
  */
 static void
-connection_manager_class_init (gpointer klass)
+connection_manager_class_init (ConnectionManagerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -165,22 +170,6 @@ connection_manager_class_init (gpointer klass)
                                        obj_properties);
 }
 
-GType
-connection_manager_get_type (void)
-{
-    static GType type = 0;
-
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "ConnectionManager",
-                                              sizeof (ConnectionManagerClass),
-                                              (GClassInitFunc) connection_manager_class_init,
-                                              sizeof (ConnectionManager),
-                                              NULL,
-                                              0);
-    }
-    return type;
-}
 gint
 connection_manager_insert (ConnectionManager    *manager,
                            Connection        *connection)
