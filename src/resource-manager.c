@@ -15,7 +15,22 @@
 
 #define RM_RC(rc) TSS2_RESMGR_ERROR_LEVEL + rc
 
-static gpointer resource_manager_parent_class = NULL;
+static void resource_manager_sink_interface_init   (gpointer g_iface);
+static void resource_manager_source_interface_init (gpointer g_iface);
+static void resource_manager_thread_interface_init (gpointer g_iface);
+
+G_DEFINE_TYPE_WITH_CODE (
+    ResourceManager,
+    resource_manager,
+    G_TYPE_OBJECT,
+    G_IMPLEMENT_INTERFACE (TYPE_THREAD,
+                           resource_manager_thread_interface_init);
+    G_IMPLEMENT_INTERFACE (TYPE_SINK,
+                           resource_manager_sink_interface_init);
+    G_IMPLEMENT_INTERFACE (TYPE_SOURCE,
+                           resource_manager_source_interface_init);
+    );
+
 
 enum {
     PROP_0,
@@ -616,6 +631,9 @@ resource_manager_finalize (GObject *obj)
     if (resource_manager_parent_class)
         G_OBJECT_CLASS (resource_manager_parent_class)->finalize (obj);
 }
+static void
+resource_manager_init (ResourceManager *manager)
+{ /* noop */ }
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.
@@ -623,7 +641,7 @@ resource_manager_finalize (GObject *obj)
  * - Install properties.
  */
 static void
-resource_manager_class_init (gpointer klass)
+resource_manager_class_init (ResourceManagerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -683,45 +701,6 @@ resource_manager_sink_interface_init (gpointer g_iface)
 {
     SinkInterface *sink = (SinkInterface*)g_iface;
     sink->enqueue = resource_manager_enqueue;
-}
-/**
- * GObject boilerplate get_type.
- */
-GType
-resource_manager_get_type (void)
-{
-    static GType type = 0;
-
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "ResourceManager",
-                                              sizeof (ResourceManagerClass),
-                                              (GClassInitFunc) resource_manager_class_init,
-                                              sizeof (ResourceManager),
-                                              NULL,
-                                              0);
-        const GInterfaceInfo interface_info_thread = {
-            (GInterfaceInitFunc) resource_manager_thread_interface_init,
-            NULL,
-            NULL
-        };
-        g_type_add_interface_static (type, TYPE_THREAD, &interface_info_thread);
-
-        const GInterfaceInfo interface_info_sink = {
-            (GInterfaceInitFunc) resource_manager_sink_interface_init,
-            NULL,
-            NULL
-        };
-        g_type_add_interface_static (type, TYPE_SINK, &interface_info_sink);
-
-        const GInterfaceInfo interface_info_source = {
-            (GInterfaceInitFunc) resource_manager_source_interface_init,
-            NULL,
-            NULL
-        };
-        g_type_add_interface_static (type, TYPE_SOURCE, &interface_info_source);
-    }
-    return type;
 }
 /**
  * Create new ResourceManager object.
