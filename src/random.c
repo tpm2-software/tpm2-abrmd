@@ -10,12 +10,16 @@
 
 #include "random.h"
 
-static gpointer random_parent_class = NULL;
+G_DEFINE_TYPE (Random, random, G_TYPE_OBJECT);
 
-/* Boilerplate GObject mgmt code. */
 /*
- * We don't have anything interesting to do in the finalize since the
- * only data the Random object handles is allocated by the object system.
+ * G_DEFINE_TYPE requires an instance init even though we don't need it.
+ */
+static void
+random_init (Random *obj)
+{ /* noop */ }
+/*
+ * Chain up to parent class finalize.
  */
 static void
 random_finalize (GObject *obj)
@@ -25,7 +29,7 @@ random_finalize (GObject *obj)
 }
 
 static void
-random_class_init (gpointer klass)
+random_class_init (RandomClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -36,21 +40,6 @@ random_class_init (gpointer klass)
     object_class->finalize = random_finalize;
 }
 
-GType
-random_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "RandomSource",
-                                              sizeof (RandomClass),
-                                              (GClassInitFunc) random_class_init,
-                                              sizeof (Random),
-                                              NULL,
-                                              0);
-    }
-    return type;
-}
 /*
  * Allocate a new Random object. We do no initialization of the seed for
  * the RNG.
