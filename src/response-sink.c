@@ -13,7 +13,18 @@
 
 #define RESPONSE_SINK_TIMEOUT 1e6
 
-static gpointer response_sink_parent_class = NULL;
+static void response_sink_thread_interface_init (gpointer g_iface);
+static void response_sink_sink_interface_init   (gpointer g_iface);
+
+G_DEFINE_TYPE_WITH_CODE (
+    ResponseSink,
+    response_sink,
+    G_TYPE_OBJECT,
+    G_IMPLEMENT_INTERFACE (TYPE_THREAD,
+                           response_sink_thread_interface_init)
+    G_IMPLEMENT_INTERFACE (TYPE_SINK,
+                           response_sink_sink_interface_init)
+    );
 
 enum {
     PROP_0,
@@ -105,6 +116,9 @@ response_sink_finalize (GObject *obj)
     if (response_sink_parent_class)
         G_OBJECT_CLASS (response_sink_parent_class)->finalize (obj);
 }
+static void
+response_sink_init (ResponseSink *response)
+{ /* noop */ }
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.
@@ -112,7 +126,7 @@ response_sink_finalize (GObject *obj)
  * - Install properties.
  */
 static void
-response_sink_class_init (gpointer klass)
+response_sink_class_init (ResponseSinkClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -151,39 +165,6 @@ response_sink_sink_interface_init (gpointer g_iface)
 {
     SinkInterface *sink_interface = (SinkInterface*)g_iface;
     sink_interface->enqueue = response_sink_enqueue;
-}
-/**
- * GObject boilerplate get_type.
- */
-GType
-response_sink_get_type (void)
-{
-    static GType type = 0;
-
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "ResponseSink",
-                                              sizeof (ResponseSinkClass),
-                                              (GClassInitFunc) response_sink_class_init,
-                                              sizeof (ResponseSink),
-                                              NULL,
-                                              0);
-        /* Register interfaces implemented */
-        const GInterfaceInfo interface_info_thread = {
-            (GInterfaceInitFunc) response_sink_thread_interface_init,
-            NULL,
-            NULL
-        };
-        g_type_add_interface_static (type, TYPE_THREAD, &interface_info_thread);
-
-        const GInterfaceInfo interface_info_sink = {
-            (GInterfaceInitFunc) response_sink_sink_interface_init,
-            NULL,
-            NULL,
-        };
-        g_type_add_interface_static (type, TYPE_SINK, &interface_info_sink);
-    }
-    return type;
 }
 /**
  */
