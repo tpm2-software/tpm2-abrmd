@@ -2,8 +2,7 @@
 
 #include "handle-map-entry.h"
 
-/* Boiler-plate gobject code. */
-static gpointer handle_map_entry_parent_class = NULL;
+G_DEFINE_TYPE (HandleMapEntry, handle_map_entry, G_TYPE_OBJECT);
 
 enum {
     PROP_0,
@@ -64,6 +63,12 @@ handle_map_entry_set_property (GObject        *object,
     }
 }
 /*
+ * G_DEFINE_TYPE requires an instance init even though we don't use it.
+ */
+static void
+handle_map_entry_init (HandleMapEntry *entry)
+{ /* noop */ }
+/*
  * Deallocate all associated resources. All are static so we just chain
  * up to the parent like a good GObject.
  */
@@ -77,7 +82,7 @@ handle_map_entry_finalize (GObject *object)
  * Class initialization function. Register function pointers and properties.
  */
 static void
-handle_map_entry_class_init (gpointer klass)
+handle_map_entry_class_init (HandleMapEntryClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -111,25 +116,6 @@ handle_map_entry_class_init (gpointer klass)
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
-}
-/*
- * Boiler-plate GObject 'get_type' function.
- */
-GType
-handle_map_entry_get_type (void)
-{
-    static GType type = 0;
-
-    if (type == 0)
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "HandleMapEntry",
-                                              sizeof (HandleMapEntryClass),
-                                              (GClassInitFunc) handle_map_entry_class_init,
-                                              sizeof (HandleMapEntry),
-                                              NULL,
-                                              0);
-
-    return type;
 }
 /*
  * Instance constructor.
