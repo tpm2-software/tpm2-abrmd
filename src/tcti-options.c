@@ -9,9 +9,8 @@
 #endif
 #include "tcti-type-enum.h"
 
-static gpointer tcti_options_parent_class = NULL;
-
-G_DEFINE_QUARK("tabrmd-tcti-options-quark", tabrmd_tcti_options)
+G_DEFINE_TYPE (TctiOptions, tcti_options, G_TYPE_OBJECT);
+G_DEFINE_QUARK ("tabrmd-tcti-options-quark", tabrmd_tcti_options)
 
 enum
 {
@@ -114,10 +113,13 @@ tcti_options_finalize (GObject *obj)
     if (tcti_options_parent_class)
         G_OBJECT_CLASS (tcti_options_parent_class)->finalize (obj);
 }
+static void
+tcti_options_init (TctiOptions *options)
+{ /* noop */ }
 /* When the class is initialized we set the pointer to our finalize function.
  */
 static void
-tcti_options_class_init (gpointer klass)
+tcti_options_class_init (TctiOptionsClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -163,25 +165,6 @@ tcti_options_class_init (gpointer klass)
                                        N_PROPERTIES,
                                        obj_properties);
 }
-/* Upon first call to *_get_type we register the type with the GType system.
- * We keep a static GType around to speed up future calls.
- */
-GType
-tcti_options_get_type (void)
-{
-    static GType type = 0;
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "TctiOptions",
-                                              sizeof (TctiOptionsClass),
-                                              (GClassInitFunc) tcti_options_class_init,
-                                              sizeof (TctiOptions),
-                                              NULL,
-                                              0);
-    }
-    return type;
-}
-
 /* A simple structure we use to map the string name for a TCTI to the
  * associated value from the TctiTypeEnum.
  */
