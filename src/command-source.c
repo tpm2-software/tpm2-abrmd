@@ -17,8 +17,6 @@
 #define WAKEUP_DATA "hi"
 #define WAKEUP_SIZE 2
 
-static gpointer command_source_parent_class = NULL;
-
 enum {
     PROP_0,
     PROP_COMMAND_ATTRS,
@@ -35,6 +33,16 @@ static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
 gint command_source_cancel (Thread *self);
 gint command_source_join   (Thread *self);
 gint command_source_start  (Thread *self);
+/**
+ */
+static void
+command_source_thread_interface_init (gpointer g_iface)
+{
+    ThreadInterface *thread = (ThreadInterface*)g_iface;
+    thread->cancel = command_source_cancel;
+    thread->join   = command_source_join;
+    thread->start  = command_source_start;
+}
 /**
  * Function implementing the Source interface. Adds a sink for the source
  * to pass data to.
@@ -53,6 +61,34 @@ command_source_add_sink (Source      *self,
     g_object_set_property (G_OBJECT (src), "sink", &value);
     g_value_unset (&value);
 }
+
+static void
+command_source_source_interface_init (gpointer g_iface)
+{
+    SourceInterface *source = (SourceInterface*)g_iface;
+    source->add_sink = command_source_add_sink;
+}
+void
+command_source_thread_cleanup (void *data)
+{
+    CommandSource *source = COMMAND_SOURCE (data);
+
+    source->running = FALSE;
+}
+
+static void
+command_source_init (CommandSource *source)
+{ /* noop */ }
+
+G_DEFINE_TYPE_WITH_CODE (
+    CommandSource,
+    command_source,
+    G_TYPE_OBJECT,
+    G_IMPLEMENT_INTERFACE (TYPE_THREAD,
+                           command_source_thread_interface_init)
+    G_IMPLEMENT_INTERFACE (TYPE_SOURCE,
+                           command_source_source_interface_init)
+    );
 
 static void
 command_source_set_property (GObject       *object,
@@ -164,7 +200,7 @@ command_source_finalize (GObject  *object)
 }
 
 static void
-command_source_class_init (gpointer klass)
+command_source_class_init (CommandSourceClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
@@ -213,59 +249,6 @@ command_source_class_init (gpointer klass)
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
-}
-/**
- */
-static void
-command_source_thread_interface_init (gpointer g_iface)
-{
-    ThreadInterface *thread = (ThreadInterface*)g_iface;
-    thread->cancel = command_source_cancel;
-    thread->join   = command_source_join;
-    thread->start  = command_source_start;
-}
-static void
-command_source_source_interface_init (gpointer g_iface)
-{
-    SourceInterface *source = (SourceInterface*)g_iface;
-    source->add_sink = command_source_add_sink;
-}
-GType
-command_source_get_type (void)
-{
-    static GType type = 0;
-
-    g_debug ("command_source_get_type");
-    if (type == 0) {
-        type = g_type_register_static_simple (G_TYPE_OBJECT,
-                                              "CommandSource",
-                                              sizeof (CommandSourceClass),
-                                              (GClassInitFunc) command_source_class_init,
-                                              sizeof (CommandSource),
-                                              NULL,
-                                              0);
-        const GInterfaceInfo interface_info_thread = {
-            (GInterfaceInitFunc) command_source_thread_interface_init,
-            NULL,
-            NULL
-        };
-        g_type_add_interface_static (type, TYPE_THREAD, &interface_info_thread);
-
-        const GInterfaceInfo interface_info_source = {
-            (GInterfaceInitFunc) command_source_source_interface_init,
-            NULL,
-            NULL,
-        };
-        g_type_add_interface_static (type, TYPE_SOURCE, &interface_info_source);
-    }
-    return type;
-}
-void
-command_source_thread_cleanup (void *data)
-{
-    CommandSource *source = COMMAND_SOURCE (data);
-
-    source->running = FALSE;
 }
 
 gboolean
