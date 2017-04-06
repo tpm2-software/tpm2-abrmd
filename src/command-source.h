@@ -30,7 +30,6 @@ typedef struct _CommandSource {
     pthread_t          thread;
     gint               wakeup_receive_fd;
     gint               wakeup_send_fd;
-    gboolean           running;
     fd_set             connection_fdset;
     Sink              *sink;
 } CommandSource;

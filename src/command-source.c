@@ -68,13 +68,6 @@ command_source_source_interface_init (gpointer g_iface)
     SourceInterface *source = (SourceInterface*)g_iface;
     source->add_sink = command_source_add_sink;
 }
-void
-command_source_thread_cleanup (void *data)
-{
-    CommandSource *source = COMMAND_SOURCE (data);
-
-    source->running = FALSE;
-}
 
 static void
 command_source_init (CommandSource *source)
@@ -314,7 +307,6 @@ command_source_thread (void *data)
     gint ret, i;
 
     source = COMMAND_SOURCE (data);
-    pthread_cleanup_push (command_source_thread_cleanup, source);
     do {
         FD_ZERO (&source->connection_fdset);
         connection_manager_set_fds (source->connection_manager,
@@ -340,7 +332,6 @@ command_source_thread (void *data)
             }
         }
     } while (TRUE);
-    pthread_cleanup_pop (1);
 
     return NULL;
 }
@@ -363,7 +354,6 @@ command_source_new (ConnectionManager    *connection_manager,
                                              "wakeup-receive-fd", wakeup_fds [0],
                                              "wakeup-send-fd", wakeup_fds [1],
                                              NULL));
-    source->running = FALSE;
     g_signal_connect (connection_manager,
                       "new-connection",
                       (GCallback) command_source_on_new_connection,
@@ -380,7 +370,6 @@ command_source_start (Thread *self)
         g_warning ("command_source already started");
         return -1;
     }
-    source->running = TRUE;
     return pthread_create (&source->thread, NULL, command_source_thread, source);
 }
 
