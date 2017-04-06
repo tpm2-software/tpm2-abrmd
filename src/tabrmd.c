@@ -43,6 +43,7 @@ typedef struct gmain_data {
     ResponseSink           *response_sink;
     GMutex                  init_mutex;
     Tcti                   *tcti;
+    GDBusProxy             *dbus_daemon_proxy;
 } gmain_data_t;
 
 /* This global pointer to the GMainLoop is necessary so that we can react to
@@ -54,6 +55,7 @@ static GMainLoop *g_loop;
 typedef enum {
     TABRMD_ERROR_MAX_CONNECTIONS,
     TABRMD_ERROR_ID_GENERATION,
+    TABRMD_ERROR_NO_PID,
 } TabrmdErrorEnum;
 
 /*
@@ -64,6 +66,35 @@ tabrmd_error_quark (void)
     return g_quark_from_static_string ("tabrmd-error");
 }
 
+/*
+ * Acquire a GDBusProxy object that can be used to communicate with the well
+ * known org.freedesktop.DBus object on the provided bus. This is an objec
+ *  exposed by the dbus daemon.
+ */
+GDBusProxy*
+get_dbus_daemon_proxy (GBusType bus)
+{
+    GError     *error = NULL;
+    GDBusProxy *proxy = NULL;
+
+    g_debug ("getting proxy to org.freedesktop.DBus");
+    proxy = g_dbus_proxy_new_for_bus_sync (
+        bus,
+        G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
+        NULL,
+        "org.freedesktop.DBus",
+        "/org/freedesktop/DBus",
+        "org.freedesktop.DBus",
+        NULL,
+        &error);
+    if (proxy == NULL) {
+        g_error ("Failed to get proxy to org.freedesktop.DBus: %s",
+                 error->message);
+    }
+    g_debug ("got proxy to org.freedesktop.DBus successfully");
+
+    return proxy;
+}
 /**
  * This is a utility function that builds an array of handles as a
  * GVariant object. The handles that make up the array are passed in
@@ -85,6 +116,42 @@ handle_array_variant_from_fdlist (GUnixFDList *fdlist)
     g_variant_builder_unref (builder);
 
     return tuple;
+}
+/*
+ * Give this function a dbus proxy and invocation object from a method
+ * invocation and it will get the PID of the process associated with the
+ * invocation. If an error occurs this function returns false.
+ */
+static gboolean
+get_pid_from_dbus_invocation (GDBusProxy            *proxy,
+                              GDBusMethodInvocation *invocation,
+                              guint32               *pid)
+{
+    const gchar *name   = NULL;
+    GError      *error  = NULL;
+    GVariant    *result = NULL;
+
+    if (proxy == NULL || invocation == NULL || pid == NULL)
+        return FALSE;
+
+    name = g_dbus_method_invocation_get_sender (invocation);
+    result = g_dbus_proxy_call_sync (G_DBUS_PROXY (proxy),
+                                     "GetConnectionUnixProcessID",
+                                     g_variant_new("(s)", name),
+                                     G_DBUS_CALL_FLAGS_NONE,
+                                     -1,
+                                     NULL,
+                                     &error);
+    if (error) {
+        g_error ("Unable to get PID for %s: %s", name, error->message);
+        g_error_free (error);
+        error = NULL;
+        return FALSE;
+    } else {
+        g_variant_get (result, "(u)", pid);
+        g_variant_unref (result);
+        return TRUE;
+    }
 }
 
 /**
@@ -114,11 +181,25 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     GVariant *response_variants[2], *response_tuple;
     GUnixFDList *fd_list = NULL;
     guint64 id;
+    guint32 pid;
+    gboolean pid_ret;
 
     /* make sure the init thread is done before we create new connections
      */
     g_mutex_lock (&data->init_mutex);
     g_mutex_unlock (&data->init_mutex);
+    pid_ret = get_pid_from_dbus_invocation (data->dbus_daemon_proxy,
+                                            invocation,
+                                            &pid);
+    if (pid_ret == FALSE) {
+        g_dbus_method_invocation_return_error (
+            invocation,
+            TABRMD_ERROR,
+            TABRMD_ERROR_NO_PID,
+            "Failed to get client PID");
+        return TRUE;
+    }
+    g_debug ("CreateConnection for client with PID: %" PRIu32, pid);
     if (connection_manager_is_full (data->manager)) {
         g_dbus_method_invocation_return_error (invocation,
                                                TABRMD_ERROR,
@@ -127,6 +208,9 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
         return TRUE;
     }
     id = random_get_uint64 (data->random);
+    /* mix the random ID with the callers PID */
+    id ^= pid;
+    g_debug ("Creating connection with id: 0x%" PRIx64, id);
     if (connection_manager_contains_id (data->manager, id)) {
         g_warning ("ID collision in ConnectionManager: %" PRIu64, id);
         g_dbus_method_invocation_return_error (
@@ -644,6 +728,8 @@ main (int argc, char *argv[])
     init_thread = g_thread_new (TABD_INIT_THREAD_NAME,
                                 init_thread_func,
                                 &gmain_data);
+    gmain_data.dbus_daemon_proxy =
+        get_dbus_daemon_proxy (gmain_data.options.bus);
     owner_id = g_bus_own_name (gmain_data.options.bus,
                                TABRMD_DBUS_NAME,
                                G_BUS_NAME_OWNER_FLAGS_NONE,
