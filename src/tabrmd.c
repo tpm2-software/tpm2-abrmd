@@ -44,6 +44,7 @@ typedef struct gmain_data {
     GMutex                  init_mutex;
     Tcti                   *tcti;
     GDBusProxy             *dbus_daemon_proxy;
+    guint                   dbus_name_owner_id;
 } gmain_data_t;
 
 /* This global pointer to the GMainLoop is necessary so that we can react to
@@ -532,6 +533,14 @@ init_thread_func (gpointer user_data)
     sigaction (SIGINT,  &action, NULL);
     sigaction (SIGTERM, &action, NULL);
 
+    data->dbus_name_owner_id = g_bus_own_name (data->options.bus,
+                                               TABRMD_DBUS_NAME,
+                                               G_BUS_NAME_OWNER_FLAGS_NONE,
+                                               on_bus_acquired,
+                                               on_name_acquired,
+                                               on_name_lost,
+                                               data,
+                                               NULL);
     data->random = random_new();
     ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
     if (ret != 0)
@@ -710,7 +719,6 @@ thread_cleanup (Thread *thread)
 int
 main (int argc, char *argv[])
 {
-    guint owner_id;
     gmain_data_t gmain_data = { 0 };
     GThread *init_thread;
 
@@ -730,20 +738,12 @@ main (int argc, char *argv[])
                                 &gmain_data);
     gmain_data.dbus_daemon_proxy =
         get_dbus_daemon_proxy (gmain_data.options.bus);
-    owner_id = g_bus_own_name (gmain_data.options.bus,
-                               TABRMD_DBUS_NAME,
-                               G_BUS_NAME_OWNER_FLAGS_NONE,
-                               on_bus_acquired,
-                               on_name_acquired,
-                               on_name_lost,
-                               &gmain_data,
-                               NULL);
     g_info ("entering g_main_loop");
     g_main_loop_run (gmain_data.loop);
     g_info ("g_main_loop_run done, cleaning up");
     g_thread_join (init_thread);
     /* cleanup glib stuff first so we stop getting events */
-    g_bus_unown_name (owner_id);
+    g_bus_unown_name (gmain_data.dbus_name_owner_id);
     if (gmain_data.skeleton != NULL)
         g_object_unref (gmain_data.skeleton);
     /* tear down the command processing pipeline */
