@@ -68,33 +68,27 @@ tabrmd_error_quark (void)
 }
 
 /*
- * Acquire a GDBusProxy object that can be used to communicate with the well
- * known org.freedesktop.DBus object on the provided bus. This is an objec
- *  exposed by the dbus daemon.
+ * Callback handling the acquisition of a GDBusProxy object for communication
+ * with the well known org.freedesktop.DBus object. This is an object exposed
+ * by the dbus daemon.
  */
-GDBusProxy*
-get_dbus_daemon_proxy (GBusType bus)
+static void
+on_get_dbus_daemon_proxy (GObject      *source_object,
+                          GAsyncResult *result,
+                          gpointer      user_data)
 {
-    GError     *error = NULL;
-    GDBusProxy *proxy = NULL;
+    GError *error = NULL;
+    gmain_data_t *data = (gmain_data_t*)user_data;
 
-    g_debug ("getting proxy to org.freedesktop.DBus");
-    proxy = g_dbus_proxy_new_for_bus_sync (
-        bus,
-        G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
-        NULL,
-        "org.freedesktop.DBus",
-        "/org/freedesktop/DBus",
-        "org.freedesktop.DBus",
-        NULL,
-        &error);
-    if (proxy == NULL) {
-        g_error ("Failed to get proxy to org.freedesktop.DBus: %s",
-                 error->message);
+    data->dbus_daemon_proxy = g_dbus_proxy_new_finish (result, &error);
+    if (error) {
+        g_warning ("Failed to get proxy for DBus daemon "
+                   "(org.freedesktop.DBus): %s", error->message);
+        g_error_free (error);
+        data->dbus_daemon_proxy = NULL;
+    } else {
+        g_debug ("Got proxy object for DBus daemon.");
     }
-    g_debug ("got proxy to org.freedesktop.DBus successfully");
-
-    return proxy;
 }
 /**
  * This is a utility function that builds an array of handles as a
@@ -541,6 +535,15 @@ init_thread_func (gpointer user_data)
                                                on_name_lost,
                                                data,
                                                NULL);
+    g_dbus_proxy_new_for_bus (data->options.bus,
+                              G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
+                              NULL,
+                              "org.freedesktop.DBus",
+                              "/org/freedesktop/DBus",
+                              "org.freedesktop.DBus",
+                              NULL,
+                              (GAsyncReadyCallback)on_get_dbus_daemon_proxy,
+                              user_data);
     data->random = random_new();
     ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
     if (ret != 0)
@@ -728,16 +731,14 @@ main (int argc, char *argv[])
 
     g_mutex_init (&gmain_data.init_mutex);
     g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);
-    /**
+    /*
      * Initialize program data on a separate thread. The main thread needs to
-     * acquire the dbus name and get into the GMainLoop ASAP to be responsive to
-     * bus clients.
+     * get into the GMainLoop ASAP to acquire a dbus name and become
+     * responsive to clients.
      */
     init_thread = g_thread_new (TABD_INIT_THREAD_NAME,
                                 init_thread_func,
                                 &gmain_data);
-    gmain_data.dbus_daemon_proxy =
-        get_dbus_daemon_proxy (gmain_data.options.bus);
     g_info ("entering g_main_loop");
     g_main_loop_run (gmain_data.loop);
     g_info ("g_main_loop_run done, cleaning up");
