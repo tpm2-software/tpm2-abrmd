@@ -174,6 +174,10 @@ tpm2_command_new_from_fd (Connection *connection,
     command_buf = read_tpm_command_from_fd (fd, &command_size);
     if (command_buf == NULL)
         return NULL;
+    /*
+     * this is safe because read_tpm_comman_from_fd guarantees the
+     * buffer is at least 10 bytes
+     */
     command_code = be32toh (*(TPM_CC*)(command_buf +
                                        sizeof (TPMI_ST_COMMAND_TAG) +
                                        sizeof (UINT32)));

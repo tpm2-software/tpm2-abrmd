@@ -253,10 +253,10 @@ command_source_connection_responder (CommandSource      *source,
         /* command will be NULL when read error on fd, or fd is closed (EOF)
          * In either case we remove the connection and free it.
          */
-        g_debug ("removing connection 0x%" PRIxPTR " from connection_manager "
-                 "0x%" PRIxPTR,
-                 (uintptr_t)connection,
-                 (uintptr_t)source->connection_manager);
+        g_warning ("removing connection 0x%" PRIxPTR " from connection_manager "
+                   "0x%" PRIxPTR,
+                   (uintptr_t)connection,
+                   (uintptr_t)source->connection_manager);
         connection_manager_remove (source->connection_manager,
                                    connection);
     }
@@ -299,7 +299,7 @@ command_source_thread (void *data)
         FD_SET (source->wakeup_receive_fd, &source->connection_fdset);
         ret = select (FD_SETSIZE, &source->connection_fdset, NULL, NULL, NULL);
         if (ret == -1) {
-            g_debug ("Error selecting on pipes: %s", strerror (errno));
+            g_warning ("Error selecting on pipes: %s", strerror (errno));
             break;
         }
         for (i = 0; i < FD_SETSIZE; ++i) {
