@@ -103,7 +103,7 @@ src_libutil_la_SOURCES = \
     src/handle-map-entry.c \
     src/message-queue.c \
     src/logging.c \
-    src/thread-interface.c \
+    src/thread.c \
     src/command-source.c \
     src/random.c \
     src/resource-manager.c \
@@ -186,7 +186,7 @@ test_response_sink_unit_SOURCES = \
     src/control-message.c \
     src/handle-map.c \
     src/handle-map-entry.c \
-    src/thread-interface.c \
+    src/thread.c \
     src/message-queue.c \
     src/response-sink.c \
     src/sink-interface.c \

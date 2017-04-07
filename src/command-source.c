@@ -11,7 +11,6 @@
 #include "command-source.h"
 #include "source-interface.h"
 #include "tpm2-command.h"
-#include "thread-interface.h"
 #include "util.h"
 
 #define WAKEUP_DATA "hi"
@@ -27,22 +26,8 @@ enum {
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
-/**
- * Forward declare the functions for the ThreadInterface.
- */
-gint command_source_cancel (Thread *self);
-gint command_source_join   (Thread *self);
-gint command_source_start  (Thread *self);
-/**
- */
-static void
-command_source_thread_interface_init (gpointer g_iface)
-{
-    ThreadInterface *thread = (ThreadInterface*)g_iface;
-    thread->cancel = command_source_cancel;
-    thread->join   = command_source_join;
-    thread->start  = command_source_start;
-}
+void* command_source_thread (void *data);
+
 /**
  * Function implementing the Source interface. Adds a sink for the source
  * to pass data to.
@@ -76,9 +61,7 @@ command_source_init (CommandSource *source)
 G_DEFINE_TYPE_WITH_CODE (
     CommandSource,
     command_source,
-    G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (TYPE_THREAD,
-                           command_source_thread_interface_init)
+    TYPE_THREAD,
     G_IMPLEMENT_INTERFACE (TYPE_SOURCE,
                            command_source_source_interface_init)
     );
@@ -196,6 +179,7 @@ static void
 command_source_class_init (CommandSourceClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    ThreadClass  *thread_class = THREAD_CLASS (klass);
 
     g_debug ("command_source_class_init");
     if (command_source_parent_class == NULL)
@@ -204,6 +188,7 @@ command_source_class_init (CommandSourceClass *klass)
     object_class->finalize     = command_source_finalize;
     object_class->get_property = command_source_get_property;
     object_class->set_property = command_source_set_property;
+    thread_class->thread_run   = command_source_thread;
 
     obj_properties [PROP_COMMAND_ATTRS] =
         g_param_spec_object ("command-attrs",
@@ -359,40 +344,4 @@ command_source_new (ConnectionManager    *connection_manager,
                       (GCallback) command_source_on_new_connection,
                       source);
     return source;
-}
-
-gint
-command_source_start (Thread *self)
-{
-    CommandSource *source = COMMAND_SOURCE (self);
-
-    if (source->thread != 0) {
-        g_warning ("command_source already started");
-        return -1;
-    }
-    return pthread_create (&source->thread, NULL, command_source_thread, source);
-}
-
-gint
-command_source_cancel (Thread *self)
-{
-    CommandSource *source = COMMAND_SOURCE (self);
-
-    if (source == NULL) {
-        g_warning ("command_source_cancel passed NULL source");
-        return -1;
-    }
-    return pthread_cancel (source->thread);
-}
-
-gint
-command_source_join (Thread *self)
-{
-    CommandSource *source = COMMAND_SOURCE (self);
-
-    if (source == NULL) {
-        g_warning ("command_source_join passed null source");
-        return -1;
-    }
-    return pthread_join (source->thread, NULL);
 }

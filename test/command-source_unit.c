@@ -16,7 +16,6 @@
 #include "connection-manager.h"
 #include "sink-interface.h"
 #include "source-interface.h"
-#include "thread-interface.h"
 #include "command-attrs.h"
 #include "command-source.h"
 #include "tpm2-command.h"
@@ -106,7 +105,6 @@ command_source_start_test (void **state)
     data = (source_test_data_t*)*state;
     thread_start(THREAD (data->source));
     sleep (1);
-    assert_true (data->source->running);
     ret = thread_cancel (THREAD (data->source));
     assert_int_equal (ret, 0);
     ret = thread_join (THREAD (data->source));

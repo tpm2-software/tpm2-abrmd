@@ -14,7 +14,7 @@
 #include "connection-manager.h"
 #include "tabrmd-priv.h"
 #include "logging.h"
-#include "thread-interface.h"
+#include "thread.h"
 #include "command-source.h"
 #include "random.h"
 #include "resource-manager.h"

@@ -9,6 +9,7 @@
 #include "command-attrs.h"
 #include "connection-manager.h"
 #include "sink-interface.h"
+#include "thread.h"
 
 G_BEGIN_DECLS
 
@@ -20,14 +21,13 @@ G_BEGIN_DECLS
 #define BUF_MAX  4*BUF_SIZE
 
 typedef struct _CommandSourceClass {
-    GObjectClass       parent;
+    ThreadClass       parent;
 } CommandSourceClass;
 
 typedef struct _CommandSource {
-    GObject            parent_instance;
+    Thread             parent_instance;
     ConnectionManager *connection_manager;
     CommandAttrs      *command_attrs;
-    pthread_t          thread;
     gint               wakeup_receive_fd;
     gint               wakeup_send_fd;
     fd_set             connection_fdset;

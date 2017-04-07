@@ -5,7 +5,6 @@
 
 #include "connection.h"
 #include "sink-interface.h"
-#include "thread-interface.h"
 #include "response-sink.h"
 #include "control-message.h"
 #include "tpm2-response.h"
@@ -13,15 +12,12 @@
 
 #define RESPONSE_SINK_TIMEOUT 1e6
 
-static void response_sink_thread_interface_init (gpointer g_iface);
 static void response_sink_sink_interface_init   (gpointer g_iface);
 
 G_DEFINE_TYPE_WITH_CODE (
     ResponseSink,
     response_sink,
-    G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (TYPE_THREAD,
-                           response_sink_thread_interface_init)
+    TYPE_THREAD,
     G_IMPLEMENT_INTERFACE (TYPE_SINK,
                            response_sink_sink_interface_init)
     );
@@ -32,13 +28,6 @@ enum {
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
-/**
- * Forward declare the functions for the thread interface. We need this
- * for the type registration in _get_type.
- */
-gint response_sink_cancel (Thread *self);
-gint response_sink_join   (Thread *self);
-gint response_sink_start  (Thread *self);
 /**
  * enqueue function to implement Sink interface.
  */
@@ -105,20 +94,36 @@ static void
 response_sink_finalize (GObject *obj)
 {
     ResponseSink *sink = RESPONSE_SINK (obj);
+    Thread *thread = THREAD (obj);
 
     g_debug ("response_sink_finalize");
     if (sink == NULL)
         g_error ("  response_sink_free passed NULL pointer");
-    if (sink->thread != 0)
+    if (thread->thread_id != 0)
         g_error ("  response_sink finalized with running thread, cancel first");
     if (sink->in_queue)
         g_object_unref (sink->in_queue);
     if (response_sink_parent_class)
         G_OBJECT_CLASS (response_sink_parent_class)->finalize (obj);
 }
+void* response_sink_thread (void *data);
 static void
 response_sink_init (ResponseSink *response)
 { /* noop */ }
+static void
+response_sink_unblock (Thread *self)
+{
+    ResponseSink *sink = RESPONSE_SINK (self);
+    ControlMessage *msg;
+
+    if (sink == NULL)
+        g_error ("response_sink_cancel passed NULL sink");
+    msg = control_message_new (CHECK_CANCEL);
+    g_debug ("response_sink_cancel enqueuing ControlMessage: 0x%" PRIxPTR,
+             (uintptr_t)msg);
+    message_queue_enqueue (sink->in_queue, G_OBJECT (msg));
+    g_object_unref (msg);
+}
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.
@@ -129,12 +134,15 @@ static void
 response_sink_class_init (ResponseSinkClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    ThreadClass  *thread_class = THREAD_CLASS (klass);
 
     if (response_sink_parent_class == NULL)
         response_sink_parent_class = g_type_class_peek_parent (klass);
     object_class->finalize     = response_sink_finalize;
     object_class->get_property = response_sink_get_property;
     object_class->set_property = response_sink_set_property;
+    thread_class->thread_run     = response_sink_thread;
+    thread_class->thread_unblock = response_sink_unblock;
 
     obj_properties [PROP_IN_QUEUE] =
         g_param_spec_object ("in-queue",
@@ -145,17 +153,6 @@ response_sink_class_init (ResponseSinkClass *klass)
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
-}
-/**
- * Boilerplate code to register functions with the ThreadInterface.
- */
-static void
-response_sink_thread_interface_init (gpointer g_iface)
-{
-    ThreadInterface *thread_interface = (ThreadInterface*)g_iface;
-    thread_interface->cancel = response_sink_cancel;
-    thread_interface->join   = response_sink_join;
-    thread_interface->start  = response_sink_start;
 }
 /**
  * Boilerplate code to register functions with the SinkInterface.
@@ -221,54 +218,4 @@ response_sink_thread (void *data)
             g_object_unref (obj);
         }
     } while (TRUE);
-}
-/**
- * The remaining functions implement the ThreadInterface.
- */
-gint
-response_sink_start (Thread *self)
-{
-    ResponseSink *sink = RESPONSE_SINK (self);
-
-    if (sink == NULL)
-        g_error ("response_sink_start: passed NULL sink");
-    if (sink->thread != 0)
-        g_error ("response_sink already started");
-    return pthread_create (&sink->thread, NULL, response_sink_thread, sink);
-}
-gint
-response_sink_cancel (Thread *self)
-{
-    ResponseSink *sink = RESPONSE_SINK (self);
-    gint ret;
-    ControlMessage *msg;
-
-    if (sink == NULL)
-        g_error ("response_sink_cancel passed NULL sink");
-    if (sink->thread == 0)
-        g_error ("response_sink_cancel: cannot cancel thread with id 0");
-    ret = pthread_cancel (sink->thread);
-    msg = control_message_new (CHECK_CANCEL);
-    g_debug ("response_sink_cancel enqueuing ControlMessage: 0x%" PRIxPTR,
-             (uintptr_t)msg);
-    message_queue_enqueue (sink->in_queue, G_OBJECT (msg));
-    g_object_unref (msg);
-
-    return ret;
-}
-gint
-response_sink_join (Thread *self)
-{
-    ResponseSink *sink = RESPONSE_SINK (self);
-    gint ret;
-
-    if (sink == NULL)
-        g_error ("response_sink_join passed NULL sink");
-    if (sink->thread == 0)
-        g_error ("response_sink_join: cannot join thread with id 0");
-    ret = pthread_join (sink->thread, NULL);
-    if (ret == 0)
-        sink->thread = 0;
-
-    return ret;
 }

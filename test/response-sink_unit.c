@@ -5,7 +5,6 @@
 #include <cmocka.h>
 
 #include "response-sink.h"
-#include "thread-interface.h"
 
 /**
  * Test to allcoate and destroy a ResponseSink.

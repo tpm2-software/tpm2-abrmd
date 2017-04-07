@@ -9,18 +9,18 @@
 #include "access-broker.h"
 #include "message-queue.h"
 #include "sink-interface.h"
+#include "thread.h"
 
 G_BEGIN_DECLS
 
 typedef struct _ResourceManagerClass {
-    GObjectClass      parent;
+    ThreadClass      parent;
 } ResourceManagerClass;
 
 typedef struct _ResourceManager {
-    GObject           parent_instance;
+    Thread            parent_instance;
     AccessBroker     *access_broker;
     MessageQueue     *in_queue;
-    pthread_t         thread;
     Sink             *sink;
 } ResourceManager;
 

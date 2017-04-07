@@ -6,11 +6,12 @@
 #include <pthread.h>
 
 #include "message-queue.h"
+#include "thread.h"
 
 G_BEGIN_DECLS
 
 typedef struct _ResponseSinkClass {
-    GObjectClass       parent;
+    ThreadClass       parent;
 } ResponseSinkClass;
 
 /** DON'T TOUCH!
@@ -19,9 +20,8 @@ typedef struct _ResponseSinkClass {
  * to access the structure directly you probably need to update the API.
  */
 typedef struct _ResponseSink {
-    GObject            parent_instance;
+    Thread             parent_instance;
     MessageQueue      *in_queue;
-    pthread_t          thread;
 } ResponseSink;
 
 #define TYPE_RESPONSE_SINK              (response_sink_get_type ())

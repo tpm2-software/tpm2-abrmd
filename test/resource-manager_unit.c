@@ -9,7 +9,6 @@
 #include "tcti-echo.h"
 #include "sink-interface.h"
 #include "source-interface.h"
-#include "thread-interface.h"
 #include "tpm2-command.h"
 #include "tpm2-header.h"
 

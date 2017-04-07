@@ -10,21 +10,17 @@
 #include "tabrmd.h"
 #include "tpm2-command.h"
 #include "tpm2-response.h"
-#include "thread-interface.h"
 #include "util.h"
 
 #define RM_RC(rc) TSS2_RESMGR_ERROR_LEVEL + rc
 
 static void resource_manager_sink_interface_init   (gpointer g_iface);
 static void resource_manager_source_interface_init (gpointer g_iface);
-static void resource_manager_thread_interface_init (gpointer g_iface);
 
 G_DEFINE_TYPE_WITH_CODE (
     ResourceManager,
     resource_manager,
-    G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (TYPE_THREAD,
-                           resource_manager_thread_interface_init);
+    TYPE_THREAD,
     G_IMPLEMENT_INTERFACE (TYPE_SINK,
                            resource_manager_sink_interface_init);
     G_IMPLEMENT_INTERFACE (TYPE_SOURCE,
@@ -444,65 +440,19 @@ resource_manager_thread (gpointer data)
 
     return NULL;
 }
-/**
- * Thread creation / start function.
- */
-gint
-resource_manager_start (Thread *self)
+static void
+resource_manager_unblock (Thread *self)
 {
-    ResourceManager *resmgr = RESOURCE_MANAGER (self);
-
-    if (resmgr == NULL)
-        g_error ("resource_manager_start passed NULL ResourceManager");
-    if (resmgr->thread != 0)
-        g_error ("ResourceManager thread already running");
-    return  pthread_create (&resmgr->thread,
-                            NULL,
-                            resource_manager_thread,
-                            resmgr);
-}
-/**
- * Cancel the internal resource_manager thread. This requires not just
- * calling the pthread_cancel function, but also waking up the thread
- * by creating a new ControlMessage and enquing it in the in_queue.
- */
-gint
-resource_manager_cancel (Thread *self)
-{
-    gint ret;
     ControlMessage *msg;
     ResourceManager *resmgr = RESOURCE_MANAGER (self);
 
     if (resmgr == NULL)
         g_error ("resource_manager_cancel passed NULL ResourceManager");
-    if (resmgr->thread == 0)
-        g_error ("ResourceManager not running, cannot cancel");
-    ret = pthread_cancel (resmgr->thread);
     msg = control_message_new (CHECK_CANCEL);
     g_debug ("resource_manager_cancel: enqueuing ControlMessage: 0x%" PRIxPTR,
              (uintptr_t)msg);
     message_queue_enqueue (resmgr->in_queue, G_OBJECT (msg));
     g_object_unref (msg);
-
-    return ret;
-}
-/**
- * Simple wrapper around pthread_join and the internal thread.
- */
-gint
-resource_manager_join (Thread *self)
-{
-    gint ret;
-    ResourceManager *resmgr = RESOURCE_MANAGER (self);
-
-    if (resmgr == NULL)
-        g_error ("resource_manager_join passed NULL param");
-    if (resmgr->thread == 0)
-        g_error ("ResourceManager not running, cannot join");
-    ret = pthread_join (resmgr->thread, NULL);
-    resmgr->thread = 0;
-
-    return ret;
 }
 /**
  * Implement the 'enqueue' function from the Sink interface. This is how
@@ -612,11 +562,12 @@ static void
 resource_manager_finalize (GObject *obj)
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (obj);
+    Thread *thread = THREAD (obj);
 
     g_debug ("resource_manager_finalize: 0x%" PRIxPTR, (uintptr_t)resmgr);
     if (resmgr == NULL)
         g_error ("resource_manager_finalize passed NULL ResourceManager pointer");
-    if (resmgr->thread != 0)
+    if (thread->thread_id != 0)
         g_error ("resource_manager_finalize called with thread running, "
                  "cancel thread first");
     g_object_unref (resmgr->in_queue);
@@ -644,12 +595,15 @@ static void
 resource_manager_class_init (ResourceManagerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+    ThreadClass  *thread_class = THREAD_CLASS (klass);
 
     if (resource_manager_parent_class == NULL)
         resource_manager_parent_class = g_type_class_peek_parent (klass);
     object_class->finalize     = resource_manager_finalize;
     object_class->get_property = resource_manager_get_property;
     object_class->set_property = resource_manager_set_property;
+    thread_class->thread_run     = resource_manager_thread;
+    thread_class->thread_unblock = resource_manager_unblock;
 
     obj_properties [PROP_QUEUE_IN] =
         g_param_spec_object ("queue-in",
@@ -672,17 +626,6 @@ resource_manager_class_init (ResourceManagerClass *klass)
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
-}
-/**
- * Boilerplate code to register function s with the ThreadInterface.
- */
-static void
-resource_manager_thread_interface_init (gpointer g_iface)
-{
-    ThreadInterface *thread = (ThreadInterface*)g_iface;
-    thread->cancel = resource_manager_cancel;
-    thread->join   = resource_manager_join;
-    thread->start  = resource_manager_start;
 }
 /**
  * Boilerplate code to register functions with the SourceInterface.
