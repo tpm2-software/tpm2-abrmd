@@ -138,39 +138,6 @@ connection_manager_remove_test (void **state)
     assert_true (ret_bool);
 }
 
-static void
-connection_manager_set_fds_test (void **state)
-{
-    ConnectionManager *manager = CONNECTION_MANAGER (*state);
-    Connection *first_connection = NULL, *second_connection = NULL;
-    HandleMap   *first_handle_map = NULL, *second_handle_map = NULL;
-    gint ret_int, receive_fd0, send_fd0, receive_fd1, send_fd1;
-    fd_set manager_fds = { 0 };
-
-    first_handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    first_connection = connection_new (&receive_fd0, &send_fd0, 5, first_handle_map);
-    g_object_unref (first_handle_map);
-    ret_int = connection_manager_insert (manager, first_connection);
-    assert_int_equal (ret_int, 0);
-    second_handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    second_connection = connection_new (&receive_fd1, &send_fd1, 5, second_handle_map);
-    g_object_unref (second_handle_map);
-    ret_int = connection_manager_insert (manager, second_connection);
-    assert_int_equal (ret_int, 0);
-    connection_manager_set_fds (manager, &manager_fds);
-    for (ret_int = 0; ret_int < FD_SETSIZE; ++ret_int) {
-        if (ret_int == first_connection->receive_fd) {
-            assert_true (FD_ISSET(first_connection->receive_fd, &manager_fds) != 0);
-        } else if (ret_int == second_connection->receive_fd) {
-            assert_true (FD_ISSET (second_connection->receive_fd, &manager_fds) != 0);
-        } else {
-            assert_true (FD_ISSET (ret_int, &manager_fds) == 0);
-        }
-    }
-    g_object_unref (G_OBJECT (first_connection));
-    g_object_unref (G_OBJECT (second_connection));
-}
-
 int
 main(int argc, char* argv[])
 {
@@ -186,9 +153,6 @@ main(int argc, char* argv[])
                                   connection_manager_setup,
                                   connection_manager_teardown),
         unit_test_setup_teardown (connection_manager_remove_test,
-                                  connection_manager_setup,
-                                  connection_manager_teardown),
-        unit_test_setup_teardown (connection_manager_set_fds_test,
                                   connection_manager_setup,
                                   connection_manager_teardown),
     };

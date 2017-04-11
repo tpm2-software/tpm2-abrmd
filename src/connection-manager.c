@@ -315,28 +315,6 @@ connection_manager_remove (ConnectionManager   *manager,
     return ret;
 }
 
-void
-set_fd (gpointer key,
-        gpointer value,
-        gpointer user_data)
-{
-    fd_set *fds = (fd_set*)user_data;
-    Connection *connection = CONNECTION (value);
-
-    FD_SET (connection_receive_fd (connection), fds);
-}
-
-void
-connection_manager_set_fds (ConnectionManager   *manager,
-                            fd_set              *fds)
-{
-    pthread_mutex_lock (&manager->mutex);
-    g_hash_table_foreach (manager->connection_from_fd_table,
-                          set_fd,
-                          fds);
-    pthread_mutex_unlock (&manager->mutex);
-}
-
 guint
 connection_manager_size (ConnectionManager   *manager)
 {

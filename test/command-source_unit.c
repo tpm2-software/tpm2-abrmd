@@ -172,7 +172,7 @@ command_source_start_teardown (void **state)
  * create a new connection and insert it into the connection manager. We then signal
  * to the source that there's a new connection in the manager by sending data to
  * it over the send end of the wakeup pipe "wakeup_send_fd". We then check the
- * connection_fdset in the source structure to be sure the receive end of the
+ * receive_fdset in the source structure to be sure the receive end of the
  * connection pipe is set. This is how we know that the source is now watching
  * for data from the new connection.
  */
@@ -202,12 +202,12 @@ command_source_connection_insert_test (void **state)
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     connection = connection_new (&receive_fd, &send_fd, 5, handle_map);
     g_object_unref (handle_map);
-    assert_false (FD_ISSET (connection->receive_fd, &source->connection_fdset));
+    assert_false (FD_ISSET (connection->receive_fd, &source->receive_fdset));
     ret = thread_start(THREAD (source));
     assert_int_equal (ret, 0);
     connection_manager_insert (data->manager, connection);
     sleep (1);
-    assert_true (FD_ISSET (connection->receive_fd, &source->connection_fdset));
+    assert_true (FD_ISSET (connection->receive_fd, &source->receive_fdset));
     connection_manager_remove (data->manager, connection);
     thread_cancel (THREAD (source));
     thread_join (THREAD (source));

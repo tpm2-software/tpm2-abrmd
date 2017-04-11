@@ -73,8 +73,6 @@ Connection*    connection_manager_lookup_id   (ConnectionManager  *manager,
                                                gint64              id_in);
 gboolean       connection_manager_contains_id (ConnectionManager  *manager,
                                                gint64              id_in);
-void           connection_manager_set_fds     (ConnectionManager  *manager,
-                                               fd_set             *fds);
 guint          connection_manager_size        (ConnectionManager  *manager);
 gboolean       connection_manager_is_full     (ConnectionManager  *manager);
 

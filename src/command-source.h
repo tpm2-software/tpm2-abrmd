@@ -56,7 +56,7 @@ typedef struct _CommandSource {
     CommandAttrs      *command_attrs;
     gint               wakeup_receive_fd;
     gint               wakeup_send_fd;
-    fd_set             connection_fdset;
+    fd_set             receive_fdset;
     Sink              *sink;
 } CommandSource;
 

@@ -121,6 +121,7 @@ command_source_set_property (GObject       *object,
         break;
     case PROP_WAKEUP_RECEIVE_FD:
         self->wakeup_receive_fd = g_value_get_int (value);
+        FD_SET (self->wakeup_receive_fd, &self->receive_fdset);
         g_debug ("  wakeup_receive_fd: %d", self->wakeup_receive_fd);
         break;
     case PROP_WAKEUP_SEND_FD:
@@ -170,6 +171,9 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
 {
     ssize_t ret;
 
+    g_info ("command_source_on_new_connection: adding new client fd: %d",
+            connection_receive_fd (connection));
+    FD_SET (connection_receive_fd (connection), &command_source->receive_fdset);
     g_debug ("command_source_on_new_connection: writing \"%s\" to fd: %d",
              WAKEUP_DATA, command_source->wakeup_send_fd);
     ret = write (command_source->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
@@ -291,6 +295,7 @@ process_client_fd (CommandSource      *source,
                    "0x%" PRIxPTR,
                    (uintptr_t)connection,
                    (uintptr_t)source->connection_manager);
+        FD_CLR (fd, &source->receive_fdset);
         connection_manager_remove (source->connection_manager,
                                    connection);
     }
@@ -324,14 +329,15 @@ command_source_thread (void *data)
 {
     CommandSource *source;
     gint ret, i;
+    fd_set tmp_fds;
 
     source = COMMAND_SOURCE (data);
     do {
-        FD_ZERO (&source->connection_fdset);
-        connection_manager_set_fds (source->connection_manager,
-                                    &source->connection_fdset);
-        FD_SET (source->wakeup_receive_fd, &source->connection_fdset);
-        ret = select (FD_SETSIZE, &source->connection_fdset, NULL, NULL, NULL);
+        tmp_fds = source->receive_fdset;
+        if (!FD_ISSET (source->wakeup_receive_fd, &tmp_fds)) {
+            g_warning ("selecting on fd_set w/o wakeup_receive_fd set");
+        }
+        ret = select (FD_SETSIZE, &tmp_fds, NULL, NULL, NULL);
         if (ret == -1) {
             g_warning ("Error selecting on pipes: %s", strerror (errno));
             break;
@@ -342,7 +348,7 @@ command_source_thread (void *data)
          * loop counter 'i' is used as a stand in for the fd.
          */
         for (i = 0; i < FD_SETSIZE; ++i) {
-            if (!FD_ISSET (i, &source->connection_fdset)) {
+            if (!FD_ISSET (i, &tmp_fds)) {
                 continue;
             } else if (i != source->wakeup_receive_fd) {
                 g_debug ("data ready on connection fd: %d", i);
