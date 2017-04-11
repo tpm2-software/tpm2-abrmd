@@ -18,7 +18,6 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
                          size_t size,
                          uint8_t *command)
 {
-    int ret = 0;
     ssize_t write_ret;
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
 
@@ -28,9 +27,6 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
     {
         return TSS2_TCTI_RC_BAD_CONTEXT;
     }
-    ret = pthread_mutex_lock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
-    if (ret != 0)
-        g_error ("Error acquiring TCTI lock: %s", strerror (errno));
     g_debug_bytes (command, size, 16, 4);
     g_debug ("blocking on PIPE_TRANSMIT: %d", TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context));
     write_ret = write_all (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context),
@@ -54,9 +50,6 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
         }
         break;
     }
-    ret = pthread_mutex_unlock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
-    if (ret != 0)
-        g_error ("Error unlocking TCTI mutex: %s", strerror (errno));
     return tss2_ret;
 }
 /*
@@ -153,27 +146,23 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
     if (*size < TPM_HEADER_SIZE) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
-    ret = pthread_mutex_lock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
-    if (ret != 0)
-        g_error ("Error acquiring TCTI lock: %s", strerror (errno));
     rc = tss2_tcti_tabrmd_receive_header (tcti_context,
                                           size,
                                           response,
                                           timeout);
     if (rc != TSS2_RC_SUCCESS) {
-        goto unlock_out;
+        return rc;
     }
     if (TSS2_TCTI_TABRMD_HEADER (tcti_context).size > *size) {
         g_warning ("tss2_tcti_tabrmd_receive got response with size larger "
                    "than the supplied buffer");
-        rc = TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
-        goto unlock_out;
+        return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
     if (TSS2_TCTI_TABRMD_HEADER (tcti_context).size == TPM_HEADER_SIZE) {
         g_debug ("tss2_tcti_tabrmd_receive got response header with size "
                  "equal to header size: no response body to read");
         *size = TPM_HEADER_SIZE;
-        goto unlock_out;
+        return TSS2_RC_SUCCESS;
     }
     g_debug ("tss2_tcti_tabrmd_receive reading command body of size %" PRIu32,
              TSS2_TCTI_TABRMD_HEADER (tcti_context).size - TPM_HEADER_SIZE);
@@ -187,10 +176,6 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
         *size = TSS2_TCTI_TABRMD_HEADER (tcti_context).size;
         g_debug_bytes (response, *size, 16, 4);
     }
-unlock_out:
-    ret = pthread_mutex_unlock (&TSS2_TCTI_TABRMD_MUTEX (tcti_context));
-    if (ret != 0)
-        g_error ("Error unlocking TCTI mutex: %s", strerror (errno));
     return rc;
 }
 
@@ -347,7 +332,6 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *tcti_context,
     guint64 id;
     GUnixFDList *fd_list;
     gboolean call_ret;
-    int ret;
 
     if (tcti_context == NULL && size == NULL)
         return TSS2_TCTI_RC_BAD_VALUE;
@@ -356,11 +340,6 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *tcti_context,
         return TSS2_RC_SUCCESS;
     }
     init_function_pointers (tcti_context);
-    ret = pthread_mutex_init (&TSS2_TCTI_TABRMD_MUTEX (tcti_context), NULL);
-    if (ret != 0)
-        g_error ("Failed to initialize initialization mutex: %s",
-                 strerror (errno));
-
     TSS2_TCTI_TABRMD_PROXY (tcti_context) =
         tcti_tabrmd_proxy_new_for_bus_sync (
             G_BUS_TYPE_SYSTEM,
