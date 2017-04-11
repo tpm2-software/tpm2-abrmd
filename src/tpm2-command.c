@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "tpm2-command.h"
+#include "tpm2-header.h"
 #include "util.h"
 /* macros to make getting at fields in the command more simple */
 
@@ -174,13 +175,7 @@ tpm2_command_new_from_fd (Connection *connection,
     command_buf = read_tpm_command_from_fd (fd, &command_size);
     if (command_buf == NULL)
         return NULL;
-    /*
-     * this is safe because read_tpm_comman_from_fd guarantees the
-     * buffer is at least 10 bytes
-     */
-    command_code = be32toh (*(TPM_CC*)(command_buf +
-                                       sizeof (TPMI_ST_COMMAND_TAG) +
-                                       sizeof (UINT32)));
+    command_code = get_command_code (command_buf);
     attributes = command_attrs_from_cc (command_attrs, command_code);
     if (attributes.val == 0) {
         g_warning ("Failed to find TPMA_CC for TPM_CC: 0x%" PRIx32,
@@ -208,24 +203,21 @@ tpm2_command_get_buffer (Tpm2Command *command)
 TPM_CC
 tpm2_command_get_code (Tpm2Command *command)
 {
-    return be32toh (*(TPM_CC*)(command->buffer +
-                               sizeof (TPMI_ST_COMMAND_TAG) +
-                               sizeof (UINT32)));
+    return get_command_code (command->buffer);
 }
 /**
  */
 guint32
 tpm2_command_get_size (Tpm2Command *command)
 {
-    return be32toh (*(guint32*)(command->buffer +
-                                sizeof (TPMI_ST_COMMAND_TAG)));
+    return get_command_size (command->buffer);
 }
 /**
  */
 TPMI_ST_COMMAND_TAG
 tpm2_command_get_tag (Tpm2Command *command)
 {
-    return be16toh (*(TPMI_ST_COMMAND_TAG*)(command->buffer));
+    return get_command_tag (command->buffer);
 }
 /*
  * Return the Connection object associated with this Tpm2Command. This
