@@ -328,16 +328,18 @@ command_source_thread (void *data)
             g_warning ("Error selecting on pipes: %s", strerror (errno));
             break;
         }
+        /*
+         * Iterate over the set of fds and figure out what we need to do.
+         * This takes advantage of the fact that fds are integers so the
+         * loop counter 'i' is used as a stand in for the fd.
+         */
         for (i = 0; i < FD_SETSIZE; ++i) {
-            if (FD_ISSET (i, &source->connection_fdset) &&
-                i != source->wakeup_receive_fd)
-            {
+            if (!FD_ISSET (i, &source->connection_fdset)) {
+                continue;
+            } else if (i != source->wakeup_receive_fd) {
                 g_debug ("data ready on connection fd: %d", i);
                 command_source_connection_responder (source, i, source->sink);
-            }
-            if (FD_ISSET (i, &source->connection_fdset) &&
-                i == source->wakeup_receive_fd)
-            {
+            } else {
                 g_debug ("data ready on wakeup_receive_fd");
                 wakeup_responder (source);
             }
