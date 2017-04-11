@@ -254,11 +254,19 @@ command_source_class_init (CommandSourceClass *klass)
                                        N_PROPERTIES,
                                        obj_properties);
 }
-
+/*
+ * This function is invoked by the internal thread when a client sends a
+ * command to the daemon. This is what makes the CommandSource a source (of
+ * Tpm2Commands). Here we take the fd, extract the command body from the fd
+ * and transform it to a Tpm2Command. Most of the details are handled by
+ * utility functions further down the stack.
+ * If an error occurs while getting the command from the fd the connection
+ * with the client will be closed and removed from the ConnectionManager.
+ */
 gboolean
-command_source_connection_responder (CommandSource      *source,
-                                     gint                fd,
-                                     Sink               *sink)
+process_client_fd (CommandSource      *source,
+                   gint                fd,
+                   Sink               *sink)
 {
     Tpm2Command *command;
     Connection  *connection;
@@ -291,7 +299,7 @@ command_source_connection_responder (CommandSource      *source,
 }
 
 ssize_t
-wakeup_responder (CommandSource *source)
+process_wakeup_fd (CommandSource *source)
 {
     g_debug ("Got new connection, updating fd_set");
     char buf[3] = { 0 };
@@ -338,10 +346,10 @@ command_source_thread (void *data)
                 continue;
             } else if (i != source->wakeup_receive_fd) {
                 g_debug ("data ready on connection fd: %d", i);
-                command_source_connection_responder (source, i, source->sink);
+                process_client_fd (source, i, source->sink);
             } else {
                 g_debug ("data ready on wakeup_receive_fd");
-                wakeup_responder (source);
+                process_wakeup_fd (source);
             }
         }
     } while (TRUE);

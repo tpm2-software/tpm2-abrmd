@@ -73,9 +73,13 @@ CommandSource*  command_source_new               (ConnectionManager  *connection
 gint            command_source_on_new_connection (ConnectionManager  *connection_manager,
                                                   Connection         *connection,
                                                   CommandSource      *command_source);
-gboolean        command_source_connection_responder (CommandSource      *source,
-                                                     gint                fd,
-                                                     Sink               *sink);
+/*
+ * The following are private functions. They are exposed here for unit
+ * testing. Do not call these from anywhere else.
+ */
+gboolean        process_client_fd                (CommandSource      *source,
+                                                  gint                fd,
+                                                  Sink               *sink);
 
 G_END_DECLS
 #endif /* COMMAND_SOURCE_H */
