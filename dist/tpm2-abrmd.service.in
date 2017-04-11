@@ -8,6 +8,7 @@ BusName=com.intel.tss2.Tab
 Environment=G_MESSAGES_DEBUG=all
 StandardOutput=syslog
 ExecStart=@SBINDIR@/tpm2-abrmd
+User=tss
 
 [Install]
 WantedBy=runlevel3.target
