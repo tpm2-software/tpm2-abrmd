@@ -269,8 +269,7 @@ command_source_class_init (CommandSourceClass *klass)
  */
 gboolean
 process_client_fd (CommandSource      *source,
-                   gint                fd,
-                   Sink               *sink)
+                   gint                fd)
 {
     Tpm2Command *command;
     Connection  *connection;
@@ -284,7 +283,7 @@ process_client_fd (CommandSource      *source,
                  (uintptr_t)connection);
     command = tpm2_command_new_from_fd (connection, fd, source->command_attrs);
     if (command != NULL) {
-        sink_enqueue (sink, G_OBJECT (command));
+        sink_enqueue (source->sink, G_OBJECT (command));
         /* the sink now owns this message */
         g_object_unref (command);
     } else {
@@ -352,7 +351,7 @@ command_source_thread (void *data)
                 continue;
             } else if (i != source->wakeup_receive_fd) {
                 g_debug ("data ready on connection fd: %d", i);
-                process_client_fd (source, i, source->sink);
+                process_client_fd (source, i);
             } else {
                 g_debug ("data ready on wakeup_receive_fd");
                 process_wakeup_fd (source);

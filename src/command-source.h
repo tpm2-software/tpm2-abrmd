@@ -78,8 +78,7 @@ gint            command_source_on_new_connection (ConnectionManager  *connection
  * testing. Do not call these from anywhere else.
  */
 gboolean        process_client_fd                (CommandSource      *source,
-                                                  gint                fd,
-                                                  Sink               *sink);
+                                                  gint                fd);
 
 G_END_DECLS
 #endif /* COMMAND_SOURCE_H */

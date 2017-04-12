@@ -285,7 +285,7 @@ command_source_connection_responder_success_test (void **state)
     will_return (__wrap_connection_manager_lookup_fd, connection);
     will_return (__wrap_tpm2_command_new_from_fd, command);
     will_return (__wrap_sink_enqueue, &command_out);
-    result = process_client_fd (data->source, 0, NULL);
+    result = process_client_fd (data->source, 0);
     assert_true (result);
 
     assert_int_equal (command_out, command);
