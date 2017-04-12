@@ -268,7 +268,6 @@ command_source_connection_responder_success_test (void **state)
                           0x0,  0x0,  0x01, 0x7a, 0x0,  0x0,
                           0x0,  0x06, 0x0,  0x0,  0x01, 0x0,
                           0x0,  0x0,  0x0,  0x7f, 0x0a };
-    gboolean result = FALSE;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     connection = connection_new (&fds[0], &fds[1], 0, handle_map);
@@ -285,8 +284,7 @@ command_source_connection_responder_success_test (void **state)
     will_return (__wrap_connection_manager_lookup_fd, connection);
     will_return (__wrap_tpm2_command_new_from_fd, command);
     will_return (__wrap_sink_enqueue, &command_out);
-    result = process_client_fd (data->source, 0);
-    assert_true (result);
+    process_client_fd (data->source, 0);
 
     assert_int_equal (command_out, command);
 }

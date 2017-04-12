@@ -267,7 +267,7 @@ command_source_class_init (CommandSourceClass *klass)
  * If an error occurs while getting the command from the fd the connection
  * with the client will be closed and removed from the ConnectionManager.
  */
-gboolean
+void
 process_client_fd (CommandSource      *source,
                    gint                fd)
 {
@@ -299,7 +299,6 @@ process_client_fd (CommandSource      *source,
                                    connection);
     }
     g_object_unref (connection);
-    return TRUE;
 }
 
 ssize_t

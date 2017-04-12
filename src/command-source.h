@@ -77,7 +77,7 @@ gint            command_source_on_new_connection (ConnectionManager  *connection
  * The following are private functions. They are exposed here for unit
  * testing. Do not call these from anywhere else.
  */
-gboolean        process_client_fd                (CommandSource      *source,
+void            process_client_fd                (CommandSource      *source,
                                                   gint                fd);
 
 G_END_DECLS
