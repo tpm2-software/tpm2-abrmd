@@ -274,7 +274,7 @@ process_client_fd (CommandSource      *source,
     Tpm2Command *command;
     Connection  *connection;
 
-    g_debug ("command_source_connection_responder 0x%" PRIxPTR, (uintptr_t)source);
+    g_debug ("process_client_fd 0x%" PRIxPTR, (uintptr_t)source);
     connection = connection_manager_lookup_fd (source->connection_manager, fd);
     if (connection == NULL)
         g_error ("failed to get connection associated with fd: %d", fd);
@@ -304,10 +304,10 @@ process_client_fd (CommandSource      *source,
 ssize_t
 process_wakeup_fd (CommandSource *source)
 {
-    g_debug ("Got new connection, updating fd_set");
     char buf[3] = { 0 };
     ssize_t ret;
 
+    g_debug ("Got new connection, updating fd_set");
     ret = read (source->wakeup_receive_fd, buf, WAKEUP_SIZE);
     if (ret != WAKEUP_SIZE)
         g_error ("read on wakeup_receive_fd returned %zd, was expecting %d",
