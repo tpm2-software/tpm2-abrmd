@@ -59,7 +59,6 @@
  * sizeof (tpm_header_t) to get your the size of the header. The compiler pads
  * this structure.
  */
-#define TPM_HEADER_SIZE (UINT32)(sizeof (TPM_ST) + sizeof (UINT32) + sizeof (UINT32))
 /* a generic tpm header structure, could be command or response */
 typedef struct {
     TPM_ST   tag;

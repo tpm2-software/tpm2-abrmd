@@ -36,6 +36,7 @@
 
 #include "tcti-tabrmd.h"
 #include "tcti-tabrmd-priv.h"
+#include "tpm2-header.h"
 
 /*
  * when given an NULL context and a pointer to a size_t, set the size_t

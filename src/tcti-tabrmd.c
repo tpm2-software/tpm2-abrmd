@@ -32,11 +32,11 @@
 #include <string.h>
 
 #include <sapi/tpm20.h>
-#include <sapi/marshal.h>
 
 #include "tabrmd.h"
 #include "tcti-tabrmd.h"
 #include "tcti-tabrmd-priv.h"
+#include "tpm2-header.h"
 #include "util.h"
 
 static TSS2_RC
@@ -113,7 +113,6 @@ tss2_tcti_tabrmd_receive_header (TSS2_TCTI_CONTEXT *tcti_context,
                                  int32_t  timeout)
 {
     int     ret;
-    size_t  header_offset = 0;
     TSS2_RC rc;
 
     ret = tpm_header_from_fd (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context),
@@ -124,25 +123,11 @@ tss2_tcti_tabrmd_receive_header (TSS2_TCTI_CONTEXT *tcti_context,
         return rc;
     }
 
-    rc = TPM_ST_Unmarshal (response,
-                           TPM_HEADER_SIZE,
-                           &header_offset,
-                           &TSS2_TCTI_TABRMD_HEADER (tcti_context).tag);
-    if (rc != TSS2_RC_SUCCESS) {
-        return rc;
-    }
-    rc = UINT32_Unmarshal (response,
-                           TPM_HEADER_SIZE,
-                           &header_offset,
-                           &TSS2_TCTI_TABRMD_HEADER (tcti_context).size);
-    if (rc != TSS2_RC_SUCCESS) {
-        return rc;
-    }
-    rc = UINT32_Unmarshal (response,
-                           TPM_HEADER_SIZE,
-                           &header_offset,
-                           &TSS2_TCTI_TABRMD_HEADER (tcti_context).code);
-    return rc;
+    TSS2_TCTI_TABRMD_HEADER (tcti_context).tag = get_response_tag (response);
+    TSS2_TCTI_TABRMD_HEADER (tcti_context).size = get_response_size (response);
+    TSS2_TCTI_TABRMD_HEADER (tcti_context).code = get_response_code (response);
+
+    return TSS2_RC_SUCCESS;
 }
 /*
  * This is the receive function that is exposed to clients through the TCTI
