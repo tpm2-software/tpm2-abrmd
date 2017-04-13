@@ -145,7 +145,7 @@ tpm_header_from_fd (int       fd,
         return -2;
     }
 
-    num_read = read (fd, buf, TPM_HEADER_SIZE);
+    num_read = TEMP_FAILURE_RETRY (read (fd, buf, TPM_HEADER_SIZE));
     errno_tmp = errno;
     switch (num_read) {
     case TPM_HEADER_SIZE:

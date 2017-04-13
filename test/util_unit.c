@@ -205,6 +205,33 @@ tpm_header_from_fd_errno_test (void **state)
     assert_memory_equal (data->header_out, data->header_zero, data->size);
 }
 /*
+ * This test covers interrupted read operations for the tpm_header_from_fd
+ * function. We test this by priming the mock queue such that two calls to
+ * the read function occur. First will produce the EINTR error case while
+ * the second is a successful read. We then make a single call to the
+ * tpm_header_from_fd function that will make two calls to the 'read' syscall.
+ * The first fails but is retried on account of the EINTR errno. The second
+ * succeeds and we then check for valid output data.
+ */
+static void
+tpm_header_from_fd_interrupt_test (void **state)
+{
+    header_from_fd_data_t *data = *state;
+    int ret = 0;
+
+    will_return (__wrap_read, EINTR);
+    will_return (__wrap_read, data->header_in);
+    will_return (__wrap_read, -1);
+
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->header_in);
+    will_return (__wrap_read, data->size);
+
+    ret = tpm_header_from_fd (0, data->header_out, data->size);
+    assert_int_equal (ret, 0);
+    assert_memory_equal (data->header_out, data->header_in, data->size);
+}
+/*
  * This test covers an error case where reading from the fd results in 0
  * bytes being read. This happens when a file reaches EOF or the other end
  * of an IPC mechanism has been closed. In this case the return value should
@@ -517,6 +544,9 @@ main (gint    argc,
         unit_test (write_error),
         unit_test (write_zero),
         unit_test_setup_teardown (tpm_header_from_fd_success_test,
+                                  tpm_header_from_fd_setup,
+                                  tpm_header_from_fd_teardown),
+        unit_test_setup_teardown (tpm_header_from_fd_interrupt_test,
                                   tpm_header_from_fd_setup,
                                   tpm_header_from_fd_teardown),
         unit_test_setup_teardown (tpm_header_from_fd_errno_test,
