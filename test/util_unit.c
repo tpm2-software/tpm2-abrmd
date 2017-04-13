@@ -345,6 +345,33 @@ tpm_body_from_fd_success_test (void **state)
     assert_memory_equal (data->body_in, data->body_out, data->size);
 }
 /*
+ * This test covers interrupted read syscalls when the reading the body of
+ * the TPM buffer form an FD. The test first builds up the wrap queue for
+ * the read call expecting the function to be called twice. The first call
+ * produces the EINTR errno indicating the function call was interrupted
+ * while the second call succeeds. At the end of all of this the function
+ * should return 0 (success) and the output and input buffers should be
+ * identical.
+ */
+static void
+tpm_body_from_fd_interrupt_test (void **state)
+{
+    body_from_fd_data_t *data = *state;
+    int ret = 0;
+
+    will_return (__wrap_read, EINTR);
+    will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, -1);
+
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, data->size);
+
+    ret = tpm_body_from_fd (0, data->body_out, data->size);
+    assert_int_equal (ret, 0);
+    assert_memory_equal (data->body_out, data->body_in, data->size);
+}
+/*
  * This test covers a typical error condition for the read system call.
  * The errno is set to EAGAIN, and the return value will be -1.
  * In this case the tpm_body_from_fd function should return the errno
@@ -562,6 +589,9 @@ main (gint    argc,
                                   tpm_header_from_fd_setup,
                                   tpm_header_from_fd_teardown),
         unit_test_setup_teardown (tpm_body_from_fd_success_test,
+                                  tpm_body_from_fd_setup,
+                                  tpm_body_from_fd_teardown),
+        unit_test_setup_teardown (tpm_body_from_fd_interrupt_test,
                                   tpm_body_from_fd_setup,
                                   tpm_body_from_fd_teardown),
         unit_test_setup_teardown (tpm_body_from_fd_errno_test,

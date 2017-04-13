@@ -183,7 +183,7 @@ tpm_body_from_fd (int       fd,
     int errno_tmp;
 
     g_debug ("read_tpm_command_body_from_fd");
-    num_read = read (fd, buf, body_size);
+    num_read = TEMP_FAILURE_RETRY (read (fd, buf, body_size));
     errno_tmp = errno;
     if (num_read == body_size) {
         g_debug ("  read %zu bytes as expected", num_read);
