@@ -185,11 +185,6 @@ tpm_body_from_fd (int       fd,
     g_debug ("read_tpm_command_body_from_fd");
     num_read = TEMP_FAILURE_RETRY (read (fd, buf, body_size));
     errno_tmp = errno;
-    if (num_read == body_size) {
-        g_debug ("  read %zu bytes as expected", num_read);
-        g_debug_bytes (buf, body_size, 16, 4);
-        return 0;
-    }
     switch (num_read) {
     case -1:
         g_warning ("  error reading from fd %d: %s", fd, strerror (errno));
@@ -198,9 +193,15 @@ tpm_body_from_fd (int       fd,
         g_warning ("  EOF reading TPM command body from fd: %d", fd);
         return -1;
     default:
-        g_warning ("  read %zd bytes on fd %d, expecting %zd",
-                   num_read, fd, body_size);
-        return -1;
+        if (num_read == body_size) {
+            g_debug ("  read %zu bytes as expected", num_read);
+            g_debug_bytes (buf, body_size, 16, 4);
+            return 0;
+        } else {
+            g_warning ("  read %zd bytes on fd %d, expecting %zd",
+                       num_read, fd, body_size);
+            return -1;
+        }
     }
 }
 /**
