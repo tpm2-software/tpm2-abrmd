@@ -39,8 +39,6 @@
 
 #define TSS2_TCTI_TABRMD_ID(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->id
-#define TSS2_TCTI_TABRMD_MUTEX(context) \
-    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->mutex
 #define TSS2_TCTI_TABRMD_PIPE_FDS(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->pipe_fds
 #define TSS2_TCTI_TABRMD_PIPE_RECEIVE(context) \
