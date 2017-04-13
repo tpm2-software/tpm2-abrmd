@@ -39,8 +39,6 @@
 
 #define TSS2_TCTI_TABRMD_ID(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->id
-#define TSS2_TCTI_TABRMD_WATCHER_ID(context) \
-    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->watcher_id
 #define TSS2_TCTI_TABRMD_MUTEX(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->mutex
 #define TSS2_TCTI_TABRMD_PIPE_FDS(context) \
@@ -75,7 +73,6 @@ typedef struct {
 typedef struct {
     TSS2_TCTI_CONTEXT_COMMON_V1    common;
     guint64                        id;
-    guint                          watcher_id;
     int                            pipe_fds[2];
     TctiTabrmd                    *proxy;
     tpm_header_t                   header;
