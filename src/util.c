@@ -121,30 +121,22 @@ process_control_code (ControlCode code)
     }
 }
 /*
- * Read a TPM command or response header from the parameter 'fd'. Headers
- * are a fixed size so the buf_size is largely a formality: it's just a way to
- * be sure the caller understands that the buffer must be at least
- * TPM_HEADER_SIZE bytes.
+ * Read a TPM command or response header from the parameter 'fd'. The caller
+ * *MUST* ensure that the buffer provided is large enough to hold the 10
+ * bytes (TPM_HEADER_SIZE) required for the header.
  *
  * On success this function returns 0.
  * On error this function returns the value of errno.
- * On a short read or EOF the function returns -1.
- * If the supplied buffer size is too small to hold the header, -2 is returned. 
+ *   NOTE: On a short read or EOF the function returns EPROTO.
  */
 int
 tpm_header_from_fd (int       fd,
-                    uint8_t  *buf,
-                    size_t    buf_size)
+                    uint8_t  *buf)
 {
     ssize_t num_read = 0;
     int errno_tmp;
 
     g_debug ("tpm_header_from_fd");
-    if (buf_size < TPM_HEADER_SIZE) {
-        g_warning ("buffer size too small for tpm header");
-        return -2;
-    }
-
     num_read = TEMP_FAILURE_RETRY (read (fd, buf, TPM_HEADER_SIZE));
     errno_tmp = errno;
     switch (num_read) {
@@ -157,11 +149,11 @@ tpm_header_from_fd (int       fd,
         return errno_tmp;
     case 0:
         g_warning ("EOF trying to read tpm command header from fd: %d", fd);
-        return -1;
+        return EPROTO;
     default:
         g_warning ("read %zd bytes on fd %d, expecting %" PRIu32,
                    num_read, fd, TPM_HEADER_SIZE);
-        return -1;
+        return EPROTO;
     }
 }
 /*
@@ -172,7 +164,7 @@ tpm_header_from_fd (int       fd,
  *
  * On success this function returns 0.
  * On error this function returns the value of errno.
- * On a short read or EOF the function returns -1.
+ *   NOTE: We encode EOF (closed connections) and short reads in EPROTO
  */
 int
 tpm_body_from_fd (int       fd,
@@ -191,7 +183,7 @@ tpm_body_from_fd (int       fd,
         return errno_tmp;
     case 0:
         g_warning ("  EOF reading TPM command body from fd: %d", fd);
-        return -1;
+        return EPROTO;
     default:
         if (num_read == body_size) {
             g_debug ("  read %zu bytes as expected", num_read);
@@ -200,7 +192,7 @@ tpm_body_from_fd (int       fd,
         } else {
             g_warning ("  read %zd bytes on fd %d, expecting %zd",
                        num_read, fd, body_size);
-            return -1;
+            return EPROTO;
         }
     }
 }
@@ -214,13 +206,12 @@ uint8_t*
 read_tpm_command_from_fd (int       fd,
                           UINT32   *command_size)
 {
-    size_t header_size = TPM_HEADER_SIZE;
     uint8_t header[TPM_HEADER_SIZE] = { 0, };
     uint8_t *tpm_command = NULL;
     int ret;
 
     g_debug ("read_tpm_commad_from_fd");
-    ret = tpm_header_from_fd (fd, header, header_size);
+    ret = tpm_header_from_fd (fd, header);
     if (ret != 0) {
         return NULL;
     }
@@ -235,10 +226,10 @@ read_tpm_command_from_fd (int       fd,
         g_error ("g_malloc0 failed to allocate buffer for TPM command");
         return NULL;
     }
-    memcpy (tpm_command, header, header_size);
+    memcpy (tpm_command, header, sizeof (header));
     ret = tpm_body_from_fd (fd,
-                            &tpm_command [header_size],
-                            *command_size - header_size);
+                            &tpm_command [TPM_HEADER_SIZE],
+                            *command_size - TPM_HEADER_SIZE);
     if (ret != 0) {
         g_free (tpm_command);
         return NULL;

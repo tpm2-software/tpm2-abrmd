@@ -180,7 +180,7 @@ tpm_header_from_fd_success_test (void **state)
     will_return (__wrap_read, data->header_in);
     will_return (__wrap_read, data->size);
 
-    ret = tpm_header_from_fd (0, data->header_out, data->size);
+    ret = tpm_header_from_fd (0, data->header_out);
     assert_int_equal (ret, 0);
     assert_memory_equal (data->header_in, data->header_out, data->size);
 }
@@ -200,7 +200,7 @@ tpm_header_from_fd_errno_test (void **state)
     will_return (__wrap_read, data->header_in);
     will_return (__wrap_read, -1);
 
-    ret = tpm_header_from_fd (0, data->header_out, data->size);
+    ret = tpm_header_from_fd (0, data->header_out);
     assert_int_equal (ret, EAGAIN);
     assert_memory_equal (data->header_out, data->header_zero, data->size);
 }
@@ -227,7 +227,7 @@ tpm_header_from_fd_interrupt_test (void **state)
     will_return (__wrap_read, data->header_in);
     will_return (__wrap_read, data->size);
 
-    ret = tpm_header_from_fd (0, data->header_out, data->size);
+    ret = tpm_header_from_fd (0, data->header_out);
     assert_int_equal (ret, 0);
     assert_memory_equal (data->header_out, data->header_in, data->size);
 }
@@ -247,8 +247,8 @@ tpm_header_from_fd_eof_test (void **state)
     will_return (__wrap_read, data->header_in);
     will_return (__wrap_read, 0);
 
-    ret = tpm_header_from_fd (0, data->header_out, data->size);
-    assert_int_equal (ret, -1);
+    ret = tpm_header_from_fd (0, data->header_out);
+    assert_int_equal (ret, EPROTO);
     assert_memory_equal (data->header_out, data->header_zero, data->size);
 }
 /*
@@ -266,23 +266,8 @@ tpm_header_from_fd_short_test (void **state)
     will_return (__wrap_read, data->header_in);
     will_return (__wrap_read, 3);
 
-    ret = tpm_header_from_fd (0, data->header_out, data->size);
-    assert_int_equal (ret, -1);
-}
-/*
- * This test covers an error case where the size of the provided buffer
- * is insufficient to hold a tpm header. In this case -2 is returned and the
- * output buffer should remain unchanged (all 0's).
- */
-static void
-tpm_header_from_fd_size_lt_header_test (void **state)
-{
-    header_from_fd_data_t *data = *state;
-    int ret = 0;
-
-    ret = tpm_header_from_fd (0, data->header_out, 3);
-    assert_int_equal (ret, -2);
-    assert_memory_equal (data->header_out, data->header_zero, data->size);
+    ret = tpm_header_from_fd (0, data->header_out);
+    assert_int_equal (ret, EPROTO);
 }
 /*
  * This structure holds a few buffers and the size field used to test the
@@ -408,7 +393,7 @@ tpm_body_from_fd_eof_test (void **state)
     will_return (__wrap_read, 0);
 
     ret = tpm_body_from_fd (0, data->body_out, data->size);
-    assert_int_equal (ret, -1);
+    assert_int_equal (ret, EPROTO);
     assert_memory_equal (data->body_out, data->body_zero, data->size);
 }
 /*
@@ -427,7 +412,7 @@ tpm_body_from_fd_short_test (void **state)
     will_return (__wrap_read, 3);
 
     ret = tpm_body_from_fd (0, data->body_out, data->size);
-    assert_int_equal (ret, -1);
+    assert_int_equal (ret, EPROTO);
 }
 /*
  */
@@ -583,9 +568,6 @@ main (gint    argc,
                                   tpm_header_from_fd_setup,
                                   tpm_header_from_fd_teardown),
         unit_test_setup_teardown (tpm_header_from_fd_short_test,
-                                  tpm_header_from_fd_setup,
-                                  tpm_header_from_fd_teardown),
-        unit_test_setup_teardown (tpm_header_from_fd_size_lt_header_test,
                                   tpm_header_from_fd_setup,
                                   tpm_header_from_fd_teardown),
         unit_test_setup_teardown (tpm_body_from_fd_success_test,

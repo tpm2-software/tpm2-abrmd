@@ -87,13 +87,12 @@ errno_to_tcti_rc (int error_number)
     switch (error_number) {
     case 0:
         return TSS2_RC_SUCCESS;
-    case -1:
-        return TSS2_TCTI_RC_NO_CONNECTION;
+    case EPROTO:
+        return TSS2_TCTI_RC_GENERAL_FAILURE;
     case EAGAIN:
 #if EAGAIN != EWOULDBLOCK
     case EWOULDBLOCK:
 #endif
-    case EINTR:
         return TSS2_TCTI_RC_TRY_AGAIN;
     default:
         return TSS2_TCTI_RC_IO_ERROR;
@@ -108,7 +107,6 @@ errno_to_tcti_rc (int error_number)
  */
 static TSS2_RC
 tss2_tcti_tabrmd_receive_header (TSS2_TCTI_CONTEXT *tcti_context,
-                                 size_t *size,
                                  uint8_t *response,
                                  int32_t  timeout)
 {
@@ -116,8 +114,7 @@ tss2_tcti_tabrmd_receive_header (TSS2_TCTI_CONTEXT *tcti_context,
     TSS2_RC rc;
 
     ret = tpm_header_from_fd (TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context),
-                              response,
-                              TPM_HEADER_SIZE);
+                              response);
     rc = errno_to_tcti_rc (ret);
     if (rc != TSS2_RC_SUCCESS) {
         return rc;
@@ -158,7 +155,6 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
     rc = tss2_tcti_tabrmd_receive_header (tcti_context,
-                                          size,
                                           response,
                                           timeout);
     if (rc != TSS2_RC_SUCCESS) {

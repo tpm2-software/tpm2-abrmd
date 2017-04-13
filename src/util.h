@@ -56,8 +56,7 @@ ssize_t     write_all                       (gint const        fd,
                                              size_t const      size);
 void        process_control_code            (ControlCode       code);
 int         tpm_header_from_fd              (int               fd,
-                                             uint8_t          *buf,
-                                             size_t            buf_size);
+                                             uint8_t          *buf);
 int         tpm_body_from_fd                (int               fd,
                                              uint8_t          *buf,
                                              size_t            body_size);
