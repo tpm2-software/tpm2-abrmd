@@ -314,15 +314,15 @@ tss2_tcti_tabrmd_dump_trans_state (TSS2_TCTI_CONTEXT *context)
 
     return ret;
 }
-
+/*
+ * Initialization function to set context data values and function pointers.
+ */
 void
-init_function_pointers (TSS2_TCTI_CONTEXT *context)
+init_tcti_data (TSS2_TCTI_CONTEXT *context)
 {
-    /* data */
     TSS2_TCTI_MAGIC (context)            = TSS2_TCTI_TABRMD_MAGIC;
     TSS2_TCTI_VERSION (context)          = TSS2_TCTI_TABRMD_VERSION;
     TSS2_TCTI_TABRMD_STATE (context)     = TABRMD_STATE_TRANSMIT;
-    /* function pointers */
     TSS2_TCTI_TRANSMIT (context)         = tss2_tcti_tabrmd_transmit;
     TSS2_TCTI_RECEIVE (context)          = tss2_tcti_tabrmd_receive;
     TSS2_TCTI_FINALIZE (context)         = tss2_tcti_tabrmd_finalize;
@@ -375,7 +375,7 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
         *size = sizeof (TSS2_TCTI_TABRMD_CONTEXT);
         return TSS2_RC_SUCCESS;
     }
-    init_function_pointers (context);
+    init_tcti_data (context);
     TSS2_TCTI_TABRMD_PROXY (context) =
         tcti_tabrmd_proxy_new_for_bus_sync (
             G_BUS_TYPE_SYSTEM,
