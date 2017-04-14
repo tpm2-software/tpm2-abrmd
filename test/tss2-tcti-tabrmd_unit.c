@@ -255,6 +255,47 @@ tcti_tabrmd_init_success_test (void **state)
     tcti_tabrmd_teardown (state);
 }
 /*
+ * These are a series of tests to ensure that the exposed TCTI functions
+ * return the appropriate RC when passed NULL contexts.
+ *
+ * NOTE: These RCs come from the tss2_tcti.h header and not the tabrmd TCTI
+ *       code. Still we test for it here as it's a useful reminder that the
+ *       case is covered. Also there's a bug in the TSS2 currently as these
+ *       should return BAD_REFERENCE, not BAD_CONTEXT
+ */
+static void
+tcti_tabrmd_transmit_null_context_test (void **state)
+{
+    TSS2_RC rc;
+
+    rc = tss2_tcti_transmit (NULL, 5, NULL);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+static void
+tcti_tabrmd_receive_null_context_test (void **state)
+{
+    TSS2_RC rc;
+
+    rc = tss2_tcti_receive (NULL, NULL, NULL, TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+static void
+tcti_tabrmd_cancel_null_context_test (void **state)
+{
+    TSS2_RC rc;
+
+    rc = tss2_tcti_cancel (NULL);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+static void
+tcti_tabrmd_set_locality_null_context_test (void **state)
+{
+    TSS2_RC rc;
+
+    rc = tss2_tcti_set_locality (NULL, 5);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+/*
  * This test makes a single call to the transmit function in the the
  * TSS2_TCTI_CONTEXT function pointer table. It sends a fixed 12 byte TPM
  * command buffer:
@@ -632,6 +673,10 @@ main(int argc, char* argv[])
         unit_test_setup_teardown (tcti_tabrmd_version_test,
                                   tcti_tabrmd_setup,
                                   tcti_tabrmd_teardown),
+        unit_test (tcti_tabrmd_transmit_null_context_test),
+        unit_test (tcti_tabrmd_receive_null_context_test),
+        unit_test (tcti_tabrmd_cancel_null_context_test),
+        unit_test (tcti_tabrmd_set_locality_null_context_test),
         unit_test_setup_teardown (tcti_tabrmd_transmit_success_test,
                                   tcti_tabrmd_setup,
                                   tcti_tabrmd_teardown),
