@@ -49,8 +49,7 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
 
     g_debug ("tss2_tcti_tabrmd_transmit");
     if (TSS2_TCTI_MAGIC (context) != TSS2_TCTI_TABRMD_MAGIC ||
-        TSS2_TCTI_VERSION (context) != TSS2_TCTI_TABRMD_VERSION)
-    {
+        TSS2_TCTI_VERSION (context) != TSS2_TCTI_TABRMD_VERSION) {
         return TSS2_TCTI_RC_BAD_CONTEXT;
     }
     if (TSS2_TCTI_TABRMD_STATE (context) != TABRMD_STATE_TRANSMIT) {
@@ -146,13 +145,13 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
 
     g_debug ("tss2_tcti_tabrmd_receive");
     if (TSS2_TCTI_MAGIC (context) != TSS2_TCTI_TABRMD_MAGIC ||
-        TSS2_TCTI_VERSION (context) != TSS2_TCTI_TABRMD_VERSION)
-    {
+        TSS2_TCTI_VERSION (context) != TSS2_TCTI_TABRMD_VERSION) {
         return TSS2_TCTI_RC_BAD_CONTEXT;
     }
     /* async not yet supported */
-    if (timeout != TSS2_TCTI_TIMEOUT_BLOCK)
+    if (timeout != TSS2_TCTI_TIMEOUT_BLOCK) {
         return TSS2_TCTI_RC_BAD_VALUE;
+    }
     if (size == NULL && response == NULL) {
         return TSS2_TCTI_RC_BAD_REFERENCE;
     }
@@ -206,14 +205,16 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *context)
         ret = close (TSS2_TCTI_TABRMD_PIPE_RECEIVE (context));
         TSS2_TCTI_TABRMD_PIPE_RECEIVE (context) = 0;
     }
-    if (ret != 0 && ret != EBADF)
+    if (ret != 0 && ret != EBADF) {
         g_warning ("Failed to close receive pipe: %s", strerror (errno));
+    }
     if (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (context) != 0) {
         ret = close (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (context));
         TSS2_TCTI_TABRMD_PIPE_TRANSMIT (context) = 0;
     }
-    if (ret != 0 && ret != EBADF)
+    if (ret != 0 && ret != EBADF) {
         g_warning ("Failed to close send pipe: %s", strerror (errno));
+    }
     TSS2_TCTI_TABRMD_STATE (context) = TABRMD_STATE_FINAL;
     g_object_unref (TSS2_TCTI_TABRMD_PROXY (context));
 }
@@ -348,8 +349,9 @@ tcti_tabrmd_call_create_connection_sync_fdlist (TctiTabrmd        *proxy,
         out_fd_list,
         cancellable,
         error);
-    if (_ret == NULL)
+    if (_ret == NULL) {
         goto _out;
+    }
     g_variant_get (_ret, "(@aht)", out_fds, out_id);
     g_variant_unref (_ret);
 _out:
@@ -366,8 +368,9 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
     GUnixFDList *fd_list;
     gboolean call_ret;
 
-    if (context == NULL && size == NULL)
+    if (context == NULL && size == NULL) {
         return TSS2_TCTI_RC_BAD_VALUE;
+    }
     if (context == NULL && size != NULL) {
         *size = sizeof (TSS2_TCTI_TABRMD_CONTEXT);
         return TSS2_RC_SUCCESS;
@@ -381,8 +384,9 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
             TABRMD_DBUS_PATH, /* object */
             NULL,                          /* GCancellable* */
             &error);
-    if (TSS2_TCTI_TABRMD_PROXY (context) == NULL)
+    if (TSS2_TCTI_TABRMD_PROXY (context) == NULL) {
         g_error ("failed to allocate dbus proxy object: %s", error->message);
+    }
     call_ret = tcti_tabrmd_call_create_connection_sync_fdlist (
         TSS2_TCTI_TABRMD_PROXY (context),
         &fds_variant,
@@ -390,24 +394,29 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
         &fd_list,
         NULL,
         &error);
-    if (call_ret == FALSE)
+    if (call_ret == FALSE) {
         g_error ("Failed to create connection with service: %s",
                  error->message);
-    if (fd_list == NULL)
+    }
+    if (fd_list == NULL) {
         g_error ("call to CreateConnection returned a NULL GUnixFDList");
+    }
     gint num_handles = g_unix_fd_list_get_length (fd_list);
-    if (num_handles != 2)
+    if (num_handles != 2) {
         g_error ("CreateConnection expected to return 2 handles, received %d",
                  num_handles);
+    }
     gint fd = g_unix_fd_list_get (fd_list, 0, &error);
-    if (fd == -1)
+    if (fd == -1) {
         g_error ("unable to get receive handle from GUnixFDList: %s",
                  error->message);
+    }
     TSS2_TCTI_TABRMD_PIPE_RECEIVE (context) = fd;
     fd = g_unix_fd_list_get (fd_list, 1, &error);
-    if (fd == -1)
+    if (fd == -1) {
         g_error ("failed to get transmit handle from GUnixFDList: %s",
                  error->message);
+    }
     TSS2_TCTI_TABRMD_PIPE_TRANSMIT (context) = fd;
     TSS2_TCTI_TABRMD_ID (context) = id;
     g_debug ("initialized tabrmd TCTI context with id: 0x%" PRIx64,
