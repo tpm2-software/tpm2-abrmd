@@ -683,7 +683,7 @@ tcti_tabrmd_get_poll_handles_handles_test (void **state)
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_int_equal (1, num_handles);
     assert_int_equal (handles [0].fd,
-                      TSS2_TCTI_TABRMD_PIPE_RECEIVE (data->context));
+                      TSS2_TCTI_TABRMD_FD_RECEIVE (data->context));
 }
 /*
  * This test sets up the call_set_locality mock function to return values
