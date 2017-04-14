@@ -49,6 +49,40 @@
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->proxy
 #define TSS2_TCTI_TABRMD_HEADER(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->header
+#define TSS2_TCTI_TABRMD_STATE(context) \
+    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->state
+
+/*
+ * The elements in this enumeration represent the possible states that the
+ * tabrmd TCTI can be in. The state machine is as follows:
+ * An instantiated TCTI context begins in the TRANSMIT state:
+ *   TRANSMIT:
+ *     transmit:    success transitions the state machine to RECEIVE
+ *                  failure leaves the state unchanged
+ *     receieve:    produces TSS2_TCTI_RC_BAD_SEQUENCE
+ *     finalize:    transitions state machine to FINAL state
+ *     cancel:      produces TSS2_TCTI_RC_BAD_SEQUENCE
+ *     setLocality: success or failure leaves state unchanged
+ *   RECEIVE:
+ *     transmit:    produces TSS2_TCTI_RC_BAD_SEQUENCE
+ *     receive:     success transitions the state machine to TRANSMIT
+ *                  failure with the following RCs leave the state unchanged:
+ *                    TRY_AGAIN, INSUFFICIENT_BUFFER, BAD_CONTEXT,
+ *                    BAD_REFERENCE, BAD_VALUE, BAD_SEQUENCE
+ *                  all other failures transition state machine to
+ *                    TRANSMIT (not recoverable)
+ *     finalize:    transitions state machine to FINAL state
+ *     cancel:      success transitions state machine to READY_TRANSMIT
+ *                  failure leaves state unchanged
+ *     setLocality: produces TSS2_TCTI_RC_BAD_SEQUENCE
+ *   FINAL:
+ *     all function calls produce TSS2_TCTI_RC_BAD_SEQUENCE
+ */
+typedef enum {
+    TABRMD_STATE_FINAL,
+    TABRMD_STATE_RECEIVE,
+    TABRMD_STATE_TRANSMIT,
+} tcti_tabrmd_state_t;
 
 /*
  * A convenience macro to get us the size of the TPM header. Do not expect
@@ -74,6 +108,7 @@ typedef struct {
     int                            pipe_fds[2];
     TctiTabrmd                    *proxy;
     tpm_header_t                   header;
+    tcti_tabrmd_state_t            state;
 } TSS2_TCTI_TABRMD_CONTEXT;
 
 #endif /* TSS2TCTI_TABRMD_PRIV_H */

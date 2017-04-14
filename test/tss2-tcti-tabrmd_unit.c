@@ -280,6 +280,8 @@ tcti_tabrmd_transmit_success_test (void **state)
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     ret = read (data->fd_receive_server, command_out, size);
     assert_int_equal (ret, size);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_RECEIVE);
     assert_memory_equal (command_in, command_out, size);
 }
 /*
@@ -297,6 +299,8 @@ tcti_tabrmd_transmit_bad_magic_test (void **state)
     TSS2_TCTI_MAGIC (data->context) = 1;
     rc = tss2_tcti_transmit (data->context, size, command);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_TRANSMIT);
 }
 /*
  * This test ensures that the version in the context structure is checked
@@ -313,6 +317,58 @@ tcti_tabrmd_transmit_bad_version_test (void **state)
     TSS2_TCTI_VERSION (data->context) = -1;
     rc = tss2_tcti_transmit (data->context, size, command);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_TRANSMIT);
+}
+/*
+ * This test sets the state to RECEIVE and then calls transmit. This should
+ * produce a BAD_SEQUENCE error.
+ */
+static void
+tcti_tabrmd_transmit_bad_sequence_receive_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_RC rc;
+    uint8_t command [12] = { 0 };
+    size_t size = 12;
+
+    TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_RECEIVE;
+    rc = tss2_tcti_transmit (data->context, size, command);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_RECEIVE);
+}
+/*
+ * This test sets the state to FINAL and then calls transmit. This should
+ * produce a BAD_SEQUENCE error.
+ */
+static void
+tcti_tabrmd_transmit_bad_sequence_final_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_RC rc;
+    uint8_t command [12] = { 0 };
+    size_t size = 12;
+
+    TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_FINAL;
+    rc = tss2_tcti_transmit (data->context, size, command);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_FINAL);
+}
+/*
+ * This setup function is a thin wrapper around the main setup. The only
+ * additional thing done is to set the state machine to the RECEIVE state
+ * to simplify testing the receive function.
+ */
+static void
+tcti_tabrmd_receive_setup (void **state)
+{
+    data_t *data = NULL;
+
+    tcti_tabrmd_setup (state);
+    data = *state;
+    TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_RECEIVE;
 }
 /*
  * This test makes a single call to the receive function in the
@@ -338,6 +394,8 @@ tcti_tabrmd_receive_success_test (void **state)
                             command_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_TRANSMIT);
     assert_int_equal (size, sizeof (command_in));
     assert_memory_equal (command_in, command_out, size);
 }
@@ -356,6 +414,8 @@ tcti_tabrmd_receive_bad_magic_test (void **state)
     TSS2_TCTI_MAGIC (data->context) = 1;
     rc = tss2_tcti_receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_RECEIVE);
 }
 /*
  * This test ensures that the version in the context structure is checked
@@ -372,6 +432,44 @@ tcti_tabrmd_receive_bad_version_test (void **state)
     TSS2_TCTI_VERSION (data->context) = -1;
     rc = tss2_tcti_receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_RECEIVE);
+}
+/*
+ * This test sets the context state to TRANSMIT and then calls the receive
+ * function. This should produce a BAD_SEQUENCE error.
+ */
+static void
+tcti_tabrmd_receive_bad_sequence_transmit_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_RC rc;
+    uint8_t buf [12] = { 0 };
+    size_t size = 12;
+
+    TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_TRANSMIT;
+    rc = tss2_tcti_receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_TRANSMIT);
+}
+/*
+ * This test sets the context state to FINAL and then calls the receive
+ * function. This should produce a BAD_SEQUENCE error.
+ */
+static void
+tcti_tabrmd_receive_bad_sequence_final_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_RC rc;
+    uint8_t buf [12] = { 0 };
+    size_t size = 12;
+
+    TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_FINAL;
+    rc = tss2_tcti_receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_FINAL);
 }
 /*
  * This test makes a single call to the receive function in the
@@ -413,6 +511,8 @@ tcti_tabrmd_receive_size_lt_header_test (void **state)
                             response,
                             TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_TCTI_RC_INSUFFICIENT_BUFFER);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_RECEIVE);
 }
 static void
 tcti_tabrmd_receive_size_lt_body_test (void **state)
@@ -434,6 +534,8 @@ tcti_tabrmd_receive_size_lt_body_test (void **state)
                             response,
                             TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_TCTI_RC_INSUFFICIENT_BUFFER);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_RECEIVE);
 }
 /*
  * This test sets up the call_cancel mock function to return values
@@ -450,6 +552,24 @@ tcti_tabrmd_cancel_test (void **state)
     will_return (__wrap_tcti_tabrmd_call_cancel_sync, TRUE);
     rc = tss2_tcti_cancel (data->context);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_RECEIVE);
+}
+/*
+ * This test initializes the TCTI context state to TRANSMIT and then calls
+ * the cancel function. This should produce a BAD_SEQUENCE error.
+ */
+static void
+tcti_tabrmd_cancel_bad_sequence_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_RC rc;
+
+    TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_TRANSMIT;
+    rc = tss2_tcti_cancel (data->context);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
+    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
+                      TABRMD_STATE_TRANSMIT);
 }
 /*
  * This test invokes the get_poll_handles function. It then ensures that
@@ -483,6 +603,21 @@ tcti_tabrmd_set_locality_test (void **state)
     rc = tss2_tcti_set_locality (data->context, locality);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
 }
+/*
+ * This test invokes the set_locality function with the context in the RECEIVE
+ * state. This should produce a BAD_SEQUENCE error.
+ */
+static void
+tcti_tabrmd_set_locality_bad_sequence_test (void **state)
+{
+    data_t *data = *state;
+    uint8_t locality;
+    TSS2_RC rc;
+
+    TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_RECEIVE;
+    rc = tss2_tcti_set_locality (data->context, locality);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
+}
 int
 main(int argc, char* argv[])
 {
@@ -506,32 +641,50 @@ main(int argc, char* argv[])
         unit_test_setup_teardown (tcti_tabrmd_transmit_bad_version_test,
                                   tcti_tabrmd_setup,
                                   tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_success_test,
+        unit_test_setup_teardown (tcti_tabrmd_transmit_bad_sequence_receive_test,
                                   tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_transmit_bad_sequence_final_test,
+                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_receive_success_test,
+                                  tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_receive_bad_magic_test,
-                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_receive_bad_version_test,
-                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_receive_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_receive_bad_sequence_transmit_test,
+                                  tcti_tabrmd_receive_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_receive_bad_sequence_final_test,
+                                  tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_receive_timeout_test,
-                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_receive_size_lt_header_test,
-                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_receive_size_lt_body_test,
-                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
-         unit_test_setup_teardown (tcti_tabrmd_cancel_test,
-                                  tcti_tabrmd_setup,
+        unit_test_setup_teardown (tcti_tabrmd_cancel_test,
+                                  tcti_tabrmd_receive_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_cancel_bad_sequence_test,
+                                  tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_test,
                                   tcti_tabrmd_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_set_locality_test,
                                   tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_set_locality_bad_sequence_test,
+                                  tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
     };
     return run_tests(tests);

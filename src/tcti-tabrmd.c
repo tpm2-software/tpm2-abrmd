@@ -53,6 +53,9 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
     {
         return TSS2_TCTI_RC_BAD_CONTEXT;
     }
+    if (TSS2_TCTI_TABRMD_STATE (tcti_context) != TABRMD_STATE_TRANSMIT) {
+        return TSS2_TCTI_RC_BAD_SEQUENCE;
+    }
     g_debug_bytes (command, size, 16, 4);
     g_debug ("blocking on PIPE_TRANSMIT: %d", TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context));
     write_ret = write_all (TSS2_TCTI_TABRMD_PIPE_TRANSMIT (tcti_context),
@@ -70,7 +73,9 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *tcti_context,
         tss2_ret = TSS2_TCTI_RC_NO_CONNECTION;
         break;
     default:
-        if (write_ret != size) {
+        if (write_ret == size) {
+            TSS2_TCTI_TABRMD_STATE (tcti_context) = TABRMD_STATE_RECEIVE;
+        } else {
             g_debug ("tss2_tcti_tabrmd_transmit: short write");
             tss2_ret = TSS2_TCTI_RC_GENERAL_FAILURE;
         }
@@ -154,6 +159,9 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
     if (*size < TPM_HEADER_SIZE) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
+    if (TSS2_TCTI_TABRMD_STATE (tcti_context) != TABRMD_STATE_RECEIVE) {
+        return TSS2_TCTI_RC_BAD_SEQUENCE;
+    }
     rc = tss2_tcti_tabrmd_receive_header (tcti_context,
                                           response,
                                           timeout);
@@ -169,6 +177,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
         g_debug ("tss2_tcti_tabrmd_receive got response header with size "
                  "equal to header size: no response body to read");
         *size = TPM_HEADER_SIZE;
+        TSS2_TCTI_TABRMD_STATE (tcti_context) = TABRMD_STATE_TRANSMIT;
         return TSS2_RC_SUCCESS;
     }
     g_debug ("tss2_tcti_tabrmd_receive reading command body of size %" PRIu32,
@@ -181,6 +190,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *tcti_context,
     if (rc == TSS2_RC_SUCCESS) {
         g_debug ("tss2_tcti_tabrmd_receive: read returned: %d", ret);
         *size = TSS2_TCTI_TABRMD_HEADER (tcti_context).size;
+        TSS2_TCTI_TABRMD_STATE (tcti_context) = TABRMD_STATE_TRANSMIT;
         g_debug_bytes (response, *size, 16, 4);
     }
     return rc;
@@ -208,6 +218,7 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *tcti_context)
     }
     if (ret != 0 && ret != EBADF)
         g_warning ("Failed to close send pipe: %s", strerror (errno));
+    TSS2_TCTI_TABRMD_STATE (tcti_context) = TABRMD_STATE_FINAL;
     g_object_unref (TSS2_TCTI_TABRMD_PROXY (tcti_context));
 }
 
@@ -220,6 +231,9 @@ tss2_tcti_tabrmd_cancel (TSS2_TCTI_CONTEXT *tcti_context)
 
     g_info("tss2_tcti_tabrmd_cancel: id 0x%" PRIx64,
            TSS2_TCTI_TABRMD_ID (tcti_context));
+    if (TSS2_TCTI_TABRMD_STATE (tcti_context) != TABRMD_STATE_RECEIVE) {
+        return TSS2_TCTI_RC_BAD_SEQUENCE;
+    }
     cancel_ret = tcti_tabrmd_call_cancel_sync (TSS2_TCTI_TABRMD_PROXY (tcti_context),
                                                       TSS2_TCTI_TABRMD_ID (tcti_context),
                                                       &ret,
@@ -252,6 +266,9 @@ tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *tcti_context,
 
     g_info ("tss2_tcti_tabrmd_set_locality: id 0x%" PRIx64,
             TSS2_TCTI_TABRMD_ID (tcti_context));
+    if (TSS2_TCTI_TABRMD_STATE (tcti_context) != TABRMD_STATE_TRANSMIT) {
+        return TSS2_TCTI_RC_BAD_SEQUENCE;
+    }
     status = tcti_tabrmd_call_set_locality_sync (TSS2_TCTI_TABRMD_PROXY (tcti_context),
                                                         TSS2_TCTI_TABRMD_ID (tcti_context),
                                                         locality,
@@ -294,8 +311,11 @@ tss2_tcti_tabrmd_dump_trans_state (TSS2_TCTI_CONTEXT *tcti_context)
 void
 init_function_pointers (TSS2_TCTI_CONTEXT *tcti_context)
 {
+    /* data */
     TSS2_TCTI_MAGIC (tcti_context)            = TSS2_TCTI_TABRMD_MAGIC;
     TSS2_TCTI_VERSION (tcti_context)          = TSS2_TCTI_TABRMD_VERSION;
+    TSS2_TCTI_TABRMD_STATE (tcti_context)     = TABRMD_STATE_TRANSMIT;
+    /* function pointers */
     TSS2_TCTI_TRANSMIT (tcti_context)         = tss2_tcti_tabrmd_transmit;
     TSS2_TCTI_RECEIVE (tcti_context)          = tss2_tcti_tabrmd_receive;
     TSS2_TCTI_FINALIZE (tcti_context)         = tss2_tcti_tabrmd_finalize;
