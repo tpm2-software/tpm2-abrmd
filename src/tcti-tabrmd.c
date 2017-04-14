@@ -249,7 +249,17 @@ tss2_tcti_tabrmd_get_poll_handles (TSS2_TCTI_CONTEXT *tcti_context,
                                  TSS2_TCTI_POLL_HANDLE *handles,
                                  size_t *num_handles)
 {
-    return TSS2_TCTI_RC_NOT_IMPLEMENTED;
+    if (num_handles == NULL) {
+        return TSS2_TCTI_RC_BAD_REFERENCE;
+    }
+    if (handles != NULL && *num_handles < 1) {
+        return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
+    }
+    *num_handles = 1;
+    if (handles != NULL) {
+        handles [0].fd = TSS2_TCTI_TABRMD_PIPE_RECEIVE (tcti_context);
+    }
+    return TSS2_RC_SUCCESS;
 }
 
 static TSS2_RC

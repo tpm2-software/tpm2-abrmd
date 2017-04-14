@@ -288,6 +288,14 @@ tcti_tabrmd_cancel_null_context_test (void **state)
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
 }
 static void
+tcti_tabrmd_get_poll_handles_null_context_test (void **state)
+{
+    TSS2_RC rc;
+
+    rc = tss2_tcti_get_poll_handles (NULL, NULL, NULL);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+}
+static void
 tcti_tabrmd_set_locality_null_context_test (void **state)
 {
     TSS2_RC rc;
@@ -613,19 +621,69 @@ tcti_tabrmd_cancel_bad_sequence_test (void **state)
                       TABRMD_STATE_TRANSMIT);
 }
 /*
- * This test invokes the get_poll_handles function. It then ensures that
- * it returns the expected NOT_IMPLEMENTED RC.
+ * This test ensures that when passed a NULL reference for both the handles
+ * and num_handles parameters the appropriate RC is returned.
  */
 static void
-tcti_tabrmd_get_poll_handles_test (void **state)
+tcti_tabrmd_get_poll_handles_all_null_test (void **state)
 {
     data_t *data = *state;
-    TSS2_TCTI_POLL_HANDLE handles[2];
-    size_t num_handles = 2;
+    TSS2_RC rc;
+
+    rc = tss2_tcti_get_poll_handles (data->context, NULL, NULL);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
+}
+/*
+ * This test invokes the get_poll_handles function passing in a NULL pointer
+ * to the handles variable and a valid reference to the count. It then ensures
+ * that the result is some number of handles in num_handles out parameter.
+ */
+static void
+tcti_tabrmd_get_poll_handles_count_test (void **state)
+{
+    data_t *data = *state;
+    size_t num_handles = 0;
+    TSS2_RC rc;
+
+    rc = tss2_tcti_get_poll_handles (data->context, NULL, &num_handles);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_true (num_handles > 0);
+}
+/*
+ * This test ensures that when passed a valid handles reference with a
+ * num_handles parameter that indicates an insufficient number of elements
+ * in the handles array, that we get back the appropriate RC.
+ */
+static void
+tcti_tabrmd_get_poll_handles_bad_handles_count_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_TCTI_POLL_HANDLE handles[5] = { 0 };
+    size_t num_handles = 0;
     TSS2_RC rc;
 
     rc = tss2_tcti_get_poll_handles (data->context, handles, &num_handles);
-    assert_int_equal (rc, TSS2_TCTI_RC_NOT_IMPLEMENTED);
+    assert_int_equal (rc, TSS2_TCTI_RC_INSUFFICIENT_BUFFER);
+}
+/*
+ * This test invokes the get_poll_handles function passing in valid pointer
+ * to an array for the handles and a valid reference to the count. It then
+ * ensures that the result is some number of handles in num_handles out
+ * parameter as well as valid handles in the array.
+ */
+static void
+tcti_tabrmd_get_poll_handles_handles_test (void **state)
+{
+    data_t *data = *state;
+    TSS2_TCTI_POLL_HANDLE handles[5] = { 0 };
+    size_t num_handles = 5;
+    TSS2_RC rc;
+
+    rc = tss2_tcti_get_poll_handles (data->context, handles, &num_handles);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_int_equal (1, num_handles);
+    assert_int_equal (handles [0].fd,
+                      TSS2_TCTI_TABRMD_PIPE_RECEIVE (data->context));
 }
 /*
  * This test sets up the call_set_locality mock function to return values
@@ -676,6 +734,7 @@ main(int argc, char* argv[])
         unit_test (tcti_tabrmd_transmit_null_context_test),
         unit_test (tcti_tabrmd_receive_null_context_test),
         unit_test (tcti_tabrmd_cancel_null_context_test),
+        unit_test (tcti_tabrmd_get_poll_handles_null_context_test),
         unit_test (tcti_tabrmd_set_locality_null_context_test),
         unit_test_setup_teardown (tcti_tabrmd_transmit_success_test,
                                   tcti_tabrmd_setup,
@@ -722,7 +781,16 @@ main(int argc, char* argv[])
         unit_test_setup_teardown (tcti_tabrmd_cancel_bad_sequence_test,
                                   tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_test,
+        unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_all_null_test,
+                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_bad_handles_count_test,
+                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_count_test,
+                                  tcti_tabrmd_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_handles_test,
                                   tcti_tabrmd_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_set_locality_test,
