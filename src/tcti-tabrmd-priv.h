@@ -42,9 +42,9 @@
 #define TSS2_TCTI_TABRMD_FDS(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->pipe_fds
 #define TSS2_TCTI_TABRMD_FD_RECEIVE(context) \
-    TSS2_TCTI_TABRMD_FDS(context)[0]
+    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->fd_receive
 #define TSS2_TCTI_TABRMD_FD_TRANSMIT(context) \
-    TSS2_TCTI_TABRMD_FDS(context)[1]
+    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->fd_transmit
 #define TSS2_TCTI_TABRMD_PROXY(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->proxy
 #define TSS2_TCTI_TABRMD_HEADER(context) \
@@ -105,7 +105,8 @@ typedef struct {
 typedef struct {
     TSS2_TCTI_CONTEXT_COMMON_V1    common;
     guint64                        id;
-    int                            pipe_fds[2];
+    int                            fd_receive;
+    int                            fd_transmit;
     TctiTabrmd                    *proxy;
     tpm_header_t                   header;
     tcti_tabrmd_state_t            state;
