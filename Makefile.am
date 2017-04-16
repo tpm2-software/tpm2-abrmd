@@ -32,6 +32,7 @@ TESTS_UNIT = \
     test/tcti-options_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
+    test/tpm-buffer-read-proto_unit \
     test/tss2-tcti-tabrmd_unit \
     test/tss2-tcti-echo_unit \
     test/util_unit
@@ -252,6 +253,11 @@ test_tpm2_command_unit_SOURCES = test/tpm2-command_unit.c
 test_tpm2_response_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tpm2_response_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
 test_tpm2_response_unit_SOURCES = test/tpm2-response_unit.c
+
+test_tpm_buffer_read_proto_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_tpm_buffer_read_proto_unit_LDADD   = $(CMOCKA_LIBS)
+test_tpm_buffer_read_proto_unit_LDFLAGS = -Wl,--wrap=read
+test_tpm_buffer_read_proto_unit_SOURCES = test/tpm-buffer-read-proto_unit.c src/tpm2-header.c src/tpm-buffer-read-proto.c
 
 test_util_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(libutil)
