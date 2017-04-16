@@ -33,6 +33,7 @@
 #include <sapi/tpm20.h>
 
 #include "tabrmd-generated.h"
+#include "tpm2-header.h"
 
 #define TSS2_TCTI_TABRMD_MAGIC 0x1c8e03ff00db0f92
 #define TSS2_TCTI_TABRMD_VERSION 1
@@ -83,18 +84,6 @@ typedef enum {
     TABRMD_STATE_RECEIVE,
     TABRMD_STATE_TRANSMIT,
 } tcti_tabrmd_state_t;
-
-/*
- * A convenience macro to get us the size of the TPM header. Do not expect
- * sizeof (tpm_header_t) to get your the size of the header. The compiler pads
- * this structure.
- */
-/* a generic tpm header structure, could be command or response */
-typedef struct {
-    TPM_ST   tag;
-    UINT32   size;
-    UINT32   code;
-} tpm_header_t;
 
 /* This is our private TCTI structure. We're required by the spec to have
  * the same structure as the non-opaque area defined by the

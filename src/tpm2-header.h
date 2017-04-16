@@ -30,7 +30,19 @@
 #include <sys/types.h>
 #include <sapi/tpm20.h>
 
+/* A convenience macro to get us the size of the TPM header. */
 #define TPM_HEADER_SIZE (UINT32)(sizeof (TPM_ST) + sizeof (UINT32) + sizeof (TPM_CC))
+
+/*
+ * A generic tpm header structure, could be command or response.
+ * NOTE: Do not expect sizeof (tpm_header_t) to get your the size of the
+ * header. The compiler pads this structure. Use the macro above.
+ */
+typedef struct {
+    TPM_ST   tag;
+    UINT32   size;
+    UINT32   code;
+} tpm_header_t;
 
 TPMI_ST_COMMAND_TAG    get_command_tag        (uint8_t      *command_header);
 UINT32                 get_command_size       (uint8_t      *command_header);
