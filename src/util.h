@@ -66,6 +66,10 @@ int         read_data                       (int               fd,
                                              size_t           *index,
                                              uint8_t          *buf,
                                              size_t            count);
+int         read_tpm_buffer                 (int               fd,
+                                             size_t           *index,
+                                             uint8_t          *buf,
+                                             size_t            buf_size);
 void        g_debug_bytes                   (uint8_t const    *byte_array,
                                              size_t            array_size,
                                              size_t            width,
