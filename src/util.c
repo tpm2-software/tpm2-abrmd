@@ -237,6 +237,58 @@ read_tpm_command_from_fd (int       fd,
 
     return tpm_command;
 }
+/*
+ * Read some data from the fd_receive.
+ * Parameters:
+ *   context:  tabrmd context
+ *   buf:      destination buffer
+ *   count:    number of bytes to read
+ *     NOTE: some bytes may have already been read on past calls
+ * Returns:
+ *   -1:     when EOF is reached
+ *   0:      if requested number of bytes received
+ *   errno:  in the event of an error from the 'read' call
+ * NOTE: The caller must ensure that 'buf' is large enough to hold count
+ *       bytes.
+ */
+int
+read_data (int                       fd,
+           size_t                   *index,
+           uint8_t                  *buf,
+           size_t                    count)
+{
+    size_t num_read = 0;
+    int    errno_tmp = 0;
+
+    /*
+     * Index is where we left off. The caller is asking us to read 'count'
+     * bytes. So count - index is the number of bytes we need to read.
+     */
+    do {
+        g_debug ("reading %zd bytes from fd %d, to 0x%" PRIxPTR,
+                 count, fd, (uintptr_t)&buf[*index]);
+        num_read = TEMP_FAILURE_RETRY (read (fd,
+                                             &buf[*index],
+                                             count));
+        errno_tmp = errno;
+        switch (num_read) {
+        case -1: /* error */
+            g_debug ("read produced error: %d, %s",
+                     errno_tmp, strerror (errno_tmp));
+            return errno_tmp;
+        case 0:  /* EOF / fd closed */
+            g_debug ("read produced EOF");
+            return -1;
+        default:
+            g_debug ("successfully read %zd bytes", num_read);
+            g_debug_bytes (&buf[*index], num_read, 16, 4);
+            /* Advance index by the number of bytes read. */
+            *index += num_read;
+        }
+    } while (*index < count);
+
+    return 0;
+}
 /* pretty print */
 void
 g_debug_tpma_cc (TPMA_CC tpma_cc)

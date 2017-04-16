@@ -62,7 +62,10 @@ int         tpm_body_from_fd                (int               fd,
                                              size_t            body_size);
 uint8_t*    read_tpm_command_from_fd        (int               fd,
                                              UINT32           *command_size);
-
+int         read_data                       (int               fd,
+                                             size_t           *index,
+                                             uint8_t          *buf,
+                                             size_t            count);
 void        g_debug_bytes                   (uint8_t const    *byte_array,
                                              size_t            array_size,
                                              size_t            width,

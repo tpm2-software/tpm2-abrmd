@@ -7,6 +7,7 @@
 #include <cmocka.h>
 
 #include "tpm-buffer-read-proto.h"
+#include "util.h"
 
 #define MAX_BUF 5120
 
@@ -73,152 +74,6 @@ read_data_teardown (void **state)
     if (data != NULL) {
         free (data);
     }
-}
-/*
- * Simple call to read wrapper function. Returns exactly what we ask for.
- * We check to be sure return value is 0, the index variable is updated
- * properly and that the output data buffer is the same as the input.
- */
-static void
-read_data_success_test (void **state)
-{
-    data_t *data = *state;
-    int ret = 0;
-
-    /* prime the wrap queue for a successful read */
-    will_return (__wrap_read, buf_in);
-    will_return (__wrap_read, data->index);
-    will_return (__wrap_read, 0);
-    will_return (__wrap_read, data->buf_size);
-
-    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
-    assert_int_equal (ret, 0);
-    assert_int_equal (data->index, data->buf_size);
-    assert_memory_equal (data->buf_out, buf_in, data->buf_size);
-}
-/*
- * This tests a simple error case where read returns -1 and errno is set to
- * EIO. In this case the index should remain unchanged (0).
- */
-static void
-read_data_error_test (void **state)
-{
-    data_t *data = *state;
-    int ret = 0;
-
-    will_return (__wrap_read, buf_in);
-    will_return (__wrap_read, data->index);
-    will_return (__wrap_read, EIO);
-    will_return (__wrap_read, -1);
-
-    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
-    assert_int_equal (ret, EIO);
-    assert_int_equal (data->index, 0);
-}
-/*
- * This test covers the 'short read'. A single call to 'read_data' results in
- * a the first read returning half the data (not an error), followed by
- * the second half obtained through a second 'read' call.
- */
-static void
-read_data_short_success_test (void **state)
-{
-    data_t *data = *state;
-    int ret = 0;
-
-    /* prime the wrap queue for a short read (half the requested size) */
-    will_return (__wrap_read, buf_in);
-    will_return (__wrap_read, data->index);
-    will_return (__wrap_read, 0);
-    will_return (__wrap_read, data->buf_size / 2);
-    /* do it again for the second half of the read */
-    will_return (__wrap_read, buf_in);
-    will_return (__wrap_read, data->buf_size / 2);
-    will_return (__wrap_read, 0);
-    will_return (__wrap_read, data->buf_size / 2);
-
-    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
-    assert_int_equal (ret, 0);
-    assert_int_equal (data->index, data->buf_size);
-    assert_memory_equal (data->buf_out, buf_in, data->buf_size);
-}
-/*
- * This test covers a short read followed by a failing 'read'. NOTE: half of
- * the buffer is filled due to the first read succeeding.
- */
-static void
-read_data_short_err_test (void **state)
-{
-    data_t *data = *state;
-    int ret = 0;
-
-    /*
-     * Prime the wrap queue for another short read, again half the requested
-     * size.
-     */
-    will_return (__wrap_read, buf_in);
-    will_return (__wrap_read, data->index);
-    will_return (__wrap_read, 0);
-    will_return (__wrap_read, data->buf_size / 2);
-    /* */
-    will_return (__wrap_read, buf_in);
-    will_return (__wrap_read, data->buf_size / 2);
-    will_return (__wrap_read, EAGAIN);
-    will_return (__wrap_read, -1);
-    /* read the second half of the buffer, the index maintains the state */
-    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
-    assert_int_equal (ret, EAGAIN);
-    assert_int_equal (data->index, data->buf_size / 2);
-    assert_memory_equal (data->buf_out, buf_in, data->buf_size / 2);
-}
-/*
- * This test covers a single call returning EOF. This is signaled to the
- * through the return value which is -1.
- */
-static void
-read_data_eof_test (void **state)
-{
-    data_t *data = *state;
-    int ret = 0;
-
-    will_return (__wrap_read, buf_in);
-    will_return (__wrap_read, data->index);
-    will_return (__wrap_read, 0);
-    will_return (__wrap_read, 0);
-
-    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
-    assert_int_equal (ret, -1);
-    assert_int_equal (data->index, 0);
-}
-/*
- * This test causes the first call to 'read' to result in an error with errno
- * set to EINTR. This is caused by interrupted system calls. The call should
- * be retried. The second read succeeds with the whole of the buffer read.
- */
-static void
-read_data_eintr_test (void **state)
-{
-    data_t *data = *state;
-    int ret = 0;
-
-    /*
-     * Prime the wrap queue for another short read, again half the requested
-     * size.
-     */
-    will_return (__wrap_read, buf_in);
-    will_return (__wrap_read, 0);
-    will_return (__wrap_read, EINTR);
-    will_return (__wrap_read, -1);
-    /* */
-    will_return (__wrap_read, buf_in);
-    will_return (__wrap_read, 0);
-    will_return (__wrap_read, 0);
-    will_return (__wrap_read, data->buf_size);
-    /* read the second half of the buffer, the index maintains the state */
-    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
-    assert_int_equal (ret, 0);
-    assert_int_equal (data->index, data->buf_size);
-    assert_memory_equal (data->buf_out, buf_in, data->buf_size);
 }
 /*
  * testing the read_tpm_buffer' function
@@ -491,24 +346,6 @@ int
 main(int argc, char* argv[])
 {
     const UnitTest tests[] = {
-        unit_test_setup_teardown (read_data_success_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_data_short_success_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_data_short_err_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_data_error_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_data_eof_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_data_eintr_test,
-                                  read_data_setup,
-                                  read_data_teardown),
         unit_test_setup_teardown (read_tpm_buf_success_test,
                                   read_data_setup,
                                   read_data_teardown),

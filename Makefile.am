@@ -114,6 +114,7 @@ src_libutil_la_SOURCES = \
     src/tcti.c \
     src/tcti-options.c \
     src/tcti-type-enum.c \
+    src/tpm-buffer-read-proto.c \
     src/tpm2-command.c \
     src/tpm2-response.c \
     src/tabrmd-generated.c \
@@ -255,9 +256,9 @@ test_tpm2_response_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(
 test_tpm2_response_unit_SOURCES = test/tpm2-response_unit.c
 
 test_tpm_buffer_read_proto_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tpm_buffer_read_proto_unit_LDADD   = $(CMOCKA_LIBS)
+test_tpm_buffer_read_proto_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LBIS) $(libutil)
 test_tpm_buffer_read_proto_unit_LDFLAGS = -Wl,--wrap=read
-test_tpm_buffer_read_proto_unit_SOURCES = test/tpm-buffer-read-proto_unit.c src/tpm2-header.c src/tpm-buffer-read-proto.c
+test_tpm_buffer_read_proto_unit_SOURCES = test/tpm-buffer-read-proto_unit.c
 
 test_util_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) $(libutil)

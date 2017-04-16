@@ -37,6 +37,7 @@
 #include "util.h"
 #include "tpm2-header.h"
 
+#define MAX_BUF 4096
 #define READ_SIZE  UTIL_BUF_SIZE
 #define WRITE_SIZE 10
 
@@ -101,28 +102,30 @@ write_zero (void **state)
     assert_int_equal (written, 0);
 }
 /*
- * This is a mock function for the read system call. It expects the mock
- * parameter queue to be populated with two things:
- * 1) the value of errno to be set (only set if return value is != count
- *    parameter)
- * 2) the source buffer to be coppied into the provided destination
- * 3) the return value
+ * mock 'read' function: This function expects 3 things to be on the mock
+ * queue:
+ *   input buffer
+ *   offset into input buffer where read starts
+ *   errno
+ *   return value
  */
 ssize_t
-__wrap_read (int    fd,
-             void  *buf,
-             size_t count)
+__wrap_read (int     fd,
+             void   *buf,
+             size_t  count)
 {
-    int errno_tmp = (int)mock ();
-    void *src_buf = (void*)mock ();
-    ssize_t ret   = (ssize_t)mock ();
+    uint8_t *buf_in    = mock_type (uint8_t*);
+    size_t   buf_index = mock_type (size_t);
+    int      errno_in  = mock_type (int);
+    ssize_t  ret       = mock_type (ssize_t);
 
-    if (ret == count) {
-        memcpy (buf, src_buf, count);
-    } else {
-        errno = errno_tmp;
+    /* be careful comparint signed to unsigned values */
+    if (ret > 0) {
+        assert_true (ret <= (ssize_t)count);
+        memcpy (buf, &buf_in [buf_index], ret);
     }
 
+    errno = errno_in;
     return ret;
 }
 /*
@@ -176,8 +179,9 @@ tpm_header_from_fd_success_test (void **state)
     header_from_fd_data_t *data = *state;
     int ret;
 
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->header_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->size);
 
     ret = tpm_header_from_fd (0, data->header_out);
@@ -196,8 +200,9 @@ tpm_header_from_fd_errno_test (void **state)
     header_from_fd_data_t *data = *state;
     int ret = 0;
     
-    will_return (__wrap_read, EAGAIN);
     will_return (__wrap_read, data->header_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, EAGAIN);
     will_return (__wrap_read, -1);
 
     ret = tpm_header_from_fd (0, data->header_out);
@@ -219,12 +224,14 @@ tpm_header_from_fd_interrupt_test (void **state)
     header_from_fd_data_t *data = *state;
     int ret = 0;
 
-    will_return (__wrap_read, EINTR);
     will_return (__wrap_read, data->header_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, EINTR);
     will_return (__wrap_read, -1);
 
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->header_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->size);
 
     ret = tpm_header_from_fd (0, data->header_out);
@@ -243,8 +250,9 @@ tpm_header_from_fd_eof_test (void **state)
     header_from_fd_data_t *data = *state;
     int ret = 0;
     
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->header_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, 0);
 
     ret = tpm_header_from_fd (0, data->header_out);
@@ -262,8 +270,9 @@ tpm_header_from_fd_short_test (void **state)
     header_from_fd_data_t *data = *state;
     int ret = 0;
     
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->header_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, 3);
 
     ret = tpm_header_from_fd (0, data->header_out);
@@ -321,8 +330,9 @@ tpm_body_from_fd_success_test (void **state)
     body_from_fd_data_t *data = *state;
     int ret;
 
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->size);
 
     ret = tpm_body_from_fd (0, data->body_out, data->size);
@@ -344,12 +354,14 @@ tpm_body_from_fd_interrupt_test (void **state)
     body_from_fd_data_t *data = *state;
     int ret = 0;
 
-    will_return (__wrap_read, EINTR);
     will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, EINTR);
     will_return (__wrap_read, -1);
 
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->size);
 
     ret = tpm_body_from_fd (0, data->body_out, data->size);
@@ -368,8 +380,9 @@ tpm_body_from_fd_errno_test (void **state)
     body_from_fd_data_t *data = *state;
     int ret = 0;
     
-    will_return (__wrap_read, EAGAIN);
     will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, EAGAIN);
     will_return (__wrap_read, -1);
 
     ret = tpm_body_from_fd (0, data->body_out, data->size);
@@ -388,8 +401,9 @@ tpm_body_from_fd_eof_test (void **state)
     body_from_fd_data_t *data = *state;
     int ret = 0;
     
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, 0);
 
     ret = tpm_body_from_fd (0, data->body_out, data->size);
@@ -407,8 +421,9 @@ tpm_body_from_fd_short_test (void **state)
     body_from_fd_data_t *data = *state;
     int ret = 0;
     
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->body_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, 3);
 
     ret = tpm_body_from_fd (0, data->body_out, data->size);
@@ -460,8 +475,9 @@ tpm_command_from_fd_header_err_test (void **state)
     uint8_t *buf;
     UINT32 size = 0;
 
-    will_return (__wrap_read, EAGAIN);
     will_return (__wrap_read, data->header_from_fd->header_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, EAGAIN);
     will_return (__wrap_read, -1);
 
     buf = read_tpm_command_from_fd (0, &size);
@@ -483,8 +499,9 @@ tpm_command_from_fd_header_size_gt_max_test (void **state)
     size_t offset = 2;
     TSS2_RC rc = 0;
 
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->header_from_fd->header_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->header_from_fd->size);
 
     /* set the MSB in the size field of the header to something huge */
@@ -508,12 +525,14 @@ tpm_command_from_fd_body_err_test (void **state)
     uint8_t *buf;
     UINT32 size = 0;
 
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->header_from_fd->header_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->header_from_fd->size);
 
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->body_from_fd->body_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     /*
      * cause error by forcing a short read when
      * read_tpm_command_from_fd reads the body (second read)
@@ -531,18 +550,205 @@ tpm_command_from_fd_success_test (void **state)
     uint8_t *buf;
     UINT32 size = 0;
 
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->header_from_fd->header_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->header_from_fd->size);
 
-    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->body_from_fd->body_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
     will_return (__wrap_read, data->body_from_fd->size);
 
     buf = read_tpm_command_from_fd (0, &size);
     assert_non_null (buf);
     assert_int_equal (size, data->command_size);
     g_free (buf);
+}
+/* global static input array used by read_data* tests */
+static uint8_t buf_in [MAX_BUF] = {
+    /* header */
+    0x80, 0x02, 0x00, 0x00, 0x00, 0x1a, 0x00, 0x00,
+    0x00, 0x00,
+    /* body */
+    0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+    0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef
+};
+/*
+ * Data structure to hold data for read tests.
+ */
+typedef struct {
+    int     fd;
+    size_t  index;
+    uint8_t buf_out [MAX_BUF];
+    size_t  buf_size;
+} data_t;
+
+static void
+read_data_setup (void **state)
+{
+    data_t *data;
+
+    data = calloc (1, sizeof (data_t));
+    data->buf_size = 26;
+
+    *state = data;
+}
+
+static void
+read_data_teardown (void **state)
+{
+    data_t *data = *state;
+
+    if (data != NULL) {
+        free (data);
+    }
+}
+/*
+ * Simple call to read wrapper function. Returns exactly what we ask for.
+ * We check to be sure return value is 0, the index variable is updated
+ * properly and that the output data buffer is the same as the input.
+ */
+static void
+read_data_success_test (void **state)
+{
+    data_t *data = *state;
+    int ret = 0;
+
+    /* prime the wrap queue for a successful read */
+    will_return (__wrap_read, buf_in);
+    will_return (__wrap_read, data->index);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->buf_size);
+
+    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
+    assert_int_equal (ret, 0);
+    assert_int_equal (data->index, data->buf_size);
+    assert_memory_equal (data->buf_out, buf_in, data->buf_size);
+}
+/*
+ * This tests a simple error case where read returns -1 and errno is set to
+ * EIO. In this case the index should remain unchanged (0).
+ */
+static void
+read_data_error_test (void **state)
+{
+    data_t *data = *state;
+    int ret = 0;
+
+    will_return (__wrap_read, buf_in);
+    will_return (__wrap_read, data->index);
+    will_return (__wrap_read, EIO);
+    will_return (__wrap_read, -1);
+
+    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
+    assert_int_equal (ret, EIO);
+    assert_int_equal (data->index, 0);
+}
+/*
+ * This test covers the 'short read'. A single call to 'read_data' results in
+ * a the first read returning half the data (not an error), followed by
+ * the second half obtained through a second 'read' call.
+ */
+static void
+read_data_short_success_test (void **state)
+{
+    data_t *data = *state;
+    int ret = 0;
+
+    /* prime the wrap queue for a short read (half the requested size) */
+    will_return (__wrap_read, buf_in);
+    will_return (__wrap_read, data->index);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->buf_size / 2);
+    /* do it again for the second half of the read */
+    will_return (__wrap_read, buf_in);
+    will_return (__wrap_read, data->buf_size / 2);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->buf_size / 2);
+
+    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
+    assert_int_equal (ret, 0);
+    assert_int_equal (data->index, data->buf_size);
+    assert_memory_equal (data->buf_out, buf_in, data->buf_size);
+}
+/*
+ * This test covers a short read followed by a failing 'read'. NOTE: half of
+ * the buffer is filled due to the first read succeeding.
+ */
+static void
+read_data_short_err_test (void **state)
+{
+    data_t *data = *state;
+    int ret = 0;
+
+    /*
+     * Prime the wrap queue for another short read, again half the requested
+     * size.
+     */
+    will_return (__wrap_read, buf_in);
+    will_return (__wrap_read, data->index);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->buf_size / 2);
+    /* */
+    will_return (__wrap_read, buf_in);
+    will_return (__wrap_read, data->buf_size / 2);
+    will_return (__wrap_read, EAGAIN);
+    will_return (__wrap_read, -1);
+    /* read the second half of the buffer, the index maintains the state */
+    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
+    assert_int_equal (ret, EAGAIN);
+    assert_int_equal (data->index, data->buf_size / 2);
+    assert_memory_equal (data->buf_out, buf_in, data->buf_size / 2);
+}
+/*
+ * This test covers a single call returning EOF. This is signaled to the
+ * through the return value which is -1.
+ */
+static void
+read_data_eof_test (void **state)
+{
+    data_t *data = *state;
+    int ret = 0;
+
+    will_return (__wrap_read, buf_in);
+    will_return (__wrap_read, data->index);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
+
+    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
+    assert_int_equal (ret, -1);
+    assert_int_equal (data->index, 0);
+}
+/*
+ * This test causes the first call to 'read' to result in an error with errno
+ * set to EINTR. This is caused by interrupted system calls. The call should
+ * be retried. The second read succeeds with the whole of the buffer read.
+ */
+static void
+read_data_eintr_test (void **state)
+{
+    data_t *data = *state;
+    int ret = 0;
+
+    /*
+     * Prime the wrap queue for another short read, again half the requested
+     * size.
+     */
+    will_return (__wrap_read, buf_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, EINTR);
+    will_return (__wrap_read, -1);
+    /* */
+    will_return (__wrap_read, buf_in);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, 0);
+    will_return (__wrap_read, data->buf_size);
+    /* read the second half of the buffer, the index maintains the state */
+    ret = read_data (data->fd, &data->index, data->buf_out, data->buf_size);
+    assert_int_equal (ret, 0);
+    assert_int_equal (data->index, data->buf_size);
+    assert_memory_equal (data->buf_out, buf_in, data->buf_size);
 }
 
 gint
@@ -597,6 +803,25 @@ main (gint    argc,
         unit_test_setup_teardown (tpm_command_from_fd_success_test,
                                   tpm_command_from_fd_setup,
                                   tpm_command_from_fd_teardown),
+        /* read_data tests */
+        unit_test_setup_teardown (read_data_success_test,
+                                  read_data_setup,
+                                  read_data_teardown),
+        unit_test_setup_teardown (read_data_short_success_test,
+                                  read_data_setup,
+                                  read_data_teardown),
+        unit_test_setup_teardown (read_data_short_err_test,
+                                  read_data_setup,
+                                  read_data_teardown),
+        unit_test_setup_teardown (read_data_error_test,
+                                  read_data_setup,
+                                  read_data_teardown),
+        unit_test_setup_teardown (read_data_eof_test,
+                                  read_data_setup,
+                                  read_data_teardown),
+        unit_test_setup_teardown (read_data_eintr_test,
+                                  read_data_setup,
+                                  read_data_teardown),
     };
     return run_tests (tests);
 }
