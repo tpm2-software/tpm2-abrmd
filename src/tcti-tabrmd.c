@@ -145,11 +145,14 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
         if (ret != 0) {
             return errno_to_tcti_rc (ret);
         }
-        tabrmd_ctx->header.tag  = get_response_tag  (tabrmd_ctx->header_buf);
-        tabrmd_ctx->header.size = get_response_size (tabrmd_ctx->header_buf);
-        tabrmd_ctx->header.code = get_response_code (tabrmd_ctx->header_buf);
-        if (tabrmd_ctx->header.size < TPM_HEADER_SIZE) {
-            return TSS2_TCTI_RC_MALFORMED_RESPONSE;
+        if (tabrmd_ctx->index == TPM_HEADER_SIZE) {
+            tabrmd_ctx->header.tag  = get_response_tag  (tabrmd_ctx->header_buf);
+            tabrmd_ctx->header.size = get_response_size (tabrmd_ctx->header_buf);
+            tabrmd_ctx->header.code = get_response_code (tabrmd_ctx->header_buf);
+            if (tabrmd_ctx->header.size < TPM_HEADER_SIZE) {
+                tabrmd_ctx->state = TABRMD_STATE_TRANSMIT;
+                return TSS2_TCTI_RC_MALFORMED_RESPONSE;
+            }
         }
     }
     /* if response is NULL, caller is querying size, we know size isn't NULL */
@@ -157,11 +160,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
         *size = tabrmd_ctx->header.size;
         return TSS2_RC_SUCCESS;
     } else if (tabrmd_ctx->index == TPM_HEADER_SIZE) {
-        /*
-         * This is a corner case: caller previously called with
-         * response == NULL to get size. We read the header but couldn't
-         * copy the header into the callers buffer.
-         */
+        /* once we have the full header copy it to the callers buffer */
         memcpy (response, tabrmd_ctx->header_buf, TPM_HEADER_SIZE);
     }
     if (tabrmd_ctx->header.size == TPM_HEADER_SIZE) {
@@ -178,6 +177,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
                      tabrmd_ctx->header.size - tabrmd_ctx->index);
     if (ret == 0) {
         /* We got all the bytes we asked for, reset the index & state: done */
+        *size = tabrmd_ctx->index;
         tabrmd_ctx->index = 0;
         tabrmd_ctx->state = TABRMD_STATE_TRANSMIT;
     }

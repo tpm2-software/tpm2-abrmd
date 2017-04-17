@@ -218,7 +218,8 @@ read_tpm_buffer (int                       fd,
     }
     /* Now that we have the header, we know the whole buffer size. Get it. */
     return read_data (fd, index, buf, size - *index);
-}/* pretty print */
+}
+/* pretty print */
 void
 g_debug_tpma_cc (TPMA_CC tpma_cc)
 {
