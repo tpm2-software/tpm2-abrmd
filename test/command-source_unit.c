@@ -62,14 +62,16 @@ __wrap_connection_manager_lookup_fd (ConnectionManager *manager,
     g_debug ("__wrap_connection_manager_lookup_fd");
     return CONNECTION (mock ());
 }
-
-Tpm2Command*
-__wrap_tpm2_command_new_from_fd (Connection *connection,
-                                 gint         fd,
-                                 TPMA_CC      attributes)
+int
+__wrap_read_data (int                       fd,
+                  size_t                   *index,
+                  uint8_t                  *buf,
+                  size_t                    count)
 {
-    g_debug ("__wrap_tpm2_command_from_fd");
-    return TPM2_COMMAND (mock ());
+    g_debug ("__wrap_read_data");
+    memcpy (&buf[*index], mock_type(uint8_t*), count);
+    *index = mock_type (size_t);
+    return mock_type (int);
 }
 void
 __wrap_sink_enqueue (Sink     *sink,
@@ -81,6 +83,7 @@ __wrap_sink_enqueue (Sink     *sink,
     command = (Tpm2Command**)mock ();
 
     *command = TPM2_COMMAND (obj);
+    g_object_ref (*command);
 }
 /* command_source_allocate_test begin
  * Test to allcoate and destroy a CommandSource.
@@ -256,15 +259,14 @@ command_source_connection_teardown (void **state)
  * the command under test (command_source_connection_responder).
  */
 static void
-command_source_connection_responder_success_test (void **state)
+command_source_process_client_fd_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
     HandleMap   *handle_map;
     Connection *connection;
-    Tpm2Command *command, *command_out;
+    Tpm2Command *command_out;
     gint fds[2] = { 0, };
-    guint8 *buffer;
-    guint8 data_in [] = { 0x80, 0x01, 0x0,  0x0,  0x0,  0x16,
+    guint8 data_in [] = { 0x80, 0x01, 0x0,  0x0,  0x0,  0x17,
                           0x0,  0x0,  0x01, 0x7a, 0x0,  0x0,
                           0x0,  0x06, 0x0,  0x0,  0x01, 0x0,
                           0x0,  0x0,  0x0,  0x7f, 0x0a };
@@ -272,21 +274,26 @@ command_source_connection_responder_success_test (void **state)
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     connection = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
-    /**
-     * We must dynamically allocate the buffer for the Tpm2Command since
-     * it takes ownership of the data buffer and frees it as part of it's
-     * instance finalize method.
-     */
-    buffer = calloc (1, sizeof (data_in));
-    memcpy (buffer, data_in, sizeof (data_in));
-    command = tpm2_command_new (connection, buffer, (TPMA_CC){ 0, });
-    /* prime wraps */
+        /* prime wraps */
     will_return (__wrap_connection_manager_lookup_fd, connection);
-    will_return (__wrap_tpm2_command_new_from_fd, command);
+
+    /* setup read of header */
+    will_return (__wrap_read_data, &data_in [0]);
+    will_return (__wrap_read_data, 10);
+    will_return (__wrap_read_data, 0);
+    /* setup read of body */
+    will_return (__wrap_read_data, &data_in [10]);
+    will_return (__wrap_read_data, sizeof (data_in) - 10);
+    will_return (__wrap_read_data, 0);
+
     will_return (__wrap_sink_enqueue, &command_out);
+
     process_client_fd (data->source, 0);
 
-    assert_int_equal (command_out, command);
+    assert_memory_equal (tpm2_command_get_buffer (command_out),
+                         data_in,
+                         sizeof (data_in));
+    g_object_unref (command_out);
 }
 /* command_source_connection_test end */
 int
@@ -303,7 +310,7 @@ main (int argc,
         unit_test_setup_teardown (command_source_connection_insert_test,
                                   command_source_wakeup_setup,
                                   command_source_start_teardown),
-        unit_test_setup_teardown (command_source_connection_responder_success_test,
+        unit_test_setup_teardown (command_source_process_client_fd_test,
                                   command_source_connection_setup,
                                   command_source_connection_teardown),
     };

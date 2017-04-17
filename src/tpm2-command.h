@@ -58,9 +58,6 @@ GType                 tpm2_command_get_type        (void);
 Tpm2Command*          tpm2_command_new             (Connection      *connection,
                                                     guint8           *buffer,
                                                     TPMA_CC           attrs);
-Tpm2Command*          tpm2_command_new_from_fd     (Connection      *connection,
-                                                    gint              fd,
-                                                    CommandAttrs     *attrs);
 TPMA_CC               tpm2_command_get_attributes  (Tpm2Command      *command);
 guint8*               tpm2_command_get_buffer      (Tpm2Command      *command);
 TPM_CC                tpm2_command_get_code        (Tpm2Command      *command);

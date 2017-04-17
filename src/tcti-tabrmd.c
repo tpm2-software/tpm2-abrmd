@@ -89,6 +89,8 @@ static TSS2_RC
 errno_to_tcti_rc (int error_number)
 {
     switch (error_number) {
+    case -1:
+        return TSS2_TCTI_RC_NO_CONNECTION;
     case 0:
         return TSS2_RC_SUCCESS;
     case EPROTO:
@@ -103,96 +105,83 @@ errno_to_tcti_rc (int error_number)
     }
 }
 /*
- * This function receives the tpm response header from the tabrmd. It is
- * not exposed externally and so has no parameter validation. These checks
- * should already be done by the caller.
- *
- * NOTE: this function changes the contents of the context blob.
- */
-static TSS2_RC
-tss2_tcti_tabrmd_receive_header (TSS2_TCTI_CONTEXT *context,
-                                 uint8_t           *response,
-                                 int32_t            timeout)
-{
-    int     ret;
-    TSS2_RC rc;
-
-    ret = tpm_header_from_fd (TSS2_TCTI_TABRMD_FD_RECEIVE (context),
-                              response);
-    rc = errno_to_tcti_rc (ret);
-    if (rc != TSS2_RC_SUCCESS) {
-        return rc;
-    }
-
-    TSS2_TCTI_TABRMD_HEADER (context).tag = get_response_tag (response);
-    TSS2_TCTI_TABRMD_HEADER (context).size = get_response_size (response);
-    TSS2_TCTI_TABRMD_HEADER (context).code = get_response_code (response);
-
-    return TSS2_RC_SUCCESS;
-}
-/*
  * This is the receive function that is exposed to clients through the TCTI
  * API.
  */
-static TSS2_RC
+TSS2_RC
 tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
                           size_t            *size,
                           uint8_t           *response,
                           int32_t            timeout)
 {
-    int ret = 0;
-    TSS2_RC rc = TSS2_RC_SUCCESS;
+    TSS2_TCTI_TABRMD_CONTEXT *tabrmd_ctx = (TSS2_TCTI_TABRMD_CONTEXT*)context;
+    size_t ret = 0;
 
     g_debug ("tss2_tcti_tabrmd_receive");
     if (TSS2_TCTI_MAGIC (context) != TSS2_TCTI_TABRMD_MAGIC ||
         TSS2_TCTI_VERSION (context) != TSS2_TCTI_TABRMD_VERSION) {
         return TSS2_TCTI_RC_BAD_CONTEXT;
     }
+    if (tabrmd_ctx->state != TABRMD_STATE_RECEIVE) {
+        return TSS2_TCTI_RC_BAD_SEQUENCE;
+    }
     /* async not yet supported */
     if (timeout != TSS2_TCTI_TIMEOUT_BLOCK) {
         return TSS2_TCTI_RC_BAD_VALUE;
     }
-    if (size == NULL && response == NULL) {
+    if (size == NULL || (response == NULL && *size != 0)) {
         return TSS2_TCTI_RC_BAD_REFERENCE;
     }
-    if (*size < TPM_HEADER_SIZE) {
+    /* response buffer must be at least as large as the header */
+    if (response != NULL && *size < TPM_HEADER_SIZE) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
-    if (TSS2_TCTI_TABRMD_STATE (context) != TABRMD_STATE_RECEIVE) {
-        return TSS2_TCTI_RC_BAD_SEQUENCE;
+    /* make sure we've got the response header */
+    if (tabrmd_ctx->index < TPM_HEADER_SIZE) {
+        ret = read_data (tabrmd_ctx->fd_receive,
+                         &tabrmd_ctx->index,
+                         tabrmd_ctx->header_buf,
+                         TPM_HEADER_SIZE - tabrmd_ctx->index);
+        if (ret != 0) {
+            return errno_to_tcti_rc (ret);
+        }
+        tabrmd_ctx->header.tag  = get_response_tag  (tabrmd_ctx->header_buf);
+        tabrmd_ctx->header.size = get_response_size (tabrmd_ctx->header_buf);
+        tabrmd_ctx->header.code = get_response_code (tabrmd_ctx->header_buf);
+        if (tabrmd_ctx->header.size < TPM_HEADER_SIZE) {
+            return TSS2_TCTI_RC_MALFORMED_RESPONSE;
+        }
     }
-    rc = tss2_tcti_tabrmd_receive_header (context,
-                                          response,
-                                          timeout);
-    if (rc != TSS2_RC_SUCCESS) {
-        return rc;
+    /* if response is NULL, caller is querying size, we know size isn't NULL */
+    if (response == NULL) {
+        *size = tabrmd_ctx->header.size;
+        return TSS2_RC_SUCCESS;
+    } else if (tabrmd_ctx->index == TPM_HEADER_SIZE) {
+        /*
+         * This is a corner case: caller previously called with
+         * response == NULL to get size. We read the header but couldn't
+         * copy the header into the callers buffer.
+         */
+        memcpy (response, tabrmd_ctx->header_buf, TPM_HEADER_SIZE);
     }
-    if (TSS2_TCTI_TABRMD_HEADER (context).size > *size) {
-        g_warning ("tss2_tcti_tabrmd_receive got response with size larger "
-                   "than the supplied buffer");
-        return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
-    }
-    if (TSS2_TCTI_TABRMD_HEADER (context).size == TPM_HEADER_SIZE) {
-        g_debug ("tss2_tcti_tabrmd_receive got response header with size "
-                 "equal to header size: no response body to read");
-        *size = TPM_HEADER_SIZE;
-        TSS2_TCTI_TABRMD_STATE (context) = TABRMD_STATE_TRANSMIT;
+    if (tabrmd_ctx->header.size == TPM_HEADER_SIZE) {
+        tabrmd_ctx->index = 0;
+        tabrmd_ctx->state = TABRMD_STATE_TRANSMIT;
         return TSS2_RC_SUCCESS;
     }
-    g_debug ("tss2_tcti_tabrmd_receive reading command body of size %" PRIu32,
-             TSS2_TCTI_TABRMD_HEADER (context).size - TPM_HEADER_SIZE);
-    ret = tpm_body_from_fd (TSS2_TCTI_TABRMD_FD_RECEIVE (context),
-                            response + TPM_HEADER_SIZE,
-                            TSS2_TCTI_TABRMD_HEADER (context).size - \
-                                TPM_HEADER_SIZE);
-    rc = errno_to_tcti_rc (ret);
-    if (rc == TSS2_RC_SUCCESS) {
-        g_debug ("tss2_tcti_tabrmd_receive: read returned: %d", ret);
-        *size = TSS2_TCTI_TABRMD_HEADER (context).size;
-        TSS2_TCTI_TABRMD_STATE (context) = TABRMD_STATE_TRANSMIT;
-        g_debug_bytes (response, *size, 16, 4);
+    if (*size < tabrmd_ctx->header.size) {
+        return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
-    return rc;
+    ret = read_data (tabrmd_ctx->fd_receive,
+                     &tabrmd_ctx->index,
+                     response,
+                     tabrmd_ctx->header.size - tabrmd_ctx->index);
+    if (ret == 0) {
+        /* We got all the bytes we asked for, reset the index & state: done */
+        tabrmd_ctx->index = 0;
+        tabrmd_ctx->state = TABRMD_STATE_TRANSMIT;
+    }
+    return errno_to_tcti_rc (ret);
 }
 
 static void

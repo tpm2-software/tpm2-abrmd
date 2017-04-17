@@ -183,34 +183,6 @@ tpm2_command_new (Connection     *connection,
                                        "connection", connection,
                                        NULL));
 }
-/**
- * Same as tpm2_command_new but instead of taking the command buffer
- * as a parameter we read it from the 'fd' parameter (file descriptor).
- */
-Tpm2Command*
-tpm2_command_new_from_fd (Connection *connection,
-                          gint         fd,
-                          CommandAttrs *command_attrs)
-{
-    guint8 *command_buf = NULL;
-    UINT32 command_size = 0;
-    TPMA_CC attributes;
-    TPM_CC  command_code;
-
-    g_debug ("tpm2_command_new_from_fd: %d", fd);
-    command_buf = read_tpm_command_from_fd (fd, &command_size);
-    if (command_buf == NULL)
-        return NULL;
-    command_code = get_command_code (command_buf);
-    attributes = command_attrs_from_cc (command_attrs, command_code);
-    if (attributes.val == 0) {
-        g_warning ("Failed to find TPMA_CC for TPM_CC: 0x%" PRIx32,
-                   command_code);
-        free (command_buf);
-        return NULL;
-    }
-    return tpm2_command_new (connection, command_buf, attributes);
-}
 /* Simple "getter" to expose the attributes associated with the command. */
 TPMA_CC
 tpm2_command_get_attributes (Tpm2Command *command)

@@ -208,7 +208,7 @@ test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
 test_command_source_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_command_source_unit_LDFLAGS = -Wl,--wrap=connection_manager_lookup_fd,--wrap=tpm2_command_new_from_fd,--wrap=sink_enqueue
+test_command_source_unit_LDFLAGS = -Wl,--wrap=connection_manager_lookup_fd,--wrap=sink_enqueue,--wrap=read_data
 test_command_source_unit_SOURCES = test/command-source_unit.c
 
 test_handle_map_entry_unit_CFLAGS  = $(UNIT_AM_CFLAGS)

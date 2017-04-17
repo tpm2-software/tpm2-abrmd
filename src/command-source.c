@@ -37,6 +37,7 @@
 #include "command-source.h"
 #include "source-interface.h"
 #include "tpm2-command.h"
+#include "tpm2-header.h"
 #include "util.h"
 
 #define WAKEUP_DATA "hi"
@@ -271,8 +272,13 @@ void
 process_client_fd (CommandSource      *source,
                    gint                fd)
 {
+    TPMA_CC      attributes;
     Tpm2Command *command;
     Connection  *connection;
+    uint8_t *buf = NULL;
+    uint32_t command_size = 0;
+    size_t index = 0;
+    int ret = 0;
 
     g_debug ("process_client_fd 0x%" PRIxPTR, (uintptr_t)source);
     connection = connection_manager_lookup_fd (source->connection_manager, fd);
@@ -281,24 +287,50 @@ process_client_fd (CommandSource      *source,
     else
         g_debug ("connection_manager_lookup_fd for fd %d: 0x%" PRIxPTR, fd,
                  (uintptr_t)connection);
-    command = tpm2_command_new_from_fd (connection, fd, source->command_attrs);
+    buf = g_malloc0 (TPM_HEADER_SIZE);
+    ret = read_data (fd, &index, buf, TPM_HEADER_SIZE);
+    if (ret == 0) {
+        g_debug_bytes (buf, index, 16, 4);
+    } else {
+        goto fail_out;
+    }
+    command_size = get_command_size (buf);
+    if (command_size > TPM_HEADER_SIZE && command_size < UTIL_BUF_MAX) {
+        buf = g_realloc (buf, command_size);
+        ret = read_data (fd, &index, buf, command_size - TPM_HEADER_SIZE);
+        if (ret == 0) {
+            g_debug_bytes (buf, index, 16, 4);
+        } else {
+            goto fail_out;
+        }
+    } else if (command_size < TPM_HEADER_SIZE || command_size > UTIL_BUF_MAX) {
+        goto fail_out;
+    }
+    attributes = command_attrs_from_cc (source->command_attrs,
+                                        get_command_code (buf));
+    command = tpm2_command_new (connection, buf, attributes);
     if (command != NULL) {
         sink_enqueue (source->sink, G_OBJECT (command));
         /* the sink now owns this message */
         g_object_unref (command);
     } else {
-        /* command will be NULL when read error on fd, or fd is closed (EOF)
-         * In either case we remove the connection and free it.
-         */
-        g_warning ("removing connection 0x%" PRIxPTR " from connection_manager "
-                   "0x%" PRIxPTR,
-                   (uintptr_t)connection,
-                   (uintptr_t)source->connection_manager);
-        FD_CLR (fd, &source->receive_fdset);
-        connection_manager_remove (source->connection_manager,
-                                   connection);
+        goto fail_out;
     }
     g_object_unref (connection);
+    return;
+fail_out:
+    if (buf != NULL) {
+        g_free (buf);
+    }
+    g_warning ("removing connection 0x%" PRIxPTR " from connection_manager "
+               "0x%" PRIxPTR,
+               (uintptr_t)connection,
+               (uintptr_t)source->connection_manager);
+    FD_CLR (fd, &source->receive_fdset);
+    connection_manager_remove (source->connection_manager,
+                               connection);
+    g_object_unref (connection);
+    return;
 }
 
 ssize_t
