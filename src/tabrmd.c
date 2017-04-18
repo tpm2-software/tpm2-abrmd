@@ -675,8 +675,9 @@ init_thread_func (gpointer user_data)
      * the TCTI before we start communicating with clients
      */
     rc = tcti_initialize (data->tcti);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize TCTI: 0x%x", rc);
+    if (rc != TSS2_RC_SUCCESS) {
+        tabrmd_critical ("TCTI initialization failed: 0x%x", rc);
+    }
 
     data->access_broker = access_broker_new (data->tcti);
     g_debug ("created AccessBroker: 0x%" PRIxPTR,
@@ -695,9 +696,10 @@ init_thread_func (gpointer user_data)
                  "access broker 0x%" PRIxPTR " RC: 0x%" PRIx32,
                  (uintptr_t)data->access_broker,
                  rc);
-    if ((loaded_trans_objs > 0) & data->options.fail_on_loaded_trans)
-        g_error ("TPM reports 0x%" PRIx32 " loaded transient objects, "
-                 "aborting", loaded_trans_objs);
+    if ((loaded_trans_objs > 0) & data->options.fail_on_loaded_trans) {
+        tabrmd_critical ("TPM reports 0x%" PRIx32 " loaded transient objects, "
+                         "aborting", loaded_trans_objs);
+    }
     /**
      * Instantiate and the objects that make up the TPM command processing
      * pipeline.

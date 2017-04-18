@@ -26,6 +26,8 @@
  */
 #include <stdio.h>
 
+#include "logging.h"
+
 #include "tcti-options.h"
 #ifdef HAVE_TCTI_DEVICE
 #include "tcti-device.h"
@@ -351,7 +353,7 @@ tcti_options_get_tcti (TctiOptions *self)
         return TCTI (tcti_socket_new (self->socket_address, self->socket_port));
 #endif
     default:
-        g_error ("unsupported TCTI type");
+        tabrmd_critical ("unsupported TCTI type");
         break;
     }
 }
