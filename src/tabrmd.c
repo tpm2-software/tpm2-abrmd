@@ -793,23 +793,24 @@ parse_opts (gint            argc,
     g_option_context_add_main_entries (ctx, entries, NULL);
     g_option_context_add_group (ctx, tcti_options_get_group (options->tcti_options));
     if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
-        g_error ("Failed to parse options. %s", err->message);
+        tabrmd_critical ("Failed to parse options: %s", err->message);
     }
     /* select the bus type, default to G_BUS_TYPE_SESSION */
     options->bus = session_bus ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
     if (set_logger (logger_name) == -1) {
-        g_error ("Unknown logger: %s, try --help\n", logger_name);
+        tabrmd_critical ("Unknown logger: %s, try --help\n", logger_name);
     }
     if (options->max_connections < 1 ||
         options->max_connections > MAX_CONNECTIONS)
     {
-        g_error ("MAX_CONNECTIONS must be between 1 and %d", MAX_CONNECTIONS);
+        tabrmd_critical ("MAX_CONNECTIONS must be between 1 and %d",
+                         MAX_CONNECTIONS);
     }
     if (options->max_transient_objects < 1 ||
         options->max_transient_objects > MAX_TRANSIENT_OBJECTS)
     {
-        g_error ("max-trans-obj parameter must be between 1 and %d",
-                 MAX_TRANSIENT_OBJECTS);
+        tabrmd_critical ("max-trans-obj parameter must be between 1 and %d",
+                         MAX_TRANSIENT_OBJECTS);
     }
     g_option_context_free (ctx);
 }

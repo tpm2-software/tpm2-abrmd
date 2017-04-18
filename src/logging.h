@@ -26,4 +26,11 @@
  */
 #include <glib.h>
 
+/* Macro to log "critical" events, then exit indicating failure. */
+#define tabrmd_critical(fmt, ...) \
+    do { \
+        g_critical (fmt, ##__VA_ARGS__); \
+        exit (EXIT_FAILURE); \
+    } while (0)
+
 gint set_logger (gchar *name);
