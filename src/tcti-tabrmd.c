@@ -105,6 +105,9 @@ errno_to_tcti_rc (int error_number)
     case EIO:
         return TSS2_TCTI_RC_IO_ERROR;
     default:
+        g_debug ("mapping errno %d with message \"%s\" to "
+                 "TSS2_TCTI_RC_GENERAL_FAILURE",
+                 error_number, strerror (error_number));
         return TSS2_TCTI_RC_GENERAL_FAILURE;
     }
 }

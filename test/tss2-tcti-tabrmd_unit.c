@@ -553,6 +553,54 @@ tcti_tabrmd_receive_poll_eintr_test (void **state)
     assert_memory_equal (command_in, command_out, sizeof (command_in));
 }
 /*
+ */
+static void
+tcti_tabrmd_receive_poll_fail_test (void **state)
+{
+    data_t *data = *state;
+    uint8_t command_in [] = { 0x80, 0x02,
+                              0x00, 0x00, 0x00, 0x0a,
+                              0x00, 0x00, 0x00, 0x00 };
+    size_t size = sizeof (command_in);
+    uint8_t command_out [sizeof (command_in)] = { 0 };
+    TSS2_RC rc;
+
+    will_return (__wrap_poll, 0);
+    will_return (__wrap_poll, ENOMEM);
+    will_return (__wrap_poll, -1);
+
+    rc = tss2_tcti_receive (data->context,
+                            &size,
+                            command_out,
+                            TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_GENERAL_FAILURE);
+    assert_int_equal (size, sizeof (command_in));
+}
+/*
+ */
+static void
+tcti_tabrmd_receive_poll_timeout_test (void **state)
+{
+    data_t *data = *state;
+    uint8_t command_in [] = { 0x80, 0x02,
+                              0x00, 0x00, 0x00, 0x0a,
+                              0x00, 0x00, 0x00, 0x00 };
+    size_t size = sizeof (command_in);
+    uint8_t command_out [sizeof (command_in)] = { 0 };
+    TSS2_RC rc;
+
+    will_return (__wrap_poll, 0);
+    will_return (__wrap_poll, 0);
+    will_return (__wrap_poll, 0);
+
+    rc = tss2_tcti_receive (data->context,
+                            &size,
+                            command_out,
+                            TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_TRY_AGAIN);
+    assert_int_equal (size, sizeof (command_in));
+}
+/*
  * This test ensures that the magic value in the context structure is checked
  * before the receive function executes and that the RC is what we expect.
  */
@@ -1107,6 +1155,12 @@ main(int argc, char* argv[])
                                   tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_receive_poll_eintr_test,
+                                  tcti_tabrmd_receive_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_receive_poll_fail_test,
+                                  tcti_tabrmd_receive_setup,
+                                  tcti_tabrmd_teardown),
+        unit_test_setup_teardown (tcti_tabrmd_receive_poll_timeout_test,
                                   tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_receive_bad_magic_test,
