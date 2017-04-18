@@ -33,6 +33,7 @@
 #include <unistd.h>
 
 #include "connection.h"
+#include "util.h"
 
 G_DEFINE_TYPE (Connection, connection, G_TYPE_OBJECT);
 
@@ -216,21 +217,6 @@ create_pipe_pairs (int pipe_fds_a[],
     if (ret == -1)
         return ret;
     return 0;
-}
-
-int
-set_flags (const int fd,
-           const int flags)
-{
-    int local_flags, ret = 0;
-
-    local_flags = fcntl(fd, F_GETFL, 0);
-    if (!(local_flags && flags)) {
-        g_debug ("connection: setting flags for fd %d to %d",
-                 fd, local_flags | flags);
-        ret = fcntl(fd, F_SETFL, local_flags | flags);
-    }
-    return ret;
 }
 
 /* CreateConnection builds two pipes for communicating with client

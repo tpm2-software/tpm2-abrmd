@@ -25,10 +25,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <errno.h>
+#include <fcntl.h>
 #include <gio/gio.h>
 #include <gio/gunixfdlist.h>
 #include <glib.h>
 #include <inttypes.h>
+#include <poll.h>
 #include <string.h>
 
 #include <sapi/tpm20.h>
@@ -100,8 +102,57 @@ errno_to_tcti_rc (int error_number)
     case EWOULDBLOCK:
 #endif
         return TSS2_TCTI_RC_TRY_AGAIN;
-    default:
+    case EIO:
         return TSS2_TCTI_RC_IO_ERROR;
+    default:
+        return TSS2_TCTI_RC_GENERAL_FAILURE;
+    }
+}
+/*
+ * This is a thin wrapper around a call to poll. It packages up the provided
+ * file descriptor and timeout and polls on that same FD for data or a hangup.
+ * Returns:
+ *   -1 on timeout
+ *   0 when data is ready
+ *   errno on error
+ */
+int
+tcti_tabrmd_poll (int        fd,
+                  int32_t    timeout)
+{
+    struct pollfd pollfds [] = {
+        {
+            .fd = fd,
+             .events = POLLIN | POLLPRI | POLLRDHUP,
+        }
+    };
+    int ret;
+    int errno_tmp;
+
+    ret = TEMP_FAILURE_RETRY (poll (pollfds,
+                                    sizeof (pollfds) / sizeof (struct pollfd),
+                                    timeout));
+    errno_tmp = errno;
+    switch (ret) {
+    case -1:
+        g_debug ("poll produced error: %d, %s",
+                 errno_tmp, strerror (errno_tmp));
+        return errno_tmp;
+    case 0:
+        g_debug ("poll timed out after %" PRId32 " miniseconds", timeout);
+        return -1;
+    default:
+        g_debug ("poll has %d fds ready", ret);
+        if (pollfds[0].revents & POLLIN) {
+            g_debug ("  POLLIN");
+        }
+        if (pollfds[0].revents & POLLPRI) {
+            g_debug ("  POLLPRI");
+        }
+        if (pollfds[0].revents & POLLRDHUP) {
+            g_debug ("  POLLRDHUP");
+        }
+        return 0;
     }
 }
 /*
@@ -125,8 +176,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     if (tabrmd_ctx->state != TABRMD_STATE_RECEIVE) {
         return TSS2_TCTI_RC_BAD_SEQUENCE;
     }
-    /* async not yet supported */
-    if (timeout != TSS2_TCTI_TIMEOUT_BLOCK) {
+    if (timeout < TSS2_TCTI_TIMEOUT_BLOCK) {
         return TSS2_TCTI_RC_BAD_VALUE;
     }
     if (size == NULL || (response == NULL && *size != 0)) {
@@ -135,6 +185,15 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     /* response buffer must be at least as large as the header */
     if (response != NULL && *size < TPM_HEADER_SIZE) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
+    }
+    ret = tcti_tabrmd_poll (tabrmd_ctx->fd_receive, timeout);
+    switch (ret) {
+    case -1:
+        return TSS2_TCTI_RC_TRY_AGAIN;
+    case 0:
+        break;
+    default:
+        return errno_to_tcti_rc (ret);
     }
     /* make sure we've got the response header */
     if (tabrmd_ctx->index < TPM_HEADER_SIZE) {
@@ -359,6 +418,7 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
     guint64 id;
     GUnixFDList *fd_list;
     gboolean call_ret;
+    int ret;
 
     if (context == NULL && size == NULL) {
         return TSS2_TCTI_RC_BAD_VALUE;
@@ -402,6 +462,10 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
     if (fd == -1) {
         g_error ("unable to get receive handle from GUnixFDList: %s",
                  error->message);
+    }
+    ret = set_flags (fd, O_NONBLOCK);
+    if (ret == -1) {
+        g_error ("failed to set O_NONBLOCK for client fd: %d", fd);
     }
     TSS2_TCTI_TABRMD_FD_RECEIVE (context) = fd;
     fd = g_unix_fd_list_get (fd_list, 1, &error);

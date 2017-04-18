@@ -457,6 +457,18 @@ __wrap_read_data (int       fd,
     return ret;
 }
 /*
+ */
+int
+__wrap_poll (struct pollfd *fds,
+             nfds_t         nfds,
+             int            timeout)
+{
+    assert_int_equal (nfds, 1);
+    fds [0].revents = mock_type (short);
+    return mock_type (int);
+}
+
+/*
  * This test makes a single call to the receive function in the
  * TSS2_TCTI_CONTEXT function pointer table.
  */
@@ -472,6 +484,8 @@ tcti_tabrmd_receive_success_test (void **state)
     uint8_t command_out [sizeof (command_in)] = { 0 };
     TSS2_RC rc;
 
+    will_return (__wrap_poll, POLLIN);
+    will_return (__wrap_poll, 1);
     will_return (__wrap_read_data, command_in);
     will_return (__wrap_read_data, TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
@@ -569,7 +583,7 @@ tcti_tabrmd_receive_bad_sequence_final_test (void **state)
  * NOTE: currently this is unimplemented.
  */
 static void
-tcti_tabrmd_receive_timeout_test (void **state)
+tcti_tabrmd_receive_bad_timeout_test (void **state)
 {
     data_t  *data = *state;
     uint8_t command_in [] = { 0x80, 0x02,
@@ -583,7 +597,7 @@ tcti_tabrmd_receive_timeout_test (void **state)
     rc = tss2_tcti_receive (data->context,
                             &size,
                             command_out,
-                            1000);
+                            -2);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /*
@@ -654,6 +668,9 @@ tcti_tabrmd_receive_size_lt_body_test (void **state)
     size_t size = sizeof (buffer_in) - 1;
     TSS2_RC rc;
 
+    will_return (__wrap_poll, POLLIN);
+    will_return (__wrap_poll, 1);
+
     will_return (__wrap_read_data, buffer_in);
     will_return (__wrap_read_data, TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
@@ -679,7 +696,13 @@ tcti_tabrmd_receive_error_first_read_test (void **state)
     uint8_t buffer_out [TPM_HEADER_SIZE] = { 0 };
     TSS2_RC rc;
     size_t size = TPM_HEADER_SIZE;
-
+    /* normally when poll returns there's data to read */
+    will_return (__wrap_poll, POLLIN);
+    will_return (__wrap_poll, 1);
+    /*
+     * no data to read, but the TCTI receive FD is non-blocking so we would
+     * get EAGAIN
+     */
     will_return (__wrap_read_data, buffer_in);
     will_return (__wrap_read_data, 0);
     will_return (__wrap_read_data, EAGAIN);
@@ -709,6 +732,8 @@ tcti_tabrmd_receive_malformed_header_test (void **state)
     TSS2_RC rc;
     size_t size = TPM_HEADER_SIZE;
 
+    will_return (__wrap_poll, POLLIN);
+    will_return (__wrap_poll, 1);
     will_return (__wrap_read_data, buffer_in);
     will_return (__wrap_read_data, TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
@@ -738,6 +763,8 @@ tcti_tabrmd_receive_two_reads_header_test (void **state)
     TSS2_RC rc;
     size_t size = sizeof (buffer_in);
 
+    will_return (__wrap_poll, POLLIN);
+    will_return (__wrap_poll, 1);
    /*
     * first call to read_data will get half of the header and then return
     * errno that maps to 'TRY_AGAIN'. This will write *nothing* to the callers
@@ -753,6 +780,9 @@ tcti_tabrmd_receive_two_reads_header_test (void **state)
                             buffer_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_TCTI_RC_TRY_AGAIN);
+
+    will_return (__wrap_poll, POLLIN);
+    will_return (__wrap_poll, 1);
     /* won't write data into buffer_out yet, only does this after the full
      * header is obtained */
     /* second call to read_data will get the rest of the header. */
@@ -786,6 +816,8 @@ tcti_tabrmd_receive_get_size_test (void **state)
     TSS2_RC rc;
     size_t size = 0;
 
+    will_return (__wrap_poll, POLLIN);
+    will_return (__wrap_poll, 1);
     will_return (__wrap_read_data, buffer_in);
     will_return (__wrap_read_data, TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
@@ -817,6 +849,8 @@ tcti_tabrmd_receive_get_size_and_body_test (void **state)
     TSS2_RC rc;
     size_t size = 0;
 
+    will_return (__wrap_poll, POLLIN);
+    will_return (__wrap_poll, 1);
     will_return (__wrap_read_data, buffer_in);
     will_return (__wrap_read_data, TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
@@ -830,6 +864,8 @@ tcti_tabrmd_receive_get_size_and_body_test (void **state)
                       TABRMD_STATE_RECEIVE);
     assert_int_equal (size, 0x0e);
 
+    will_return (__wrap_poll, POLLIN);
+    will_return (__wrap_poll, 1);
     will_return (__wrap_read_data, buffer_in);
     will_return (__wrap_read_data, sizeof (buffer_in) - TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
@@ -1025,7 +1061,7 @@ main(int argc, char* argv[])
         unit_test_setup_teardown (tcti_tabrmd_receive_bad_sequence_final_test,
                                   tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_timeout_test,
+        unit_test_setup_teardown (tcti_tabrmd_receive_bad_timeout_test,
                                   tcti_tabrmd_receive_setup,
                                   tcti_tabrmd_teardown),
         unit_test_setup_teardown (tcti_tabrmd_receive_null_size_test,

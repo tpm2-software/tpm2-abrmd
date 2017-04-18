@@ -68,5 +68,6 @@ void        g_debug_bytes                   (uint8_t const    *byte_array,
                                              size_t            width,
                                              size_t            indent);
 void        g_debug_tpma_cc                 (TPMA_CC           tpma_cc);
-
+int         set_flags                       (const int         fd,
+                                             const int         flags);
 #endif /* UTIL_H */

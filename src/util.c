@@ -234,3 +234,17 @@ g_debug_tpma_cc (TPMA_CC tpma_cc)
     g_debug ("  V:            %s", prop_str (tpma_cc.val & TPMA_CC_V));
     g_debug ("  Res:          0x%" PRIx8, (tpma_cc.val & TPMA_CC_RES) >> 30);
 }
+int
+set_flags (const int fd,
+           const int flags)
+{
+    int local_flags, ret = 0;
+
+    local_flags = fcntl(fd, F_GETFL, 0);
+    if (!(local_flags && flags)) {
+        g_debug ("connection: setting flags for fd %d to %d",
+                 fd, local_flags | flags);
+        ret = fcntl(fd, F_SETFL, local_flags | flags);
+    }
+    return ret;
+}
