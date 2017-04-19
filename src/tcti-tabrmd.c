@@ -289,9 +289,10 @@ tss2_tcti_tabrmd_cancel (TSS2_TCTI_CONTEXT *context)
                      NULL,
                      &error);
     if (cancel_ret == FALSE) {
-        g_warning ("cancel command failed: %s", error->message);
+        g_warning ("cancel command failed with error code: 0x%" PRIx32
+                   ", messag: %s", error->code, error->message);
+        ret = error->code;
         g_error_free (error);
-        return TSS2_TCTI_RC_GENERAL_FAILURE;
     }
 
     return ret;
@@ -320,7 +321,7 @@ tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *context,
                                guint8             locality)
 {
     gboolean status;
-    TSS2_RC ret;
+    TSS2_RC ret = TSS2_RC_SUCCESS;
     GError *error = NULL;
 
     g_info ("tss2_tcti_tabrmd_set_locality: id 0x%" PRIx64,
@@ -337,9 +338,10 @@ tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *context,
                  &error);
 
     if (status == FALSE) {
-        g_warning ("set locality command failed: %s", error->message);
+        g_warning ("set locality command failed with error code: 0x%" PRIx32
+                   ", message: %s", error->code, error->message);
+        ret = error->code;
         g_error_free (error);
-        return TSS2_TCTI_RC_GENERAL_FAILURE;
     }
 
     return ret;
@@ -430,6 +432,8 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
         *size = sizeof (TSS2_TCTI_TABRMD_CONTEXT);
         return TSS2_RC_SUCCESS;
     }
+    /* Register dbus error mapping for tabrmd. Gets us RCs from Gerror codes */
+    TABRMD_ERROR;
     init_tcti_data (context);
     TSS2_TCTI_TABRMD_PROXY (context) =
         tcti_tabrmd_proxy_new_for_bus_sync (

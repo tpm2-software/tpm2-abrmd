@@ -262,9 +262,9 @@ access_broker_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
 
     g_debug ("access_broker_get_tpm_properties_fixed");
     if (capability_data == NULL)
-        return TSS2_TABRMD_BAD_VALUE;
+        return TSS2_RESMGR_RC_BAD_VALUE;
     if (sapi_context == NULL)
-        return TSS2_TABRMD_SAPI_INIT;
+        return TSS2_RESMGR_RC_SAPI_INIT;
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
                                  TPM_CAP_TPM_PROPERTIES,
@@ -302,7 +302,7 @@ access_broker_get_fixed_property (AccessBroker           *broker,
     gint i;
 
     if (broker->properties_fixed.data.tpmProperties.count == 0) {
-        rc = TSS2_TABRMD_INTERNAL_ERROR;
+        rc = TSS2_RESMGR_RC_INTERNAL_ERROR;
         goto out;
     }
     for (i = 0; i < broker->properties_fixed.data.tpmProperties.count; ++i) {
@@ -312,7 +312,7 @@ access_broker_get_fixed_property (AccessBroker           *broker,
         }
     }
     if (!found)
-        rc = TSS2_TABRMD_BAD_VALUE;
+        rc = TSS2_RESMGR_RC_BAD_VALUE;
 out:
     return rc;
 }
@@ -435,7 +435,7 @@ access_broker_send_command (AccessBroker  *broker,
              (uintptr_t)command);
     error = access_broker_lock (broker);
     if (error) {
-        *rc = TSS2_TABRMD_INTERNAL_ERROR;
+        *rc = TSS2_RESMGR_RC_INTERNAL_ERROR;
         goto err_out;
     }
     *rc = access_broker_send_cmd (broker, command);
