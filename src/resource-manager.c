@@ -376,7 +376,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     /* If connection has reached quota limit kill command & send error response */
     if (resource_manager_is_over_object_quota (resmgr, command)) {
         response = tpm2_response_new_rc (connection,
-                                         TSS2_TABRMD_OBJECT_MEMORY);
+                                         TSS2_RESMGR_RC_OBJECT_MEMORY);
         sink_enqueue (resmgr->sink, G_OBJECT (response));
         g_object_unref (response);
         g_object_unref (connection);

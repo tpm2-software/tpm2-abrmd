@@ -48,7 +48,9 @@ noinst_PROGRAMS = \
     test/integration/create-keys \
     test/integration/manage-transient-keys \
     test/integration/start-auth-session \
+    test/integration/tcti-cancel \
     test/integration/tcti-sessions-max \
+    test/integration/tcti-set-locality \
     test/tcti-tabrmd_read-write
 check_PROGRAMS  = $(TESTS_UNIT)
 
@@ -115,6 +117,7 @@ src_libutil_la_SOURCES = \
     src/tcti-type-enum.c \
     src/tpm2-command.c \
     src/tpm2-response.c \
+    src/tabrmd-error.c \
     src/tabrmd-generated.c \
     src/tpm2-header.c \
     src/util.c
@@ -302,8 +305,14 @@ test_integration_create_keys_SOURCES = test/integration/main.c test/integration/
 test_integration_start_auth_session_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS)
 test_integration_start_auth_session_SOURCES = test/integration/main.c test/integration/start-auth-session.c
 
+test_integration_tcti_cancel_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_cancel_SOURCES = test/integration/main.c test/integration/tcti-cancel.c
+
 test_integration_tcti_sessions_max_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_integration_tcti_sessions_max_SOURCES = test/integration/tcti-sessions-max.c
+
+test_integration_tcti_set_locality_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_set_locality_SOURCES = test/integration/main.c test/integration/tcti-set-locality.c
 
 test_integration_manage_transient_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)

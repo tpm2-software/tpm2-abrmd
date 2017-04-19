@@ -73,25 +73,17 @@ typedef struct gmain_data {
     guint                   dbus_name_owner_id;
 } gmain_data_t;
 
+typedef enum {
+    TABRMD_ERROR_INTERNAL         = TSS2_RESMGR_RC_INTERNAL_ERROR,
+    TABRMD_ERROR_MAX_CONNECTIONS  = TSS2_RESMGR_RC_GENERAL_FAILURE,
+    TABRMD_ERROR_ID_GENERATION    = TSS2_RESMGR_RC_GENERAL_FAILURE,
+    TABRMD_ERROR_NOT_IMPLEMENTED  = TSS2_RESMGR_RC_NOT_IMPLEMENTED,
+    TABRMD_ERROR_NOT_PERMITTED    = TSS2_RESMGR_RC_NOT_PERMITTED,
+} TabrmdErrorEnum;
 /* This global pointer to the GMainLoop is necessary so that we can react to
  * unix signals. Only the signal handler should touch this.
  */
 static GMainLoop *g_loop;
-
-#define TABRMD_ERROR tabrmd_error_quark ()
-typedef enum {
-    TABRMD_ERROR_MAX_CONNECTIONS,
-    TABRMD_ERROR_ID_GENERATION,
-    TABRMD_ERROR_NO_PID,
-} TabrmdErrorEnum;
-
-/*
- */
-GQuark
-tabrmd_error_quark (void)
-{
-    return g_quark_from_static_string ("tabrmd-error");
-}
 
 /*
  * Callback handling the acquisition of a GDBusProxy object for communication
@@ -202,7 +194,7 @@ generate_id_pid_mix_from_invocation (GDBusMethodInvocation *invocation,
     } else {
         g_dbus_method_invocation_return_error (invocation,
                                                TABRMD_ERROR,
-                                               TABRMD_ERROR_NO_PID,
+                                               TABRMD_ERROR_INTERNAL,
                                                "Failed to get client PID");
     }
 
@@ -224,17 +216,19 @@ get_id_pid_mix_from_invocation (GDBusProxy            *proxy,
     guint32 pid = 0;
     gboolean pid_ret = FALSE;
 
-    g_info ("on_handle_cancel for id 0x%" PRIx64, id);
+    g_debug ("get_id_pid_mix_from_invocation");
     pid_ret = get_pid_from_dbus_invocation (proxy,
                                             invocation,
                                             &pid);
+    g_debug ("id 0x%" PRIx64 " pid: 0x%" PRIx32, id, pid);
     if (pid_ret == TRUE) {
         *id_pid_mix = id ^ pid;
+        g_debug ("mixed: 0x%" PRIx64, *id_pid_mix);
     } else {
         g_dbus_method_invocation_return_error (
             invocation,
             TABRMD_ERROR,
-            TABRMD_ERROR_NO_PID,
+            TABRMD_ERROR_INTERNAL,
             "Failed to get client PID");
     }
 
@@ -353,7 +347,6 @@ on_handle_cancel (TctiTabrmd           *skeleton,
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     Connection *connection = NULL;
-    GVariant *uint32_variant, *tuple_variant;
     guint64   id_pid_mix = 0;
     gboolean mix_ret = FALSE;
 
@@ -372,16 +365,20 @@ on_handle_cancel (TctiTabrmd           *skeleton,
     if (connection == NULL) {
         g_warning ("no active connection for id_pid_mix: 0x%" PRIx64,
                    id_pid_mix);
-        return FALSE;
+        g_dbus_method_invocation_return_error (invocation,
+                                               TABRMD_ERROR,
+                                               TABRMD_ERROR_NOT_PERMITTED,
+                                               "No connection.");
+        return TRUE;
     }
-    g_info ("canceling command for connection 0x%" PRIxPTR,
-            (uintptr_t)connection);
+    g_info ("canceling command for connection 0x%" PRIxPTR " with "
+            "id_pid_mix: 0x%" PRIx64, (uintptr_t)connection, id_pid_mix);
     /* cancel any existing commands for the connection */
+    g_dbus_method_invocation_return_error (invocation,
+                                           TABRMD_ERROR,
+                                           TABRMD_ERROR_NOT_IMPLEMENTED,
+                                           "Cancel function not implemented.");
     g_object_unref (connection);
-    /* setup and send return value */
-    uint32_variant = g_variant_new_uint32 (TSS2_RC_SUCCESS);
-    tuple_variant = g_variant_new_tuple (&uint32_variant, 1);
-    g_dbus_method_invocation_return_value (invocation, tuple_variant);
 
     return TRUE;
 }
@@ -405,13 +402,10 @@ on_handle_set_locality (TctiTabrmd            *skeleton,
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     Connection *connection = NULL;
-    GVariant *uint32_variant, *tuple_variant;
     guint64   id_pid_mix = 0;
     gboolean mix_ret = FALSE;
 
     g_info ("on_handle_set_locality for id 0x%" PRIx64, id);
-    g_mutex_lock (&data->init_mutex);
-    g_mutex_unlock (&data->init_mutex);
     mix_ret = get_id_pid_mix_from_invocation (data->dbus_daemon_proxy,
                                               invocation,
                                               id,
@@ -420,19 +414,27 @@ on_handle_set_locality (TctiTabrmd            *skeleton,
     if (mix_ret == FALSE) {
         return TRUE;
     }
+    g_mutex_lock (&data->init_mutex);
+    g_mutex_unlock (&data->init_mutex);
     connection = connection_manager_lookup_id (data->manager, id_pid_mix);
     if (connection == NULL) {
-        g_warning ("no active connection for id: 0x%" PRIx64, id_pid_mix);
-        return FALSE;
+        g_warning ("no active connection for id_pid_mix: 0x%" PRIx64,
+                   id_pid_mix);
+        g_dbus_method_invocation_return_error (invocation,
+                                               TABRMD_ERROR,
+                                               TABRMD_ERROR_NOT_PERMITTED,
+                                               "No connection.");
+        return TRUE;
     }
-    g_info ("setting locality for connection 0x%" PRIxPTR " to: %" PRIx8,
-            (uintptr_t)connection, locality);
+    g_info ("setting locality for connection 0x%" PRIxPTR " with "
+            "id_pid_mix: 0x%" PRIx64 " to: %" PRIx8,
+            (uintptr_t)connection, id_pid_mix, locality);
     /* set locality for an existing connection */
+    g_dbus_method_invocation_return_error (invocation,
+                                           TABRMD_ERROR,
+                                           TABRMD_ERROR_NOT_IMPLEMENTED,
+                                           "setLocality function not implemented.");
     g_object_unref (connection);
-    /* setup and send return value */
-    uint32_variant = g_variant_new_uint32 (TSS2_RC_SUCCESS);
-    tuple_variant = g_variant_new_tuple (&uint32_variant, 1);
-    g_dbus_method_invocation_return_value (invocation, tuple_variant);
 
     return TRUE;
 }
