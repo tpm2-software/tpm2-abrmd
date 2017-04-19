@@ -50,6 +50,9 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
 
     g_debug ("tss2_tcti_tabrmd_transmit");
+    if ((context == NULL) || (size == 0) || (command == NULL)) {
+      return TSS2_TCTI_RC_BAD_VALUE;
+    }
     if (TSS2_TCTI_MAGIC (context) != TSS2_TCTI_TABRMD_MAGIC ||
         TSS2_TCTI_VERSION (context) != TSS2_TCTI_TABRMD_VERSION) {
         return TSS2_TCTI_RC_BAD_CONTEXT;
@@ -169,6 +172,9 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     size_t ret = 0;
 
     g_debug ("tss2_tcti_tabrmd_receive");
+    if ((context == NULL) || (size == 0) || (response == NULL)) {
+      return TSS2_TCTI_RC_BAD_VALUE;
+    }
     if (TSS2_TCTI_MAGIC (context) != TSS2_TCTI_TABRMD_MAGIC ||
         TSS2_TCTI_VERSION (context) != TSS2_TCTI_TABRMD_VERSION) {
         return TSS2_TCTI_RC_BAD_CONTEXT;
