@@ -50,8 +50,11 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
 
     g_debug ("tss2_tcti_tabrmd_transmit");
-    if ((context == NULL) || (size == 0) || (command == NULL)) {
-      return TSS2_TCTI_RC_BAD_VALUE;
+    if (context == NULL) {
+        return TSS2_TCTI_RC_BAD_CONTEXT;
+    }
+    if ((size == 0) || (command == NULL)) {
+        return TSS2_TCTI_RC_BAD_VALUE;
     }
     if (TSS2_TCTI_MAGIC (context) != TSS2_TCTI_TABRMD_MAGIC ||
         TSS2_TCTI_VERSION (context) != TSS2_TCTI_TABRMD_VERSION) {
@@ -175,8 +178,11 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     size_t ret = 0;
 
     g_debug ("tss2_tcti_tabrmd_receive");
-    if ((context == NULL) || (size == 0) || (response == NULL)) {
-      return TSS2_TCTI_RC_BAD_VALUE;
+    if (context == NULL) {
+        return TSS2_TCTI_RC_BAD_CONTEXT;
+    }
+    if ((size == 0) || (response == NULL)) {
+        return TSS2_TCTI_RC_BAD_VALUE;
     }
     if (TSS2_TCTI_MAGIC (context) != TSS2_TCTI_TABRMD_MAGIC ||
         TSS2_TCTI_VERSION (context) != TSS2_TCTI_TABRMD_VERSION) {
@@ -258,6 +264,10 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *context)
     int ret = 0;
 
     g_debug ("tss2_tcti_tabrmd_finalize");
+    if (context == NULL) {
+        g_warning ("Invalid parameter");
+        return;
+    }
     if (TSS2_TCTI_TABRMD_FD_RECEIVE (context) != 0) {
         ret = close (TSS2_TCTI_TABRMD_FD_RECEIVE (context));
         TSS2_TCTI_TABRMD_FD_RECEIVE (context) = 0;
@@ -284,6 +294,9 @@ tss2_tcti_tabrmd_cancel (TSS2_TCTI_CONTEXT *context)
     gboolean cancel_ret;
 
     g_info ("tss2_tcti_tabrmd_cancel");
+    if (context == NULL) {
+        return TSS2_TCTI_RC_BAD_CONTEXT;
+    }
     if (TSS2_TCTI_TABRMD_STATE (context) != TABRMD_STATE_RECEIVE) {
         return TSS2_TCTI_RC_BAD_SEQUENCE;
     }
@@ -307,6 +320,9 @@ tss2_tcti_tabrmd_get_poll_handles (TSS2_TCTI_CONTEXT     *context,
                                    TSS2_TCTI_POLL_HANDLE *handles,
                                    size_t                *num_handles)
 {
+    if (context == NULL) {
+        return TSS2_TCTI_RC_BAD_CONTEXT;
+    }
     if (num_handles == NULL) {
         return TSS2_TCTI_RC_BAD_REFERENCE;
     }
@@ -329,6 +345,9 @@ tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *context,
     GError *error = NULL;
 
     g_info ("tss2_tcti_tabrmd_set_locality");
+    if (context == NULL) {
+        return TSS2_TCTI_RC_BAD_CONTEXT;
+    }
     if (TSS2_TCTI_TABRMD_STATE (context) != TABRMD_STATE_TRANSMIT) {
         return TSS2_TCTI_RC_BAD_SEQUENCE;
     }
