@@ -121,7 +121,7 @@ connection_manager_new (guint max_connections)
                                NULL,
                                NULL);
     mgr->connection_from_id_table =
-        g_hash_table_new_full (g_int64_hash,
+        g_hash_table_new_full (g_str_hash,
                                connection_equal_id,
                                NULL,
                                (GDestroyNotify)g_object_unref);
@@ -268,7 +268,7 @@ connection_manager_lookup_fd (ConnectionManager *manager,
  */
 Connection*
 connection_manager_lookup_id (ConnectionManager   *manager,
-                              gint64               id)
+                              const gchar         *id)
 {
     Connection *connection;
 
@@ -276,7 +276,7 @@ connection_manager_lookup_id (ConnectionManager   *manager,
     pthread_mutex_lock (&manager->mutex);
     g_debug ("g_hash_table_lookup: connection_from_id_table");
     connection = g_hash_table_lookup (manager->connection_from_id_table,
-                                      &id);
+                                      id);
     if (connection != NULL) {
         g_object_ref (connection);
     } else {
@@ -290,7 +290,7 @@ connection_manager_lookup_id (ConnectionManager   *manager,
 
 gboolean
 connection_manager_contains_id (ConnectionManager *manager,
-                                gint64             id)
+                                const gchar       *id)
 {
     return g_hash_table_contains (manager->connection_from_id_table, &id);
 }

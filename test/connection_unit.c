@@ -40,6 +40,8 @@
 
 #include "connection.h"
 
+#define CONNECTION_ID "foobar"
+
 typedef struct connection_test_data {
     Connection *connection;
     gint receive_fd;
@@ -97,7 +99,7 @@ connection_allocate_test (void **state)
     gint receive_fd, send_fd;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    connection = connection_new (&receive_fd, &send_fd, 0, handle_map);
+    connection = connection_new (&receive_fd, &send_fd, CONNECTION_ID, handle_map);
     assert_non_null (connection);
     assert_true (receive_fd >= 0);
     assert_true (send_fd >= 0);
@@ -114,7 +116,7 @@ connection_setup (void **state)
     data = calloc (1, sizeof (connection_test_data_t));
     assert_non_null (data);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection = connection_new (&data->receive_fd, &data->send_fd, 0, handle_map);
+    data->connection = connection_new (&data->receive_fd, &data->send_fd, CONNECTION_ID, handle_map);
     assert_non_null (data->connection);
     g_object_unref (handle_map);
     *state = data;
@@ -147,10 +149,10 @@ connection_key_id_test (void **state)
 {
     connection_test_data_t *data = (connection_test_data_t*)*state;
     Connection *connection = CONNECTION (data->connection);
-    guint64 *key = NULL;
+    gpointer key = NULL;
 
-    key = (guint64*)connection_key_id (connection);
-    assert_int_equal (connection->id, *key);
+    key = connection_key_id (connection);
+    assert_true (connection_equal_id (key, connection_key_id (data->connection)));
 }
 
 static void
@@ -165,7 +167,7 @@ static void
 connection_equal_id_test (void **state)
 {
     connection_test_data_t *data = (connection_test_data_t*)*state;
-    const guint64 *key = connection_key_id (data->connection);
+    const gpointer key = connection_key_id (data->connection);
     assert_true (connection_equal_id (key, connection_key_id (data->connection)));
 }
 

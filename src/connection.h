@@ -42,7 +42,7 @@ typedef struct _Connection {
     GObject             parent_instance;
     gint                receive_fd;
     gint                send_fd;
-    guint64             id;
+    gchar              *id;
     HandleMap          *transient_handle_map;
 } Connection;
 
@@ -56,7 +56,7 @@ typedef struct _Connection {
 GType            connection_get_type     (void);
 Connection*      connection_new          (gint            *receive_fd,
                                           gint            *send_fd,
-                                          guint64          id,
+                                          const gchar     *id,
                                           HandleMap       *transient_handle_map);
 gboolean         connection_equal_fd     (gconstpointer    a,
                                           gconstpointer    b);

@@ -38,8 +38,6 @@
 #define TSS2_TCTI_TABRMD_MAGIC 0x1c8e03ff00db0f92
 #define TSS2_TCTI_TABRMD_VERSION 1
 
-#define TSS2_TCTI_TABRMD_ID(context) \
-    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->id
 #define TSS2_TCTI_TABRMD_FDS(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->pipe_fds
 #define TSS2_TCTI_TABRMD_FD_RECEIVE(context) \
@@ -93,7 +91,6 @@ typedef enum {
  */
 typedef struct {
     TSS2_TCTI_CONTEXT_COMMON_V1    common;
-    guint64                        id;
     int                            fd_receive;
     int                            fd_transmit;
     TctiTabrmd                    *proxy;

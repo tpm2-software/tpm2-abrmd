@@ -277,14 +277,12 @@ tss2_tcti_tabrmd_cancel (TSS2_TCTI_CONTEXT *context)
     GError *error = NULL;
     gboolean cancel_ret;
 
-    g_info("tss2_tcti_tabrmd_cancel: id 0x%" PRIx64,
-           TSS2_TCTI_TABRMD_ID (context));
+    g_info ("tss2_tcti_tabrmd_cancel");
     if (TSS2_TCTI_TABRMD_STATE (context) != TABRMD_STATE_RECEIVE) {
         return TSS2_TCTI_RC_BAD_SEQUENCE;
     }
     cancel_ret = tcti_tabrmd_call_cancel_sync (
                      TSS2_TCTI_TABRMD_PROXY (context),
-                     TSS2_TCTI_TABRMD_ID (context),
                      &ret,
                      NULL,
                      &error);
@@ -324,14 +322,12 @@ tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *context,
     TSS2_RC ret = TSS2_RC_SUCCESS;
     GError *error = NULL;
 
-    g_info ("tss2_tcti_tabrmd_set_locality: id 0x%" PRIx64,
-            TSS2_TCTI_TABRMD_ID (context));
+    g_info ("tss2_tcti_tabrmd_set_locality");
     if (TSS2_TCTI_TABRMD_STATE (context) != TABRMD_STATE_TRANSMIT) {
         return TSS2_TCTI_RC_BAD_SEQUENCE;
     }
     status = tcti_tabrmd_call_set_locality_sync (
                  TSS2_TCTI_TABRMD_PROXY (context),
-                 TSS2_TCTI_TABRMD_ID (context),
                  locality,
                  &ret,
                  NULL,
@@ -354,11 +350,9 @@ tss2_tcti_tabrmd_dump_trans_state (TSS2_TCTI_CONTEXT *context)
     TSS2_RC ret;
     GError *error = NULL;
 
-    g_info ("tss2_tcti_tabrmd_dump_state: id 0x%" PRIx64,
-            TSS2_TCTI_TABRMD_ID (context));
+    g_info ("tss2_tcti_tabrmd_dump_state");
     status = tcti_tabrmd_call_dump_trans_state_sync (
                  TSS2_TCTI_TABRMD_PROXY (context),
-                 TSS2_TCTI_TABRMD_ID (context),
                  &ret,
                  NULL,
                  &error);
@@ -390,7 +384,6 @@ init_tcti_data (TSS2_TCTI_CONTEXT *context)
 static gboolean
 tcti_tabrmd_call_create_connection_sync_fdlist (TctiTabrmd     *proxy,
                                                 GVariant      **out_fds,
-                                                guint64        *out_id,
                                                 GUnixFDList   **out_fd_list,
                                                 GCancellable   *cancellable,
                                                 GError        **error)
@@ -408,7 +401,7 @@ tcti_tabrmd_call_create_connection_sync_fdlist (TctiTabrmd     *proxy,
     if (_ret == NULL) {
         goto _out;
     }
-    g_variant_get (_ret, "(@aht)", out_fds, out_id);
+    g_variant_get (_ret, "(@ah)", out_fds);
     g_variant_unref (_ret);
 _out:
     return _ret != NULL;
@@ -420,7 +413,6 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
 {
     GError *error = NULL;
     GVariant *fds_variant;
-    guint64 id;
     GUnixFDList *fd_list;
     gboolean call_ret;
     int ret;
@@ -449,7 +441,6 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
     call_ret = tcti_tabrmd_call_create_connection_sync_fdlist (
         TSS2_TCTI_TABRMD_PROXY (context),
         &fds_variant,
-        &id,
         &fd_list,
         NULL,
         &error);
@@ -481,9 +472,6 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
                  error->message);
     }
     TSS2_TCTI_TABRMD_FD_TRANSMIT (context) = fd;
-    TSS2_TCTI_TABRMD_ID (context) = id;
-    g_debug ("initialized tabrmd TCTI context with id: 0x%" PRIx64,
-             TSS2_TCTI_TABRMD_ID (context));
 
     return TSS2_RC_SUCCESS;
 }

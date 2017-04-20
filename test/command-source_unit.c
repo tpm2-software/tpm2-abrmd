@@ -46,6 +46,8 @@
 #include "command-source.h"
 #include "tpm2-command.h"
 
+#define CONNECTION_ID "foobar"
+
 typedef struct source_test_data {
     ConnectionManager *manager;
     CommandAttrs   *command_attrs;
@@ -203,7 +205,7 @@ command_source_connection_insert_test (void **state)
 
     /* */
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    connection = connection_new (&receive_fd, &send_fd, 5, handle_map);
+    connection = connection_new (&receive_fd, &send_fd, CONNECTION_ID, handle_map);
     g_object_unref (handle_map);
     assert_false (FD_ISSET (connection->receive_fd, &source->receive_fdset));
     ret = thread_start(THREAD (source));

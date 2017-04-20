@@ -70,9 +70,9 @@ gint           connection_manager_remove      (ConnectionManager  *manager,
 Connection*    connection_manager_lookup_fd   (ConnectionManager  *manager,
                                                gint                fd_in);
 Connection*    connection_manager_lookup_id   (ConnectionManager  *manager,
-                                               gint64              id_in);
+                                               const gchar        *id_in);
 gboolean       connection_manager_contains_id (ConnectionManager  *manager,
-                                               gint64              id_in);
+                                               const gchar        *id_in);
 guint          connection_manager_size        (ConnectionManager  *manager);
 gboolean       connection_manager_is_full     (ConnectionManager  *manager);
 
