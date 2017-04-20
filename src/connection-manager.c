@@ -251,8 +251,12 @@ connection_manager_lookup_fd (ConnectionManager *manager,
     pthread_mutex_lock (&manager->mutex);
     connection = g_hash_table_lookup (manager->connection_from_fd_table,
                                       &fd_in);
+    if (connection != NULL) {
+        g_object_ref (connection);
+    } else {
+        g_warning ("connection_manager_lookup_fd returned NULL connection");
+    }
     pthread_mutex_unlock (&manager->mutex);
-    g_object_ref (connection);
 
     return connection;
 }
@@ -273,9 +277,13 @@ connection_manager_lookup_id (ConnectionManager   *manager,
     g_debug ("g_hash_table_lookup: connection_from_id_table");
     connection = g_hash_table_lookup (manager->connection_from_id_table,
                                       &id);
+    if (connection != NULL) {
+        g_object_ref (connection);
+    } else {
+        g_warning ("connection_manager_lookup_id returned NULL connection");
+    }
     g_debug ("unlocking manager mutex");
     pthread_mutex_unlock (&manager->mutex);
-    g_object_ref (connection);
 
     return connection;
 }
