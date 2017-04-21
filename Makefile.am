@@ -52,6 +52,7 @@ noinst_PROGRAMS = \
     test/integration/tcti-sessions-max \
     test/integration/tcti-set-locality \
     test/integration/hash-sequence \
+    test/integration/password-authorization \
     test/tcti-tabrmd_read-write
 check_PROGRAMS  = $(TESTS_UNIT)
 
@@ -317,6 +318,9 @@ test_integration_tcti_set_locality_SOURCES = test/integration/main.c test/integr
 
 test_integration_hash_sequence_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_integration_hash_sequence_SOURCES = test/integration/main.c test/integration/hash-sequence.c
+
+test_integration_password_authorization_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_password_authorization_SOURCES = test/integration/main.c test/integration/password-authorization.c
 
 test_integration_manage_transient_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
