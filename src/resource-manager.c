@@ -131,7 +131,10 @@ resource_manager_load_contexts (ResourceManager *resmgr,
             g_debug ("handle 0x%" PRIx32 " is virtual TPM_HT_TRANSIENT, "
                      "loading", handles [i]);
             entry = handle_map_vlookup (map, handles [i]);
-            if (!entry) {
+            if (entry) {
+                g_debug ("mapped virtual handle 0x%" PRIx32 " to entry 0x%"
+                         PRIxPTR, handles [i], (uintptr_t)entry);
+            } else {
                 g_warning ("No HandleMapEntry for vhandle: 0x%" PRIx32,
                            handles [i]);
                 continue;
@@ -140,7 +143,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
             rc = resource_manager_virt_to_phys (resmgr, command, entry, i);
             if (rc != TSS2_RC_SUCCESS)
                 break;
-            entries [i] = entry;
+            entries [*entry_count] = entry;
             ++(*entry_count);
             break;
         default:
