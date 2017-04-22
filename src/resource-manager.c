@@ -99,8 +99,7 @@ resource_manager_virt_to_phys (ResourceManager *resmgr,
 TSS2_RC
 resource_manager_load_contexts (ResourceManager *resmgr,
                                 Tpm2Command     *command,
-                                HandleMapEntry  *entries[],
-                                guint           *entry_count)
+                                GSList         **entry_slist)
 {
     HandleMap    *map;
     HandleMapEntry *entry;
@@ -110,17 +109,12 @@ resource_manager_load_contexts (ResourceManager *resmgr,
     guint8 i, handle_count;;
 
     g_debug ("resource_manager_load_contexts");
-    if (!resmgr || !command || !entries || !entry_count) {
+    if (!resmgr || !command) {
         g_warning ("resource_manager_load_contexts received NULL parameter.");
         return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
     }
     connection = tpm2_command_get_connection (command);
     handle_count = tpm2_command_get_handle_count (command);
-    if (handle_count > *entry_count) {
-        g_warning ("resource_manager_load_contexts handle count > entry_count");
-        return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
-    }
-    *entry_count = 0;
     tpm2_command_get_handles (command, handles, handle_count);
     g_debug ("loading contexts for %" PRId8 " handles", handle_count);
     for (i = 0; i < handle_count; ++i) {
@@ -143,8 +137,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
             rc = resource_manager_virt_to_phys (resmgr, command, entry, i);
             if (rc != TSS2_RC_SUCCESS)
                 break;
-            entries [*entry_count] = entry;
-            ++(*entry_count);
+            *entry_slist = g_slist_prepend (*entry_slist, entry);
             break;
         default:
             break;
@@ -156,15 +149,17 @@ resource_manager_load_contexts (ResourceManager *resmgr,
     return rc;
 }
 /*
- * Remove all contexts with handles in the transitive range from the
- * TPM. Store them in the HandleMap and set the physical handle to 0.
- * A HandleMapEntry with a physical handle set to 0 means the context
- * has been saved and flushed.
+ * Remove the context associated with the provided HandleMapEntry
+ * from the TPM. Only handles in the TRANSIENT range will be flushed.
+ * Any entry with a context that's flushed will have the physical handle
+ * to 0.
  */
-TSS2_RC
-resource_manager_flushsave_context (ResourceManager *resmgr,
-                                    HandleMapEntry  *entry)
+void
+resource_manager_flushsave_context (gpointer data_entry,
+                                    gpointer data_resmgr)
 {
+    ResourceManager *resmgr = RESOURCE_MANAGER (data_resmgr);
+    HandleMapEntry  *entry  = HANDLE_MAP_ENTRY (data_entry);
     TPMS_CONTEXT   *context;
     TPM_HANDLE      phandle;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
@@ -192,8 +187,6 @@ resource_manager_flushsave_context (ResourceManager *resmgr,
     default:
         break;
     }
-
-    return rc;
 }
 /*
  * Each Tpm2Response object can have at most one handle in it.
@@ -367,10 +360,10 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                        Tpm2Command       *command)
 {
     Connection    *connection;
+    HandleMapEntry *entry;
     Tpm2Response   *response;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
-    HandleMapEntry *entries[ENTRY_COUNT];
-    guint           entry_count = ENTRY_COUNT - 1;
+    GSList         *entry_slist = NULL;
 
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%" PRIxPTR
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
@@ -393,14 +386,11 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     case TPM_CC_FlushContext:
         g_debug ("processing TPM_CC_FlushContext");
         response = resource_manager_flush_context (resmgr, command);
-        entry_count = 0;
         g_object_unref (connection);
         break;
     default:
         if (tpm2_command_get_handle_count (command) > 0) {
-            resource_manager_load_contexts (resmgr, command, entries, &entry_count);
-        } else {
-            entry_count = 0;
+            resource_manager_load_contexts (resmgr, command, &entry_slist);
         }
         response = access_broker_send_command (resmgr->access_broker,
                                                command,
@@ -412,10 +402,9 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         dump_response (response);
         /* transform the Tpm2Response */
         if (tpm2_response_has_handle (response)) {
-            entries [entry_count] =
-                resource_manager_virtualize_handle (resmgr, response);
-            if (entries [entry_count] != NULL) {
-                ++entry_count;
+            entry = resource_manager_virtualize_handle (resmgr, response);
+            if (entry != NULL) {
+                entry_slist = g_slist_prepend (entry_slist, entry);
             }
         }
         break;
@@ -424,11 +413,11 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     g_object_unref (response);
     g_object_unref (connection);
     /* flush contexts loaded for and created by the command */
-    guint i;
-    g_debug ("flushsave_context for %" PRIu32 " entries", entry_count);
-    for (i = 0; i < entry_count; ++i) {
-        rc = resource_manager_flushsave_context (resmgr, entries [i]);
-        g_object_unref (entries [i]);
+    if (entry_slist != NULL) {
+        g_debug ("flushsave_context for %" PRIu32 " entries",
+                 g_slist_length (entry_slist));
+        g_slist_foreach (entry_slist, resource_manager_flushsave_context, resmgr);
+        g_slist_free_full (entry_slist, g_object_unref);
     }
 }
 /**

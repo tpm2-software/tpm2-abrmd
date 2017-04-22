@@ -61,12 +61,11 @@ GType                 resource_manager_get_type       (void);
 ResourceManager*      resource_manager_new            (AccessBroker *broker);
 void                  resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                                              Tpm2Command       *command);
-TSS2_RC               resource_manager_flushsave_context (ResourceManager *resmgr,
-                                                          HandleMapEntry  *entry);
+void                  resource_manager_flushsave_context (gpointer              entry,
+                                                          gpointer              resmgr);
 TSS2_RC               resource_manager_load_contexts     (ResourceManager *resmgr,
                                                           Tpm2Command     *command,
-                                                          HandleMapEntry  *entries[],
-                                                          guint           *entry_count);
+                                                          GSList         **slist);
 TSS2_RC               resource_manager_virt_to_phys      (ResourceManager *resmgr,
                                                           Tpm2Command     *command,
                                                           HandleMapEntry  *entry,
