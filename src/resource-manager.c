@@ -337,6 +337,62 @@ resource_manager_is_over_object_quota (ResourceManager *resmgr,
 
     return ret;
 }
+/*
+ * This is a callback function invoked by the GSList foreach function. It is
+ * called when the object associated with a HandleMapEntry is no longer valid
+ * (usually when it is flushed) and the HandleMap shouldn't be tracking it.
+ */
+void
+remove_entry_from_handle_map (gpointer data_entry,
+                              gpointer data_connection)
+{
+    HandleMapEntry  *entry       = HANDLE_MAP_ENTRY (data_entry);
+    Connection      *connection  = CONNECTION (data_connection);
+    HandleMap       *map         = connection_get_trans_map (connection);
+    TPM_HANDLE       handle      = handle_map_entry_get_vhandle (entry);
+    TPM_HT           handle_type = 0;
+
+    handle_type = handle >> HR_SHIFT;
+    g_debug ("remove_entry_from_handle_map");
+    switch (handle_type) {
+    case TPM_HT_TRANSIENT:
+        g_debug ("entry 0x%" PRIxPTR " is transient, removing from map",
+                 (uintptr_t)entry);
+        handle_map_remove (map, handle);
+        break;
+    default:
+        g_debug ("entry 0x%" PRIxPTR " not transient, leaving entry alone",
+                 (uintptr_t)entry);
+        break;
+    }
+}
+/*
+ * This function handles the required post-processing on the HandleMapEntry
+ * objects in the GSList that represent objects loaded into the TPM as part of
+ * executing a command.
+ */
+void
+post_process_entry_list (ResourceManager  *resmgr,
+                         GSList          **entry_slist,
+                         Connection       *connection,
+                         TPMA_CC           command_attrs)
+{
+    /* if flushed bit is clear we need to flush & save contexts */
+    if (!command_attrs.flushed) {
+        g_debug ("flushsave_context for %" PRIu32 " entries",
+                 g_slist_length (*entry_slist));
+        g_slist_foreach (*entry_slist,
+                        resource_manager_flushsave_context,
+                        resmgr);
+    } else {
+        /* if flushed bit is set the entry has been flushed, remove it */
+        g_debug ("TPMA_CC flushed bit set");
+        g_slist_foreach (*entry_slist,
+                         remove_entry_from_handle_map,
+                         connection);
+    }
+    g_slist_free_full (*entry_slist, g_object_unref);
+}
 /**
  * This function is invoked in response to the receipt of a Tpm2Command.
  * This is the place where we send the command buffer out to the TPM
@@ -364,6 +420,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     Tpm2Response   *response;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     GSList         *entry_slist = NULL;
+    TPMA_CC         command_attrs = tpm2_command_get_attributes (command);
 
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%" PRIxPTR
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
@@ -378,10 +435,6 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         g_object_unref (connection);
         return;
     }
-    /*
-     * if necessary, load all related contexts and switch virtual for physical
-     * handles in Tpm2Command
-     */
     switch (tpm2_command_get_code (command)) {
     case TPM_CC_FlushContext:
         g_debug ("processing TPM_CC_FlushContext");
@@ -389,6 +442,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         g_object_unref (connection);
         break;
     default:
+        /* Load contexts and switch virtual to physical handles in command */
         if (tpm2_command_get_handle_count (command) > 0) {
             resource_manager_load_contexts (resmgr, command, &entry_slist);
         }
@@ -411,14 +465,8 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     }
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
+    post_process_entry_list (resmgr, &entry_slist, connection, command_attrs);
     g_object_unref (connection);
-    /* flush contexts loaded for and created by the command */
-    if (entry_slist != NULL) {
-        g_debug ("flushsave_context for %" PRIu32 " entries",
-                 g_slist_length (entry_slist));
-        g_slist_foreach (entry_slist, resource_manager_flushsave_context, resmgr);
-        g_slist_free_full (entry_slist, g_object_unref);
-    }
 }
 /**
  * This function acts as a thread. It simply:
