@@ -32,8 +32,6 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include <sapi/marshal.h>
-
 #include "util.h"
 #include "tpm2-header.h"
 
