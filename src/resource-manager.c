@@ -439,7 +439,6 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     case TPM_CC_FlushContext:
         g_debug ("processing TPM_CC_FlushContext");
         response = resource_manager_flush_context (resmgr, command);
-        g_object_unref (connection);
         break;
     default:
         /* Load contexts and switch virtual to physical handles in command */
