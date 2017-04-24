@@ -294,12 +294,10 @@ resource_manager_flushsave_context_test (void **state)
     test_data_t *data = (test_data_t*)*state;
     HandleMapEntry *entry;
     TPM_HANDLE vhandle = HR_TRANSIENT + 0x1, phandle = HR_TRANSIENT + 0x2;
-    TSS2_RC rc;
 
     entry = handle_map_entry_new (phandle, vhandle);
     will_return (__wrap_access_broker_context_saveflush, TSS2_RC_SUCCESS);
-    rc = resource_manager_flushsave_context (data->resource_manager, entry);
-    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    resource_manager_flushsave_context (entry, data->resource_manager);
     assert_int_equal (handle_map_entry_get_phandle (entry), 0);
 }
 /*
@@ -316,12 +314,10 @@ resource_manager_flushsave_context_fail_test (void **state)
     test_data_t *data = (test_data_t*)*state;
     HandleMapEntry *entry;
     TPM_HANDLE vhandle = HR_TRANSIENT + 0x1, phandle = HR_TRANSIENT + 0x2;
-    TSS2_RC rc;
 
     entry = handle_map_entry_new (phandle, vhandle);
     will_return (__wrap_access_broker_context_saveflush, TPM_RC_INITIALIZE);
-    rc = resource_manager_flushsave_context (data->resource_manager, entry);
-    assert_int_equal (rc, TPM_RC_INITIALIZE);
+    resource_manager_flushsave_context (entry, data->resource_manager);
     assert_int_equal (handle_map_entry_get_phandle (entry), phandle);
 }
 /*
@@ -360,7 +356,7 @@ resource_manager_load_contexts_test (void **state)
 {
     test_data_t    *data = (test_data_t*)*state;
     HandleMapEntry *entry;
-    HandleMapEntry *entries [3] = { 0 };
+    GSList         *entry_slist;
     HandleMap      *map;
     TPM_HANDLE      phandles [2] = {
         HR_TRANSIENT + 0xeb,
@@ -370,7 +366,6 @@ resource_manager_load_contexts_test (void **state)
     TPM_HANDLE      handle_ret;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     guint8          handle_count, i;
-    guint           entry_count = 2;
 
     will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_context_load, phandles [0]);
@@ -388,8 +383,7 @@ resource_manager_load_contexts_test (void **state)
     g_debug ("before resource_manager_load_contexts");
     rc = resource_manager_load_contexts (data->resource_manager,
                                          data->command,
-                                         entries,
-                                         &entry_count);
+                                         &entry_slist);
     g_debug ("after resource_manager_load_contexts");
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     for (i = 0; i < handle_count; ++i) {
