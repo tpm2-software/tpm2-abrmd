@@ -262,7 +262,7 @@ tcti_tabrmd_transmit_null_context_test (void **state)
     TSS2_RC rc;
 
     rc = tss2_tcti_transmit (NULL, 5, NULL);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
 }
 static void
 tcti_tabrmd_receive_null_context_test (void **state)
@@ -270,7 +270,7 @@ tcti_tabrmd_receive_null_context_test (void **state)
     TSS2_RC rc;
 
     rc = tss2_tcti_receive (NULL, NULL, NULL, TSS2_TCTI_TIMEOUT_BLOCK);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
 }
 static void
 tcti_tabrmd_cancel_null_context_test (void **state)
@@ -278,7 +278,7 @@ tcti_tabrmd_cancel_null_context_test (void **state)
     TSS2_RC rc;
 
     rc = tss2_tcti_cancel (NULL);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
 }
 static void
 tcti_tabrmd_get_poll_handles_null_context_test (void **state)
@@ -286,7 +286,7 @@ tcti_tabrmd_get_poll_handles_null_context_test (void **state)
     TSS2_RC rc;
 
     rc = tss2_tcti_get_poll_handles (NULL, NULL, NULL);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
 }
 static void
 tcti_tabrmd_set_locality_null_context_test (void **state)
@@ -294,7 +294,7 @@ tcti_tabrmd_set_locality_null_context_test (void **state)
     TSS2_RC rc;
 
     rc = tss2_tcti_set_locality (NULL, 5);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
 }
 /*
  * This test makes a single call to the transmit function in the the
@@ -719,7 +719,7 @@ tcti_tabrmd_receive_null_response_size_nonzero_test (void **state)
                             &size,
                             NULL,
                             TSS2_TCTI_TIMEOUT_BLOCK);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /*
  * If response buffer size is smaller than the header size buffer is

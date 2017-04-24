@@ -237,7 +237,7 @@ tss2_tcti_echo_transmit_null_context_unit (void **state)
     TSS2_RC rc;
 
     rc = tss2_tcti_transmit (NULL, 0, NULL);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
 }
 /**
  * A test: Call transmit with a NULL command buffer. Ensure we get the
@@ -337,7 +337,7 @@ tss2_tcti_echo_receive_null_context_unit (void **state)
     TSS2_RC rc;
 
     rc = tss2_tcti_receive (NULL, NULL, NULL, 0);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
 }
 /**
  * A test: Call receive with a NULL size. Ensure we get the right error
