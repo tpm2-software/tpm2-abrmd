@@ -410,7 +410,6 @@ post_process_entry_list (ResourceManager  *resmgr,
  * - Flush all objects loaded for the command or as part of executing the
  *   command..
  */
-#define ENTRY_COUNT 4
 void
 resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                        Tpm2Command       *command)
