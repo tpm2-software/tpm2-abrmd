@@ -29,11 +29,13 @@
 
 #include "connection.h"
 #include "control-message.h"
+#include "logging.h"
 #include "message-queue.h"
 #include "resource-manager.h"
 #include "sink-interface.h"
 #include "source-interface.h"
 #include "tabrmd.h"
+#include "tpm2-header.h"
 #include "tpm2-command.h"
 #include "tpm2-response.h"
 #include "util.h"
@@ -393,6 +395,204 @@ post_process_entry_list (ResourceManager  *resmgr,
     }
     g_slist_free_full (*entry_slist, g_object_unref);
 }
+/*
+ * This structure is used to keep state while iterating over a list of
+ * TPM_HANDLES.
+ * 'cap_data'    : this parameter is used to collect the list of handles that
+ *   we want as well as the number of handles in the structure
+ * 'max_count'   : is the maximum number of handles to return
+ * 'more_data'   : once max_count handles have been collected this variable
+ *   tells the caller whether additional handles would have been returned had
+ *   max_count been larger
+ * 'start_handle': is the numerically smallest handle that should be collected
+ *   into cap_data.
+ */
+typedef struct {
+    TPMS_CAPABILITY_DATA *cap_data;
+    size_t                max_count;
+    TPMI_YES_NO           more_data;
+    TPM_HANDLE            start_handle;
+} vhandle_iterator_state_t;
+/*
+ * This callback function is invoked as part of iterating over a list of
+ * handles. The first parameter is an entry from the collection being
+ * traversed. The second is a reference to a vhandle_iterator_state_t
+ * structure.
+ * This structure is used to maintain state while iterating over the
+ * collection.
+ */
+void
+vhandle_iterator_callback (gpointer entry,
+                           gpointer data)
+{
+    TPM_HANDLE                vhandle  = (uintptr_t)entry;
+    vhandle_iterator_state_t *state    = (vhandle_iterator_state_t*)data;
+    TPMS_CAPABILITY_DATA     *cap_data = state->cap_data;
+
+    /* if vhandle is numerically smaller than the start value just return */
+    if (vhandle < state->start_handle) {
+        return;
+    }
+    g_debug ("vhandle_iterator_callback with max_count: %zu and count: %"
+             PRIu32, state->max_count, cap_data->data.handles.count);
+    /* if we've collected max_count handles set 'more_data' and return */
+    if (!(cap_data->data.handles.count < state->max_count)) {
+        state->more_data = YES;
+        return;
+    }
+    cap_data->data.handles.handle [cap_data->data.handles.count] = vhandle;
+    ++cap_data->data.handles.count;
+}
+/*
+ * This is a GCompareFunc used to sort a list of TPM_HANDLES.
+ */
+int
+handle_compare (gconstpointer a,
+                gconstpointer b)
+{
+    TPM_HANDLE handle_a = (uintptr_t)a;
+    TPM_HANDLE handle_b = (uintptr_t)b;
+
+    if (handle_a < handle_b) {
+        return -1;
+    } else if (handle_a > handle_b) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+/*
+ * The get_cap_transient function populates a TPMS_CAPABILITY_DATA structure
+ * with the handles in the provided HandleMap 'map'. The 'prop' parameter
+ * is the lowest numerical handle to return. The 'count' parameter is the
+ * maximum number of handles to return in the capability data structure.
+ * Returns:
+ *   YES when more handles are present
+ *   NO when there are no more handles
+ */
+TPMI_YES_NO
+get_cap_handles (HandleMap            *map,
+                 TPM_HANDLE            prop,
+                 UINT32                count,
+                 TPMS_CAPABILITY_DATA *cap_data)
+{
+    GList *vhandle_list;
+    vhandle_iterator_state_t state = {
+        .cap_data     = cap_data,
+        .max_count    = count,
+        .more_data    = NO,
+        .start_handle = prop,
+    };
+
+    cap_data->capability = TPM_CAP_HANDLES;
+    cap_data->data.handles.count = 0;
+
+    vhandle_list = handle_map_get_keys (map);
+    vhandle_list = g_list_sort (vhandle_list, handle_compare);
+    g_list_foreach (vhandle_list, vhandle_iterator_callback, &state);
+
+    g_debug ("iterating over %" PRIu32 " vhandles from g_list_foreach",
+             cap_data->data.handles.count);
+    size_t i;
+    for (i = 0; i < cap_data->data.handles.count; ++i) {
+        g_debug ("  vhandle: 0x%" PRIx32, cap_data->data.handles.handle [i]);
+    }
+
+    return state.more_data;
+}
+/*
+ * These macros are used to set fields in a Tpm2Response buffer that we
+ * create in response to the TPM2 GetCapability command. They are very
+ * specifically taylored and should not be used elsewhere.
+ */
+#define YES_NO_OFFSET TPM_HEADER_SIZE
+#define YES_NO_SET(buffer, value) \
+    (*(TPMI_YES_NO*)(buffer + YES_NO_OFFSET) = value)
+#define CAP_OFFSET (TPM_HEADER_SIZE + sizeof (TPMI_YES_NO))
+#define CAP_SET(buffer, value) \
+    (*(TPM_CAP*)(buffer + CAP_OFFSET) = htobe32 (value))
+#define HANDLE_COUNT_OFFSET (CAP_OFFSET + sizeof (TPM_CAP))
+#define HANDLE_COUNT_SET(buffer, value) \
+    (*(UINT32*)(buffer + HANDLE_COUNT_OFFSET) = htobe32 (value))
+#define HANDLE_OFFSET (HANDLE_COUNT_OFFSET + sizeof (UINT32))
+#define HANDLE_INDEX(i) (sizeof (TPM_HANDLE) * i)
+#define HANDLE_SET(buffer, i, value) \
+    (*(TPM_HANDLE*)(buffer + HANDLE_OFFSET + HANDLE_INDEX (i)) = \
+        htobe32 (value))
+#define CAP_RESP_SIZE(value) \
+    (TPM_HEADER_SIZE + \
+     sizeof (TPMI_YES_NO) + \
+     sizeof (value->capability) + \
+     sizeof (value->data.handles.count) + \
+     (value->data.handles.count * \
+      sizeof (value->data.handles.handle [0])))
+/*
+ * This function is used to build a response buffer that contains the provided
+ * TPMS_CAPABILITY_DATA and TPMI_YES_NO. These are the two response parameters
+ * to the TPM2_GetCapability function.
+ * The 'cap_data' parameter *must* have the TPMU_CAPABILITY union populated
+ * with the TPM_CAP_HANDLES selector.
+ */
+uint8_t*
+build_cap_handles_response (TPMS_CAPABILITY_DATA *cap_data,
+                            TPMI_YES_NO           more_data)
+{
+    size_t i;
+    uint8_t *buf;
+
+    buf = calloc (1, CAP_RESP_SIZE (cap_data));
+    if (buf == NULL) {
+        tabrmd_critical ("failed to allocate buffer for handle capability "
+                         "response");
+    }
+    set_response_tag (buf, TPM_ST_NO_SESSIONS);
+    set_response_size (buf, CAP_RESP_SIZE (cap_data));
+    set_response_code (buf, TSS2_RC_SUCCESS);
+    YES_NO_SET (buf, more_data);
+    CAP_SET (buf, cap_data->capability);
+    HANDLE_COUNT_SET (buf, cap_data->data.handles.count);
+    for (i = 0; i < cap_data->data.handles.count; ++i) {
+        HANDLE_SET (buf, i, cap_data->data.handles.handle [i]);
+    }
+
+    return buf;
+}
+/*
+ * This function takes a Tpm2Command and the associated connection object
+ * as parameters. The Tpm2Command *must* be a GetCapability command. If it's
+ * a GetCapability command that we "virtualize" then we'll build a
+ * Tpm2Response object and return it. If not we return NULL.
+ */
+Tpm2Response*
+get_cap_handles_response (Tpm2Command *command,
+                          Connection *connection)
+{
+    TPM_CAP  cap         = tpm2_command_get_cap (command);
+    UINT32   prop        = tpm2_command_get_prop (command);
+    UINT32   prop_count  = tpm2_command_get_prop_count (command);
+    TPM_HT   handle_type = prop >> HR_SHIFT;
+    HandleMap *map;
+    TPMS_CAPABILITY_DATA cap_data = { .capability = cap };
+    TPMI_YES_NO more_data = NO;
+    uint8_t *resp_buf;
+    Tpm2Response *response = NULL;
+
+    g_debug ("processing TPM_CC_GetCapability with cap: 0x%" PRIx32
+             " prop: 0x%" PRIx32 " prop_count: 0x%" PRIx32,
+             cap, prop, prop_count);
+    if (cap == TPM_CAP_HANDLES && handle_type == TPM_HT_TRANSIENT) {
+        g_debug ("TPM_CAP_HANDLES && TPM_HT_TRANSIENT");
+        map = connection_get_trans_map (connection);
+        more_data = get_cap_handles (map,  prop, prop_count, &cap_data);
+        g_object_unref (map);
+        resp_buf = build_cap_handles_response (&cap_data, more_data);
+        response = tpm2_response_new (connection,
+                                      resp_buf,
+                                      tpm2_command_get_attributes (command));
+    }
+
+    return response;
+}
 /**
  * This function is invoked in response to the receipt of a Tpm2Command.
  * This is the place where we send the command buffer out to the TPM
@@ -439,6 +639,12 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         g_debug ("processing TPM_CC_FlushContext");
         response = resource_manager_flush_context (resmgr, command);
         break;
+    case TPM_CC_GetCapability:
+        response = get_cap_handles_response (command, connection);
+        if (response != NULL) {
+            break;
+        }
+        /* fall through if we don't "virtualize" the capability */
     default:
         /* Load contexts and switch virtual to physical handles in command */
         if (tpm2_command_get_handle_count (command) > 0) {

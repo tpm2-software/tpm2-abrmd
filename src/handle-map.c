@@ -331,3 +331,12 @@ handle_map_foreach (HandleMap *map,
                           callback,
                           user_data);
 }
+/*
+ * Get a GList containing all keys from the map. These will be returned in no
+ * particular order so don't assume that it's sorted in any way.
+ */
+GList*
+handle_map_get_keys (HandleMap *map)
+{
+    return g_hash_table_get_keys (map->vhandle_to_entry_table);
+}

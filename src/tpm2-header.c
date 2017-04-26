@@ -67,6 +67,15 @@ get_response_tag (uint8_t *response_header)
 {
     return be16toh (*(TPM_ST*)response_header);
 }
+/*
+ * Set the 'tag' field in a response buffer.
+ */
+void
+set_response_tag (uint8_t *response_header,
+                  TPM_ST   tag)
+{
+    *(TPM_ST*)response_header = htobe16 (tag);
+}
 /**
  * Get the 'responseSize' field from a TPM response header.
  */
@@ -74,6 +83,15 @@ UINT32
 get_response_size (uint8_t *response_header)
 {
     return be32toh (*(UINT32*)(response_header + sizeof (TPM_ST)));
+}
+/*
+ * Set the 'size' field in a response buffer.
+ */
+void
+set_response_size (uint8_t *response_header,
+                   UINT32   size)
+{
+    *(UINT32*)(response_header + sizeof (TPM_ST)) = htobe32 (size);
 }
 /**
  * Get the responseCode field from the TPM response buffer supplied in the
@@ -85,4 +103,13 @@ get_response_code (uint8_t *response_header)
 {
     return be32toh (*(TSS2_RC*)(response_header + sizeof (TPM_ST) + sizeof (UINT32)));
 }
-
+/*
+ * Set the responseCode field in a TPM response buffer.
+ */
+void
+set_response_code (uint8_t *response_header,
+                   TSS2_RC  rc)
+{
+    *(TSS2_RC*)(response_header + sizeof (TPM_ST) + sizeof (UINT32)) = \
+        htobe32 (rc);
+}
