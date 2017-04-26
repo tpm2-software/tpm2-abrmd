@@ -48,7 +48,13 @@ TPMI_ST_COMMAND_TAG    get_command_tag        (uint8_t      *command_header);
 UINT32                 get_command_size       (uint8_t      *command_header);
 TPM_CC                 get_command_code       (uint8_t      *command_header);
 TPM_ST                 get_response_tag       (uint8_t      *response_header);
+void                   set_response_tag       (uint8_t      *response_header,
+                                               TPM_ST        tag);
 UINT32                 get_response_size      (uint8_t      *response_header);
+void                   set_response_size      (uint8_t      *response_header,
+                                               UINT32        size);
 TSS2_RC                get_response_code      (uint8_t      *response_header);
+void                   set_response_code      (uint8_t      *response_header,
+                                               TSS2_RC       rc);
 
 #endif /* TPM2_HEADER_H */

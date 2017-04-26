@@ -46,6 +46,7 @@ endif #UNIT
 sbin_PROGRAMS   = src/tpm2-abrmd
 noinst_PROGRAMS = \
     test/integration/create-keys \
+    test/integration/get-capability-handles-transient \
     test/integration/manage-transient-keys \
     test/integration/start-auth-session \
     test/integration/tcti-cancel \
@@ -303,6 +304,11 @@ test_integration_create_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) \
     $(TCTI_SOCKET_LIBS)
 test_integration_create_keys_SOURCES = test/integration/main.c test/integration/create-keys.c
+
+test_integration_get_capability_handles_transient_LDADD   = $(libtest) \
+    $(libtcti_tabrmd) $(GLIB_LIBS) $(SAPI_LIBS)
+test_integration_get_capability_handles_transient_SOURCES = \
+    test/integration/main.c test/integration/get-capability-handles-transient.c
 
 test_integration_start_auth_session_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS)
 test_integration_start_auth_session_SOURCES = test/integration/main.c test/integration/start-auth-session.c

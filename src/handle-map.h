@@ -77,6 +77,7 @@ void             handle_map_foreach      (HandleMap    *map,
                                           GHFunc        callback,
                                           gpointer      user_data);
 gboolean         handle_map_is_full      (HandleMap *map);
+GList*           handle_map_get_keys     (HandleMap    *map);
 
 G_END_DECLS
 #endif /* HANDLE_MAP_H */

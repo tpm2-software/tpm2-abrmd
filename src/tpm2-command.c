@@ -32,13 +32,30 @@
 #include "util.h"
 /* macros to make getting at fields in the command more simple */
 
-#define HANDLE_OFFSET (sizeof (TPMI_ST_COMMAND_TAG) + \
-                       sizeof (UINT32) + \
-                       sizeof (TPM_CC))
+#define HEADER_SIZE (sizeof (TPM_ST) + sizeof (UINT32) + sizeof (TPM_CC))
+#define HANDLE_OFFSET HEADER_SIZE
 #define HANDLE_INDEX(i) (sizeof (TPM_HANDLE) * i)
 #define HANDLE_GET(buffer, count) (*(TPM_HANDLE*)(HANDLE_START (buffer) + \
                                                   HANDLE_INDEX (count)))
 #define HANDLE_START(buffer) (buffer + HANDLE_OFFSET)
+/*
+ * Offset of capability field in TPM2_GetCapability command buffer is
+ * immediately after the header.
+ */
+#define CAP_OFFSET HEADER_SIZE
+#define CAP_GET(buffer) (*(TPM_CAP*)(buffer + CAP_OFFSET))
+/*
+ * Offset of property field in TPM2_GetCapability command buffer is
+ * immediately after the capability field.
+ */
+#define PROPERTY_OFFSET (CAP_OFFSET + sizeof (TPM_CAP))
+#define PROPERTY_GET(buffer) (*(UINT32*)(buffer + PROPERTY_OFFSET))
+/*
+ * The offset of the property count field is immediately following the
+ * property field.
+ */
+#define PROPERTY_COUNT_OFFSET (PROPERTY_OFFSET + sizeof (UINT32))
+#define PROPERTY_COUNT_GET(buffer) (*(UINT32*)(buffer + PROPERTY_COUNT_OFFSET))
 
 G_DEFINE_TYPE (Tpm2Command, tpm2_command, G_TYPE_OBJECT);
 
@@ -373,4 +390,61 @@ tpm2_command_get_flush_handle (Tpm2Command *command)
      * the handle being flushed is the first parameter.
      */
     return be32toh (HANDLE_GET (tpm2_command_get_buffer (command), 0));
+}
+/*
+ * When provided with a Tpm2Command that represents a call to the
+ * GetCapability command this function will extract the 'capability' field.
+ * On error 0 is returned.
+ */
+TPM_CAP
+tpm2_command_get_cap (Tpm2Command *command)
+{
+    if (command == NULL) {
+        g_warning ("tpm2_command_get_cap passed NULL parameter");
+        return 0;
+    }
+    if (tpm2_command_get_code (command) != TPM_CC_GetCapability) {
+        g_warning ("tpm2_command_get_cap provided a Tpm2Command buffer "
+                   "containing the wrong command code.");
+        return 0;
+    }
+    return (TPM_CAP)be32toh (CAP_GET (tpm2_command_get_buffer (command)));
+}
+/*
+ * When provided with a Tpm2Command that represents a call to the
+ * GetCapability command this function will extract the 'property' field.
+ * On error 0 is returned.
+ */
+UINT32
+tpm2_command_get_prop (Tpm2Command *command)
+{
+    if (command == NULL) {
+        g_warning ("tpm2_command_get_prop passed NULL parameter");
+        return 0;
+    }
+    if (tpm2_command_get_code (command) != TPM_CC_GetCapability) {
+        g_warning ("tpm2_command_get_cap provided a Tpm2Command buffer "
+                   "containing the wrong command code.");
+        return 0;
+    }
+    return (UINT32)be32toh (PROPERTY_GET (tpm2_command_get_buffer (command)));
+}
+/*
+ * When provided with a Tpm2Command that represents a call to the
+ * GetCapability command this function will extract the 'propertyCount' field.
+ * On error 0 is returned.
+ */
+UINT32
+tpm2_command_get_prop_count (Tpm2Command *command)
+{
+    if (command == NULL) {
+        g_warning ("tpm2_command_get_prop_count assed NULL parameter");
+        return 0;
+    }
+    if (tpm2_command_get_code (command) != TPM_CC_GetCapability) {
+        g_warning ("tpm2_command_get_cap provided a Tpm2Command buffer "
+                   "containing the wrong command code.");
+        return 0;
+    }
+    return (UINT32)be32toh (PROPERTY_COUNT_GET (tpm2_command_get_buffer (command)));
 }
