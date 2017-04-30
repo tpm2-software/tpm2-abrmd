@@ -593,6 +593,34 @@ get_cap_handles_response (Tpm2Command *command,
 
     return response;
 }
+/*
+ * If the provided command is something that the ResourceManager "virtualizes"
+ * then this function will do so and return a Tpm2Response object that will be
+ * returned to the same connection. If the command isn't something that we
+ * virtualize then we just return NULL.
+ */
+Tpm2Response*
+virtualize_command (ResourceManager *resmgr,
+                    Tpm2Command     *command)
+{
+    Connection   *connection = NULL;
+    Tpm2Response *response   = NULL;
+
+    switch (tpm2_command_get_code (command)) {
+    case TPM_CC_FlushContext:
+        g_debug ("processing TPM_CC_FlushContext");
+        response = resource_manager_flush_context (resmgr, command);
+        break;
+    case TPM_CC_GetCapability:
+        g_debug ("processing TPM2_CC_GetCapability");
+        response = get_cap_handles_response (command, connection);
+        break;
+    default:
+        break;
+    }
+
+    return response;
+}
 /**
  * This function is invoked in response to the receipt of a Tpm2Command.
  * This is the place where we send the command buffer out to the TPM
@@ -625,52 +653,44 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
     dump_command (command);
     connection = tpm2_command_get_connection (command);
-    /* If connection has reached quota limit kill command & send error response */
+    /* If connection has reached quota limit, send error response */
     if (resource_manager_is_over_object_quota (resmgr, command)) {
         response = tpm2_response_new_rc (connection,
                                          TSS2_RESMGR_RC_OBJECT_MEMORY);
-        sink_enqueue (resmgr->sink, G_OBJECT (response));
-        g_object_unref (response);
-        g_object_unref (connection);
-        return;
+        goto send_response;
     }
-    switch (tpm2_command_get_code (command)) {
-    case TPM_CC_FlushContext:
-        g_debug ("processing TPM_CC_FlushContext");
-        response = resource_manager_flush_context (resmgr, command);
-        break;
-    case TPM_CC_GetCapability:
-        response = get_cap_handles_response (command, connection);
-        if (response != NULL) {
-            break;
-        }
-        /* fall through if we don't "virtualize" the capability */
-    default:
-        /* Load contexts and switch virtual to physical handles in command */
-        if (tpm2_command_get_handle_count (command) > 0) {
-            resource_manager_load_contexts (resmgr, command, &entry_slist);
-        }
-        response = access_broker_send_command (resmgr->access_broker,
-                                               command,
-                                               &rc);
-        if (response == NULL) {
-            g_warning ("access_broker_send_command returned error: 0x%x", rc);
-            response = tpm2_response_new_rc (connection, rc);
-        }
-        dump_response (response);
-        /* transform the Tpm2Response */
-        if (tpm2_response_has_handle (response)) {
-            entry = resource_manager_virtualize_handle (resmgr, response);
-            if (entry != NULL) {
-                entry_slist = g_slist_prepend (entry_slist, entry);
-            }
-        }
-        break;
+    /* If command is virtualized by the ResourceManager, get the response */
+    response = virtualize_command (resmgr, command);
+    if (response != NULL) {
+        goto send_response;
     }
+    /* Load contexts and switch virtual to physical handles in command */
+    if (tpm2_command_get_handle_count (command) > 0) {
+        resource_manager_load_contexts (resmgr, command, &entry_slist);
+    }
+    response = access_broker_send_command (resmgr->access_broker,
+                                           command,
+                                           &rc);
+    if (response == NULL) {
+        g_warning ("access_broker_send_command returned error: 0x%x", rc);
+        response = tpm2_response_new_rc (connection, rc);
+    }
+    dump_response (response);
+    /* transform virtualized handles in Tpm2Response if necessary */
+    if (tpm2_response_has_handle (response)) {
+        entry = resource_manager_virtualize_handle (resmgr, response);
+        if (entry != NULL) {
+            entry_slist = g_slist_prepend (entry_slist, entry);
+        }
+    }
+send_response:
+    /* send response to next processing stage */
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
+    /* save contexts that were previously loaded by 'load_contexts */
     post_process_entry_list (resmgr, &entry_slist, connection, command_attrs);
     g_object_unref (connection);
+    return;
 }
 /**
  * This function acts as a thread. It simply:
