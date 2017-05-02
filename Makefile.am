@@ -54,6 +54,7 @@ noinst_PROGRAMS = \
     test/integration/tcti-set-locality \
     test/integration/hash-sequence \
     test/integration/password-authorization \
+    test/integration/hmac-authorization \
     test/tcti-tabrmd_read-write
 check_PROGRAMS  = $(TESTS_UNIT)
 
@@ -327,6 +328,18 @@ test_integration_hash_sequence_SOURCES = test/integration/main.c test/integratio
 
 test_integration_password_authorization_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_integration_password_authorization_SOURCES = test/integration/main.c test/integration/password-authorization.c
+
+test_integration_hmac_authorization_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_hmac_authorization_SOURCES = \
+	test/integration/main.c \
+	test/integration/tpm_hash.c \
+	test/integration/tpm_hmac.c \
+	test/integration/string-bytes.c \
+	test/integration/change-endian.c \
+	test/integration/concat-sized-byte-buffer.c \
+	test/integration/tpm-handle-to-name.c \
+	test/integration/define-nv-index.c \
+	test/integration/hmac-authorization.c 
 
 test_integration_manage_transient_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
