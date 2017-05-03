@@ -291,6 +291,8 @@ process_client_fd (CommandSource      *source,
     ret = read_data (fd, &index, buf, TPM_HEADER_SIZE);
     if (ret == 0) {
         g_debug_bytes (buf, index, 16, 4);
+    } else if (ret == -1) {
+        goto cleanup; // client terminated ok
     } else {
         goto fail_out;
     }
@@ -319,13 +321,14 @@ process_client_fd (CommandSource      *source,
     g_object_unref (connection);
     return;
 fail_out:
-    if (buf != NULL) {
-        g_free (buf);
-    }
     g_warning ("removing connection 0x%" PRIxPTR " from connection_manager "
                "0x%" PRIxPTR,
                (uintptr_t)connection,
                (uintptr_t)source->connection_manager);
+cleanup:
+    if (buf != NULL) {
+        g_free (buf);
+    }
     FD_CLR (fd, &source->receive_fdset);
     connection_manager_remove (source->connection_manager,
                                connection);
