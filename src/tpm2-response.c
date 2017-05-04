@@ -29,6 +29,7 @@
 #include <string.h>
 #include <tpm20.h>
 
+#include "tpm2-header.h"
 #include "tpm2-response.h"
 
 #define TPM_RESPONSE_TAG(buffer) (*(TPM_ST*)buffer)
@@ -262,8 +263,12 @@ tpm2_response_has_handle (Tpm2Response  *response)
     g_debug ("tpm2_response_has_handle");
     uint32_t tmp;
 
-    tmp = tpm2_response_get_attributes (response).val;
-    return tmp & TPMA_CC_RHANDLE ? TRUE : FALSE;
+    if (tpm2_response_get_size (response) < TPM_HEADER_SIZE) {
+        return FALSE;
+    } else {
+        tmp = tpm2_response_get_attributes (response).val;
+        return tmp & TPMA_CC_RHANDLE ? TRUE : FALSE;
+    }
 }
 /*
  * Return the handle from the response handle area. Always check to be sure
