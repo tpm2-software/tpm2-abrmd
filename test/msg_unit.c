@@ -37,7 +37,7 @@ static void
 check_cancel_msg_allocate_test (void **state)
 {
     check_cancel_msg_t *msg;
-    
+
     msg = check_cancel_msg_new ();
     assert_non_null (msg);
     assert_int_equal (MSG_TYPE (msg), CHECK_CANCEL_MSG_TYPE);

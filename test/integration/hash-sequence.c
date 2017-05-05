@@ -193,7 +193,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         g_warning("Hash sequence update failed. RC = 0x%x", rval);
         return 0;
     }
-  
+
     /*
      * Now try starting a bunch of sequences to see what happens. This checks
      * that the resource manager properly saves and restores the context of
@@ -242,7 +242,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         g_warning ("Failed to update original hash sequence. RC = 0x%x", rval);
         return 0;
     }
-      
+
     dataToHash.t.size = sizeof (memoryToHash) - MAX_DIGEST_BUFFER;
     memcpy (dataToHash.t.buffer,
             &memoryToHash[MAX_DIGEST_BUFFER],
@@ -306,5 +306,5 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         }
     }
 
-    return 1; 
+    return 1;
 }

@@ -84,7 +84,7 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
     capabilityData->data.tpmProperties.tpmProperty[1].property = TPM_PT_MAX_RESPONSE_SIZE;
     capabilityData->data.tpmProperties.tpmProperty[1].value    = (guint32)mock ();
     capabilityData->data.tpmProperties.count = 2;
-    
+
     rc = (TSS2_RC)mock ();
     g_debug ("__wrap_Tss2_Sys_GetCapability returning: 0x%x", rc);
     return rc;
@@ -108,7 +108,7 @@ __wrap_tcti_echo_receive (TSS2_TCTI_CONTEXT *tcti_context,
                           int32_t            timeout)
 {
     TSS2_RC rc;
-    
+
     rc = (TSS2_RC)mock ();
     g_debug ("__wrap_tcti_echo_receive returning: 0x%x", rc);
 
@@ -278,7 +278,7 @@ access_broker_lock_test (void **state)
  * function. We're wrapping the tcti_transmit command in the TCTI that
  * the access broker is using. This test causes the TCTI transmit
  * function to return an arbitrary respose code. In this case we should
- * receive a NULL pointer back in place of the Tpm2Response and the 
+ * receive a NULL pointer back in place of the Tpm2Response and the
  * out parameter RC is set to the RC value.
  */
 static void

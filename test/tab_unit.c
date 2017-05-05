@@ -88,7 +88,7 @@ tab_add_no_remove_test_setup (void **state)
     sink = response_sink_new ();
     tcti = TCTI (tcti_echo_new (TCTI_ECHO_MIN_BUF));
     tab = tab_new (tcti);
-    source_add_sink (SOURCE (tab), SINK (sink)); 
+    source_add_sink (SOURCE (tab), SINK (sink));
     tab_start (tab);
     *state = tab;
 }

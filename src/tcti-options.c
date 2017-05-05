@@ -231,7 +231,7 @@ tcti_options_new (void)
     return TCTI_OPTIONS (g_object_new (TYPE_TCTI_OPTIONS, NULL));
 }
 
-/* callback used to handl the --tcti= option 
+/* callback used to handl the --tcti= option
  * This is how we determin which TCTI the tabrmd will use to communicate with
  * the TPM.
  */

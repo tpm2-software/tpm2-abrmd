@@ -85,7 +85,7 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
         nvAuth.t.buffer[i] = password[i];
     }
 
-    publicInfo.t.size = sizeof (TPMI_RH_NV_INDEX) + sizeof (TPMI_ALG_HASH) + 
+    publicInfo.t.size = sizeof (TPMI_RH_NV_INDEX) + sizeof (TPMI_ALG_HASH) +
         sizeof (TPMA_NV) + sizeof (UINT16) + sizeof (UINT16);
     publicInfo.t.nvPublic.nvIndex = nvIndex;
     publicInfo.t.nvPublic.nameAlg = TPM_ALG_SHA1;
@@ -111,7 +111,7 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
         g_warning("Failed to define NV space with password authorization. RC = 0x%x", rval);
         return 0;
     }
-    
+
     return 1;
 }
 

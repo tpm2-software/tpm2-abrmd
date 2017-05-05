@@ -177,7 +177,7 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
             TPM2B_PUBLIC     *out_public)
 {
     TPM_RC rc;
-    
+
     TPM2B_SENSITIVE_CREATE  in_sensitive     = { 0 };
     TPM2B_PUBLIC	    in_public        = { 0 };
     TPM2B_DATA	            outside_info     = { 0 };

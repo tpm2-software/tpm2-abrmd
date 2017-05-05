@@ -126,7 +126,7 @@ tcti_socket_class_init (TctiSocketClass *klass)
                              "Address for connection to TPM",
                              "/dev/tpm0",
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties[PROP_PORT] = 
+    obj_properties[PROP_PORT] =
         g_param_spec_uint ("port",
                            "Socket port",
                            "Port for connection to TPM",
