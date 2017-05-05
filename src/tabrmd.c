@@ -618,6 +618,14 @@ init_thread_func (gpointer user_data)
              (uintptr_t)data->response_sink);
     g_object_unref (command_attrs);
     g_object_unref (data->access_broker);
+    /*
+     * Connect the ResourceManager to the ConnectionManager
+     * 'connection-removed' signal.
+     */
+    g_signal_connect (data->manager,
+                      "connection-removed",
+                      G_CALLBACK (resource_manager_on_connection_removed),
+                      data->resource_manager);
     /**
      * Wire up the TPM command processing pipeline. TPM command buffers
      * flow from the CommandSource, to the Tab then finally back to the
