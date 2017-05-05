@@ -33,7 +33,9 @@
 #include <sapi/tpm20.h>
 
 #include "access-broker.h"
+#include "connection-manager.h"
 #include "message-queue.h"
+#include "session-list.h"
 #include "sink-interface.h"
 #include "thread.h"
 
@@ -48,6 +50,7 @@ typedef struct _ResourceManager {
     AccessBroker     *access_broker;
     MessageQueue     *in_queue;
     Sink             *sink;
+    SessionList      *session_list;
 } ResourceManager;
 
 #define TYPE_RESOURCE_MANAGER              (resource_manager_get_type ())
@@ -65,13 +68,17 @@ void                  resource_manager_flushsave_context (gpointer              
                                                           gpointer              resmgr);
 TSS2_RC               resource_manager_load_contexts     (ResourceManager *resmgr,
                                                           Tpm2Command     *command,
-                                                          GSList         **slist);
+                                                          GSList         **slist,
+                                                          SessionList     *session_list);
 TSS2_RC               resource_manager_virt_to_phys      (ResourceManager *resmgr,
                                                           Tpm2Command     *command,
                                                           HandleMapEntry  *entry,
                                                           guint8           handle_number);
 void                  resource_manager_enqueue           (Sink            *sink,
                                                           GObject         *obj);
+void                  resource_manager_on_connection_removed (ConnectionManager *connection_manager,
+                                                              Connection        *connection,
+                                                              ResourceManager   *resource_manager);
 
 G_END_DECLS
 #endif /* RESOURCE_MANAGER_H */
