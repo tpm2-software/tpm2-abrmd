@@ -46,6 +46,9 @@ endif #UNIT
 
 sbin_PROGRAMS   = src/tpm2-abrmd
 noinst_PROGRAMS = \
+    test/integration/auth-session-start-flush \
+    test/integration/auth-session-start-save \
+    test/integration/auth-session-start-save-load \
     test/integration/create-keys \
     test/integration/get-capability-handles-transient \
     test/integration/manage-transient-keys \
@@ -307,6 +310,21 @@ endif
 
 test_tcti_tabrmd_read_write_LDADD   = $(GLIB_LIBS) $(libtcti_tabrmd)
 test_tcti_tabrmd_read_write_SOURCES = test/tcti-tabrmd_read-write.c
+
+test_integration_auth_session_start_flush_LDADD   = $(libtest) $(libtcti_tabrmd) \
+    $(GLIB_LIBS)
+test_integration_auth_session_start_flush_SOURCES = test/integration/main.c \
+    test/integration/auth-session-start-flush.c
+
+test_integration_auth_session_start_save_LDADD   = $(libtest) $(libtcti_tabrmd) \
+    $(GLIB_LIBS)
+test_integration_auth_session_start_save_SOURCES = test/integration/main.c \
+    test/integration/auth-session-start-save.c
+
+test_integration_auth_session_start_save_load_LDADD   = $(libtest) $(libtcti_tabrmd) \
+    $(GLIB_LIBS)
+test_integration_auth_session_start_save_load_SOURCES = test/integration/main.c \
+    test/integration/auth-session-start-save-load.c
 
 test_integration_create_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) \
