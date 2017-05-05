@@ -156,8 +156,8 @@ read_data (int                       fd,
         errno_tmp = errno;
         switch (num_read) {
         case -1: /* error */
-            g_debug ("read produced error: %d, %s",
-                     errno_tmp, strerror (errno_tmp));
+            g_warning ("read on fd %d produced error: %d, %s",
+                       fd, errno_tmp, strerror (errno_tmp));
             return errno_tmp;
         case 0:  /* EOF / fd closed */
             g_debug ("read produced EOF");
