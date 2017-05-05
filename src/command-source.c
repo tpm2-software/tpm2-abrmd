@@ -322,10 +322,10 @@ fail_out:
     if (buf != NULL) {
         g_free (buf);
     }
-    g_warning ("removing connection 0x%" PRIxPTR " from connection_manager "
-               "0x%" PRIxPTR,
-               (uintptr_t)connection,
-               (uintptr_t)source->connection_manager);
+    g_debug ("removing connection 0x%" PRIxPTR " from connection_manager "
+             "0x%" PRIxPTR,
+             (uintptr_t)connection,
+             (uintptr_t)source->connection_manager);
     FD_CLR (fd, &source->receive_fdset);
     connection_manager_remove (source->connection_manager,
                                connection);
