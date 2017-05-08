@@ -54,6 +54,21 @@ typedef struct _Tpm2Command {
 #define IS_TPM2_COMMAND_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE    ((klass), TYPE_TPM2_COMMAND))
 #define TPM2_COMMAND_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TPM2_COMMAND, Tpm2CommandClass))
 
+/*
+ * Helper macros to extract fields from an authorization. The 'ptr' parameter
+ * is a pointer to the start of the authorization.
+ */
+#define AUTH_HANDLE_GET(ptr) (be32toh (*(TPM_HANDLE*)ptr))
+#define AUTH_NONCE_SIZE_OFFSET(ptr) (ptr + sizeof (TPM_HANDLE))
+#define AUTH_NONCE_SIZE_GET(ptr) (be16toh (*(TPM_HANDLE*)AUTH_NONCE_SIZE_OFFSET (ptr)))
+#define AUTH_NONCE_PTR(ptr)  (AUTH_NONCE_SIZE_OFFSET (ptr) + sizeof (UINT16))
+#define AUTH_SESSION_ATTRS_OFFSET(ptr) \
+    (AUTH_NONCE_PTR (ptr) + AUTH_NONCE_SIZE_GET (ptr))
+#define AUTH_SESSION_ATTRS_GET(ptr) (*(TPMA_SESSION*)AUTH_SESSION_ATTRS_OFFSET (ptr))
+#define AUTH_AUTH_SIZE_OFFSET(ptr) (AUTH_ATTRS_OFFSET (ptr) + sizeof (UINT8))
+#define AUTH_AUTH_SIZE_GET(ptr) (be16toh (*(UINT16*)AUTH_SESSION_SIZE_OFFSET (ptr)))
+#define AUTH_AUTH_OFFSET(ptr) (AUTH_AUTH_SIZE_OFFSET (ptr) + sizeof (UINT16))
+
 GType                 tpm2_command_get_type        (void);
 Tpm2Command*          tpm2_command_new             (Connection      *connection,
                                                     guint8           *buffer,
@@ -80,6 +95,11 @@ Connection*           tpm2_command_get_connection  (Tpm2Command      *command);
 TPM_CAP               tpm2_command_get_cap         (Tpm2Command      *command);
 UINT32                tpm2_command_get_prop        (Tpm2Command      *command);
 UINT32                tpm2_command_get_prop_count  (Tpm2Command      *command);
+gboolean              tpm2_command_has_auths       (Tpm2Command      *command);
+UINT32                tpm2_command_get_auths_size  (Tpm2Command      *command);
+gboolean              tpm2_command_foreach_auth    (Tpm2Command      *command,
+                                                    GFunc             func,
+                                                    gpointer          user_data);
 
 G_END_DECLS
 
