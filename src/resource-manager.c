@@ -94,6 +94,93 @@ resource_manager_virt_to_phys (ResourceManager *resmgr,
     }
     return rc;
 }
+TSS2_RC
+resource_manager_load_transient (ResourceManager  *resmgr,
+                                 Tpm2Command      *command,
+                                 GSList          **entry_slist,
+                                 TPM_HANDLE        handle,
+                                 guint8            handle_index)
+{
+    HandleMap    *map;
+    HandleMapEntry *entry;
+    Connection  *connection;
+    TSS2_RC       rc = TSS2_RC_SUCCESS;
+
+    g_debug ("processing TPM_HT_TRANSIENT: 0x%" PRIx32, handle);
+    connection = tpm2_command_get_connection (command);
+    map = connection_get_trans_map (connection);
+    g_object_unref (connection);
+    g_debug ("handle 0x%" PRIx32 " is virtual TPM_HT_TRANSIENT, "
+             "loading", handle);
+    /* we don't unref the entry since we're adding it to the entry_slist below */
+    entry = handle_map_vlookup (map, handle);
+    if (entry) {
+        g_debug ("mapped virtual handle 0x%" PRIx32 " to entry 0x%"
+                 PRIxPTR, handle, (uintptr_t)entry);
+    } else {
+        g_warning ("No HandleMapEntry for vhandle: 0x%" PRIx32, handle);
+        goto out;
+    }
+    rc = resource_manager_virt_to_phys (resmgr, command, entry, handle_index);
+    if (rc != TSS2_RC_SUCCESS) {
+        goto out;
+    }
+    *entry_slist = g_slist_prepend (*entry_slist, entry);
+out:
+    g_object_unref (map);
+    return rc;
+}
+TSS2_RC
+resource_manager_load_session (ResourceManager *resmgr,
+                               Tpm2Command     *command,
+                               SessionList     *loaded_sessions,
+                               TPM_HANDLE       handle)
+{
+    SessionEntry  *session_entry;
+    TSS2_RC        rc = TSS2_RC_SUCCESS;
+    TPM_HANDLE     handle_tmp;
+    TPMS_CONTEXT  *context;
+
+    session_list_lock (resmgr->session_list);
+    session_entry = session_list_lookup_handle (resmgr->session_list,
+                                                handle);
+    session_list_unlock (resmgr->session_list);
+    if (session_entry == NULL) {
+        g_debug ("no session with handle 0x%08" PRIx32 " known to "
+                 "ResourceManager.", handle);
+        goto out;
+    }
+    if (session_entry_get_state (session_entry) == SESSION_ENTRY_SAVED_CLIENT) {
+        g_debug ("SessionEntry for handle 0x%08" PRIx32 " has been "
+                 "saved.", handle);
+        goto out_unref_entry;
+
+    }
+    g_debug ("mapped session handle 0x%08" PRIx32 " to "
+             "SessionEntry: 0x%" PRIxPTR, handle,
+             (uintptr_t)session_entry);
+    session_entry_prettyprint (session_entry);
+
+    context = session_entry_get_context (session_entry);
+    rc = access_broker_context_load (resmgr->access_broker,
+                                     context,
+                                     &handle_tmp);
+    if (rc == TSS2_RC_SUCCESS) {
+        g_debug ("loaded context for session handle: 0x%08" PRIx32
+                 " got back handle: 0x%08" PRIx32,
+                 context->savedHandle, handle_tmp);
+    } else {
+        g_warning ("Failed to load context for session with handle "
+                   "0x%08" PRIx32 " RC: 0x%" PRIx32, handle, rc);
+        goto out_unref_entry;
+    }
+    session_list_insert (loaded_sessions, session_entry);
+out_unref_entry:
+    g_object_unref (session_entry);
+out:
+
+    return rc;
+}
 /*
  * This function operates on the provided command. It iterates over each
  * handle in the commands handle area. For each relevant handle it loads
@@ -105,13 +192,10 @@ resource_manager_load_contexts (ResourceManager *resmgr,
                                 GSList         **entry_slist,
                                 SessionList     *loaded_sessions)
 {
-    HandleMap    *map;
-    HandleMapEntry *entry;
-    SessionEntry   *session_entry;
-    Connection  *connection;
+    Connection   *connection;
     TSS2_RC       rc = TSS2_RC_SUCCESS;
     TPM_HANDLE    handles[3] = { 0, };
-    guint8 i, handle_count;;
+    guint8        i, handle_count;;
 
     g_debug ("resource_manager_load_contexts");
     if (!resmgr || !command) {
@@ -126,72 +210,25 @@ resource_manager_load_contexts (ResourceManager *resmgr,
         switch (handles [i] >> HR_SHIFT) {
         case TPM_HT_TRANSIENT:
             g_debug ("processing TPM_HT_TRANSIENT: 0x%" PRIx32, handles [i]);
-            map = connection_get_trans_map (connection);
-            g_debug ("handle 0x%" PRIx32 " is virtual TPM_HT_TRANSIENT, "
-                     "loading", handles [i]);
-            entry = handle_map_vlookup (map, handles [i]);
-            if (entry) {
-                g_debug ("mapped virtual handle 0x%" PRIx32 " to entry 0x%"
-                         PRIxPTR, handles [i], (uintptr_t)entry);
-            } else {
-                g_warning ("No HandleMapEntry for vhandle: 0x%" PRIx32,
-                           handles [i]);
-                continue;
-            }
-            g_object_unref (map);
-            rc = resource_manager_virt_to_phys (resmgr, command, entry, i);
-            if (rc != TSS2_RC_SUCCESS)
-                break;
-            *entry_slist = g_slist_prepend (*entry_slist, entry);
+            rc = resource_manager_load_transient (resmgr,
+                                                  command,
+                                                  entry_slist,
+                                                  handles [i],
+                                                  i);
             break;
         case TPM_HT_HMAC_SESSION:
         case TPM_HT_POLICY_SESSION:
             g_debug ("processing TPM_HT_HMAC_SESSION or "
                      "TPM_HT_POLICY_SESSION: 0x%" PRIx32, handles [i]);
-            session_list_lock (resmgr->session_list);
-            session_entry = session_list_lookup_handle (resmgr->session_list,
-                                                        handles [i]);
-            if (session_entry == NULL) {
-                g_debug ("no session with handle 0x%08" PRIx32 " known to "
-                         "ResourceManager.", handles [i]);
-                session_list_unlock (resmgr->session_list);
-                goto out;
-            }
-            if (session_entry_get_state (session_entry) == SESSION_ENTRY_SAVED_CLIENT) {
-                g_debug ("SessionEntry for handle 0x%08" PRIx32 " has been "
-                         "saved.", handles [i]);
-                session_list_unlock (resmgr->session_list);
-                goto out;
-
-            }
-            g_debug ("mapped session handle 0x%08" PRIx32 " to "
-                     "SessionEntry: 0x%" PRIxPTR, handles [i],
-                     (uintptr_t)session_entry);
-            session_entry_prettyprint (session_entry);
-            /* load session objects from */
-
-            TPM_HANDLE handle = 0;
-            TPMS_CONTEXT *context = session_entry_get_context (session_entry);
-            rc = access_broker_context_load (resmgr->access_broker,
-                                             context,
-                                             &handle);
-            if (rc == TSS2_RC_SUCCESS) {
-                g_debug ("loaded context for session handle: 0x%08" PRIx32
-                         " got back handle: 0x%08" PRIx32,
-                         context->savedHandle, handle);
-            } else {
-                g_warning ("Failed to load context for session with handle "
-                           "0x%08" PRIx32 " RC: 0x%" PRIx32, handles [i], rc);
-            }
-            session_list_unlock (resmgr->session_list);
-            session_list_insert (loaded_sessions, session_entry);
-            g_object_unref (session_entry);
+            rc = resource_manager_load_session (resmgr,
+                                                command,
+                                                loaded_sessions,
+                                                handles [i]);
             break;
         default:
             break;
         }
     }
-out:
     g_debug ("resource_manager_load_contexts end");
     g_object_unref (connection);
 
