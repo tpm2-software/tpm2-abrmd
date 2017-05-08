@@ -134,7 +134,8 @@ TSS2_RC
 resource_manager_load_session (ResourceManager *resmgr,
                                Tpm2Command     *command,
                                SessionList     *loaded_sessions,
-                               TPM_HANDLE       handle)
+                               TPM_HANDLE       handle,
+                               gboolean         will_flush)
 {
     SessionEntry  *session_entry;
     TSS2_RC        rc = TSS2_RC_SUCCESS;
@@ -154,7 +155,6 @@ resource_manager_load_session (ResourceManager *resmgr,
         g_debug ("SessionEntry for handle 0x%08" PRIx32 " has been "
                  "saved.", handle);
         goto out_unref_entry;
-
     }
     g_debug ("mapped session handle 0x%08" PRIx32 " to "
              "SessionEntry: 0x%" PRIxPTR, handle,
@@ -174,12 +174,46 @@ resource_manager_load_session (ResourceManager *resmgr,
                    "0x%08" PRIx32 " RC: 0x%" PRIx32, handle, rc);
         goto out_unref_entry;
     }
-    session_list_insert (loaded_sessions, session_entry);
+    if (will_flush == FALSE) {
+        session_list_insert (loaded_sessions, session_entry);
+    } else {
+        session_list_remove (resmgr->session_list, session_entry);
+    }
 out_unref_entry:
     g_object_unref (session_entry);
 out:
 
     return rc;
+}
+typedef struct {
+    ResourceManager *resmgr;
+    Tpm2Command     *command;
+    SessionList     *loaded_sessions;
+} auth_callback_data_t;
+void
+resource_manager_load_auth_callback (gpointer auth_ptr,
+                                     gpointer user_data)
+{
+    TPM_HANDLE handle = AUTH_HANDLE_GET ((uint8_t*)auth_ptr);
+    auth_callback_data_t *data = (auth_callback_data_t*)user_data;
+    TPMA_SESSION session_attrs = AUTH_SESSION_ATTRS_GET (auth_ptr);
+    gboolean will_flush;
+
+    will_flush = session_attrs.val & TPMA_SESSION_CONTINUESESSION ? FALSE : TRUE;
+    switch (handle >> HR_SHIFT) {
+    case TPM_HT_HMAC_SESSION:
+    case TPM_HT_POLICY_SESSION:
+        resource_manager_load_session (data->resmgr,
+                                       data->command,
+                                       data->loaded_sessions,
+                                       handle,
+                                       will_flush);
+        break;
+    default:
+        g_debug ("not loading object with handle: 0x%08" PRIx32 " from "
+                 "command auth area: not a session", handle);
+        break;
+    }
 }
 /*
  * This function operates on the provided command. It iterates over each
@@ -196,6 +230,11 @@ resource_manager_load_contexts (ResourceManager *resmgr,
     TSS2_RC       rc = TSS2_RC_SUCCESS;
     TPM_HANDLE    handles[3] = { 0, };
     guint8        i, handle_count;;
+    auth_callback_data_t auth_callback_data = {
+        .resmgr = resmgr,
+        .command = command,
+        .loaded_sessions = loaded_sessions,
+    };
 
     g_debug ("resource_manager_load_contexts");
     if (!resmgr || !command) {
@@ -205,7 +244,8 @@ resource_manager_load_contexts (ResourceManager *resmgr,
     connection = tpm2_command_get_connection (command);
     handle_count = tpm2_command_get_handle_count (command);
     tpm2_command_get_handles (command, handles, handle_count);
-    g_debug ("loading contexts for %" PRId8 " handles", handle_count);
+    g_debug ("loading contexts for %" PRId8 " handles in command handle area",
+             handle_count);
     for (i = 0; i < handle_count; ++i) {
         switch (handles [i] >> HR_SHIFT) {
         case TPM_HT_TRANSIENT:
@@ -223,11 +263,18 @@ resource_manager_load_contexts (ResourceManager *resmgr,
             rc = resource_manager_load_session (resmgr,
                                                 command,
                                                 loaded_sessions,
-                                                handles [i]);
+                                                handles [i],
+                                                FALSE);
             break;
         default:
             break;
         }
+    }
+    g_debug ("loading contexts for handles in auth area");
+    if (tpm2_command_has_auths (command)) {
+        tpm2_command_foreach_auth (command,
+                                   resource_manager_load_auth_callback,
+                                   &auth_callback_data);
     }
     g_debug ("resource_manager_load_contexts end");
     g_object_unref (connection);
