@@ -26,7 +26,6 @@ TESTS_UNIT = \
     test/command-source_unit \
     test/handle-map-entry_unit \
     test/handle-map_unit \
-    test/random_unit \
     test/test-skeleton_unit \
     test/tcti-echo_unit \
     test/tcti-options_unit \
@@ -118,7 +117,6 @@ src_libutil_la_SOURCES = \
     src/logging.c \
     src/thread.c \
     src/command-source.c \
-    src/random.c \
     src/resource-manager.c \
     src/response-sink.c \
     src/sink-interface.c \
@@ -284,11 +282,6 @@ test_access_broker_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_GetCapability,--wrap=tcti_echo_transmit
 test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
 test_access_broker_unit_SOURCES = test/access-broker_unit.c
-
-test_random_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_random_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_random_unit_LDFLAGS = -Wl,--wrap=open,--wrap=read,--wrap=close
-test_random_unit_SOURCES = test/random_unit.c
 
 test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
