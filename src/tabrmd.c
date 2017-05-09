@@ -42,7 +42,6 @@
 #include "logging.h"
 #include "thread.h"
 #include "command-source.h"
-#include "random.h"
 #include "resource-manager.h"
 #include "response-sink.h"
 #include "source-interface.h"
@@ -65,7 +64,6 @@ typedef struct gmain_data {
     TctiTabrmd             *skeleton;
     ConnectionManager         *manager;
     CommandSource         *command_source;
-    Random                 *random;
     ResponseSink           *response_sink;
     GMutex                  init_mutex;
     Tcti                   *tcti;
@@ -555,10 +553,6 @@ init_thread_func (gpointer user_data)
                               NULL,
                               (GAsyncReadyCallback)on_get_dbus_daemon_proxy,
                               user_data);
-    data->random = random_new();
-    ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
-    if (ret != 0)
-        g_error ("failed to seed Random object");
 
     data->manager = connection_manager_new(data->options.max_connections);
     if (data->manager == NULL)
@@ -776,7 +770,6 @@ main (int argc, char *argv[])
     /* clean up what remains */
     g_object_unref (gmain_data.manager);
     g_object_unref (gmain_data.options.tcti_options);
-    g_object_unref (gmain_data.random);
     g_object_unref (gmain_data.tcti);
     return 0;
 }
