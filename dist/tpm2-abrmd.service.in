@@ -4,11 +4,13 @@ Description=TPM2 Access Broker and Resource Management Daemon
 
 [Service]
 Type=dbus
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/default/tpm2-abrmd
 BusName=com.intel.tss2.Tabrmd
-Environment=G_MESSAGES_DEBUG=all
 StandardOutput=syslog
 ExecStart=@SBINDIR@/tpm2-abrmd
 User=tss
 
 [Install]
-WantedBy=runlevel3.target
+WantedBy=multi-user.target
