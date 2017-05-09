@@ -76,18 +76,26 @@ tpm2_abrmd_HEADERS = $(srcdir)/src/include/tabrmd.h
 libtcti_tabrmddir      = $(includedir)/tcti
 libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
 
+EXTRA_DIST = \
+    dist/tcti-tabrmd.pc.in \
+    dist/tpm2-abrmd.conf.in \
+    dist/tpm-udev.rules \
+    man/tpm2-abrmd.8.in
+
 CLEANFILES = \
+    man/man8/tpm2-abrmd.8 \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
+    $(pkgconfig_DATA) \
     $(systemdsystemunit_DATA)
+
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
-pkgconfigdir          = $(libdir)/pkgconfig
-dist_pkgconfig_DATA   = dist/tcti-tabrmd.pc
-dist_dbuspolicy_DATA  = dist/tpm2-abrmd.conf
-dist_udevrules_DATA   = dist/tpm-udev.rules
+pkgconfigdir     = $(libdir)/pkgconfig
+pkgconfig_DATA   = dist/tcti-tabrmd.pc
+dbuspolicy_DATA  = dist/tpm2-abrmd.conf
 if HAVE_SYSTEMD
-dist_systemdsystemunit_DATA = dist/tpm2-abrmd.service
+systemdsystemunit_DATA = dist/tpm2-abrmd.service
 endif # HAVE_SYSTEMD
 
 
@@ -152,8 +160,7 @@ src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
 
 man/man8/%.8 : man/%.8.in
-	rm -f $@
-	mkdir -p man/man8
+	$(call make_parent_dir,$@)
 if TCTI_DEVICE
 	echo ".nr HAVE_DEVICE_TCTI 1" >> $@
 else
@@ -167,17 +174,22 @@ endif
 	cat $^ >> $@
 
 %-generated.c %-generated.h : src/tabrmd.xml
-	mkdir -p src/
+	$(call make_parent_dir,$@)
 	$(GDBUS_CODEGEN) --interface-prefix=com.intel.tss2. \
 	    --generate-c-code=src/tabrmd-generated $^
 
-dist/%.service : dist/%.service.in
+%.service : %.service.in
+	$(call make_parent_dir,$@)
 	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
 
 %.pc : %.pc.in
-	if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@); fi
+	$(call make_parent_dir,$@)
 	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g; \
                 s,[@]includedir[@],$(includedir),g;" $^ > $@
+
+define make_parent_dir
+    if [ ! -d $(dir $1) ]; then mkdir -p $(dir $1); fi
+endef
 
 if UNIT
 test_test_skeleton_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
