@@ -43,7 +43,6 @@
 int
 test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
-    TSS2_TCTI_CONTEXT *tcti_context;
     TPM_HANDLE         parent_handle, out_handle;
     TPM2B_PRIVATE      out_private = TPM2B_PRIVATE_STATIC_INIT;
     TPM2B_PUBLIC       out_public  = { 0 };
@@ -76,13 +75,6 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         if (rc != TSS2_RC_SUCCESS)
             g_error ("Failed to create_key: 0x%" PRIx32, rc);
         out_public.t.size = 0;
-    }
-
-    rc = Tss2_Sys_GetTctiContext (sapi_context, &tcti_context);
-    if (rc != TSS2_RC_SUCCESS && tcti_context != NULL) {
-        rc = tss2_tcti_tabrmd_dump_trans_state (tcti_context);
-        if (rc != TSS2_RC_SUCCESS)
-            g_error ("failed to dump transient object state");
     }
 
     return rc;
