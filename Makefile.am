@@ -172,6 +172,7 @@ endif
 	    --generate-c-code=src/tabrmd-generated $^
 
 dist/%.service : dist/%.service.in
+	if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@); fi
 	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
 
 %.pc : %.pc.in
