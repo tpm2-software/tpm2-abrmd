@@ -328,76 +328,6 @@ on_handle_set_locality (TctiTabrmd            *skeleton,
 
     return TRUE;
 }
-void
-dump_trans_state_callback (gpointer key,
-                           gpointer value,
-                           gpointer user_data)
-{
-    TPM_HANDLE phandle;
-    HandleMapEntry *entry;
-
-    g_debug ("dump_trans_state_callback: key: 0x%" PRIxPTR " value: 0x%"
-             PRIxPTR " user_data: 0x%" PRIxPTR,
-             (uintptr_t)key, (uintptr_t)value, (uintptr_t)user_data);
-    phandle = (TPM_HANDLE)(uintptr_t)key;
-    if (value == NULL) {
-        g_warning ("got NULL entry for key: 0x%" PRIx32, phandle);
-        return;
-    }
-    entry = HANDLE_MAP_ENTRY (value);
-
-    g_debug ("  dump_trans_state_callback entry:   0x%" PRIxPTR,
-             (uintptr_t)entry);
-    g_debug ("  dump_trans_state_callback phandle: 0x%" PRIx32, phandle);
-    g_debug ("  dump_trans_state_callback vhandle: 0x%" PRIx32,
-             handle_map_entry_get_vhandle (entry));
-    g_debug ("  dump_trans_state_callback_context: 0x%" PRIxPTR,
-             (uintptr_t)handle_map_entry_get_context (entry));
-}
-/*
- */
-static gboolean
-on_handle_dump_trans_state (TctiTabrmd            *skeleton,
-                            GDBusMethodInvocation *invocation,
-                            gint64                 id,
-                            gpointer               user_data)
-{
-    gmain_data_t *data = (gmain_data_t*)user_data;
-    HandleMap      *map     = NULL;
-    Connection   *connection = NULL;
-    GVariant *uint32_variant, *tuple_variant;
-    const gchar *name = NULL;
-
-    g_info ("on_handle_dump_trans_state");
-    name = g_dbus_method_invocation_get_sender (invocation);
-    if (name == NULL) {
-        g_dbus_method_invocation_return_error (
-            invocation,
-            TABRMD_ERROR,
-            TABRMD_ERROR_INTERNAL,
-            "Failed to get client name");
-        return TRUE;
-    }
-    g_debug ("on_handle_dump_trans_state for id %s", name);
-    g_mutex_lock (&data->init_mutex);
-    g_mutex_unlock (&data->init_mutex);
-    connection = connection_manager_lookup_id (data->manager, name);
-    if (connection == NULL)
-        g_error ("no active connection for id: %s", name);
-    g_info ("dumping transient handle map for for connection 0x%" PRIxPTR,
-            (uintptr_t)connection);
-    map = connection_get_trans_map (connection);
-    g_object_unref (connection);
-    g_info ("  number of entries in map: %" PRIu32, handle_map_size (map));
-    handle_map_foreach (map, dump_trans_state_callback, NULL);
-    g_object_unref (map);
-    /* setup and send return value */
-    uint32_variant = g_variant_new_uint32 (TSS2_RC_SUCCESS);
-    tuple_variant = g_variant_new_tuple (&uint32_variant, 1);
-    g_dbus_method_invocation_return_value (invocation, tuple_variant);
-
-    return TRUE;
-}
 /**
  * This is a signal handler of type GBusAcquiredCallback. It is registered
  * by the g_bus_own_name function and invoked then a connectiont to a bus
@@ -447,10 +377,6 @@ on_name_acquired (GDBusConnection *connection,
     g_signal_connect (gmain_data->skeleton,
                       "handle-set-locality",
                       G_CALLBACK (on_handle_set_locality),
-                      user_data);
-    g_signal_connect (gmain_data->skeleton,
-                      "handle-dump-trans-state",
-                      G_CALLBACK (on_handle_dump_trans_state),
                       user_data);
     ret = g_dbus_interface_skeleton_export (
         G_DBUS_INTERFACE_SKELETON (gmain_data->skeleton),

@@ -12,8 +12,5 @@
             <arg type='y'  name='locality'     direction='in'/>
             <arg type='u'  name='return_code'  direction='out'/>
         </method>
-        <method name='DumpTransState'>
-            <arg type='u'  name='return_code'  direction='out'/>
-        </method>
     </interface>
 </node>
