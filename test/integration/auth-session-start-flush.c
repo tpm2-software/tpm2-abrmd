@@ -24,68 +24,44 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-/*
- * These are common functions used by the integration tests.
- */
 #include <inttypes.h>
+#include <glib.h>
+#include <stdio.h>
+
 #include <sapi/tpm20.h>
 
+#include "common.h"
+#include "test.h"
 #define PRIxHANDLE "08" PRIx32
+/*
+ * This test exercises the session creation logic. We begin by creating the
+ * most simple session we can. We then flush it.
+  */
+int
+test_invoke (TSS2_SYS_CONTEXT *sapi_context)
+{
+    TSS2_RC               rc;
+    TPMI_SH_AUTH_SESSION  session_handle = 0;
+    TPMS_CONTEXT          context = { 0, };
 
-TSS2_RC
-tcti_context_init (
-    TSS2_TCTI_CONTEXT **tcti_context
-    );
+    /* create an auth session */
+    g_info ("Starting unbound, unsaulted auth session");
+    rc = start_auth_session (sapi_context, &session_handle);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_error ("Tss2_Sys_StartAuthSession failed: 0x%" PRIxHANDLE, rc);
+    }
+    g_info ("StartAuthSession for TPM_SE_POLICY success! Session handle: "
+            "0x%08" PRIx32, session_handle);
+    prettyprint_context (&context);
 
-TSS2_RC
-sapi_context_init (
-    TSS2_SYS_CONTEXT    **sapi_context,
-    TSS2_TCTI_CONTEXT    *tcti_context
-    );
+    /* flush context */
+    g_info ("Flushing context for session: 0x%" PRIxHANDLE, session_handle);
+    rc = Tss2_Sys_FlushContext (sapi_context, session_handle);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_error ("Tss2_Sys_FlushContext failed: 0x%" PRIx32, rc);
+    }
+    g_info ("Flushed context for session handle: 0x%" PRIxHANDLE " success!",
+            session_handle);
 
-TSS2_RC
-create_primary (
-    TSS2_SYS_CONTEXT *sapi_context,
-    TPM_HANDLE       *handle
-    );
-
-TSS2_RC
-create_key (
-    TSS2_SYS_CONTEXT *sapi_context,
-    TPM_HANDLE        parent_handle,
-    TPM2B_PRIVATE    *out_private,
-    TPM2B_PUBLIC     *out_public
-    );
-
-TSS2_RC
-load_key (
-    TSS2_SYS_CONTEXT *sapi_context,
-    TPM_HANDLE        parent_handle,
-    TPM_HANDLE       *out_handle,
-    TPM2B_PRIVATE    *in_private,
-    TPM2B_PUBLIC     *in_public
-    );
-
-TSS2_RC
-save_context (
-    TSS2_SYS_CONTEXT *sapi_context,
-    TPM_HANDLE        handle,
-    TPMS_CONTEXT     *context
-    );
-
-TSS2_RC
-flush_context (
-    TSS2_SYS_CONTEXT *sapi_context,
-    TPM_HANDLE        handle
-    );
-
-TSS2_RC
-start_auth_session (
-    TSS2_SYS_CONTEXT      *sapi_context,
-    TPMI_SH_AUTH_SESSION  *session_handle
-    );
-
-void
-prettyprint_context (
-    TPMS_CONTEXT *context
-    );
+    return 0;
+}

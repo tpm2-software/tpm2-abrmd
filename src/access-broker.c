@@ -583,6 +583,54 @@ access_broker_context_load (AccessBroker *broker,
 
     return rc;
 }
+/*
+ * This function is a simple wrapper around the TPM2_ContextSave command.
+ * It will save the context associated with the provided handle, returning
+ * the TPMS_CONTEXT to the caller. The response code returned will be
+ * TSS2_RC_SUCCESS or an RC indicating failure from the TPM.
+ */
+TSS2_RC
+access_broker_context_save (AccessBroker *broker,
+                            TPM_HANDLE    handle,
+                            TPMS_CONTEXT *context)
+{
+    TSS2_RC rc;
+    TSS2_SYS_CONTEXT *sapi_context;
+
+    if (broker == NULL || context == NULL) {
+        g_error ("access_broker_context_save received NULL parameter");
+    }
+    g_debug ("access_broker_context_save: handle 0x%08" PRIx32, handle);
+    sapi_context = access_broker_lock_sapi (broker);
+    rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
+    access_broker_unlock (broker);
+
+    return rc;
+}
+/*
+ * This function is a simple wrapper around the TPM2_FlushContext command.
+ */
+TSS2_RC
+access_broker_context_flush (AccessBroker *broker,
+                             TPM_HANDLE    handle)
+{
+    TSS2_RC rc;
+    TSS2_SYS_CONTEXT *sapi_context;
+
+    if (broker == NULL) {
+        g_error ("access_broker_context_flush received NULL parameter");
+    }
+    g_debug ("access_broker_context_flush: handle 0x%08" PRIx32, handle);
+    sapi_context = access_broker_lock_sapi (broker);
+    rc = Tss2_Sys_FlushContext (sapi_context, handle);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("Failed to flush context for handle 0x%08" PRIx32
+                   " RC: 0x%" PRIx32, handle, rc);
+    }
+    access_broker_unlock (broker);
+
+    return rc;
+}
 TSS2_RC
 access_broker_context_saveflush (AccessBroker *broker,
                                  TPM_HANDLE    handle,

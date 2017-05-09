@@ -56,6 +56,16 @@
  */
 #define PROPERTY_COUNT_OFFSET (PROPERTY_OFFSET + sizeof (UINT32))
 #define PROPERTY_COUNT_GET(buffer) (*(UINT32*)(buffer + PROPERTY_COUNT_OFFSET))
+/*
+ * Helper macros to aid in the access of various parts of the command
+ * authorization area.
+ */
+#define AUTH_AREA_OFFSET(handle_count) \
+    (HEADER_SIZE + (handle_count * sizeof (TPM_HANDLE)))
+#define AUTH_AREA_SIZE(buffer, handle_count) \
+    (*(UINT32*)(buffer + AUTH_AREA_OFFSET(handle_count)))
+#define AUTH_FIRST_OFFSET(handle_count) \
+    (size_t)(AUTH_AREA_OFFSET (handle_count) + sizeof (UINT32))
 
 G_DEFINE_TYPE (Tpm2Command, tpm2_command, G_TYPE_OBJECT);
 
@@ -447,4 +457,109 @@ tpm2_command_get_prop_count (Tpm2Command *command)
         return 0;
     }
     return (UINT32)be32toh (PROPERTY_COUNT_GET (tpm2_command_get_buffer (command)));
+}
+/*
+ * This is a convencience function to keep from having to compare the tag
+ * value to TPM_ST_(NO_)?_SESSIONS repeatedly.
+ */
+gboolean
+tpm2_command_has_auths (Tpm2Command *command)
+{
+    if (command == NULL) {
+        g_warning ("tpm2_command_has_auths passed NULL parameter");
+        return FALSE;
+    }
+    if (tpm2_command_get_tag (command) == TPM_ST_NO_SESSIONS) {
+        return FALSE;
+    } else {
+        return TRUE;
+    }
+}
+/*
+ * When provided with a Tpm2Command with auths in the auth area this function
+ * will return the total size of the auth area.
+ */
+UINT32
+tpm2_command_get_auths_size (Tpm2Command *command)
+{
+    guint8 handle_count;
+    uint8_t *buffer;
+
+    if (command == NULL) {
+        g_warning ("tpm2_command_get_auths_size passed NULL parameter");
+        return 0;
+    }
+    if (!tpm2_command_has_auths (command)) {
+        g_warning ("tpm2_command_get_auths_size, Tpm2Command 0x%" PRIxPTR
+                   " has no auths", (uintptr_t)command);
+        return 0;
+    }
+    handle_count = tpm2_command_get_handle_count (command);
+    buffer = tpm2_command_get_buffer (command);
+
+    return (UINT32)be32toh (AUTH_AREA_SIZE (buffer, handle_count));
+}
+/*
+ * Given a pointer to a command buffer and an offset into said buffer that
+ * should point to an entry in the auth area this function will return the
+ * number of bytes till the next auth entry.
+ */
+size_t
+next_auth_offset (uint8_t *buffer)
+{
+    UINT16 hash_size, auth_size;
+    size_t accumulator = 0;
+
+    accumulator += sizeof (UINT32); /* step over session handle */
+    hash_size = be16toh (*(UINT16*)(&buffer [accumulator])); /* get hash size */
+    accumulator += sizeof (UINT16) + hash_size; /* step over hash size & hash */
+    accumulator += sizeof (UINT8); /* step over session attributes */
+    auth_size = be16toh (*(UINT16*)(&buffer [accumulator])); /* get auth size */
+    accumulator += sizeof (UINT16) + auth_size; /* step over auth size + auth */
+
+    return accumulator;
+}
+/*
+ * The caller provided GFunc is invoked once for each authorization in the
+ * command authorization area. The first parameter passed to 'func' is a
+ * pointer to the start of the authorization data. The second parameter is
+ * the caller provided 'user_data'.
+ */
+gboolean
+tpm2_command_foreach_auth (Tpm2Command *command,
+                           GFunc        callback,
+                           gpointer     user_data)
+{
+    guint8   handle_count;
+    UINT32   auth_area_size;
+    size_t   offset;
+    uint8_t *buffer;
+
+    if (command == NULL || callback == NULL) {
+        g_warning ("tpm2_command_get_auth_handle passed NULL parameter");
+        return FALSE;
+    }
+    if (!tpm2_command_has_auths (command)) {
+        g_warning ("tpm2_command_has_auths, Tpm2Command 0x%" PRIxPTR
+                   " has no auths", (uintptr_t)command);
+        return FALSE;
+    }
+
+    buffer = tpm2_command_get_buffer (command);
+    handle_count = tpm2_command_get_handle_count (command);
+    auth_area_size = be32toh (AUTH_AREA_SIZE (buffer, handle_count));
+
+    for (offset = AUTH_FIRST_OFFSET (handle_count);
+         offset < AUTH_FIRST_OFFSET (handle_count) + auth_area_size;
+         offset += next_auth_offset (&buffer [offset]))
+    {
+        g_debug ("invoking callback at 0x%" PRIxPTR " with authorization at: "
+                 "0x%" PRIxPTR " and user data: 0x%" PRIxPTR,
+                 (uintptr_t)callback,
+                 (uintptr_t)&buffer [offset],
+                 (uintptr_t)user_data);
+        callback (&buffer [offset], user_data);
+    }
+
+    return TRUE;
 }

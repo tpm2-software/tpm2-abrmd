@@ -27,6 +27,7 @@ TESTS_UNIT = \
     test/handle-map-entry_unit \
     test/handle-map_unit \
     test/random_unit \
+    test/session-entry_unit \
     test/test-skeleton_unit \
     test/tcti-echo_unit \
     test/tcti-options_unit \
@@ -45,6 +46,9 @@ endif #UNIT
 
 sbin_PROGRAMS   = src/tpm2-abrmd
 noinst_PROGRAMS = \
+    test/integration/auth-session-start-flush \
+    test/integration/auth-session-start-save \
+    test/integration/auth-session-start-save-load \
     test/integration/create-keys \
     test/integration/get-capability-handles-transient \
     test/integration/manage-transient-keys \
@@ -121,6 +125,9 @@ src_libutil_la_SOURCES = \
     src/random.c \
     src/resource-manager.c \
     src/response-sink.c \
+    src/session-entry.c \
+    src/session-entry-state-enum.c \
+    src/session-list.c \
     src/sink-interface.c \
     src/source-interface.c \
     src/tcti.c \
@@ -290,6 +297,10 @@ test_random_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil
 test_random_unit_LDFLAGS = -Wl,--wrap=open,--wrap=read,--wrap=close
 test_random_unit_SOURCES = test/random_unit.c
 
+test_session_entry_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_session_entry_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_session_entry_unit_SOURCES = test/session-entry_unit.c
+
 test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
 test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
@@ -311,6 +322,21 @@ endif
 
 test_tcti_tabrmd_read_write_LDADD   = $(GLIB_LIBS) $(libtcti_tabrmd)
 test_tcti_tabrmd_read_write_SOURCES = test/tcti-tabrmd_read-write.c
+
+test_integration_auth_session_start_flush_LDADD   = $(libtest) $(libtcti_tabrmd) \
+    $(GLIB_LIBS)
+test_integration_auth_session_start_flush_SOURCES = test/integration/main.c \
+    test/integration/auth-session-start-flush.c
+
+test_integration_auth_session_start_save_LDADD   = $(libtest) $(libtcti_tabrmd) \
+    $(GLIB_LIBS)
+test_integration_auth_session_start_save_SOURCES = test/integration/main.c \
+    test/integration/auth-session-start-save.c
+
+test_integration_auth_session_start_save_load_LDADD   = $(libtest) $(libtcti_tabrmd) \
+    $(GLIB_LIBS)
+test_integration_auth_session_start_save_load_SOURCES = test/integration/main.c \
+    test/integration/auth-session-start-save-load.c
 
 test_integration_create_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) \

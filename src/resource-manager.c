@@ -28,6 +28,7 @@
 #include <inttypes.h>
 
 #include "connection.h"
+#include "connection-manager.h"
 #include "control-message.h"
 #include "logging.h"
 #include "message-queue.h"
@@ -93,6 +94,127 @@ resource_manager_virt_to_phys (ResourceManager *resmgr,
     }
     return rc;
 }
+TSS2_RC
+resource_manager_load_transient (ResourceManager  *resmgr,
+                                 Tpm2Command      *command,
+                                 GSList          **entry_slist,
+                                 TPM_HANDLE        handle,
+                                 guint8            handle_index)
+{
+    HandleMap    *map;
+    HandleMapEntry *entry;
+    Connection  *connection;
+    TSS2_RC       rc = TSS2_RC_SUCCESS;
+
+    g_debug ("processing TPM_HT_TRANSIENT: 0x%" PRIx32, handle);
+    connection = tpm2_command_get_connection (command);
+    map = connection_get_trans_map (connection);
+    g_object_unref (connection);
+    g_debug ("handle 0x%" PRIx32 " is virtual TPM_HT_TRANSIENT, "
+             "loading", handle);
+    /* we don't unref the entry since we're adding it to the entry_slist below */
+    entry = handle_map_vlookup (map, handle);
+    if (entry) {
+        g_debug ("mapped virtual handle 0x%" PRIx32 " to entry 0x%"
+                 PRIxPTR, handle, (uintptr_t)entry);
+    } else {
+        g_warning ("No HandleMapEntry for vhandle: 0x%" PRIx32, handle);
+        goto out;
+    }
+    rc = resource_manager_virt_to_phys (resmgr, command, entry, handle_index);
+    if (rc != TSS2_RC_SUCCESS) {
+        goto out;
+    }
+    *entry_slist = g_slist_prepend (*entry_slist, entry);
+out:
+    g_object_unref (map);
+    return rc;
+}
+TSS2_RC
+resource_manager_load_session (ResourceManager *resmgr,
+                               Tpm2Command     *command,
+                               SessionList     *loaded_sessions,
+                               TPM_HANDLE       handle,
+                               gboolean         will_flush)
+{
+    SessionEntry  *session_entry;
+    TSS2_RC        rc = TSS2_RC_SUCCESS;
+    TPM_HANDLE     handle_tmp;
+    TPMS_CONTEXT  *context;
+
+    session_list_lock (resmgr->session_list);
+    session_entry = session_list_lookup_handle (resmgr->session_list,
+                                                handle);
+    session_list_unlock (resmgr->session_list);
+    if (session_entry == NULL) {
+        g_debug ("no session with handle 0x%08" PRIx32 " known to "
+                 "ResourceManager.", handle);
+        goto out;
+    }
+    if (session_entry_get_state (session_entry) == SESSION_ENTRY_SAVED_CLIENT) {
+        g_debug ("SessionEntry for handle 0x%08" PRIx32 " has been "
+                 "saved.", handle);
+        goto out_unref_entry;
+    }
+    g_debug ("mapped session handle 0x%08" PRIx32 " to "
+             "SessionEntry: 0x%" PRIxPTR, handle,
+             (uintptr_t)session_entry);
+    session_entry_prettyprint (session_entry);
+
+    context = session_entry_get_context (session_entry);
+    rc = access_broker_context_load (resmgr->access_broker,
+                                     context,
+                                     &handle_tmp);
+    if (rc == TSS2_RC_SUCCESS) {
+        g_debug ("loaded context for session handle: 0x%08" PRIx32
+                 " got back handle: 0x%08" PRIx32,
+                 context->savedHandle, handle_tmp);
+    } else {
+        g_warning ("Failed to load context for session with handle "
+                   "0x%08" PRIx32 " RC: 0x%" PRIx32, handle, rc);
+        goto out_unref_entry;
+    }
+    if (will_flush == FALSE) {
+        session_list_insert (loaded_sessions, session_entry);
+    } else {
+        session_list_remove (resmgr->session_list, session_entry);
+    }
+out_unref_entry:
+    g_object_unref (session_entry);
+out:
+
+    return rc;
+}
+typedef struct {
+    ResourceManager *resmgr;
+    Tpm2Command     *command;
+    SessionList     *loaded_sessions;
+} auth_callback_data_t;
+void
+resource_manager_load_auth_callback (gpointer auth_ptr,
+                                     gpointer user_data)
+{
+    TPM_HANDLE handle = AUTH_HANDLE_GET ((uint8_t*)auth_ptr);
+    auth_callback_data_t *data = (auth_callback_data_t*)user_data;
+    TPMA_SESSION session_attrs = AUTH_SESSION_ATTRS_GET (auth_ptr);
+    gboolean will_flush;
+
+    will_flush = session_attrs.val & TPMA_SESSION_CONTINUESESSION ? FALSE : TRUE;
+    switch (handle >> HR_SHIFT) {
+    case TPM_HT_HMAC_SESSION:
+    case TPM_HT_POLICY_SESSION:
+        resource_manager_load_session (data->resmgr,
+                                       data->command,
+                                       data->loaded_sessions,
+                                       handle,
+                                       will_flush);
+        break;
+    default:
+        g_debug ("not loading object with handle: 0x%08" PRIx32 " from "
+                 "command auth area: not a session", handle);
+        break;
+    }
+}
 /*
  * This function operates on the provided command. It iterates over each
  * handle in the commands handle area. For each relevant handle it loads
@@ -101,14 +223,18 @@ resource_manager_virt_to_phys (ResourceManager *resmgr,
 TSS2_RC
 resource_manager_load_contexts (ResourceManager *resmgr,
                                 Tpm2Command     *command,
-                                GSList         **entry_slist)
+                                GSList         **entry_slist,
+                                SessionList     *loaded_sessions)
 {
-    HandleMap    *map;
-    HandleMapEntry *entry;
-    Connection  *connection;
+    Connection   *connection;
     TSS2_RC       rc = TSS2_RC_SUCCESS;
     TPM_HANDLE    handles[3] = { 0, };
-    guint8 i, handle_count;;
+    guint8        i, handle_count;;
+    auth_callback_data_t auth_callback_data = {
+        .resmgr = resmgr,
+        .command = command,
+        .loaded_sessions = loaded_sessions,
+    };
 
     g_debug ("resource_manager_load_contexts");
     if (!resmgr || !command) {
@@ -118,32 +244,37 @@ resource_manager_load_contexts (ResourceManager *resmgr,
     connection = tpm2_command_get_connection (command);
     handle_count = tpm2_command_get_handle_count (command);
     tpm2_command_get_handles (command, handles, handle_count);
-    g_debug ("loading contexts for %" PRId8 " handles", handle_count);
+    g_debug ("loading contexts for %" PRId8 " handles in command handle area",
+             handle_count);
     for (i = 0; i < handle_count; ++i) {
         switch (handles [i] >> HR_SHIFT) {
         case TPM_HT_TRANSIENT:
             g_debug ("processing TPM_HT_TRANSIENT: 0x%" PRIx32, handles [i]);
-            map = connection_get_trans_map (connection);
-            g_debug ("handle 0x%" PRIx32 " is virtual TPM_HT_TRANSIENT, "
-                     "loading", handles [i]);
-            entry = handle_map_vlookup (map, handles [i]);
-            if (entry) {
-                g_debug ("mapped virtual handle 0x%" PRIx32 " to entry 0x%"
-                         PRIxPTR, handles [i], (uintptr_t)entry);
-            } else {
-                g_warning ("No HandleMapEntry for vhandle: 0x%" PRIx32,
-                           handles [i]);
-                continue;
-            }
-            g_object_unref (map);
-            rc = resource_manager_virt_to_phys (resmgr, command, entry, i);
-            if (rc != TSS2_RC_SUCCESS)
-                break;
-            *entry_slist = g_slist_prepend (*entry_slist, entry);
+            rc = resource_manager_load_transient (resmgr,
+                                                  command,
+                                                  entry_slist,
+                                                  handles [i],
+                                                  i);
+            break;
+        case TPM_HT_HMAC_SESSION:
+        case TPM_HT_POLICY_SESSION:
+            g_debug ("processing TPM_HT_HMAC_SESSION or "
+                     "TPM_HT_POLICY_SESSION: 0x%" PRIx32, handles [i]);
+            rc = resource_manager_load_session (resmgr,
+                                                command,
+                                                loaded_sessions,
+                                                handles [i],
+                                                FALSE);
             break;
         default:
             break;
         }
+    }
+    g_debug ("loading contexts for handles in auth area");
+    if (tpm2_command_has_auths (command)) {
+        tpm2_command_foreach_auth (command,
+                                   resource_manager_load_auth_callback,
+                                   &auth_callback_data);
     }
     g_debug ("resource_manager_load_contexts end");
     g_object_unref (connection);
@@ -191,48 +322,32 @@ resource_manager_flushsave_context (gpointer data_entry,
     }
 }
 /*
- * Each Tpm2Response object can have at most one handle in it.
- * This function assumes that the handle in the parameter Tpm2Response
- * object is a physical handle. It creates a new virtual handle and
- * allocates a new HandleMapEntry to map the virtual handle to a
- * TPMS_CONTEXT structure when processing future commands associated
- * with the same connection. This HandleMapEntry is inserted into the
- * handle map for the connection. It is also returned to the caller who
- * must decrement the reference count when they are done with it.
+ * Remove the context associated with the provided SessionEntry from the
+ * TPM. Only session objects should be saved by this function.
  */
-HandleMapEntry*
-resource_manager_virtualize_handle (ResourceManager *resmgr,
-                                    Tpm2Response    *response)
+void
+resource_manager_save_session_context (gpointer data_entry,
+                                       gpointer data_resmgr)
 {
-    TPM_HANDLE      phandle, vhandle = 0;
-    Connection    *connection;
-    HandleMap      *handle_map;
-    HandleMapEntry *entry = NULL;
+    ResourceManager *resmgr = RESOURCE_MANAGER (data_resmgr);
+    SessionEntry    *entry  = SESSION_ENTRY (data_entry);
+    TPMS_CONTEXT    *context = session_entry_get_context (entry);
+    TSS2_RC          rc = TSS2_RC_SUCCESS;
 
-    phandle = tpm2_response_get_handle (response);
-    g_debug ("resource_manager_virtualize_handle 0x%" PRIx32, phandle);
-    switch (phandle >> HR_SHIFT) {
-    case TPM_HT_TRANSIENT:
-        g_debug ("handle is transient, virtualizing");
-        connection = tpm2_response_get_connection (response);
-        handle_map = connection_get_trans_map (connection);
-        vhandle = handle_map_next_vhandle (handle_map);
-        if (vhandle == 0)
-            g_error ("vhandle rolled over!");
-        g_debug ("now has vhandle:0x%" PRIx32, vhandle);
-        entry = handle_map_entry_new (phandle, vhandle);
-        g_debug ("handle map entry: 0x%" PRIxPTR, (uintptr_t)entry);
-        handle_map_insert (handle_map, vhandle, entry);
-        tpm2_response_set_handle (response, vhandle);
-        g_object_unref (connection);
-        g_object_unref (handle_map);
-        break;
-    default:
-        g_debug ("handle isn't transient, not virtualizing");
-        break;
+    g_debug ("resource_manager_save_session_context");
+    if (resmgr == NULL || entry == NULL) {
+        g_error ("resource_manager_save_session_context passed NULL parameter");
     }
-
-    return entry;
+    if (session_entry_get_state (entry) == SESSION_ENTRY_SAVED_CLIENT) {
+        g_info ("SessionEntry saved by client, skipping");
+        return;
+    }
+    rc = access_broker_context_save (resmgr->access_broker,
+                                     context->savedHandle,
+                                     context);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("access_broker_context_save returned an error: 0x%" PRIx32, rc);
+    }
 }
 static void
 dump_command (Tpm2Command *command)
@@ -256,6 +371,78 @@ dump_response (Tpm2Response *response)
                    4);
     g_debug_tpma_cc (tpm2_response_get_attributes (response));
 }
+/*
+ * This function performs the special processing associated with the
+ * TPM2_ContextSave command. How much we can "virtualize of this command
+ * depends on the parameters / handle type as well as how much work we
+ * actually *want* to do.
+ *
+ * Transient objects that are tracked by the RM require no special handling.
+ * It's possible that the whole of this command could be virtualized: When a
+ * command is received all transient objects have been saved and flushed. The
+ * saved context held by the RM could very well be returned to the caller
+ * with no interaction with the TPM. This would however require that the RM
+ * marshal the context object into the response buffer. This is less easy
+ * than it should be and so we suffer the inefficiency to keep the RM code
+ * more simple. Simple in this case means no special handling.
+ *
+ * Session objects are handled much in the same way with a specific caveat:
+ * A session can be either loaded or saved. Unlike a transient object saving
+ * it changes its state. And so for the caller to save the context it must
+ * be loaded first. This is exactly what we do for transient objects, but
+ * knowing that the caller wants to save the context we also know that the RM
+ * can't have a saved copy as well. And so we must load the context and
+ * destroy the mapping maintained by the RM. Since this function is called
+ * after the session contexts are loaded we just need to drop the mapping.
+ */
+Tpm2Response*
+resource_manager_save_context (ResourceManager *resmgr,
+                               Tpm2Command     *command)
+{
+    SessionEntry *entry       = NULL;
+    TPM_HANDLE    handle      = tpm2_command_get_handle (command, 0);
+
+    g_debug ("resource_manager_save_context: resmgr: 0x%" PRIxPTR
+             " command: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
+    switch (handle >> HR_SHIFT) {
+    case TPM_HT_HMAC_SESSION:
+    case TPM_HT_POLICY_SESSION:
+        g_debug ("save_context for session handle: 0x%" PRIx32, handle);
+        entry = session_list_lookup_handle (resmgr->session_list, handle);
+        if (entry != NULL) {
+            session_entry_set_state (entry, SESSION_ENTRY_SAVED_CLIENT);
+            g_object_unref (entry);
+        } else {
+            g_warning ("Client attempting to save unkonwn session.");
+        }
+        break;
+    default:
+        g_debug ("save_context: not virtualizing TPM_CC_ContextSave for "
+                 "handles: 0x%08" PRIx32, handle);
+        break;
+    }
+
+    return NULL;
+}
+/*
+ * This function performs the special processing associated with the
+ * TPM2_FlushContext command. How much we can "virtualize" of this command
+ * depends on the parameters / handle type.
+ *
+ * Transient objects that are tracked by the RM (stored in the transient
+ * HandleMap in the Connection object) then we can simply delete the mapping
+ * since transient objects are always saved / flushed after each command is
+ * processed. So for this handle type we just delete the mapping, create a
+ * Tpm2Response object and return it to the caller.
+ *
+ * Session objects are not so simple. Sessions cannot be flushed after each
+ * use. The TPM will only allow us to save the context as it must maintain
+ * some internal tracking information. So when the caller wishes to flush a
+ * session context we must remove the entry tracking the mapping between
+ * session and connection from the session_slist (if any exists). The comman
+ * must then be passed to the TPM as well. We return NULL here to let the
+ * caller know.
+ */
 Tpm2Response*
 resource_manager_flush_context (ResourceManager *resmgr,
                                 Tpm2Command     *command)
@@ -263,7 +450,7 @@ resource_manager_flush_context (ResourceManager *resmgr,
     Connection     *connection;
     HandleMap      *map;
     HandleMapEntry *entry;
-    Tpm2Response   *response;
+    Tpm2Response   *response = NULL;
     TPM_HANDLE      handle;
     TPM_HT          handle_type;
     TSS2_RC         rc;
@@ -298,14 +485,16 @@ resource_manager_flush_context (ResourceManager *resmgr,
         response = tpm2_response_new_rc (connection, rc);
         g_object_unref (connection);
         break;
+    case TPM_HT_HMAC_SESSION:
     case TPM_HT_POLICY_SESSION:
-        g_debug ("handle is TPM_HT_POLICY_SESSION");
-        /* fallthrough */
-    default:
-        g_debug ("handle is for unmanaged object, sending command to TPM");
+        g_debug ("handle is TPM_HT_HMAC_SESSION or TPM_HT_POLICY_SESSION");
+        g_info ("f");
+        session_list_remove_handle (resmgr->session_list, handle);
+        /*
         response = access_broker_send_command (resmgr->access_broker,
                                                command,
                                                &rc);
+        */
         break;
     }
 
@@ -394,6 +583,24 @@ post_process_entry_list (ResourceManager  *resmgr,
                          connection);
     }
     g_slist_free_full (*entry_slist, g_object_unref);
+}
+/*
+ * This function handles the required post-processing of the session_entry_t
+ * list representing all of the sessions currently loaded. This requires that
+ * we save the loaded sessions.
+ */
+void
+post_process_loaded_sessions (ResourceManager *resmgr,
+                              SessionList     *session_list)
+{
+    g_debug ("post_process_loaded_sessions");
+    if (session_list == NULL) {
+        g_warning ("post_process_session_slist passed NULL session_slist");
+        return;
+    }
+    session_list_foreach (session_list,
+                          resource_manager_save_session_context,
+                          resmgr);
 }
 /*
  * This structure is used to keep state while iterating over a list of
@@ -593,6 +800,166 @@ get_cap_handles_response (Tpm2Command *command,
 
     return response;
 }
+/*
+ * If the provided command is something that the ResourceManager "virtualizes"
+ * then this function will do so and return a Tpm2Response object that will be
+ * returned to the same connection. If the command isn't something that we
+ * virtualize then we just return NULL.
+ */
+Tpm2Response*
+command_special_processing (ResourceManager *resmgr,
+                            Tpm2Command     *command)
+{
+    Connection   *connection = NULL;
+    Tpm2Response *response   = NULL;
+
+    switch (tpm2_command_get_code (command)) {
+    case TPM_CC_FlushContext:
+        g_debug ("processing TPM_CC_FlushContext");
+        response = resource_manager_flush_context (resmgr, command);
+        break;
+    case TPM_CC_ContextSave:
+        g_debug ("processing TPM_CC_ContextSave");
+        response = resource_manager_save_context (resmgr, command);
+        break;
+    case TPM_CC_GetCapability:
+        g_debug ("processing TPM2_CC_GetCapability");
+        connection = tpm2_command_get_connection (command);
+        response = get_cap_handles_response (command, connection);
+        g_object_unref (connection);
+        break;
+    default:
+        break;
+    }
+
+    return response;
+}
+/*
+ * This function creates a mapping from the transient physical to a virtual
+ * handle in the provided response object. This mapping is then added to
+ * the transient HandleMap for the associated connection, as well as the
+ * list of currently loaded transient objects.
+ */
+void
+create_context_mapping_transient (ResourceManager  *resmgr,
+                                  Tpm2Response     *response,
+                                  GSList          **loaded_transient_slist)
+{
+    HandleMap      *handle_map;
+    HandleMapEntry *handle_entry;
+    TPM_HANDLE      phandle, vhandle;
+    Connection     *connection;
+
+    g_debug ("create_context_mapping_transient");
+    phandle = tpm2_response_get_handle (response);
+    g_debug ("  physical handle: 0x%08" PRIx32, phandle);
+    connection = tpm2_response_get_connection (response);
+    handle_map = connection_get_trans_map (connection);
+    g_object_unref (connection);
+    vhandle = handle_map_next_vhandle (handle_map);
+    if (vhandle == 0) {
+        g_error ("vhandle rolled over!");
+    }
+    g_debug ("  vhandle:0x%08" PRIx32, vhandle);
+    handle_entry = handle_map_entry_new (phandle, vhandle);
+    if (handle_entry == NULL) {
+        g_warning ("failed to create new HandleMapEntry for handle 0x%"
+                   PRIx32, phandle);
+    }
+    g_debug ("handle map entry: 0x%" PRIxPTR, (uintptr_t)handle_entry);
+    *loaded_transient_slist = g_slist_prepend (*loaded_transient_slist,
+                                               handle_entry);
+    handle_map_insert (handle_map, vhandle, handle_entry);
+    g_object_unref (handle_map);
+    tpm2_response_set_handle (response, vhandle);
+    g_object_ref (handle_entry);
+    *loaded_transient_slist = g_slist_prepend (*loaded_transient_slist,
+                                                   handle_entry);
+}
+/*
+ * This function is invoked after the session has been created so it
+ * is loaded in the TPM. If this is a new session (one that hasn't
+ * been previously loaded) then the entry we create must be added to
+ * both the session_list maintained by the resource manager as well
+ * as the list of sessions currently loaded (loaded_session_list) so
+ * that the session will be saved at the end of processing the command.
+ * If this is not a new session we only add it to the list of sessions
+ * currently loaded.
+ */
+void
+create_context_mapping_session (ResourceManager *resmgr,
+                                Tpm2Response    *response,
+                                SessionList     *loaded_session_list)
+{
+    SessionEntry *entry;
+    TPM_HANDLE    handle;
+    Connection   *connection;
+
+    handle = tpm2_response_get_handle (response);
+    entry = session_list_lookup_handle (resmgr->session_list, handle);
+    if (entry == NULL) {
+        connection = tpm2_response_get_connection (response);
+        g_debug ("handle is a session, creating entry for SessionList and "
+                 "adding to ResourceManager session list");
+        entry = session_entry_new (connection, handle);
+        g_object_unref (connection);
+        session_list_insert (resmgr->session_list, entry);
+        g_debug ("dumping resmgr->session_list:");
+        session_list_prettyprint (resmgr->session_list);
+    } else {
+        g_debug ("session is being reloaded, not adding to ResourceManager"
+                 " session list");
+    }
+    session_list_insert (loaded_session_list, entry);
+    g_object_unref (entry);
+    g_debug ("dumping loaded_session_list:");
+    session_list_prettyprint (loaded_session_list);
+}
+/*
+ * Each Tpm2Response object can have at most one handle in it.
+ * This function assumes that the handle in the parameter Tpm2Response
+ * object is the handle assigned by the TPM. Depending on the type of the
+ * handle we do to possible things:
+ * For TPM_HT_TRANSIENT handles we create a new virtual handle and
+ * allocates a new HandleMapEntry to map the virtual handle to a
+ * TPMS_CONTEXT structure when processing future commands associated
+ * with the same connection. This HandleMapEntry is inserted into the
+ * handle map for the connection. It is also added to the list of loaded
+ * transient objects so that it can be saved / flushed by the typical code
+ * path.
+ * For TPM_HT_HMAC_SESSION or TPM_HT_POLICY_SESSION handles we create a
+ * new session_entry_t object, populate the connection field with the
+ * connection associated with the response object, and set the savedHandle
+ * field. We then add this entry to the list of sessions we're tracking
+ * (session_slist) and the list of loaded sessions (loaded_session_slist).
+ */
+void
+resource_manager_create_context_mapping (ResourceManager  *resmgr,
+                                         Tpm2Response     *response,
+                                         GSList          **loaded_transient_slist,
+                                         SessionList      *loaded_session_list)
+{
+    TPM_HANDLE       handle;
+
+    g_debug ("resource_manager_create_context_mapping");
+    if (!tpm2_response_has_handle (response)) {
+        g_debug ("response 0x%" PRIxPTR " has no handles", (uintptr_t)response);
+        return;
+    }
+    handle = tpm2_response_get_handle (response);
+    switch (handle >> HR_SHIFT) {
+    case TPM_HT_TRANSIENT:
+        create_context_mapping_transient (resmgr, response, loaded_transient_slist);
+        break;
+    case TPM_HT_HMAC_SESSION:
+    case TPM_HT_POLICY_SESSION:
+        create_context_mapping_session (resmgr, response, loaded_session_list);
+        break;
+    default:
+        g_debug ("  not creating context for handle: 0x%08" PRIx32, handle);
+        break;
+    }
+}
 /**
  * This function is invoked in response to the receipt of a Tpm2Command.
  * This is the place where we send the command buffer out to the TPM
@@ -615,62 +982,61 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                        Tpm2Command       *command)
 {
     Connection    *connection;
-    HandleMapEntry *entry;
     Tpm2Response   *response;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     GSList         *entry_slist = NULL;
+    SessionList    *session_list_tmp = session_list_new (100);
     TPMA_CC         command_attrs = tpm2_command_get_attributes (command);
 
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%" PRIxPTR
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
     dump_command (command);
     connection = tpm2_command_get_connection (command);
-    /* If connection has reached quota limit kill command & send error response */
+    /* If connection has reached quota limit, send error response */
     if (resource_manager_is_over_object_quota (resmgr, command)) {
         response = tpm2_response_new_rc (connection,
                                          TSS2_RESMGR_RC_OBJECT_MEMORY);
-        sink_enqueue (resmgr->sink, G_OBJECT (response));
-        g_object_unref (response);
-        g_object_unref (connection);
-        return;
+        goto send_response;
     }
-    switch (tpm2_command_get_code (command)) {
-    case TPM_CC_FlushContext:
-        g_debug ("processing TPM_CC_FlushContext");
-        response = resource_manager_flush_context (resmgr, command);
-        break;
-    case TPM_CC_GetCapability:
-        response = get_cap_handles_response (command, connection);
-        if (response != NULL) {
-            break;
-        }
-        /* fall through if we don't "virtualize" the capability */
-    default:
-        /* Load contexts and switch virtual to physical handles in command */
-        if (tpm2_command_get_handle_count (command) > 0) {
-            resource_manager_load_contexts (resmgr, command, &entry_slist);
-        }
-        response = access_broker_send_command (resmgr->access_broker,
-                                               command,
-                                               &rc);
-        if (response == NULL) {
-            g_warning ("access_broker_send_command returned error: 0x%x", rc);
-            response = tpm2_response_new_rc (connection, rc);
-        }
-        dump_response (response);
-        /* transform the Tpm2Response */
-        if (tpm2_response_has_handle (response)) {
-            entry = resource_manager_virtualize_handle (resmgr, response);
-            if (entry != NULL) {
-                entry_slist = g_slist_prepend (entry_slist, entry);
-            }
-        }
-        break;
+    /* Load transient object contexts, switch virtual to physical handles */
+    if (tpm2_command_get_handle_count (command) > 0) {
+        resource_manager_load_contexts (resmgr,
+                                        command,
+                                        &entry_slist,
+                                        session_list_tmp);
     }
+    /* load session contexts */
+    /* Do any special processing of the command. This could be as simple as 
+     * command requires any special processingis virtualized by the ResourceManager, get the response
+     */
+    response = command_special_processing (resmgr, command);
+    if (response != NULL) {
+        goto send_response;
+    }
+    response = access_broker_send_command (resmgr->access_broker,
+                                           command,
+                                           &rc);
+    if (response == NULL) {
+        g_warning ("access_broker_send_command returned error: 0x%x", rc);
+        response = tpm2_response_new_rc (connection, rc);
+    }
+    dump_response (response);
+    /* transform virtualized handles in Tpm2Response if necessary */
+    resource_manager_create_context_mapping (resmgr,
+                                             response,
+                                             &entry_slist,
+                                             session_list_tmp);
+send_response:
+    /* send response to next processing stage */
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
+    /* save contexts that were previously loaded by 'load_contexts */
     post_process_entry_list (resmgr, &entry_slist, connection, command_attrs);
     g_object_unref (connection);
+    post_process_loaded_sessions (resmgr, session_list_tmp);
+    g_debug ("unreffing session_list_tmp");
+    g_object_unref (session_list_tmp);
+    return;
 }
 /**
  * This function acts as a thread. It simply:
@@ -849,12 +1215,19 @@ resource_manager_finalize (GObject *obj)
         g_object_unref (resmgr->access_broker);
         resmgr->access_broker = NULL;
     }
+    if (resmgr->session_list) {
+        g_object_unref (resmgr->session_list);
+        resmgr->session_list = NULL;
+    }
     if (resource_manager_parent_class)
         G_OBJECT_CLASS (resource_manager_parent_class)->finalize (obj);
 }
 static void
 resource_manager_init (ResourceManager *manager)
-{ /* noop */ }
+{
+    /* SessionList with arbitrary limit */
+    manager->session_list = session_list_new (100);
+}
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.
@@ -914,6 +1287,47 @@ resource_manager_sink_interface_init (gpointer g_iface)
 {
     SinkInterface *sink = (SinkInterface*)g_iface;
     sink->enqueue = resource_manager_enqueue;
+}
+/*
+ * This function is invoked when a connection is removed from the
+ * ConnectionManager. This is if how we know a connection has been closed.
+ * When a connection is removed, we need to remove all associated sessions
+ * from the TPM.
+ */
+void
+resource_manager_on_connection_removed (ConnectionManager *connection_manager,
+                                        Connection        *connection,
+                                        ResourceManager   *resource_manager)
+{
+    TSS2_RC          rc;
+    SessionEntry    *session_entry;
+    TPM_HANDLE       handle;
+
+    g_info ("resource_manager_on_connection_removed: flushing session "
+            "contexts associated with connection 0x%" PRIxPTR,
+            (uintptr_t)connection);
+    session_list_lock (resource_manager->session_list);
+    do {
+        session_entry =
+            session_list_lookup_connection (resource_manager->session_list,
+                                            connection);
+        if (session_entry != NULL) {
+            g_debug ("removing SessionEntry 0x%" PRIxPTR " from the "
+                     "session_list", (uintptr_t)session_entry);
+            handle = session_entry_get_handle (session_entry);
+            rc = access_broker_context_flush (resource_manager->access_broker,
+                                              handle);
+            if (rc != TSS2_RC_SUCCESS) {
+                g_warning ("failed to flush context associated with "
+                           "connection: 0x%" PRIxPTR, (uintptr_t)connection);
+            }
+            session_list_remove (resource_manager->session_list,
+                                 session_entry);
+            g_object_unref (session_entry);
+        }
+    } while (session_entry != NULL);
+    g_debug ("resource_manager_on_connection_removed done");
+    session_list_unlock (resource_manager->session_list);
 }
 /**
  * Create new ResourceManager object.

@@ -320,3 +320,64 @@ flush_context (TSS2_SYS_CONTEXT *sapi_context,
 
     return rc;
 }
+/*
+ * This fucntion is a very simple wrapper around the TPM2_StartAuthSession
+ * function. It uses the most simple / default values to create an unsalted,
+ * unbound session.
+ */
+TSS2_RC
+start_auth_session (TSS2_SYS_CONTEXT      *sapi_context,
+                    TPMI_SH_AUTH_SESSION  *session_handle)
+{
+    TSS2_RC rc;
+    TPM2B_NONCE nonce_caller = {
+        .t = {
+            .size   = SHA256_DIGEST_SIZE,
+            .buffer = {
+                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef
+            }
+        }
+    };
+    TPM2B_NONCE nonce_tpm = {
+        .t = {
+            .size   = SHA256_DIGEST_SIZE,
+            .buffer = { 0 }
+        }
+    };
+    TPM2B_ENCRYPTED_SECRET encrypted_salt = { 0 };
+    TPMT_SYM_DEF           symmetric      = { .algorithm = TPM_ALG_NULL };
+
+    g_debug ("StartAuthSession for TPM_SE_POLICY (policy session)");
+    rc = Tss2_Sys_StartAuthSession (sapi_context,
+                                    TPM_RH_NULL,     /* tpmKey */
+                                    TPM_RH_NULL,     /* bind */
+                                    0,               /* cmdAuthsArray */
+                                    &nonce_caller,   /* nonceCaller */
+                                    &encrypted_salt, /* encryptedSalt */
+                                    TPM_SE_POLICY,   /* sessionType */
+                                    &symmetric,      /* symmetric */
+                                    TPM_ALG_SHA256,  /* authHash */
+                                    session_handle,  /* sessionHandle */
+                                    &nonce_tpm,      /* nonceTPM */
+                                    0                /* rspAuthsArray */
+                                    );
+    if (rc != TSS2_RC_SUCCESS)
+        g_error ("Tss2_Sys_StartAuthSession failed: 0x%" PRIx32, rc);
+
+    return rc;
+}
+/*
+ * This function dumps the fields of the TPMS_CONTEXT structure. The one
+ * encrypted field (contextBlob) is dumped as an address.
+ */
+void
+prettyprint_context (TPMS_CONTEXT *context)
+{
+    g_debug ("sequence:    0x%" PRIx64, context->sequence);
+    g_debug ("savedHandle: 0x%" PRIxHANDLE, context->savedHandle);
+    g_debug ("hierarchy:   0x%" PRIxHANDLE, context->hierarchy);
+    g_debug ("contextBlob: 0x%" PRIxPTR, (uintptr_t)&context->contextBlob);
+}
