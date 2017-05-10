@@ -97,6 +97,7 @@ BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 pkgconfigdir     = $(libdir)/pkgconfig
 pkgconfig_DATA   = dist/tcti-tabrmd.pc
 dbuspolicy_DATA  = dist/tpm2-abrmd.conf
+udevrules_DATA   = dist/tpm-udev.rules
 if HAVE_SYSTEMD
 systemdsystemunit_DATA = dist/tpm2-abrmd.service
 endif # HAVE_SYSTEMD
