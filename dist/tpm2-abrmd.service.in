@@ -1,10 +1,10 @@
 # copy this file into /etc/systemd/system
 [Unit]
-Description=TPM2 Access Broker and Resource Manager
+Description=TPM2 Access Broker and Resource Management Daemon
 
 [Service]
 Type=dbus
-BusName=com.intel.tss2.Tab
+BusName=com.intel.tss2.Tabrmd
 Environment=G_MESSAGES_DEBUG=all
 StandardOutput=syslog
 ExecStart=@SBINDIR@/tpm2-abrmd
