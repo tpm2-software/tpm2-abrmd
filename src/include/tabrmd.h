@@ -30,9 +30,9 @@
 #include <gio/gio.h>
 #include <tpm20.h>
 
-#define TABRMD_DBUS_INTERFACE                "com.intel.tss2.Tab"
-#define TABRMD_DBUS_NAME                     "com.intel.tss2.Tab"
-#define TABRMD_DBUS_PATH                     "/com/intel/tss2/Tab"
+#define TABRMD_DBUS_INTERFACE                "com.intel.tss2.TctiTabrmd"
+#define TABRMD_DBUS_NAME                     "com.intel.tss2.Tabrmd"
+#define TABRMD_DBUS_PATH                     "/com/intel/tss2/Tabrmd/Tcti"
 #define TABRMD_DBUS_METHOD_CREATE_CONNECTION "CreateConnection"
 #define TABRMD_DBUS_METHOD_CANCEL            "Cancel"
 
