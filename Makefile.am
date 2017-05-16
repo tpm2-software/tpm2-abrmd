@@ -186,7 +186,8 @@ endif
 
 %.service : %.service.in
 	$(call make_parent_dir,$@)
-	sed -e 's,[@]SBINDIR[@],$(sbindir),g' $^ > $@
+	sed -e "s,[@]SBINDIR[@],$(sbindir),g; \
+	        s,[@]sysconfdir[@],$(sysconfdir),g;" $^ > $@
 
 %.pc : %.pc.in
 	$(call make_parent_dir,$@)
