@@ -1,8 +1,5 @@
-m4_define([tss2tab_major_version], [0])
-m4_define([tss2tab_minor_version], [1])
-m4_define([tss2tab_version_string], [tss2tab_major_version.tss2tab_minor_version])
-
-AC_INIT([tss2tab], [tss2tab_version_string])
+AC_INIT([tpm2-abrmd],
+        [m4_esyscmd_s([git describe --tags --always --dirty])])
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_CC
 LT_INIT()
@@ -28,7 +25,7 @@ PKG_CHECK_MODULES([SAPI],[sapi])
 AC_ARG_VAR([GDBUS_CODEGEN],[The gdbus-codegen executable.])
 AC_PATH_PROG([GDBUS_CODEGEN], [`$PKG_CONFIG --variable=gdbus_codegen gio-2.0`])
 if test -z "$GDBUS_CODEGEN"; then
-    AC_MSG_ERROR([*** gdbus-codegen is required to build tss2-tabd])
+    AC_MSG_ERROR([*** gdbus-codegen is required to build tpm2-abrmd])
 fi
 # disable helgrind and drd, they hate GAsyncQueue
 AX_VALGRIND_DFLT([sgcheck], [off])

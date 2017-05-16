@@ -573,6 +573,21 @@ init_thread_func (gpointer user_data)
 
     return NULL;
 }
+/*
+ * This is a GOptionArgFunc callback invoked from the GOption processor from
+ * the parse_opts function below. It will be called when the daemon is
+ * invoked with the -v/--version option. This will cause the daemon to
+ * display a version string and exit.
+ */
+gboolean
+show_version (const gchar  *option_name,
+              const gchar  *value,
+              gpointer      data,
+              GError      **error)
+{
+    g_print ("tpm2-abrmd version %s\n", VERSION);
+    exit (0);
+}
 /**
  * This function parses the parameter argument vector and populates the
  * parameter 'options' structure with data needed to configure the tabrmd.
@@ -609,6 +624,8 @@ parse_opts (gint            argc,
         { "max-transient-objects", 'r', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_transient_objects,
           "Maximum number of loaded transient objects per client." },
+        { "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK,
+          show_version, "Show version string" },
         { NULL },
     };
 

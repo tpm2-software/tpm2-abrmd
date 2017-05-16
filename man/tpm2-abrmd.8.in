@@ -63,6 +63,9 @@ is 127.0.0.1.
 \fB\-p,\ \-\-tcti-socket-port\fR
 Specify the port number used by the socket TCTI. The default is 2222.
 \}
+.TP
+\fB\-v,\ \-\-version\fR
+Disply version string.
 .SH ENVIRONMENT
 none
 .SH BUGS
