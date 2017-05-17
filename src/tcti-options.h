@@ -33,6 +33,10 @@
 
 G_BEGIN_DECLS
 
+#ifndef G_OPTION_FLAG_NONE
+#define G_OPTION_FLAG_NONE 0
+#endif
+
 typedef struct _TctiOptionsClass {
     GObjectClass     parent;
 } TctiOptionsClass;
