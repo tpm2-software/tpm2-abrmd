@@ -81,7 +81,7 @@ libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
 
 EXTRA_DIST = \
     dist/tcti-tabrmd.pc.in \
-    dist/tpm2-abrmd.conf.in \
+    dist/tpm2-abrmd.conf \
     dist/tpm-udev.rules \
     man/tpm2-abrmd.8.in
 
