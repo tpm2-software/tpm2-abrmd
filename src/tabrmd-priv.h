@@ -34,6 +34,10 @@
 #define TABD_INIT_THREAD_NAME "tss2-tabrmd_init-thread"
 #define TABD_RAND_FILE "/dev/random"
 
+#ifndef G_OPTION_FLAG_NONE
+#define G_OPTION_FLAG_NONE 0
+#endif
+
 typedef struct tabrmd_options {
     GBusType        bus;
     TctiOptions    *tcti_options;
