@@ -85,6 +85,48 @@ EXTRA_DIST = \
     dist/tpm-udev.rules \
     man/tpm2-abrmd.8.in
 
+# For $(systemdsystemunit_DATA): Distribuite the following file(s) in the tarball.
+EXTRA_DIST += dist/tpm2-abrmd.service.in
+
+# For $(libutil): Always distribuite the following header files in the tarball.
+# (Even if TCTI_DEVICE or TCTI_SOCKET is not defined yet)
+EXTRA_DIST += src/tcti-device.h
+EXTRA_DIST += src/tcti-socket.h
+
+# For $(libutil): Distribuite the following header files in the tarball.
+EXTRA_DIST += src/util.h
+EXTRA_DIST += src/access-broker.h
+EXTRA_DIST += src/command-attrs.h
+EXTRA_DIST += src/command-source.h
+EXTRA_DIST += src/connection.h
+EXTRA_DIST += src/connection-manager.h
+EXTRA_DIST += src/control-message.h
+EXTRA_DIST += src/handle-map.h
+EXTRA_DIST += src/handle-map-entry.h
+EXTRA_DIST += src/message-queue.h
+EXTRA_DIST += src/logging.h
+EXTRA_DIST += src/thread.h
+EXTRA_DIST += src/resource-manager.h
+EXTRA_DIST += src/response-sink.h
+EXTRA_DIST += src/session-entry-state-enum.h
+EXTRA_DIST += src/session-entry.h
+EXTRA_DIST += src/session-list.h
+EXTRA_DIST += src/sink-interface.h
+EXTRA_DIST += src/source-interface.h
+EXTRA_DIST += src/tcti.h
+EXTRA_DIST += src/tcti-options.h
+EXTRA_DIST += src/tcti-type-enum.h
+EXTRA_DIST += src/tpm2-command.h
+EXTRA_DIST += src/tpm2-response.h
+EXTRA_DIST += src/tpm2-header.h
+
+# For integrations tests: Distribuite the following header files in the tarball.
+EXTRA_DIST += test/integration/tpm2-struct-init.h
+EXTRA_DIST += test/integration/test-options.h
+EXTRA_DIST += test/integration/context-util.h
+EXTRA_DIST += test/integration/test.h
+EXTRA_DIST += test/integration/common.h
+
 CLEANFILES = \
     man/man8/tpm2-abrmd.8 \
     src/tabrmd-generated.c \
@@ -93,6 +135,9 @@ CLEANFILES = \
     $(systemdsystemunit_DATA)
 
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
+# The following xml file MUST be distribuited inside the tarball(tss2tab0.1.tar.gz):
+# (It will be read by $(GDBUS_CODEGEN) code generator to produce BUILT_SOURCES)
+EXTRA_DIST += src/tabrmd.xml
 
 pkgconfigdir     = $(libdir)/pkgconfig
 pkgconfig_DATA   = dist/tcti-tabrmd.pc
@@ -157,13 +202,22 @@ src_libtcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(SAPI_LIBS)
 src_libtcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
 src_libtcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c
+# For $(libtcti_tabrmd): Distribuite a private header file and a map file in the tarball.
+src_libtcti_tabrmd_la_SOURCES += src/tcti-tabrmd-priv.h
+src_libtcti_tabrmd_la_SOURCES += src/tcti-tabrmd.map
 
 src_libtcti_echo_la_LIBADD  = $(DBUS_LIBS) $(GLIB_LIBS)
 src_libtcti_echo_la_SOURCES = src/tss2-tcti-echo.c src/tcti-echo.c
+# For $(libtcti_echo): Distribuite the following header files in the tarball.
+src_libtcti_echo_la_SOURCES += src/tcti-echo.h
+src_libtcti_echo_la_SOURCES += src/tss2-tcti-echo.h
+src_libtcti_echo_la_SOURCES += src/tss2-tcti-echo-priv.h
 
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(libutil) $(libtcti_echo)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
+# For $(sbin_PROGRAMS): Distribuite a private header file and a map file in the tarball.
+src_tpm2_abrmd_SOURCES += src/tabrmd-priv.h
 
 man/man8/%.8 : man/%.8.in
 	$(call make_parent_dir,$@)
