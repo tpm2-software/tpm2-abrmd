@@ -71,6 +71,7 @@ noinst_LTLIBRARIES = \
     $(libtcti_echo) \
     $(libutil) \
     $(libtest)
+man3_MANS = man/man3/tss2_tcti_tabrmd_init.3
 man7_MANS = man/man7/tcti-tabrmd.7
 man8_MANS = man/man8/tpm2-abrmd.8
 TESTS = $(check_PROGRAMS)
@@ -87,6 +88,7 @@ EXTRA_DIST = \
     man/tpm2-abrmd.8.in
 
 CLEANFILES = \
+    $(man3_MANS) \
     $(man7_MANS) \
     man/man8/tpm2-abrmd.8 \
     src/tabrmd-generated.c \
@@ -166,6 +168,9 @@ src_libtcti_echo_la_SOURCES = src/tss2-tcti-echo.c src/tcti-echo.c
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(libutil) $(libtcti_echo)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
+
+man/man3/%.3 : man/%.3.in
+	$(call man_tcti_prefix,$@,$^)
 
 man/man7/%.7 : man/%.7.in
 	$(call man_tcti_prefix,$@,$^)
