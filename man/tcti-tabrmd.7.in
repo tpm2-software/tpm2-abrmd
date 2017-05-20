@@ -1,0 +1,23 @@
+.\" Process this file with
+.\" groff -man -Tascii foo.1
+.\"
+.TH TCTI-TABMRD 7 "MAY 2017" Intel "TPM2 Software Stack"
+.SH NAME
+tcti-tabrmd \- tabrmd TCTI library
+.SH SYNOPSIS
+A TPM Command Transmission Interface (TCTI) module for interaction with the
+tpm2-abrmd.
+.SH DESCRIPTION
+tcti-tabrmd is a library that abstracts the IPC magic necessary to
+communicate with the tpm2-abrmd. Consult the \*(lqTSS System Level API and
+TPM Command Transmission Interface Specification\*(rq
+for a detailed discussion of the TCTI API.
+.SH AUTHOR
+Philip Tricca <philip.b.tricca@intel.com>
+.SH "SEE ALSO"
+.BR tpm2-abrmd (8)
+.SH COLOPHON
+This page is part of release @VERSION@ of Intel's implementation of the TCG
+TPM2 Software Stack (TSS2). A description of the project, information about
+reporting bugs, and the latest version of this page can be found at
+\%https://github.com/01org/tpm2\-abrmd/.
