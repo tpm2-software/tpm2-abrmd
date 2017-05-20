@@ -1,16 +1,20 @@
 This is a system daemon implementing the TPM2 access broker (TAB) & Resource
-Manager (RM) spec from the TCG. The daemon is implemented using Glib and the
-GObject system.
+Manager (RM) spec from the TCG. The daemon (tpm2-abrmd) is implemented using
+Glib and the GObject system. In this documentation and in the code we use
+`tpm2-abrmd` and `tabrmd` interchangeably.
 
+#Daemon
 Communication between the daemon and clients using the TPM is done with a
 combination of DBus and Unix pipes. DBus is used for discovery, session
 management and the 'cancel', 'setLocality', and 'getPollHandles' API calls
 (mostly these aren't yet implemented). Pipes are used to send and receive
 TPM commands and responses (respectively) between client and server.
 
-The client library for interacting with this daemon (libtcti-abrmd) is also
-provided in this repository. It is intended for use with the SAPI library
-(libsapi) like any other TCTI.
+The daemon owns the com.intel.tss2.Tabrmd name on dbus. It can be configured
+to connect to either the system or the session bus. Configuring name
+selection would be a handy feature but that's future work.
+
+Check out the man page TPM2-ABRMD(8) for the currently supported options.
 
 See:
 http://www.trustedcomputinggroup.org/wp-content/uploads/TSS-TAB-and-Resource-Manager-00-91-PublicReview.pdf
