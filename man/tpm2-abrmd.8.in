@@ -66,11 +66,12 @@ Specify the port number used by the socket TCTI. The default is 2222.
 .TP
 \fB\-v,\ \-\-version\fR
 Disply version string.
-.SH ENVIRONMENT
-none
-.SH BUGS
-lots
 .SH AUTHOR
 Philip Tricca <philip.b.tricca@intel.com>
 .SH "SEE ALSO"
 .BR tcsd (8)
+.SH COLOPHON
+This page is part of release @VERSION@ of Intel's implementation of the TCG
+TPM2 Software Stack (TSS2). A description of the project, information about
+reporting bugs, and the latest version of this page can be found at
+\%https://github.com/01org/tpm2\-abrmd/.

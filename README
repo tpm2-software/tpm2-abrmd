@@ -16,6 +16,15 @@ selection would be a handy feature but that's future work.
 
 Check out the man page TPM2-ABRMD(8) for the currently supported options.
 
+#Client Library
+The client library for interacting with this daemon (libtcti-abrmd) is also
+provided in this repository. It is intended for use with the SAPI library
+(libsapi) like any other TCTI. The initialization function for this library
+takes no parameters. It is hard coded to connect to the tabrmd on the system
+bus as this is the most common configuration.
+
+Check out the man page TCTI-TABRMD(7) and TSS2_TCTI_TABRMD_INIT(3).
+
 See:
 http://www.trustedcomputinggroup.org/wp-content/uploads/TSS-TAB-and-Resource-Manager-00-91-PublicReview.pdf
 http://www.trustedcomputinggroup.org/wp-content/uploads/TSS-system-API-01.pdf

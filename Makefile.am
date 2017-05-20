@@ -71,6 +71,7 @@ noinst_LTLIBRARIES = \
     $(libtcti_echo) \
     $(libutil) \
     $(libtest)
+man7_MANS = man/man7/tcti-tabrmd.7
 man8_MANS = man/man8/tpm2-abrmd.8
 TESTS = $(check_PROGRAMS)
 
@@ -86,6 +87,7 @@ EXTRA_DIST = \
     man/tpm2-abrmd.8.in
 
 CLEANFILES = \
+    $(man7_MANS) \
     man/man8/tpm2-abrmd.8 \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
@@ -165,19 +167,29 @@ src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(libutil) $(libtcti_echo)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
 
+man/man7/%.7 : man/%.7.in
+	$(call man_tcti_prefix,$@,$^)
+
 man/man8/%.8 : man/%.8.in
+	$(call man_tcti_prefix,$@,$^)
+
+# this function is used to generate man pages from templates found in
+# $(srcdir)/man/*.in
+define man_tcti_prefix
 	$(call make_parent_dir,$@)
+	-rm $@
 if TCTI_DEVICE
-	echo ".nr HAVE_DEVICE_TCTI 1" >> $@
+	echo ".nr HAVE_DEVICE_TCTI 1" >> $1
 else
-	echo ".nr HAVE_DEVICE_TCTI 0" >> $@
+	echo ".nr HAVE_DEVICE_TCTI 0" >> $1
 endif
 if TCTI_SOCKET
-	echo ".nr HAVE_SOCKET_TCTI 1" >> $@
+	echo ".nr HAVE_SOCKET_TCTI 1" >> $1
 else
-	echo ".nr HAVE_SOCKET_TCTI 0" >> $@
+	echo ".nr HAVE_SOCKET_TCTI 0" >> $1
 endif
-	cat $^ >> $@
+	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g;" $2 >> $1
+endef # man_tcti_prefix
 
 %-generated.c %-generated.h : src/tabrmd.xml
 	$(call make_parent_dir,$@)
