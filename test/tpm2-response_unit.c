@@ -31,6 +31,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include "tpm2-header.h"
 #include "tpm2-response.h"
 
 #define HANDLE_TEST 0xdeadbeef
@@ -94,6 +95,7 @@ tpm2_response_setup_with_handle (void **state)
     data->response = tpm2_response_new (data->connection,
                                         data->buffer,
                                         attributes);
+    set_response_size (data->buffer, TPM_HEADER_SIZE + sizeof (TPM_HANDLE));
     data->buffer [TPM_RESPONSE_HEADER_SIZE]     = 0xde;
     data->buffer [TPM_RESPONSE_HEADER_SIZE + 1] = 0xad;
     data->buffer [TPM_RESPONSE_HEADER_SIZE + 2] = 0xbe;

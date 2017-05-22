@@ -358,6 +358,7 @@ resource_manager_load_contexts_test (void **state)
     HandleMapEntry *entry;
     GSList         *entry_slist;
     HandleMap      *map;
+    SessionList    *loaded_sessions;
     TPM_HANDLE      phandles [2] = {
         HR_TRANSIENT + 0xeb,
         HR_TRANSIENT + 0xbe,
@@ -380,16 +381,19 @@ resource_manager_load_contexts_test (void **state)
         handle_map_insert (map, vhandles [i], entry);
         g_object_unref (entry);
     }
+    loaded_sessions = session_list_new (50);
     g_debug ("before resource_manager_load_contexts");
     rc = resource_manager_load_contexts (data->resource_manager,
                                          data->command,
-                                         &entry_slist);
+                                         &entry_slist,
+                                         loaded_sessions);
     g_debug ("after resource_manager_load_contexts");
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     for (i = 0; i < handle_count; ++i) {
         handle_ret = tpm2_command_get_handle (data->command, i);
         assert_int_equal (phandles [i], handle_ret);
     }
+    g_object_unref (loaded_sessions);
 }
 int
 main (int   argc,
