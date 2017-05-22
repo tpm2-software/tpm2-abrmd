@@ -61,7 +61,7 @@ Specify the domain name or IP address used by the socket TCTI. The default
 is 127.0.0.1.
 .TP
 \fB\-p,\ \-\-tcti-socket-port\fR
-Specify the port number used by the socket TCTI. The default is 2222.
+Specify the port number used by the socket TCTI. The default is 2321.
 \}
 .TP
 \fB\-v,\ \-\-version\fR
