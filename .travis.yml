@@ -1,0 +1,42 @@
+language: cpp
+compiler:
+  - gcc
+
+# we need sudo to signal dbus-daemon & run the tpm2-abrmd daemon as the tss
+# user
+sudo: required
+dist: trusty
+
+addons:
+  apt:
+    packages:
+      - autoconf-archive
+      - libcmocka0
+      - libcmocka-dev
+      - libglib2.0-dev
+      - libdbus-1-dev
+
+install:
+  - git clone https://github.com/01org/TPM2.0-TSS.git
+  - pushd TPM2.0-TSS
+  - ./bootstrap
+  - ./configure
+  - make -j$(nproc)
+  - sudo make install
+  - popd && sudo ldconfig /usr/local/lib
+
+before_script:
+  - ./bootstrap
+
+script :
+  - mkdir ./build
+  - pushd ./build
+  - ../configure --enable-unit --sysconfdir=/etc
+  - make -j$(nproc)
+  - sudo make install
+  - make -j$(nproc) check
+  - |
+    for LOG in $(ls -1 test/*.log); do
+        echo "${LOG}"
+        cat ${LOG}
+    done
