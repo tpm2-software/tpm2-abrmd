@@ -272,6 +272,7 @@ access_broker_lock_test (void **state)
     sleep (1);
     assert_false (data->acquired_lock);
     assert_int_equal (access_broker_unlock (data->broker), 0);
+    pthread_join (thread_id, NULL);
 }
 /**
  * Here we're testing the internals of the 'access_broker_send_command'
