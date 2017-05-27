@@ -155,8 +155,7 @@ resource_manager_setup_two_transient_handles (void **state)
 
     /* create Tpm2Command that we'll be transforming */
     buffer = calloc (1, TPM_HEADER_SIZE + 2 * sizeof (TPM_HANDLE));
-    buffer [0]  = 0x80;
-    buffer [1]  = 0x02;
+    *(TPM_ST*)buffer = htobe16 (TPM_ST_NO_SESSIONS);
     buffer [2]  = 0x00;
     buffer [3]  = 0x00;
     buffer [4]  = 0x00;
