@@ -1337,7 +1337,7 @@ resource_manager_new (AccessBroker    *broker)
 {
     if (broker == NULL)
         g_error ("resource_manager_new passed NULL AccessBroker");
-    MessageQueue *queue = message_queue_new ("ResourceManager input queue");
+    MessageQueue *queue = message_queue_new ();
     return RESOURCE_MANAGER (g_object_new (TYPE_RESOURCE_MANAGER,
                                            "queue-in",        queue,
                                            "access-broker",   broker,

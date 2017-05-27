@@ -38,7 +38,6 @@ typedef struct _MessageQueueClass {
 
 typedef struct _MessageQueue {
     GObject       parent_instance;
-    const gchar  *name;
     GAsyncQueue  *queue;
 } MessageQueue;
 
@@ -49,7 +48,7 @@ typedef struct _MessageQueue {
 #define IS_MESSAGE_QUEUE_CLASS(cls)  (G_TYPE_CHECK_CLASS_TYPE    ((cls), TYPE_MESSAGE_QUEUE))
 #define MESSAGE_QUEUE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS  ((obj), TYPE_MESSAGE_QUEUE, MessageQueueClass))
 
-gpointer    message_queue_new              (const gchar    *name);
+MessageQueue*   message_queue_new          (void);
 void        message_queue_enqueue          (MessageQueue   *message_queue,
                                             GObject        *obj);
 GObject*    message_queue_dequeue          (MessageQueue   *message_queue);

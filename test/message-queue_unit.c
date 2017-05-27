@@ -44,7 +44,7 @@ message_queue_setup (void **state)
 
     data = calloc (1, sizeof (msgq_test_data_t));
     assert_non_null (data);
-    data->queue = message_queue_new ("test MessageQueue");
+    data->queue = message_queue_new ();
     *state = data;
 }
 

@@ -71,8 +71,8 @@ message_queue_class_init (MessageQueueClass *klass)
  * When the MessageQueue object is destroyed each object in its internal
  * queue will be unref'd as well.
  */
-gpointer
-message_queue_new (const char *name)
+MessageQueue*
+message_queue_new ()
 {
     MessageQueue *message_queue;
 
@@ -81,7 +81,6 @@ message_queue_new (const char *name)
         g_error ("failed to allocate memory for blob_queue_t: %s", strerror (errno));
         return NULL;
     }
-    message_queue->name = name;
 
     return message_queue;
 }

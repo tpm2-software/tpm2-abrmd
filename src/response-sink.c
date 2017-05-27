@@ -194,7 +194,7 @@ response_sink_sink_interface_init (gpointer g_iface)
 ResponseSink*
 response_sink_new ()
 {
-    MessageQueue *in_queue = message_queue_new ("in-queue");
+    MessageQueue *in_queue = message_queue_new ();
     return RESPONSE_SINK (g_object_new (TYPE_RESPONSE_SINK,
                                            "in-queue", in_queue,
                                            NULL));
