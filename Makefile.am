@@ -110,7 +110,7 @@ endif # HAVE_SYSTEMD
 
 @VALGRIND_CHECK_RULES@
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
-VALGRIND_memcheck_FLAGS = --show-leak-kinds=definite,indirect --track-origins=yes
+VALGRIND_memcheck_FLAGS = --leak-check=summary --show-leak-kinds=definite,indirect --track-origins=yes
 
 # utility library with most of the code that makes up the daemon
 src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
