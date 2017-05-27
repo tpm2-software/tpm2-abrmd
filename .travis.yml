@@ -15,6 +15,7 @@ addons:
       - libcmocka-dev
       - libglib2.0-dev
       - libdbus-1-dev
+      - valgrind
 
 install:
   - git clone https://github.com/01org/TPM2.0-TSS.git
@@ -31,11 +32,12 @@ before_script:
 script :
   - mkdir ./build
   - pushd ./build
-  - ../configure --enable-unit --sysconfdir=/etc
+  - ../configure --enable-unit --enable-valgrind --sysconfdir=/etc
   - make -j$(nproc)
   - sudo make install
-  - make -j$(nproc) check
+  - make check-valgrind
   - |
+    cat test-suite*.log
     for LOG in $(ls -1 test/*.log); do
         echo "${LOG}"
         cat ${LOG}
