@@ -52,8 +52,6 @@ MessageQueue*   message_queue_new          (void);
 void        message_queue_enqueue          (MessageQueue   *message_queue,
                                             GObject        *obj);
 GObject*    message_queue_dequeue          (MessageQueue   *message_queue);
-GObject*    message_queue_timeout_dequeue  (MessageQueue   *message_queue,
-                                            guint64         timeout);
 
 G_END_DECLS
 #endif /* MESSAGE_QUEUE_H */

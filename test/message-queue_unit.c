@@ -117,17 +117,6 @@ message_queue_dequeue_order_test (void **state)
     g_object_unref (obj_2);
 }
 
-static void
-message_queue_dequeue_nothing_test (void **state)
-{
-    msgq_test_data_t *data = (msgq_test_data_t*)*state;
-    MessageQueue *queue = data->queue;
-    GObject *obj = NULL;
-
-    obj = message_queue_timeout_dequeue (queue, 0);
-    assert_null (obj);
-}
-
 int
 main(int argc, char* argv[])
 {
@@ -137,9 +126,6 @@ main(int argc, char* argv[])
                                   message_queue_setup,
                                   message_queue_teardown),
         unit_test_setup_teardown (message_queue_dequeue_order_test,
-                                  message_queue_setup,
-                                  message_queue_teardown),
-        unit_test_setup_teardown (message_queue_dequeue_nothing_test,
                                   message_queue_setup,
                                   message_queue_teardown),
     };

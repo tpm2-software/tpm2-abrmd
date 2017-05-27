@@ -115,20 +115,3 @@ message_queue_dequeue (MessageQueue *message_queue)
     g_debug ("  got obj: 0x%" PRIxPTR, (uintptr_t)obj);
     return obj;
 }
-/**
- * Dequeue a message from the message queue.
- * This is a thin wrapper around the GAsyncQueue g_async_queue_timeout_pop
- * function.
- */
-GObject*
-message_queue_timeout_dequeue (MessageQueue *message_queue,
-                               guint64       timeout)
-{
-    GObject *obj;
-
-    g_assert (message_queue != NULL);
-    g_debug ("message_queue_timeout_dequeue 0x%" PRIxPTR, (uintptr_t)message_queue);
-    obj = g_async_queue_timeout_pop (message_queue->queue, timeout);
-    g_debug ("  got obj: 0x%" PRIxPTR, (uintptr_t)obj);
-    return obj;
-}
