@@ -39,7 +39,10 @@ G_DEFINE_TYPE (MessageQueue, message_queue, G_TYPE_OBJECT);
  * macro.
  */
 static void
-message_queue_init (MessageQueue *self) {}
+message_queue_init (MessageQueue *self)
+{
+    self->queue = g_async_queue_new_full (g_object_unref);
+}
 /*
  * To finalize the MessageQueue we need only to free the internal
  * GAsyncQueue object.
@@ -79,7 +82,6 @@ message_queue_new (const char *name)
         return NULL;
     }
     message_queue->name = name;
-    message_queue->queue = g_async_queue_new_full (g_object_unref);
 
     return message_queue;
 }
