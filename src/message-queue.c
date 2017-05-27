@@ -40,27 +40,27 @@ G_DEFINE_TYPE (MessageQueue, message_queue, G_TYPE_OBJECT);
  */
 static void
 message_queue_init (MessageQueue *self) {}
-/**
- * The dispose function is invoked by the GObject system as part of the
- * object distruction process. For the MessageQueue we need only to free
- * the internal GAsyncQueue object.
+/*
+ * To finalize the MessageQueue we need only to free the internal
+ * GAsyncQueue object.
  */
 static void
-message_queue_dispose (GObject *obj)
+message_queue_finalize (GObject *obj)
 {
     MessageQueue *message_queue = MESSAGE_QUEUE (obj);
 
     g_clear_pointer (&message_queue->queue, g_async_queue_unref);
+    G_OBJECT_CLASS (message_queue_parent_class)->finalize (obj);
 }
 /**
- * Boilerplate GObject class init with custom dispose function.
+ * Boilerplate GObject class init with custom finalize function.
  */
 static void
 message_queue_class_init (MessageQueueClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->dispose = message_queue_dispose;
+    object_class->finalize = message_queue_finalize;
 }
 /**
  * Allocate a new message_queue_t object.
