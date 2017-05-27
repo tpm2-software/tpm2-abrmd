@@ -48,6 +48,7 @@ typedef struct _MessageQueue {
 #define IS_MESSAGE_QUEUE_CLASS(cls)  (G_TYPE_CHECK_CLASS_TYPE    ((cls), TYPE_MESSAGE_QUEUE))
 #define MESSAGE_QUEUE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS  ((obj), TYPE_MESSAGE_QUEUE, MessageQueueClass))
 
+GType           message_queue_get_type     (void);
 MessageQueue*   message_queue_new          (void);
 void        message_queue_enqueue          (MessageQueue   *message_queue,
                                             GObject        *obj);
