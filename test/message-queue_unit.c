@@ -25,6 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <glib.h>
+#include <pthread.h>
 #include <stdlib.h>
 
 #include <setjmp.h>
@@ -32,6 +33,7 @@
 
 #include "message-queue.h"
 #include "connection.h"
+#include "control-message.h"
 
 typedef struct msgq_test_data {
     MessageQueue *queue;
@@ -116,6 +118,41 @@ message_queue_dequeue_order_test (void **state)
     g_object_unref (obj_1);
     g_object_unref (obj_2);
 }
+/*
+ * This function is used in the thread_unblock_test function as the thread
+ * that blocks on the MessageQueue waiting for a message.
+ */
+void*
+thread_func (void* arg)
+{
+    MessageQueue *queue = MESSAGE_QUEUE (arg);
+    GObject *obj;
+
+    obj = message_queue_dequeue (queue);
+    assert_true (CONTROL_MESSAGE (obj));
+    g_object_unref (obj);
+
+    return NULL;
+}
+
+static void
+message_queue_thread_unblock_test (void **state)
+{
+    msgq_test_data_t *data = (msgq_test_data_t*)*state;
+    ControlMessage *msg = control_message_new (CHECK_CANCEL);
+    pthread_t thread_id;
+    int ret;
+
+    ret = pthread_create (&thread_id,
+                          NULL,
+                          thread_func,
+                          data->queue);
+    assert_int_equal (ret, 0);
+    message_queue_enqueue (data->queue, G_OBJECT (msg));
+    g_object_unref (msg);
+    ret = pthread_join (thread_id, NULL);
+    assert_int_equal (ret, 0);
+}
 
 int
 main(int argc, char* argv[])
@@ -126,6 +163,9 @@ main(int argc, char* argv[])
                                   message_queue_setup,
                                   message_queue_teardown),
         unit_test_setup_teardown (message_queue_dequeue_order_test,
+                                  message_queue_setup,
+                                  message_queue_teardown),
+        unit_test_setup_teardown (message_queue_thread_unblock_test,
                                   message_queue_setup,
                                   message_queue_teardown),
     };
