@@ -213,19 +213,6 @@ resource_manager_type_test (void **state)
     assert_true (IS_RESOURCE_MANAGER (data->resource_manager));
 }
 /**
- * A test: Ensure that the thread in the resource manager behaves as a
- * thread should.
- */
-static void
-resource_manager_thread_lifecycle_test (void **state)
-{
-    test_data_t *data = (test_data_t*)*state;
-
-    assert_int_equal (thread_start  (THREAD (data->resource_manager)), 0);
-    assert_int_equal (thread_cancel (THREAD (data->resource_manager)), 0);
-    assert_int_equal (thread_join   (THREAD (data->resource_manager)), 0);
-}
-/**
  * A test: Ensure that the Sink interface to the ResourceManager works. We
  * create a Tpm2Command, send it through the ResourceManager enqueue
  * function then pull it out the other end by reaching in to the
@@ -400,9 +387,6 @@ main (int   argc,
 {
     const UnitTest tests[] = {
         unit_test_setup_teardown (resource_manager_type_test,
-                                  resource_manager_setup,
-                                  resource_manager_teardown),
-        unit_test_setup_teardown (resource_manager_thread_lifecycle_test,
                                   resource_manager_setup,
                                   resource_manager_teardown),
         unit_test_setup_teardown (resource_manager_sink_enqueue_test,
