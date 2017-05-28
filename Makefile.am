@@ -30,6 +30,7 @@ TESTS_UNIT = \
     test/test-skeleton_unit \
     test/tcti-echo_unit \
     test/tcti-options_unit \
+    test/thread_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
     test/tss2-tcti-tabrmd_unit \
@@ -286,6 +287,10 @@ if TCTI_SOCKET
 test_tcti_options_unit_LDADD   += $(TCTI_SOCKET_LIBS)
 test_tcti_options_unit_SOURCES += src/tcti-socket.c
 endif
+
+test_thread_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_thread_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
+test_thread_unit_SOURCES = test/thread_unit.c
 
 test_tpm2_command_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
