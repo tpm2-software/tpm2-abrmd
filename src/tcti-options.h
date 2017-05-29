@@ -48,7 +48,6 @@ typedef struct _TctiOptions
     gchar           *device_name;
     gchar           *socket_address;
     guint            socket_port;
-    guint            echo_size;
 } TctiOptions;
 
 #define TYPE_TCTI_OPTIONS             (tcti_options_get_type       ())
