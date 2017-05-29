@@ -629,8 +629,6 @@ parse_opts (gint            argc,
         { NULL },
     };
 
-    g_debug ("creating tcti_options object");
-    options->tcti_options = tcti_options_new ();
     ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabrmd)");
     g_option_context_add_main_entries (ctx, entries, NULL);
     g_option_context_add_group (ctx, tcti_options_get_group (options->tcti_options));
@@ -685,6 +683,8 @@ main (int argc, char *argv[])
     GThread *init_thread;
 
     g_info ("tabrmd startup");
+    /* instantiate a TctiOptions object for the parse_opts function to use */
+    gmain_data.options.tcti_options = tcti_options_new ();
     parse_opts (argc, argv, &gmain_data.options);
     gmain_data.tcti = tcti_options_get_tcti (gmain_data.options.tcti_options);
 
