@@ -83,10 +83,17 @@ libtcti_tabrmddir      = $(includedir)/tcti
 libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
 
 EXTRA_DIST = \
+    src/tabrmd.xml \
+    test/integration/test.h \
+    test/integration/tpm2-struct-init.h \
+    src/tcti-tabrmd.map \
+    man/tss2_tcti_tabrmd_init.3.in \
+    man/tcti-tabrmd.7.in \
+    man/tpm2-abrmd.8.in \
+    dist/tpm2-abrmd.conf \
     dist/tcti-tabrmd.pc.in \
-    dist/tpm2-abrmd.conf.in \
-    dist/tpm-udev.rules \
-    man/tpm2-abrmd.8.in
+    dist/tpm2-abrmd.service \
+    dist/tpm-udev.rules
 
 CLEANFILES = \
     $(man3_MANS) \
@@ -117,54 +124,89 @@ src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS)
 src_libutil_la_SOURCES = \
     src/access-broker.c \
+    src/access-broker.h \
     src/command-attrs.c \
-    src/connection.c \
-    src/connection-manager.c \
-    src/control-message.c \
-    src/handle-map.c \
-    src/handle-map-entry.c \
-    src/message-queue.c \
-    src/logging.c \
-    src/thread.c \
+    src/command-attrs.h \
     src/command-source.c \
+    src/command-source.h \
+    src/connection.c \
+    src/connection.h \
+    src/connection-manager.c \
+    src/connection-manager.h \
+    src/control-message.c \
+    src/control-message.h \
+    src/handle-map-entry.c \
+    src/handle-map-entry.h \
+    src/handle-map.c \
+    src/handle-map.h \
+    src/logging.c \
+    src/logging.h \
+    src/message-queue.c \
+    src/message-queue.h \
     src/resource-manager.c \
+    src/resource-manager.h \
     src/response-sink.c \
-    src/session-entry.c \
+    src/response-sink.h \
     src/session-entry-state-enum.c \
+    src/session-entry-state-enum.h \
+    src/session-entry.c \
+    src/session-entry.h \
     src/session-list.c \
+    src/session-list.h \
     src/sink-interface.c \
+    src/sink-interface.h \
     src/source-interface.c \
-    src/tcti.c \
-    src/tcti-options.c \
-    src/tcti-type-enum.c \
-    src/tpm2-command.c \
-    src/tpm2-response.c \
+    src/source-interface.h \
     src/tabrmd-error.c \
     src/tabrmd-generated.c \
+    src/tabrmd-generated.h \
+    src/tabrmd-priv.h \
+    src/tcti.c \
+    src/tcti.h \
+    src/tcti-options.c \
+    src/tcti-options.h \
+    src/tcti-type-enum.c \
+    src/tcti-type-enum.h \
+    src/thread.c \
+    src/thread.h \
+    src/tpm2-command.c \
+    src/tpm2-command.h \
     src/tpm2-header.c \
-    src/util.c
+    src/tpm2-header.h \
+    src/tpm2-response.c \
+    src/tpm2-response.h \
+    src/util.c \
+    src/util.h
 if TCTI_DEVICE
 src_libutil_la_LIBADD  += $(TCTI_DEVICE_LIBS)
-src_libutil_la_SOURCES += src/tcti-device.c
+src_libutil_la_SOURCES += src/tcti-device.c src/tcti-device.h
 endif
 if TCTI_SOCKET
 src_libutil_la_LIBADD  += $(TCTI_SOCKET_LIBS)
-src_libutil_la_SOURCES += src/tcti-socket.c
+src_libutil_la_SOURCES += src/tcti-socket.c src/tcti-socket.h
 endif
 
 test_integration_libtest_la_LIBADD  = $(SAPI_LIBS) $(TCTI_SOCKET_LIBS) $(TCTI_DEVICE_LIBS) $(GLIB_LIBS)
 test_integration_libtest_la_SOURCES = \
     test/integration/common.c \
+    test/integration/common.h \
     test/integration/context-util.c \
-    test/integration/test-options.c
+    test/integration/context-util.h \
+    test/integration/test-options.c \
+    test/integration/test-options.h
 
 src_libtcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(SAPI_LIBS)
 src_libtcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
-src_libtcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c
+src_libtcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h
 
 src_libtcti_echo_la_LIBADD  = $(DBUS_LIBS) $(GLIB_LIBS)
-src_libtcti_echo_la_SOURCES = src/tss2-tcti-echo.c src/tcti-echo.c
+src_libtcti_echo_la_SOURCES = \
+    src/tcti-echo.c \
+    src/tcti-echo.h \
+    src/tss2-tcti-echo.c \
+    src/tss2-tcti-echo.h \
+    src/tss2-tcti-echo-priv.h
 
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(libutil) $(libtcti_echo)
