@@ -180,7 +180,7 @@ session_list_insert (SessionList      *list,
 {
     g_debug ("session_list_insert: 0x%" PRIxPTR ", entry: 0x%" PRIxPTR,
              (uintptr_t)list, (uintptr_t)entry);
-    if (list == NULL && entry == NULL) {
+    if (list == NULL || entry == NULL) {
         g_error ("session_list_insert passed NULL parameter");
     }
     session_list_lock (list);
