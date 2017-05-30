@@ -85,15 +85,15 @@ command_attrs_init_tpm (CommandAttrs *attrs,
     TPMI_YES_NO           more;
     int                   i;
 
-    sapi_context = access_broker_lock_sapi (broker);
-    if (sapi_context == NULL) {
-        g_warning ("access_broker_lock_sapi returned NULL TSS2_SYS_CONTEXT.");
-        return -1;
-    }
     rc = access_broker_get_max_command (broker, &attrs->count);
     if (rc != TSS2_RC_SUCCESS || attrs->count == 0) {
         g_warning ("failed to get TPM_PT_TOTAL_COMMANDS: 0x%" PRIx32
                    ", count: 0x%" PRIx32, rc, attrs->count);
+        return -1;
+    }
+    sapi_context = access_broker_lock_sapi (broker);
+    if (sapi_context == NULL) {
+        g_warning ("access_broker_lock_sapi returned NULL TSS2_SYS_CONTEXT.");
         return -1;
     }
     g_debug ("GetCapabilty for 0x%" PRIx32 " commands", attrs->count);
@@ -105,12 +105,11 @@ command_attrs_init_tpm (CommandAttrs *attrs,
                                  &more,
                                  &capability_data,
                                  NULL);
+    access_broker_unlock (broker);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("failed to get TPM command attributes: 0x%" PRIx32, rc);
-        access_broker_unlock (broker);
         return -1;
     }
-    access_broker_unlock (broker);
 
     attrs->count = capability_data.data.command.count;
     g_debug ("got attributes for 0x%" PRIx32 " commands", attrs->count);
