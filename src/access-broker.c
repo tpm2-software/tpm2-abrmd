@@ -205,8 +205,11 @@ access_broker_send_tpm_startup (AccessBroker *broker)
 /**
  * This is a very thin wrapper around the mutex mediating access to the
  * TSS2_SYS_CONTEXT. It locks the mutex.
+ *
+ * NOTE: Any errors locking the mutex are fatal and will cause the program
+ * to halt.
  */
-gint
+void
 access_broker_lock (AccessBroker *broker)
 {
     gint error;
@@ -223,13 +226,15 @@ access_broker_lock (AccessBroker *broker)
             break;
         }
     }
-    return error;
 }
 /**
  * This is a very thin wrapper around the mutex mediating access to the
  * TSS2_SYS_CONTEXT. It unlocks the mutex.
+ *
+ * NOTE: Any errors locking the mutex are fatal and will cause the program
+ * to halt.
  */
-gint
+void
 access_broker_unlock (AccessBroker *broker)
 {
     gint error;
@@ -246,7 +251,6 @@ access_broker_unlock (AccessBroker *broker)
             break;
         }
     }
-    return error;
 }
 /**
  * Query the TPM for fixed (PT_FIXED) TPM properties.
@@ -326,8 +330,7 @@ out:
 TSS2_SYS_CONTEXT*
 access_broker_lock_sapi (AccessBroker *broker)
 {
-    if (access_broker_lock (broker) != 0)
-        return NULL;
+    access_broker_lock (broker);
     return broker->sapi_context;
 }
 /*
@@ -427,17 +430,12 @@ access_broker_send_command (AccessBroker  *broker,
 {
     Tpm2Response   *response = NULL;
     Connection     *connection = NULL;
-    gint            error;
     guint8         *buffer;
 
     g_debug ("access_broker_send_command: AccessBroker: 0x%" PRIxPTR
              " Tpm2Command: 0x%" PRIxPTR, (uintptr_t)broker,
              (uintptr_t)command);
-    error = access_broker_lock (broker);
-    if (error) {
-        *rc = TSS2_RESMGR_RC_INTERNAL_ERROR;
-        goto err_out;
-    }
+    access_broker_lock (broker);
     *rc = access_broker_send_cmd (broker, command);
     if (*rc != TSS2_RC_SUCCESS)
         goto unlock_out;
@@ -447,9 +445,7 @@ access_broker_send_command (AccessBroker  *broker,
             free (buffer);
         goto unlock_out;
     }
-    error = access_broker_unlock (broker);
-    if (error)
-        g_error ("access_broker: Failed to unlock SAPI mutex.");
+    access_broker_unlock (broker);
     connection = tpm2_command_get_connection (command);
     response = tpm2_response_new (connection,
                                   buffer,
@@ -462,7 +458,6 @@ access_broker_send_command (AccessBroker  *broker,
 
 unlock_out:
     access_broker_unlock (broker);
-err_out:
     if (!connection)
         connection = tpm2_command_get_connection (command);
     response = tpm2_response_new_rc (connection, *rc);
