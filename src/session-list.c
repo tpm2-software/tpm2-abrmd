@@ -284,6 +284,7 @@ session_list_remove_custom (SessionList  *list,
     session_list_lock (list);
     list_entry = g_slist_find_custom (list->session_entry_slist, data, func);
     if (list_entry == NULL) {
+        session_list_unlock (list);
         return FALSE;
     }
     entry_data = SESSION_ENTRY (list_entry->data);
