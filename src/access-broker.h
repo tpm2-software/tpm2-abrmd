@@ -62,8 +62,8 @@ typedef struct _AccessBroker {
 GType              access_broker_get_type       (void);
 AccessBroker*      access_broker_new            (Tcti            *tcti);
 TSS2_RC            access_broker_init_tpm       (AccessBroker    *broker);
-gint               access_broker_lock           (AccessBroker    *broker);
-gint               access_broker_unlock         (AccessBroker    *broker);
+void               access_broker_lock           (AccessBroker    *broker);
+void               access_broker_unlock         (AccessBroker    *broker);
 Tpm2Response*      access_broker_send_command   (AccessBroker    *broker,
                                                  Tpm2Command     *command,
                                                  TSS2_RC         *rc);

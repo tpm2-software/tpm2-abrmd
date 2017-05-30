@@ -252,9 +252,9 @@ lock_thread (void *param)
 {
     test_data_t *data = (test_data_t*)param;
 
-    assert_int_equal (access_broker_lock (data->broker), 0);
+    access_broker_lock (data->broker);
     data->acquired_lock = TRUE;
-    assert_int_equal (access_broker_unlock (data->broker), 0);
+    access_broker_unlock (data->broker);
 
     return NULL;
 }
@@ -266,12 +266,12 @@ access_broker_lock_test (void **state)
     pthread_t thread_id;
 
     data->acquired_lock = FALSE;
-    assert_int_equal (access_broker_lock (data->broker), 0);
+    access_broker_lock (data->broker);
     assert_int_equal (pthread_create (&thread_id, NULL, lock_thread, data),
                       0);
     sleep (1);
     assert_false (data->acquired_lock);
-    assert_int_equal (access_broker_unlock (data->broker), 0);
+    access_broker_unlock (data->broker);
     pthread_join (thread_id, NULL);
 }
 /**
