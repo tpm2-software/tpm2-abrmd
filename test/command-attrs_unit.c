@@ -145,12 +145,6 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
 
     return (TSS2_RC)mock ();
 }
-/* */
-gint
-__wrap_access_broker_unlock (AccessBroker *access_broker)
-{
-    return (TSS2_RC)mock ();
-}
 /*
  * Test case that initializes the CommandAttrs object. All wrapped
  * function calls return the values expected by the function under test.
