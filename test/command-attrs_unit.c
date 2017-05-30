@@ -185,6 +185,8 @@ command_attrs_init_tpm_null_sapi_test (void **state)
     test_data_t *data = *state;
     gint         ret = -1;
 
+    will_return (__wrap_access_broker_get_max_command, 2);
+    will_return (__wrap_access_broker_get_max_command, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_lock_sapi, NULL);
     ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, -1);
@@ -200,7 +202,6 @@ command_attrs_init_tpm_fail_get_max_command_test (void **state)
     test_data_t *data = *state;
     gint         ret = -1;
 
-    will_return (__wrap_access_broker_lock_sapi, 1);
     will_return (__wrap_access_broker_get_max_command, 2);
     will_return (__wrap_access_broker_get_max_command, 1);
 
@@ -218,7 +219,6 @@ command_attrs_init_tpm_zero_get_max_command_test (void **state)
     test_data_t *data = *state;
     gint         ret = -1;
 
-    will_return (__wrap_access_broker_lock_sapi, 1);
     will_return (__wrap_access_broker_get_max_command, 0);
     will_return (__wrap_access_broker_get_max_command, TSS2_RC_SUCCESS);
 
