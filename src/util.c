@@ -42,6 +42,7 @@
  * 'indent' spaces. The 'width' parameter determines how many bytes are
  * output on each line.
  */
+#define MAX_LINE_LENGTH 200
 void
 g_debug_bytes (uint8_t const *byte_array,
                size_t         array_size,
@@ -51,10 +52,14 @@ g_debug_bytes (uint8_t const *byte_array,
     guint byte_ctr;
     guint indent_ctr;
     size_t line_length = indent + width * 3 + 1;
-    char  line [line_length];
-    char  *line_position = line;
+    char  line [MAX_LINE_LENGTH] = { 0 };
+    char  *line_position = NULL;
 
-    line [line_length - 1] = '\0';
+    if (line_length > MAX_LINE_LENGTH) {
+        g_warning ("g_debug_bytes: MAX_LINE_LENGTH exceeded");
+        return;
+    }
+
     for (byte_ctr = 0; byte_ctr < array_size; ++byte_ctr) {
         /* index into line where next byte is written */
         line_position = line + indent + (byte_ctr % width) * 3;
