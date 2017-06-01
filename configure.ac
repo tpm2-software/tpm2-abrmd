@@ -5,6 +5,10 @@ AC_PROG_CC
 LT_INIT()
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_FILES([Makefile])
+
+# propagate configure arguments to distcheck
+AC_SUBST([DISTCHECK_CONFIGURE_FLAGS],[$ac_configure_args])
+
 AX_PTHREAD([], [AC_MSG_ERROR([requires pthread])])
 AC_ARG_ENABLE([unit],
               [AS_HELP_STRING([--enable-unit],

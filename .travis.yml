@@ -30,19 +30,9 @@ before_script:
   - ./bootstrap
 
 script :
-  - mkdir ./build
-  - pushd ./build
-  - ../configure --enable-unit --enable-valgrind --sysconfdir=/etc
-  - make -j$(nproc)
-  - sudo make install
-  - make check
-  - |
-    cat test-suite*.log
-    for LOG in $(ls -1 test/*.log); do
-        echo "${LOG}"
-        cat ${LOG}
-    done
-  - make check-valgrind
+  - ./configure --enable-unit --enable-valgrind
+  - make -j$(nproc) distcheck
+  - make -j$(nproc) check-valgrind
   - |
     cat test-suite*.log
     for LOG in $(ls -1 test/*.log); do
