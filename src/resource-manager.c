@@ -457,7 +457,7 @@ resource_manager_flush_context (ResourceManager *resmgr,
 
     if (tpm2_command_get_code (command) != TPM_CC_FlushContext) {
         g_warning ("resource_manager_flush_context with wrong command");
-        return TSS2_RC_SUCCESS;
+        return NULL;
     }
     handle = tpm2_command_get_flush_handle (command);
     g_debug ("resource_manager_flush_context handle: 0x%" PRIx32, handle);
