@@ -92,6 +92,10 @@ command_attrs_init_tpm (CommandAttrs *attrs,
         return -1;
     }
     sapi_context = access_broker_lock_sapi (broker);
+    if (sapi_context == NULL) {
+        g_warning ("access_broker_lock_sapi returned NULL TSS2_SYS_CONTEXT.");
+        return -1;
+    }
     g_debug ("GetCapabilty for 0x%" PRIx32 " commands", attrs->count);
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
