@@ -1,6 +1,7 @@
-language: cpp
+language: c
 compiler:
   - gcc
+  - clang
 
 # we need sudo to signal dbus-daemon & run the tpm2-abrmd daemon as the tss
 # user
@@ -23,7 +24,7 @@ install:
   - ./bootstrap
   - ./configure
   - make -j$(nproc)
-  - sudo make install
+  - sudo ../.ci/ci-tss-install.sh
   - popd && sudo ldconfig /usr/local/lib
 
 before_script:
