@@ -1086,7 +1086,7 @@ static void
 tcti_tabrmd_set_locality_test (void **state)
 {
     data_t *data = *state;
-    uint8_t locality;
+    uint8_t locality = 0;
     TSS2_RC rc;
 
     will_return (__wrap_tcti_tabrmd_call_set_locality_sync, TSS2_RC_SUCCESS);
@@ -1102,7 +1102,7 @@ static void
 tcti_tabrmd_set_locality_bad_sequence_test (void **state)
 {
     data_t *data = *state;
-    uint8_t locality;
+    uint8_t locality = 0;
     TSS2_RC rc;
 
     TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_RECEIVE;
