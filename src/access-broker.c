@@ -530,8 +530,8 @@ access_broker_get_trans_object_count (AccessBroker *broker,
     TPMI_YES_NO more_data;
     TPMS_CAPABILITY_DATA capability_data = { 0, };
 
-    if (broker == NULL || count == NULL)
-        g_error ("get_loaded_transient_object_count: got NULL parameter");
+    g_assert_nonnull (broker);
+    g_assert_nonnull (count);
     sapi_context = access_broker_lock_sapi (broker);
     /*
      * GCC gets confused by the TRANSIENT_FIRST constant being used for the
