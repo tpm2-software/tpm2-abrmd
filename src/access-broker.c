@@ -331,6 +331,7 @@ TSS2_SYS_CONTEXT*
 access_broker_lock_sapi (AccessBroker *broker)
 {
     access_broker_lock (broker);
+    g_assert_nonnull (broker->sapi_context);
     return broker->sapi_context;
 }
 /*
