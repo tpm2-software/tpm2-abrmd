@@ -17,6 +17,22 @@ addons:
       - libglib2.0-dev
       - libdbus-1-dev
       - valgrind
+  coverity_scan:
+    project:
+      name: 01org/tpm2-abrmd
+      description: Build submitted via Travis-CI
+    notification_email: flihp@twobit.us
+    build_command_prepend: "./configure; make clean"
+    build_command: "make -j$(nproc)"
+    branch_pattern: coverity_scan
+
+env:
+  global:
+    # COVERITY_SCAN_TOKEN created by coverity using 'travis encrypt' using
+    # project repo public key
+    - secure: "hWep+zj8S3ahEGUpOaFbsHVqJ/1Gpf7+4Vos0Op1jyCF0Iw3r/MRxC1AABhxOjPhlNNf9q19b0IjVzVWh+owiFItK/NCgNG+daSuCk945F5tREYKFui+b9JrLMGx8+zfrL+KAy3BVDUUobLrh7vBTdbr9Wg4Kbryt6lBh0wpPnbMqCuUKEwAYw8K9YpoviqGdW1AWwWEpApoXtjukiF3Virc+sfRN/3xpDpHyc7LESzREE/xkZe879e1pFGLys7perOf2JhgKdj0B0otQXPcPuoB8ppFsxTQwbZbcfpZW/l7Vo6aUjmoXw6+DTZK+skne2K9uCP2gjuVwLnkzgBhX8OYVyHscmA+xl0wLIwkTkPcW76bfOVZPkgaKGdKBW7mdl2Tk8DBZfF10XZ0zSLAOEwUeYkIr4vc4ybGRcw9xS6ixXeENzW9BR1NUktSdQBrMSYnrRvDQkEKiUpd7f4uFOKQT0evvjvAI8rXEcC5eo8ODJYHni0Zep/c/rKEPduUsZgZQ18F86q/G3DtIl+69/gDEEUKnDXSFejFfzO+NGWp+jL5aybE0pjzXsiLmwklDiY6po+dgkiTbL3SKlMl8a+miteNu2fgar8D443afGiHABUpiRwNYN/47WombgYst5ZcnnDFmUIYa7SYoxZAeCsCTySdyTso02POFAKYz5U="
+    # run coverity scan on gcc build to keep from DOSing coverity
+    - coverity_scan_run_condition='"$CC" = gcc'
 
 install:
   - git clone https://github.com/01org/TPM2.0-TSS.git
