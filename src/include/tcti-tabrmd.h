@@ -27,9 +27,17 @@
 #ifndef TSS2_TCTI_TABD_H
 #define TSS2_TCTI_TABD_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sapi/tpm20.h>
 #include <sapi/tss2_tcti.h>
 
 TSS2_RC tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context, size_t *size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TSS2_TCTI_TABD_H */
