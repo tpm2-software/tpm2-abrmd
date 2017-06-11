@@ -40,6 +40,7 @@ typedef struct tabrmd_options {
     gboolean        fail_on_loaded_trans;
     guint           max_connections;
     guint           max_transient_objects;
+    gchar          *dbus_name;
 } tabrmd_options_t;
 
 #endif /* TABRMD_PRIV_H */

@@ -435,7 +435,7 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
         tcti_tabrmd_proxy_new_for_bus_sync (
             G_BUS_TYPE_SYSTEM,
             G_DBUS_PROXY_FLAGS_NONE,
-            TABRMD_DBUS_NAME,              /* bus name */
+            TABRMD_DBUS_NAME_DEFAULT,
             TABRMD_DBUS_PATH, /* object */
             NULL,                          /* GCancellable* */
             &error);
