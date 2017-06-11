@@ -463,7 +463,7 @@ init_thread_func (gpointer user_data)
     sigaction (SIGTERM, &action, NULL);
 
     data->dbus_name_owner_id = g_bus_own_name (data->options.bus,
-                                               TABRMD_DBUS_NAME,
+                                               data->options.dbus_name,
                                                G_BUS_NAME_OWNER_FLAGS_NONE,
                                                on_bus_acquired,
                                                on_name_acquired,
@@ -610,8 +610,12 @@ parse_opts (gint            argc,
 
     options->max_connections = MAX_CONNECTIONS_DEFAULT;
     options->max_transient_objects = MAX_TRANSIENT_OBJECTS_DEFAULT;
+    options->dbus_name = TABRMD_DBUS_NAME_DEFAULT;
 
     GOptionEntry entries[] = {
+        { "dbus-name", 'n', 0, G_OPTION_ARG_STRING, &options->dbus_name,
+          "Name for daemon to \"own\" on the D-Bus",
+          TABRMD_DBUS_NAME_DEFAULT },
         { "logger", 'l', 0, G_OPTION_ARG_STRING, &logger_name,
           "The name of desired logger, stdout is default.", "[stdout|syslog]"},
         { "session", 's', 0, G_OPTION_ARG_NONE, &session_bus,
