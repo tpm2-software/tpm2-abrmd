@@ -412,8 +412,10 @@ _out:
 }
 
 TSS2_RC
-tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
-                       size_t            *size)
+tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT *context,
+                            size_t            *size,
+                            GBusType           bus_type,
+                            const char        *bus_name)
 {
     GError *error = NULL;
     GVariant *fds_variant;
@@ -428,14 +430,18 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
         *size = sizeof (TSS2_TCTI_TABRMD_CONTEXT);
         return TSS2_RC_SUCCESS;
     }
+    if (bus_name == NULL ||
+        (bus_type != G_BUS_TYPE_SYSTEM && bus_type != G_BUS_TYPE_SESSION)) {
+        return TSS2_TCTI_RC_BAD_VALUE;
+    }
     /* Register dbus error mapping for tabrmd. Gets us RCs from Gerror codes */
     TABRMD_ERROR;
     init_tcti_data (context);
     TSS2_TCTI_TABRMD_PROXY (context) =
         tcti_tabrmd_proxy_new_for_bus_sync (
-            G_BUS_TYPE_SYSTEM,
+            bus_type,
             G_DBUS_PROXY_FLAGS_NONE,
-            TABRMD_DBUS_NAME_DEFAULT,
+            bus_name,
             TABRMD_DBUS_PATH, /* object */
             NULL,                          /* GCancellable* */
             &error);
@@ -478,4 +484,14 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
     TSS2_TCTI_TABRMD_FD_TRANSMIT (context) = fd;
 
     return TSS2_RC_SUCCESS;
+}
+
+TSS2_RC
+tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
+                       size_t            *size)
+{
+    return tss2_tcti_tabrmd_init_full (context,
+                                       size,
+                                       G_BUS_TYPE_SYSTEM,
+                                       TABRMD_DBUS_NAME_DEFAULT);
 }

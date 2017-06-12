@@ -2,6 +2,7 @@ AC_INIT([tpm2-abrmd],
         [m4_esyscmd_s([git describe --tags --always --dirty])])
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_CC
+AC_PROG_LN_S
 LT_INIT()
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_FILES([Makefile])

@@ -31,10 +31,20 @@
 extern "C" {
 #endif
 
+#include <gio/gio.h>
 #include <sapi/tpm20.h>
 #include <sapi/tss2_tcti.h>
 
+#include "tabrmd.h"
+
+#define TCTI_TABRMD_DBUS_TYPE_DEFAULT TABRMD_DBUS_TYPE_DEFAULT
+#define TCTI_TABRMD_DBUS_NAME_DEFAULT TABRMD_DBUS_NAME_DEFAULT
+
 TSS2_RC tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context, size_t *size);
+TSS2_RC tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT *context,
+                                    size_t            *size,
+                                    GBusType           bus,
+                                    const char        *name);
 
 #ifdef __cplusplus
 }
