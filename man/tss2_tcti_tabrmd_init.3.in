@@ -3,16 +3,22 @@
 .\"
 .TH TSS2_TCTI_TABRMD_INIT 3 "MAY 2017" Intel "TPM2 Software Stack"
 .SH NAME
-tss2_tcti_tabrmd_init \- Initialization function for the tpm2-abrmd TCTI library.
+tss2_tcti_tabrmd_init, tss2_tcti_tabrmd_init_full \- Initialization functions
+for the tpm2-abrmd TCTI library.
 .SH SYNOPSIS
+The
+.BR tss2_tcti_tabrmd_init ()
+and
+.BR tss2_tcti_tabrmd_init_full ()
+functions are used to initialize a TCTI context for communication with the
+.BR tpm2-abrmd (8).
+.sp
 .B #include <tcti/tcti-tabrmd.h>
 .sp
 .BI "TSS2_RC tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT " "*tcti_context" ", size_t " "*size" );
 .sp
-The 
-.BR tss2_tcti_tabrmd_init ()
-function initializes a TCTI context used to communicate with the
-.BR tpm2-abrmd.
+.BI "TSS2_RC tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT " "*tcti_context" ", size_t " "*size" ", GBusType" "bus_type" ", const char" "*bus_name" );
+.sp
 .SH DESCRIPTION
 .BR tss2_tcti_tabrmd_init ()
 attempts to initialize a caller allocated
@@ -52,7 +58,9 @@ function in the section titled
 Once initialized, the TCTI context returned exposes the Trusted Computing
 Group (TCG) defined API for the lowest level communication with the TPM.
 Using this API the caller can exchange (send / receive) TPM2 command and
-respons buffers with the tpm2-abrmd. In nearly all cases however, the caller
+respons buffers with the
+.B tpm2-abrmd (8).
+In nearly all cases however, the caller
 will initialize a context using this funnction before passing the context to
 a higher level API like the System API (SAPI), and then never touch it again.
 .sp
@@ -60,9 +68,24 @@ For a more thorough discussion of the TCTI API see the \*(lqTSS System Level
 API and TPM Command Transmission Interface Specification\*(rq specification
 as published by the TCG:
 \%https://trustedcomputinggroup.org/tss-system-level-api-tpm-command-transmission-interface-specification/
+.sp
+.B tss2_tcti_tabrmd_init_full ()
+behaves in the same way as
+.B tss2_tcti_tabrmd_init ()
+but allows for greater flexibility through two additional parameters: The
+.I bus_type
+and
+.I bus_name
+parameters may be used to select which D-Bus bus type and name used to connect
+to an instance of the
+.B tpm2-abrmd (8)
+daemon.
+
 .SH RETURN VALUE
 A successful call to
-.BR tss2_tcti_tabrmd ()
+.BR tss2_tcti_tabrmd_init ()
+and
+.BR tss2_tcti_tabrmd_init_full ()
 will return
 .B TSS2_RC_SUCCESS.
 An unsuccessful call will produce a response code described in section
@@ -73,10 +96,16 @@ is returned if both the
 .I tcti_context
 and the
 .I size
-parameters are NULL.
+parameters are NULL, or the
+.I bus_name
+is NULL, or the
+.I bus_type
+is not a supported type (G_BUS_TYPE_SYSTEM OR G_BUS_TYPE_SESSION).
 .sp
-All errors caused by communication failures with the tpm2-abrmd are treated
-as fatal errors and will call the calling application to terminate.
+All errors caused by communication failures with the
+.B tpm2-abrmd (8)
+are treated as fatal errors and will call the calling application to terminate.
+
 .SH EXAMPLE
 .nf
 #include <inttypes.h>
