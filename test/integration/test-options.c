@@ -27,6 +27,7 @@
 #include <stdio.h>
 
 #include "test-options.h"
+#include "tcti-tabrmd.h"
 
 /*
  * A structure to map a string name to an element in the TCTI_TYPE
@@ -88,6 +89,30 @@ tcti_name_from_type (TCTI_TYPE tcti_type)
             return tcti_map_table[i].name;
     return NULL;
 }
+GBusType
+bus_type_from_str (const char *bus_type_str)
+{
+    if (strcmp (bus_type_str, "system") == 0) {
+        return G_BUS_TYPE_SYSTEM;
+    } else if (strcmp (bus_type_str, "session") == 0) {
+        return G_BUS_TYPE_SESSION;
+    } else {
+        g_debug ("GBusType: default");
+        return TCTI_TABRMD_DBUS_TYPE_DEFAULT;
+    }
+}
+const char*
+bus_str_from_type (GBusType bus_type)
+{
+    switch (bus_type) {
+    case G_BUS_TYPE_SESSION:
+        return "session";
+    case G_BUS_TYPE_SYSTEM:
+        return "system";
+    default:
+        return NULL;
+    }
+}
 /*
  * return 0 if sanity test passes
  * return 1 if sanity test fails
@@ -114,10 +139,20 @@ sanity_check_test_opts (test_opts_t  *opts)
         break;
 #endif
     case TABRMD_TCTI:
-        /*
-         * No options for tabrmd TCTI yet. Would be smart to pass the dbus
-         * name / path.
-         */
+        switch (opts->tabrmd_bus_type) {
+        case G_BUS_TYPE_SYSTEM:
+        case G_BUS_TYPE_SESSION:
+            break;
+        default:
+            fprintf (stderr,
+                     "tabrmd_bus_type is 0, check env\n");
+            return 1;
+        }
+        if (opts->tabrmd_bus_name == NULL) {
+            fprintf (stderr,
+                     "tabrmd_bus_name is NULL, check env\n");
+            return 1;
+        }
         break;
     default:
         fprintf (stderr, "unknown TCTI type, check env\n");
@@ -125,6 +160,7 @@ sanity_check_test_opts (test_opts_t  *opts)
     }
     return 0;
 }
+
 /*
  * Parse command line options from argv extracting test options. These are
  * returned to the caller in the provided options structure.
@@ -148,6 +184,14 @@ get_test_opts_from_env (test_opts_t          *test_opts)
     env_str = getenv (ENV_SOCKET_PORT);
     if (env_str != NULL)
         test_opts->socket_port = strtol (env_str, &end_ptr, 10);
+    env_str = getenv (ENV_TABRMD_BUS_TYPE);
+    if (env_str != NULL) {
+        test_opts->tabrmd_bus_type = bus_type_from_str (env_str);
+    }
+    env_str = getenv (ENV_TABRMD_BUS_NAME);
+    if (env_str != NULL) {
+        test_opts->tabrmd_bus_name = env_str;
+    }
     return 0;
 }
 /*
@@ -161,4 +205,6 @@ dump_test_opts (test_opts_t *opts)
     printf ("  device_file:    %s\n", opts->device_file);
     printf ("  socket_address: %s\n", opts->socket_address);
     printf ("  socket_port:    %d\n", opts->socket_port);
+    printf ("  tabrmd_bus_type: %s\n", bus_str_from_type (opts->tabrmd_bus_type));
+    printf ("  tabrmd_bus_name: %s\n", opts->tabrmd_bus_name);
 }

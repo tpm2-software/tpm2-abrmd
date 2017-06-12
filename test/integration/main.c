@@ -27,6 +27,7 @@
 #include <glib.h>
 #include <stdbool.h>
 
+#include "tcti-tabrmd.h"
 #include "test.h"
 #include "test-options.h"
 #include "context-util.h"
@@ -49,6 +50,8 @@ main (int   argc,
         .device_file    = DEVICE_PATH_DEFAULT,
         .socket_address = HOSTNAME_DEFAULT,
         .socket_port    = PORT_DEFAULT,
+        .tabrmd_bus_type = TCTI_TABRMD_DBUS_TYPE_DEFAULT,
+        .tabrmd_bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT,
     };
 
     get_test_opts_from_env (&opts);
