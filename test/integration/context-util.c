@@ -124,13 +124,14 @@ tcti_socket_init (char const *address,
  * Initialize a TCTI context for the tabrmd. Currently it requires no options.
  */
 TSS2_TCTI_CONTEXT*
-tcti_tabrmd_init (void)
+tcti_tabrmd_init (GBusType    bus_type,
+                  const char *bus_name)
 {
     TSS2_RC rc;
     TSS2_TCTI_CONTEXT *tcti_ctx;
     size_t size;
 
-    rc = tss2_tcti_tabrmd_init (NULL, &size);
+    rc = tss2_tcti_tabrmd_init_full (NULL, &size, bus_type, bus_name);
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr, "Failed to get allocation size for tabrmd TCTI "
                  " context: 0x%" PRIx32 "\n", rc);
@@ -142,7 +143,7 @@ tcti_tabrmd_init (void)
                  strerror (errno));
         return NULL;
     }
-    rc = tss2_tcti_tabrmd_init (tcti_ctx, &size);
+    rc = tss2_tcti_tabrmd_init_full (tcti_ctx, &size, bus_type, bus_name);
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr, "Failed to initialize tabrmd TCTI context: "
                  "0x%" PRIx32 "\n", rc);
@@ -222,7 +223,8 @@ tcti_init_from_opts (test_opts_t *options)
                                  options->socket_port);
 #endif
     case TABRMD_TCTI:
-        return tcti_tabrmd_init ();
+        return tcti_tabrmd_init (options->tabrmd_bus_type,
+                                 options->tabrmd_bus_name);
     default:
         return NULL;
     }

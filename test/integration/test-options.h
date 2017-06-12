@@ -27,6 +27,7 @@
 #ifndef TEST_OPTIONS_H
 #define TEST_OPTIONS_H
 
+#include <gio/gio.h>
 #include "sapi/tpm20.h"
 
 /* Default TCTI */
@@ -45,7 +46,8 @@
 #define ENV_DEVICE_FILE    "TPM2OTEST_DEVICE_FILE"
 #define ENV_SOCKET_ADDRESS "TPM20TEST_SOCKET_ADDRESS"
 #define ENV_SOCKET_PORT    "TPM20TEST_SOCKET_PORT"
-
+#define ENV_TABRMD_BUS_TYPE "TABRMD_TEST_BUS_TYPE"
+#define ENV_TABRMD_BUS_NAME "TABRMD_TEST_BUS_NAME"
 
 typedef enum {
     UNKNOWN_TCTI,
@@ -64,9 +66,14 @@ typedef struct {
     char     *device_file;
     char     *socket_address;
     uint16_t  socket_port;
+    GBusType    tabrmd_bus_type;
+    const char *tabrmd_bus_name;
 } test_opts_t;
 
 /* functions to get test options from the user and to print helpful stuff */
+
+const char  *bus_name_from_type         (GBusType              bus_type);
+GBusType     bus_type_from_str          (const char*           bus_type_str);
 char* const  tcti_name_from_type        (TCTI_TYPE             tcti_type);
 TCTI_TYPE    tcti_type_from_name        (char const           *tcti_str);
 int          get_test_opts_from_env     (test_opts_t          *opts);
