@@ -116,7 +116,8 @@ CLEANFILES = \
     src/tabrmd-generated.h \
     $(pkgconfig_DATA) \
     $(systemdsystemunit_DATA) \
-    test/integration/*.log
+    test/integration/*.log \
+    _tabrmd.log
 
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
