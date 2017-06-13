@@ -44,26 +44,30 @@ if TCTI_SOCKET
 endif
 endif #UNIT
 
+TESTS_INTEGRATION = \
+    test/integration/auth-session-start-flush.int \
+    test/integration/auth-session-start-save.int \
+    test/integration/auth-session-start-save-load.int \
+    test/integration/create-keys.int \
+    test/integration/get-capability-handles-transient.int \
+    test/integration/manage-transient-keys.int \
+    test/integration/start-auth-session.int \
+    test/integration/tcti-cancel.int \
+    test/integration/tcti-sessions-max.int \
+    test/integration/tcti-set-locality.int \
+    test/integration/hash-sequence.int \
+    test/integration/password-authorization.int
+
 TEST_EXTENSIONS = .int
 INT_LOG_COMPILER = $(srcdir)/scripts/int-log-compiler.sh
 INT_LOG_FLAGS = --simulator-bin=$(SIMULATOR_BIN) --tabrmd-bin=$(sbin_PROGRAMS)
 
 sbin_PROGRAMS   = src/tpm2-abrmd
-noinst_PROGRAMS = \
-    test/integration/auth-session-start-flush \
-    test/integration/auth-session-start-save \
-    test/integration/auth-session-start-save-load \
-    test/integration/create-keys \
-    test/integration/get-capability-handles-transient \
-    test/integration/manage-transient-keys \
-    test/integration/start-auth-session \
-    test/integration/tcti-cancel \
-    test/integration/tcti-sessions-max \
-    test/integration/tcti-set-locality \
-    test/integration/hash-sequence \
-    test/integration/password-authorization \
-    test/tcti-tabrmd_read-write
+noinst_PROGRAMS = test/tcti-tabrmd_read-write
 check_PROGRAMS  = $(TESTS_UNIT)
+if SIMULATOR_BIN
+    check_PROGRAMS += $(TESTS_INTEGRATION)
+endif
 
 # libraries
 libtcti_tabrmd = src/libtcti-tabrmd.la
@@ -392,49 +396,49 @@ endif
 test_tcti_tabrmd_read_write_LDADD   = $(GLIB_LIBS) $(libtcti_tabrmd)
 test_tcti_tabrmd_read_write_SOURCES = test/tcti-tabrmd_read-write.c
 
-test_integration_auth_session_start_flush_LDADD   = $(libtest) $(libtcti_tabrmd) \
+test_integration_auth_session_start_flush_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS)
-test_integration_auth_session_start_flush_SOURCES = test/integration/main.c \
-    test/integration/auth-session-start-flush.c
+test_integration_auth_session_start_flush_int_SOURCES = test/integration/main.c \
+    test/integration/auth-session-start-flush.int.c
 
-test_integration_auth_session_start_save_LDADD   = $(libtest) $(libtcti_tabrmd) \
+test_integration_auth_session_start_save_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS)
-test_integration_auth_session_start_save_SOURCES = test/integration/main.c \
-    test/integration/auth-session-start-save.c
+test_integration_auth_session_start_save_int_SOURCES = test/integration/main.c \
+    test/integration/auth-session-start-save.int.c
 
-test_integration_auth_session_start_save_load_LDADD   = $(libtest) $(libtcti_tabrmd) \
+test_integration_auth_session_start_save_load_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS)
-test_integration_auth_session_start_save_load_SOURCES = test/integration/main.c \
-    test/integration/auth-session-start-save-load.c
+test_integration_auth_session_start_save_load_int_SOURCES = test/integration/main.c \
+    test/integration/auth-session-start-save-load.int.c
 
-test_integration_create_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
+test_integration_create_keys_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) \
     $(TCTI_SOCKET_LIBS)
-test_integration_create_keys_SOURCES = test/integration/main.c test/integration/create-keys.c
+test_integration_create_keys_int_SOURCES = test/integration/main.c test/integration/create-keys.int.c
 
-test_integration_get_capability_handles_transient_LDADD   = $(libtest) \
+test_integration_get_capability_handles_transient_int_LDADD   = $(libtest) \
     $(libtcti_tabrmd) $(GLIB_LIBS) $(SAPI_LIBS)
-test_integration_get_capability_handles_transient_SOURCES = \
-    test/integration/main.c test/integration/get-capability-handles-transient.c
+test_integration_get_capability_handles_transient_int_SOURCES = \
+    test/integration/main.c test/integration/get-capability-handles-transient.int.c
 
-test_integration_start_auth_session_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS)
-test_integration_start_auth_session_SOURCES = test/integration/main.c test/integration/start-auth-session.c
+test_integration_start_auth_session_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS)
+test_integration_start_auth_session_int_SOURCES = test/integration/main.c test/integration/start-auth-session.int.c
 
-test_integration_tcti_cancel_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
-test_integration_tcti_cancel_SOURCES = test/integration/main.c test/integration/tcti-cancel.c
+test_integration_tcti_cancel_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_cancel_int_SOURCES = test/integration/main.c test/integration/tcti-cancel.int.c
 
-test_integration_tcti_sessions_max_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
-test_integration_tcti_sessions_max_SOURCES = test/integration/tcti-sessions-max.c
+test_integration_tcti_sessions_max_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_sessions_max_int_SOURCES = test/integration/tcti-sessions-max.int.c
 
-test_integration_tcti_set_locality_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
-test_integration_tcti_set_locality_SOURCES = test/integration/main.c test/integration/tcti-set-locality.c
+test_integration_tcti_set_locality_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_set_locality_int_SOURCES = test/integration/main.c test/integration/tcti-set-locality.int.c
 
-test_integration_hash_sequence_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
-test_integration_hash_sequence_SOURCES = test/integration/main.c test/integration/hash-sequence.c
+test_integration_hash_sequence_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_hash_sequence_int_SOURCES = test/integration/main.c test/integration/hash-sequence.int.c
 
-test_integration_password_authorization_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
-test_integration_password_authorization_SOURCES = test/integration/main.c test/integration/password-authorization.c
+test_integration_password_authorization_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_password_authorization_int_SOURCES = test/integration/main.c test/integration/password-authorization.int.c
 
-test_integration_manage_transient_keys_LDADD   = $(libtest) $(libtcti_tabrmd) \
+test_integration_manage_transient_keys_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
-test_integration_manage_transient_keys_SOURCES = test/integration/manage-transient-keys.c
+test_integration_manage_transient_keys_int_SOURCES = test/integration/manage-transient-keys.int.c
