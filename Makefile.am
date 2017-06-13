@@ -44,6 +44,10 @@ if TCTI_SOCKET
 endif
 endif #UNIT
 
+TEST_EXTENSIONS = .int
+INT_LOG_COMPILER = $(srcdir)/scripts/int-log-compiler.sh
+INT_LOG_FLAGS = --simulator-bin=$(SIMULATOR_BIN) --tabrmd-bin=$(sbin_PROGRAMS)
+
 sbin_PROGRAMS   = src/tpm2-abrmd
 noinst_PROGRAMS = \
     test/integration/auth-session-start-flush \
@@ -97,7 +101,8 @@ EXTRA_DIST = \
     dist/tpm2-abrmd.conf \
     dist/tcti-tabrmd.pc.in \
     dist/tpm2-abrmd.service \
-    dist/tpm-udev.rules
+    dist/tpm-udev.rules \
+    scripts/int-log-compiler.sh
 
 CLEANFILES = \
     $(man3_MANS) \
@@ -106,7 +111,8 @@ CLEANFILES = \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
     $(pkgconfig_DATA) \
-    $(systemdsystemunit_DATA)
+    $(systemdsystemunit_DATA) \
+    test/integration/*.log
 
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 

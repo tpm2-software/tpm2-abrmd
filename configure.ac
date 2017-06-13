@@ -97,6 +97,18 @@ AC_ARG_WITH([udevrulesdir],
             [with_udevrulesdir=${libdir}/udev/rules.d])
 AX_NORMALIZE_PATH([with_udevrulesdir])
 AC_SUBST([udevrulesdir], [$with_udevrulesdir])
+#
+# simulator binary
+#
+AC_ARG_WITH([simulatorbin],
+            [AS_HELP_STRING([--with-simulatorbin=tpm_server],[simulator executable])],
+            [],
+            [with_simulatorbin=../ibmtpm532/src/tpm_server])
+AX_NORMALIZE_PATH([with_simulatorbin])
+AS_IF([test -f "$with_simulatorbin"],
+      [AC_SUBST([SIMULATOR_BIN],[$with_simulatorbin])],
+      [AC_MSG_WARN([TPM simulator binary does not exist integration tests will not be run])])
+AM_CONDITIONAL([SIMULATOR_BIN],[test -f "$with_simulatorbin"])
 
 # preprocessor / compiler / linker flags
 #   these macros are defined in m4/flags.m4
