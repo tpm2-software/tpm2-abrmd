@@ -42,12 +42,17 @@ install:
   - make -j$(nproc)
   - sudo ../.ci/ci-tss-install.sh
   - popd && sudo ldconfig /usr/local/lib
+  - wget https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm532.tar
+  - sha256sum ibmtpm532.tar | grep -q ^abc0b420257917ccb42a9750588565d5e84a2b4e99a6f9f46c3dad1f9912864f
+  - mkdir ibmtpm532
+  - tar axf ibmtpm532.tar -C ibmtpm532
+  - make -C ibmtpm532/src -j$(nproc)
 
 before_script:
   - ./bootstrap
 
 script :
-  - ./configure --enable-unit --enable-valgrind
+  - ./configure --enable-unit --enable-valgrind --with-simulatorbin=$(pwd)/ibmtpm532/src/tpm_server
   - make -j$(nproc) distcheck
   - make -j$(nproc) check-valgrind
   - |
