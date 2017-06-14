@@ -24,15 +24,38 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef TABRMD_PRIV_H
-#define TABRMD_PRIV_H
+#ifndef TSS2_TABD_H
+#define TSS2_TABD_H
+
+#include <gio/gio.h>
+#include <sapi/tpm20.h>
 
 #include "tcti-options.h"
+#include "tcti-tabrmd.h"
+
+#define TABRMD_DBUS_INTERFACE_DEFAULT        TCTI_TABRMD_DBUS_INTERFACE_DEFAULT
+#define TABRMD_DBUS_NAME_DEFAULT             TCTI_TABRMD_DBUS_NAME_DEFAULT
+#define TABRMD_DBUS_TYPE_DEFAULT             TCTI_TABRMD_DBUS_TYPE_DEFAULT
+#define TABRMD_DBUS_PATH                     "/com/intel/tss2/Tabrmd/Tcti"
+#define TABRMD_DBUS_METHOD_CREATE_CONNECTION "CreateConnection"
+#define TABRMD_DBUS_METHOD_CANCEL            "Cancel"
+#define TABRMD_ERROR tabrmd_error_quark ()
 
 #define MAX_TRANSIENT_OBJECTS 100
 #define MAX_TRANSIENT_OBJECTS_DEFAULT 27
 #define TABD_INIT_THREAD_NAME "tss2-tabrmd_init-thread"
 #define TABD_RAND_FILE "/dev/random"
+
+/* implementation specific RCs */
+#define TSS2_RESMGR_RC_INTERNAL_ERROR (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | (1 << TSS2_LEVEL_IMPLEMENTATION_SPECIFIC_SHIFT))
+#define TSS2_RESMGR_RC_SAPI_INIT      (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | (2 << TSS2_LEVEL_IMPLEMENTATION_SPECIFIC_SHIFT))
+#define TSS2_RESMGR_RC_OUT_OF_MEMORY  (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | (3 << TSS2_LEVEL_IMPLEMENTATION_SPECIFIC_SHIFT))
+/* RCs in the RESMGR layer */
+#define TSS2_RESMGR_RC_BAD_VALUE       (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | TSS2_BASE_RC_BAD_VALUE)
+#define TSS2_RESMGR_RC_NOT_PERMITTED   (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | TSS2_BASE_RC_NOT_PERMITTED)
+#define TSS2_RESMGR_RC_NOT_IMPLEMENTED (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | TSS2_BASE_RC_NOT_IMPLEMENTED)
+#define TSS2_RESMGR_RC_GENERAL_FAILURE (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | TSS2_BASE_RC_GENERAL_FAILURE)
+#define TSS2_RESMGR_RC_OBJECT_MEMORY   (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | TPM_RC_OBJECT_MEMORY)
 
 typedef struct tabrmd_options {
     GBusType        bus;
@@ -43,4 +66,8 @@ typedef struct tabrmd_options {
     gchar          *dbus_name;
 } tabrmd_options_t;
 
-#endif /* TABRMD_PRIV_H */
+GQuark  tabrmd_error_quark (void);
+
+TSS2_RC tss2_tcti_tabrmd_dump_trans_state (TSS2_TCTI_CONTEXT *tcti_context);
+
+#endif /* TSS2_TABD_H */

@@ -173,7 +173,7 @@ src_libutil_la_SOURCES = \
     src/tabrmd-error.c \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
-    src/tabrmd-priv.h \
+    src/tabrmd.h \
     src/tcti.c \
     src/tcti.h \
     src/tcti-options.c \
