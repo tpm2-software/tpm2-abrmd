@@ -89,8 +89,6 @@ install-data-hook:
 	$(LN_S) -f tss2_tcti_tabrmd_init.3 \
                 $(DESTDIR)$(mandir)/man3/tss2_tcti_tabrmd_init_full.3
 
-tpm2_abrmddir      = $(includedir)/tss2
-tpm2_abrmd_HEADERS = $(srcdir)/src/include/tabrmd.h
 libtcti_tabrmddir      = $(includedir)/tcti
 libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
 

@@ -28,14 +28,16 @@
 #define TSS2_TABD_H
 
 #include <gio/gio.h>
-#include <tpm20.h>
+#include <sapi/tpm20.h>
 
-#define TABRMD_DBUS_INTERFACE                "com.intel.tss2.TctiTabrmd"
-#define TABRMD_DBUS_NAME_DEFAULT             "com.intel.tss2.Tabrmd"
+#include "tcti-tabrmd.h"
+
+#define TABRMD_DBUS_INTERFACE_DEFAULT        TCTI_TABRMD_DBUS_INTERFACE_DEFAULT
+#define TABRMD_DBUS_NAME_DEFAULT             TCTI_TABRMD_DBUS_NAME_DEFAULT
+#define TABRMD_DBUS_TYPE_DEFAULT             TCTI_TABRMD_DBUS_TYPE_DEFAULT
 #define TABRMD_DBUS_PATH                     "/com/intel/tss2/Tabrmd/Tcti"
 #define TABRMD_DBUS_METHOD_CREATE_CONNECTION "CreateConnection"
 #define TABRMD_DBUS_METHOD_CANCEL            "Cancel"
-#define TABRMD_DBUS_TYPE_DEFAULT             G_BUS_TYPE_SYSTEM
 
 /* implementation specific RCs */
 #define TSS2_RESMGR_RC_INTERNAL_ERROR (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | (1 << TSS2_LEVEL_IMPLEMENTATION_SPECIFIC_SHIFT))

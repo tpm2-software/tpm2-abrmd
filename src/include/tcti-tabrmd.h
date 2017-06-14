@@ -35,10 +35,9 @@ extern "C" {
 #include <sapi/tpm20.h>
 #include <sapi/tss2_tcti.h>
 
-#include "tabrmd.h"
-
-#define TCTI_TABRMD_DBUS_TYPE_DEFAULT TABRMD_DBUS_TYPE_DEFAULT
-#define TCTI_TABRMD_DBUS_NAME_DEFAULT TABRMD_DBUS_NAME_DEFAULT
+#define TCTI_TABRMD_DBUS_INTERFACE_DEFAULT "com.intel.tss2.TctiTabrmd"
+#define TCTI_TABRMD_DBUS_NAME_DEFAULT      "com.intel.tss2.Tabrmd"
+#define TCTI_TABRMD_DBUS_TYPE_DEFAULT      G_BUS_TYPE_SYSTEM
 
 TSS2_RC tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context, size_t *size);
 TSS2_RC tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT *context,
