@@ -38,7 +38,7 @@
 #include "access-broker.h"
 #include "connection.h"
 #include "connection-manager.h"
-#include "tabrmd-priv.h"
+#include "tabrmd.h"
 #include "logging.h"
 #include "thread.h"
 #include "command-source.h"
