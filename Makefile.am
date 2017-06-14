@@ -86,7 +86,7 @@ man8_MANS = man/man8/tpm2-abrmd.8
 TESTS = $(check_PROGRAMS)
 
 install-data-hook:
-	$(LN_S) tss2_tcti_tabrmd_init.3 \
+	$(LN_S) -f tss2_tcti_tabrmd_init.3 \
                 $(DESTDIR)$(mandir)/man3/tss2_tcti_tabrmd_init_full.3
 
 tpm2_abrmddir      = $(includedir)/tss2
