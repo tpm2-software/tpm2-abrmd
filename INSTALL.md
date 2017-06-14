@@ -43,6 +43,19 @@ all dependencies have been met:
 $ ./configure
 ```
 
+## Test Execution
+Developers modifying / adding to the code, or adding new test cases may want
+to build and execute the unit and integration tests. To do so you must provide
+some combination of the following options to the `configure` script:
+* `--enable-unit` will ensure the cmocka framework is present. When the source
+code is configured with this option `make check` will execute the unit tests.
+* `--with-simulatorbin` is used to provide the build with a path to the tpm
+simulator. The simulator is required for the integration tests to function and
+so `make check` will only execute the integration tests if this option is
+provided. **NOTE** this must be an absolute path.
+
+After this, `make check` will execute the unit and / or integration tests.
+
 ## Compilation
 Compiling the code requires running `make`. You may provide `make` whatever
 parameters required for your environment (e.g. to enable parallel builds) but
