@@ -309,7 +309,7 @@ gboolean
 connection_manager_contains_id (ConnectionManager *manager,
                                 const gchar       *id)
 {
-    return g_hash_table_contains (manager->connection_from_id_table, &id);
+    return g_hash_table_contains (manager->connection_from_id_table, id);
 }
 
 gboolean
