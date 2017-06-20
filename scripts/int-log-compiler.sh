@@ -167,6 +167,7 @@ tabrmd_start ${TABRMD_BIN} ${SIM_PORT} ${TABRMD_NAME} ${TABRMD_LOG_FILE} ${TABRM
 
 # execute the test script
 env G_MESSAGES_DEBUG=all TABRMD_TEST_BUS_TYPE=session TABRMD_TEST_BUS_NAME="${TABRMD_NAME}" $@
+ret=$?
 
 # This sleep is sadly necessary: If we kill the tabrmd w/o sleeping for a
 # second after the test finishes the simulator will die too. Bug in the
@@ -178,3 +179,4 @@ daemon_stop ${TABRMD_PID_FILE}
 rm -rf ${TABRMD_PID_FILE}
 daemon_stop ${SIM_PID_FILE}
 rm -rf ${SIM_TMP_DIR} ${SIM_PID_FILE}
+exit $ret
