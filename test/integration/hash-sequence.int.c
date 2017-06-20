@@ -162,8 +162,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                        &sequenceHandle[0],
                                        0);
     if (rval != TSS2_RC_SUCCESS) {
-        g_warning("Failed to initialize hash sequence. RC = 0x%x", rval);
-        return 0;
+        g_error ("Failed to initialize hash sequence. RC = 0x%x", rval);
     }
 
     // Init authHandle
@@ -190,8 +189,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                     &dataToHash,
                                     &sessionsDataOut);
     if (rval != TSS2_RC_SUCCESS) {
-        g_warning("Hash sequence update failed. RC = 0x%x", rval);
-        return 0;
+        g_error ("Hash sequence update failed. RC = 0x%x", rval);
     }
 
     /*
@@ -207,9 +205,8 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                            &sequenceHandle[i],
                                            0);
         if (rval != TSS2_RC_SUCCESS) {
-            g_warning ("Failed to initialize interrupting hash sequence %d. "
-                       "RC = 0x%x", i, rval);
-            return 0;
+            g_error ("Failed to initialize interrupting hash sequence %d. "
+                     "RC = 0x%x", i, rval);
         }
     }
 
@@ -226,9 +223,8 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                           &validation,
                                           &sessionsDataOut);
         if (rval != TSS2_RC_SUCCESS) {
-            g_warning ("Interrupting hash sequence %d failed. RC = 0x%x",
-                       i, rval);
-            return 0;
+            g_error ("Interrupting hash sequence %d failed. RC = 0x%x",
+                     i, rval);
         }
     }
 
@@ -239,8 +235,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                     &dataToHash,
                                     &sessionsDataOut);
     if (rval != TSS2_RC_SUCCESS) {
-        g_warning ("Failed to update original hash sequence. RC = 0x%x", rval);
-        return 0;
+        g_error ("Failed to update original hash sequence. RC = 0x%x", rval);
     }
 
     dataToHash.t.size = sizeof (memoryToHash) - MAX_DIGEST_BUFFER;
@@ -257,15 +252,13 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                       &validation,
                                       &sessionsDataOut);
     if (rval != TSS2_RC_SUCCESS) {
-        g_warning("Original hash sequence failed. RC = 0x%x", rval);
-        return 0;
+        g_error ("Original hash sequence failed. RC = 0x%x", rval);
     }
 
     /* Test the resulting hash. */
     int ret = memcmp (result.t.buffer, goodHashValue, result.t.size);
     if (ret != 0) {
-        g_warning("ERROR!! resulting hash is incorrect." );
-        return 0;
+        g_error ("ERROR!! resulting hash is incorrect." );
     }
 
     /*
@@ -281,9 +274,8 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                            &sequenceHandle[i],
                                            0);
         if (rval != TSS2_RC_SUCCESS) {
-            g_warning ("Hash sequence %d during stress test failed to "
-                       "initialize. RC = 0x%x", i, rval);
-            return 0;
+            g_error ("Hash sequence %d during stress test failed to "
+                     "initialize. RC = 0x%x", i, rval);
         }
     }
 
@@ -300,11 +292,10 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                           &validation,
                                           &sessionsDataOut);
         if (rval != TSS2_RC_SUCCESS) {
-            g_warning("Hash sequence %d during stress test failed to close. "
-                      "RC = 0x%x", i, rval);
-            return 0;
+            g_error ("Hash sequence %d during stress test failed to close. "
+                     "RC = 0x%x", i, rval);
         }
     }
 
-    return 1;
+    return 0;
 }
