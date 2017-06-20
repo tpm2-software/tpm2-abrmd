@@ -46,6 +46,7 @@ endif #UNIT
 
 XFAIL_TESTS = \
     test/integration/start-auth-session.int \
+    test/integration/tcti-connect-multiple.int \
     test/integration/tcti-sessions-max.int
 TESTS_INTEGRATION = \
     test/integration/auth-session-start-flush.int \
@@ -56,6 +57,7 @@ TESTS_INTEGRATION = \
     test/integration/manage-transient-keys.int \
     test/integration/start-auth-session.int \
     test/integration/tcti-cancel.int \
+    test/integration/tcti-connect-multiple.int \
     test/integration/tcti-sessions-max.int \
     test/integration/tcti-set-locality.int \
     test/integration/hash-sequence.int \
@@ -428,6 +430,9 @@ test_integration_start_auth_session_int_SOURCES = test/integration/main.c test/i
 
 test_integration_tcti_cancel_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_integration_tcti_cancel_int_SOURCES = test/integration/main.c test/integration/tcti-cancel.int.c
+
+test_integration_tcti_connect_multiple_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_connect_multiple_int_SOURCES = test/integration/tcti-connect-multiple.int.c
 
 test_integration_tcti_sessions_max_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_integration_tcti_sessions_max_int_SOURCES = test/integration/tcti-sessions-max.int.c
