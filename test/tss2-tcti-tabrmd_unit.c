@@ -96,16 +96,19 @@ __wrap_g_dbus_proxy_call_with_unix_fd_list_sync (
 {
     GVariant *variant_array[2] = { 0 }, *variant_tuple;
     gint32 fds[2];
+    guint64 id;
 
     fds[0] = (gint32)mock ();
     fds[1] = (gint32)mock ();
+    id = (guint64)mock ();
 
     *out_fd_list = g_unix_fd_list_new_from_array (fds, 2);
     variant_array[0] = g_variant_new_fixed_array (G_VARIANT_TYPE ("h"),
                                                   fds,
                                                   2,
                                                   sizeof (gint32));
-    variant_tuple = g_variant_new_tuple (variant_array, 1);
+    variant_array[1] = g_variant_new_uint64 (id);
+    variant_tuple = g_variant_new_tuple (variant_array, 2);
 
     return variant_tuple;
 }
@@ -117,6 +120,7 @@ __wrap_g_dbus_proxy_call_with_unix_fd_list_sync (
 gboolean
 __wrap_tcti_tabrmd_call_cancel_sync (
     TctiTabrmd *proxy,
+    guint64 arg_id,
     guint *out_return_code,
     GCancellable *cancellable,
     GError **error)
@@ -132,6 +136,7 @@ __wrap_tcti_tabrmd_call_cancel_sync (
 gboolean
 __wrap_tcti_tabrmd_call_set_locality_sync (
     TctiTabrmd *proxy,
+    guint64 arg_id,
     guchar arg_locality,
     guint *out_return_code,
     GCancellable *cancellable,
@@ -144,6 +149,7 @@ __wrap_tcti_tabrmd_call_set_locality_sync (
  * Structure to hold data relevant to tabrmd TCTI unit tests.
  */
 typedef struct {
+    guint64 id;
     gint32  fd_receive_client;
     gint32  fd_receive_server;
     gint32  fd_transmit_client;
@@ -162,6 +168,7 @@ tcti_tabrmd_setup (void **state)
     TSS2_RC ret = TSS2_RC_SUCCESS;
     size_t tcti_size = 0;
     gint32 fds[2] = { 0 };
+    guint64 id = 666;
 
     data = calloc (1, sizeof (data_t));
     ret = tss2_tcti_tabrmd_init (NULL, &tcti_size);
@@ -185,6 +192,8 @@ tcti_tabrmd_setup (void **state)
                  data->fd_receive_client);
     will_return (__wrap_g_dbus_proxy_call_with_unix_fd_list_sync,
                  data->fd_transmit_client);
+    data->id = id;
+    will_return (__wrap_g_dbus_proxy_call_with_unix_fd_list_sync, id);
     g_debug ("about to call real tss2_tcti_tabrmd_init function");
     ret = tss2_tcti_tabrmd_init (data->context, 0);
     assert_int_equal (ret, TSS2_RC_SUCCESS);
@@ -243,8 +252,7 @@ tcti_tabrmd_init_success_test (void **state)
 
     tcti_tabrmd_setup (state);
     data = *state;
-    assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
-                      TABRMD_STATE_TRANSMIT);
+    assert_int_equal (data->id, TSS2_TCTI_TABRMD_ID (data->context));
     tcti_tabrmd_teardown (state);
 }
 /*

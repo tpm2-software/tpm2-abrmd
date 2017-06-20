@@ -32,7 +32,7 @@
 
 #include "session-entry.h"
 
-#define CLIENT_ID_STRING "an id string"
+#define CLIENT_ID        1ULL
 #define TEST_HANDLE      0x03000000
 
 typedef struct {
@@ -54,7 +54,7 @@ session_entry_setup (void **state)
     data->handle_map = handle_map_new (TPM_HT_TRANSIENT, 100);
     data->connection = connection_new (&data->receive_fd,
                                        &data->send_fd,
-                                       CLIENT_ID_STRING,
+                                       CLIENT_ID,
                                        data->handle_map);
     data->session_entry = session_entry_new (data->connection, TEST_HANDLE);
 

@@ -58,8 +58,8 @@ connection_set_property (GObject       *object,
     g_debug ("connection_set_property");
     switch (property_id) {
     case PROP_ID:
-        self->id = g_value_dup_string (value);
-        g_debug ("Connection 0x%" PRIxPTR " set id to %s",
+        self->id = g_value_get_uint64 (value);
+        g_debug ("Connection 0x%" PRIxPTR " set id to 0x%" PRIx64,
                  (uintptr_t)self, self->id);
         break;
     case PROP_RECEIVE_FD:
@@ -95,7 +95,7 @@ connection_get_property (GObject     *object,
     g_debug ("connection_get_property");
     switch (property_id) {
     case PROP_ID:
-        g_value_set_string (value, self->id);
+        g_value_set_uint64 (value, self->id);
         break;
     case PROP_RECEIVE_FD:
         g_value_set_int (value, self->receive_fd);
@@ -129,8 +129,6 @@ connection_finalize (GObject *obj)
         return;
     close (connection->receive_fd);
     close (connection->send_fd);
-    /* g_free won't touch const pointers */
-    g_free ((void*)connection->id);
     g_object_unref (connection->transient_handle_map);
     if (connection_parent_class)
         G_OBJECT_CLASS (connection_parent_class)->finalize (obj);
@@ -150,10 +148,12 @@ connection_class_init (ConnectionClass *klass)
     object_class->set_property = connection_set_property;
 
     obj_properties [PROP_ID] =
-        g_param_spec_string ("id",
+        g_param_spec_uint64 ("id",
                              "connection identifier",
                              "Unique identifier for the connection",
-                             NULL,
+                             0,
+                             UINT64_MAX,
+                             0,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_RECEIVE_FD] =
         g_param_spec_int ("receive_fd",
@@ -225,10 +225,10 @@ create_pipe_pairs (int pipe_fds_a[],
  * respectively.
  */
 Connection*
-connection_new (gint        *receive_fd,
-                gint        *send_fd,
-                const gchar *id,
-                HandleMap   *transient_handle_map)
+connection_new (gint       *receive_fd,
+                gint       *send_fd,
+                guint64     id,
+                HandleMap  *transient_handle_map)
 {
 
     g_info ("CreateConnection");
@@ -270,7 +270,7 @@ connection_key_fd (Connection *connection)
 gpointer
 connection_key_id (Connection *connection)
 {
-    return connection->id;
+    return &connection->id;
 }
 
 gboolean
@@ -284,7 +284,7 @@ gboolean
 connection_equal_id (gconstpointer a,
                        gconstpointer b)
 {
-    return g_str_equal (a, b);
+    return g_int_equal (a, b);
 }
 gint
 connection_receive_fd (Connection *connection)
