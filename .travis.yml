@@ -12,10 +12,13 @@ addons:
   apt:
     packages:
       - autoconf-archive
+      - dbus
+      - dbus-x11
       - libcmocka0
       - libcmocka-dev
       - libglib2.0-dev
       - libdbus-1-dev
+      - realpath
       - valgrind
   coverity_scan:
     project:
@@ -53,8 +56,8 @@ before_script:
 
 script :
   - ./configure --enable-unit --enable-valgrind --with-simulatorbin=$(pwd)/ibmtpm532/src/tpm_server
-  - make -j$(nproc) distcheck
-  - make -j$(nproc) check-valgrind
+  - dbus-launch make -j$(nproc) distcheck
+  - dbus-launch make -j$(nproc) check-valgrind
   - |
     cat test-suite*.log
     for LOG in $(ls -1 test/*.log); do
