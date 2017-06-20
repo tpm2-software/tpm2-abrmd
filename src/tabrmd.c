@@ -590,7 +590,7 @@ init_thread_func (gpointer user_data)
                               (GAsyncReadyCallback)on_get_dbus_daemon_proxy,
                               user_data);
     data->random = random_new();
-    ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
+    ret = random_seed_from_file (data->random, data->options.prng_seed_file);
     if (ret != 0)
         g_error ("failed to seed Random object");
 
@@ -725,6 +725,7 @@ parse_opts (gint            argc,
     options->max_connections = MAX_CONNECTIONS_DEFAULT;
     options->max_transient_objects = MAX_TRANSIENT_OBJECTS_DEFAULT;
     options->dbus_name = TABRMD_DBUS_NAME_DEFAULT;
+    options->prng_seed_file = RANDOM_ENTROPY_FILE_DEFAULT;
 
     GOptionEntry entries[] = {
         { "dbus-name", 'n', 0, G_OPTION_ARG_STRING, &options->dbus_name,
@@ -742,6 +743,9 @@ parse_opts (gint            argc,
         { "max-transient-objects", 'r', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_transient_objects,
           "Maximum number of loaded transient objects per client." },
+        { "prng-seed-file", 'g', G_OPTION_FLAG_NONE, G_OPTION_ARG_STRING,
+          &options->prng_seed_file, "File to read seed value for PRNG",
+          options->prng_seed_file },
         { "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK,
           show_version, "Show version string" },
         { NULL },

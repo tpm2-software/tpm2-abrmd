@@ -77,7 +77,7 @@ random_new (void)
 }
 /*
  * Seed the underlying RNG from the provided file. The number of bytes
- * read should be sizeof (struct drand48_data). If we can't get this
+ * read should be sizeof (long int). If we can't get this
  * much entropy we return -1. Otherwise 0 on success.
  */
 int
@@ -88,7 +88,6 @@ random_seed_from_file (Random *random,
     long int rand_seed = 0;
     ssize_t read_ret;
 
-    /* seed rand with some entropy from TABD_RAND_FILE */
     g_debug ("opening entropy source: %s", fname);
     g_assert_nonnull (random);
     rand_fd = open (fname, O_RDONLY);

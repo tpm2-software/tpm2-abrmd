@@ -47,7 +47,6 @@ endif #UNIT
 
 XFAIL_TESTS = \
     test/integration/start-auth-session.int \
-    test/integration/tcti-connect-multiple.int \
     test/integration/tcti-sessions-max.int
 TESTS_INTEGRATION = \
     test/integration/auth-session-start-flush.int \
