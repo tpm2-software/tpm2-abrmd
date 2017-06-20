@@ -6,7 +6,8 @@
 tpm2-abrmd \- TPM2 access broker and resource management daemon
 .SH SYNOPSIS
 .B tpm2-abrmd 
-.RB [\-c][\-o][\-l\ logger-name][\-r][\-s][\-t\ tcti-name][tcti-specific-options]
+.RB [\-c][\-o][\-l\ logger-name][\-r][\-s][\-p\ /dev/urandom][\-t\ tcti-name]
+[tcti-specific-options]
 .SH DESCRIPTION
 .B tpm2-abrmd
 is a daemon that implements the TPM access broker and resource manager as
@@ -40,6 +41,9 @@ to load new transient objects will produce an error.
 \fB\-n,\ \-\-dbus-name\fR
 Claim the given name on dbus. This option overrides the default of
 com.intel.tss2.Tabrmd.
+.TP
+\fB\-p,\ \-\-prng-seed-file\fR
+Read seed for pseudo-random number generator from the provided file.
 .TP
 \fB\-s,\ \-\-session\fR
 Connect daemon to the session dbus. This option overrides the default

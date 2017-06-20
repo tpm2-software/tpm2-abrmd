@@ -44,7 +44,6 @@
 #define MAX_TRANSIENT_OBJECTS 100
 #define MAX_TRANSIENT_OBJECTS_DEFAULT 27
 #define TABD_INIT_THREAD_NAME "tss2-tabrmd_init-thread"
-#define TABD_RAND_FILE "/dev/random"
 
 /* implementation specific RCs */
 #define TSS2_RESMGR_RC_INTERNAL_ERROR (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | (1 << TSS2_LEVEL_IMPLEMENTATION_SPECIFIC_SHIFT))
@@ -64,6 +63,7 @@ typedef struct tabrmd_options {
     guint           max_connections;
     guint           max_transient_objects;
     gchar          *dbus_name;
+    const gchar    *prng_seed_file;
 } tabrmd_options_t;
 
 GQuark  tabrmd_error_quark (void);
