@@ -55,6 +55,21 @@ while test $# -gt 0; do
     esac
     shift
 done
+
+# This function takes a PID as a parameter and determines whether or not the
+# process is currently running. If the daemon is running 0 is returned. Any
+# other value indicates that the daemon isn't running.
+daemon_status ()
+{
+    local pid=$1
+
+    if [ $(kill -0 "${pid}" 2> /dev/null) ]; then
+        echo "failed to detect running daemon with PID: ${pid}";
+        return 1
+    fi
+    return 0
+}
+
 # This is a generic function to start a daemon, setup the environment
 # variables, redirect output to a log file, store the PID of the daemon
 # in a file and disconnect the daemon from the parent shell.
@@ -73,14 +88,17 @@ daemon_start ()
         echo "failed to start daemon: \"${daemon_bin}\" with env: \"${daemon_env}\""
         exit ${ret}
     fi
-    if [ $(kill -0 "${pid}" 2> /dev/null) ]; then
+    sleep 1
+    daemon_status "${pid}"
+    if [ $? -ne 0 ]; then
         echo "daemon died after successfully starting in background, check " \
              "log file: ${daemon_log_file}"
-        exit 1
+        return 1
     fi
     echo ${pid} > ${daemon_pid_file}
     disown ${pid}
     echo "successfully started daemon: ${daemon_bin} with PID: ${pid}"
+    return 0
 }
 # function to start the simulator
 # This also that we have a private place to store the NVChip file. Since we
@@ -99,7 +117,9 @@ simulator_start ()
     cd ${sim_tmp_dir}
     daemon_start "${sim_bin}" "-port ${sim_port}" "${sim_log_file}" \
         "${sim_pid_file}" ""
+    local ret=$?
     cd -
+    return $ret
 }
 # function to start the tabrmd
 # This is little more than a call to the daemon_start function with special
@@ -132,9 +152,8 @@ daemon_stop ()
         return 1
     fi
     pid=$(cat ${pid_file})
-    kill -0 ${pid}
-    ret=$?
-    if [ ${ret} -ne 0 ]; then
+    daemon_status "${pid}"
+    if [ $? -ne 0 ]; then
         echo "failed to detect running daemon with PID: ${pid}";
         return ${ret}
     fi
@@ -156,8 +175,15 @@ TEST_NAME=$(basename "${TEST_BIN}")
 SIM_LOG_FILE=${TEST_BIN}_simulator.log
 SIM_PID_FILE=${TEST_BIN}_simulator.pid
 SIM_TMP_DIR=$(mktemp --directory --tmpdir=/tmp tpm_server_XXXXXX)
-SIM_PORT=$(awk -v min=1024 -v max=65535 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
-simulator_start ${SIM_BIN} ${SIM_PORT} ${SIM_LOG_FILE} ${SIM_PID_FILE} ${SIM_TMP_DIR}
+for i in $(seq 5); do
+    SIM_PORT=$(od -A n -N 2 -t u2 /dev/urandom | awk -v min=1024 -v max=65535 '{print ($1 % (max - min)) + min}')
+    simulator_start ${SIM_BIN} ${SIM_PORT} ${SIM_LOG_FILE} ${SIM_PID_FILE} ${SIM_TMP_DIR}
+    if [ $? -eq 0 ]; then
+        break;
+    else
+        echo "Failed to start simulator on port ${SIM_PORT}, retrying"
+    fi
+done
 
 # start an instance of the tpm2-abrmd daemon for the test, use port from above
 TABRMD_LOG_FILE=${TEST_BIN}_tabrmd.log
