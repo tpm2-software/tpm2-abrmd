@@ -36,23 +36,13 @@
 #include "tpm2-struct-init.h"
 
 int
-main (int   argc,
-      char *argv[])
+test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
-    TSS2_TCTI_CONTEXT *tcti_context;
-    TSS2_SYS_CONTEXT  *sapi_context;
     TPM_HANDLE         primary_handle, out_handle;
     TPMS_CONTEXT       context     = { 0 };
     TPM2B_PRIVATE      out_private = TPM2B_PRIVATE_STATIC_INIT;
     TPM2B_PUBLIC       out_public  = { 0 };
     TSS2_RC            rc;
-
-    rc = tcti_context_init (&tcti_context);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("Failed to initialize TCTI context");
-    rc = sapi_context_init (&sapi_context, tcti_context);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("Failed to initialize SAPI context");
 
     rc = create_primary (sapi_context, &primary_handle);
     if (rc != TSS2_RC_SUCCESS)
@@ -77,4 +67,5 @@ main (int   argc,
     rc = flush_context (sapi_context, out_handle);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("filed to flush_context: 0x%" PRIx32, rc);
+    return 0;
 }

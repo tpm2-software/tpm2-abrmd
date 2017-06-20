@@ -440,4 +440,4 @@ test_integration_password_authorization_int_SOURCES = test/integration/main.c te
 
 test_integration_manage_transient_keys_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
-test_integration_manage_transient_keys_int_SOURCES = test/integration/manage-transient-keys.int.c
+test_integration_manage_transient_keys_int_SOURCES = test/integration/main.c test/integration/manage-transient-keys.int.c
