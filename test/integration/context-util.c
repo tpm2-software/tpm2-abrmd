@@ -124,8 +124,8 @@ tcti_socket_init (char const *address,
  * Initialize a TCTI context for the tabrmd. Currently it requires no options.
  */
 TSS2_TCTI_CONTEXT*
-tcti_tabrmd_init (GBusType    bus_type,
-                  const char *bus_name)
+tcti_tabrmd_init (TCTI_TABRMD_DBUS_TYPE    bus_type,
+                  const char              *bus_name)
 {
     TSS2_RC rc;
     TSS2_TCTI_CONTEXT *tcti_ctx;

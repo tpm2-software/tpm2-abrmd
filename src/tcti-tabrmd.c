@@ -417,11 +417,12 @@ _out:
 }
 
 TSS2_RC
-tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT *context,
-                            size_t            *size,
-                            GBusType           bus_type,
-                            const char        *bus_name)
+tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
+                            size_t                 *size,
+                            TCTI_TABRMD_DBUS_TYPE   bus_type,
+                            const char             *bus_name)
 {
+    GBusType g_bus_type;
     GError *error = NULL;
     GVariant *fds_variant;
     guint64 id;
@@ -436,8 +437,17 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT *context,
         *size = sizeof (TSS2_TCTI_TABRMD_CONTEXT);
         return TSS2_RC_SUCCESS;
     }
-    if (bus_name == NULL ||
-        (bus_type != G_BUS_TYPE_SYSTEM && bus_type != G_BUS_TYPE_SESSION)) {
+    if (bus_name == NULL) {
+        return TSS2_TCTI_RC_BAD_VALUE;
+    }
+    switch (bus_type) {
+    case TCTI_TABRMD_DBUS_TYPE_SESSION:
+        g_bus_type = G_BUS_TYPE_SESSION;
+        break;
+    case TCTI_TABRMD_DBUS_TYPE_SYSTEM:
+        g_bus_type = G_BUS_TYPE_SYSTEM;
+        break;
+    default:
         return TSS2_TCTI_RC_BAD_VALUE;
     }
     /* Register dbus error mapping for tabrmd. Gets us RCs from Gerror codes */
@@ -445,7 +455,7 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT *context,
     init_tcti_data (context);
     TSS2_TCTI_TABRMD_PROXY (context) =
         tcti_tabrmd_proxy_new_for_bus_sync (
-            bus_type,
+            g_bus_type,
             G_DBUS_PROXY_FLAGS_NONE,
             bus_name,
             TABRMD_DBUS_PATH, /* object */
@@ -502,6 +512,6 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
 {
     return tss2_tcti_tabrmd_init_full (context,
                                        size,
-                                       G_BUS_TYPE_SYSTEM,
-                                       TABRMD_DBUS_NAME_DEFAULT);
+                                       TCTI_TABRMD_DBUS_TYPE_DEFAULT,
+                                       TCTI_TABRMD_DBUS_NAME_DEFAULT);
 }

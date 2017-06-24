@@ -89,25 +89,25 @@ tcti_name_from_type (TCTI_TYPE tcti_type)
             return tcti_map_table[i].name;
     return NULL;
 }
-GBusType
+TCTI_TABRMD_DBUS_TYPE
 bus_type_from_str (const char *bus_type_str)
 {
     if (strcmp (bus_type_str, "system") == 0) {
-        return G_BUS_TYPE_SYSTEM;
+        return TCTI_TABRMD_DBUS_TYPE_SYSTEM;
     } else if (strcmp (bus_type_str, "session") == 0) {
-        return G_BUS_TYPE_SESSION;
+        return TCTI_TABRMD_DBUS_TYPE_SESSION;
     } else {
-        g_debug ("GBusType: default");
+        g_error ("Invalid bus type for %s", bus_type_str);
         return TCTI_TABRMD_DBUS_TYPE_DEFAULT;
     }
 }
 const char*
-bus_str_from_type (GBusType bus_type)
+bus_str_from_type (TCTI_TABRMD_DBUS_TYPE bus_type)
 {
     switch (bus_type) {
-    case G_BUS_TYPE_SESSION:
+    case TCTI_TABRMD_DBUS_TYPE_SESSION:
         return "session";
-    case G_BUS_TYPE_SYSTEM:
+    case TCTI_TABRMD_DBUS_TYPE_SYSTEM:
         return "system";
     default:
         return NULL;
@@ -140,8 +140,8 @@ sanity_check_test_opts (test_opts_t  *opts)
 #endif
     case TABRMD_TCTI:
         switch (opts->tabrmd_bus_type) {
-        case G_BUS_TYPE_SYSTEM:
-        case G_BUS_TYPE_SESSION:
+        case TCTI_TABRMD_DBUS_TYPE_SYSTEM:
+        case TCTI_TABRMD_DBUS_TYPE_SESSION:
             break;
         default:
             fprintf (stderr,

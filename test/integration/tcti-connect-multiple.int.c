@@ -50,7 +50,7 @@
 
 TSS2_RC
 tcti_tabrmd_init (TSS2_TCTI_CONTEXT **tcti_context,
-                  GBusType            bus_type,
+                  TCTI_TABRMD_DBUS_TYPE bus_type,
                   const char         *bus_name)
 {
     TSS2_RC rc;
