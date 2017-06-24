@@ -31,19 +31,23 @@
 extern "C" {
 #endif
 
-#include <gio/gio.h>
 #include <sapi/tpm20.h>
 #include <sapi/tss2_tcti.h>
 
 #define TCTI_TABRMD_DBUS_INTERFACE_DEFAULT "com.intel.tss2.TctiTabrmd"
 #define TCTI_TABRMD_DBUS_NAME_DEFAULT      "com.intel.tss2.Tabrmd"
-#define TCTI_TABRMD_DBUS_TYPE_DEFAULT      G_BUS_TYPE_SYSTEM
+#define TCTI_TABRMD_DBUS_TYPE_DEFAULT      TCTI_TABRMD_DBUS_TYPE_SYSTEM
+
+typedef enum {
+    TCTI_TABRMD_DBUS_TYPE_SESSION,
+    TCTI_TABRMD_DBUS_TYPE_SYSTEM,
+} TCTI_TABRMD_DBUS_TYPE;
 
 TSS2_RC tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context, size_t *size);
-TSS2_RC tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT *context,
-                                    size_t            *size,
-                                    GBusType           bus,
-                                    const char        *name);
+TSS2_RC tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
+                                    size_t                 *size,
+                                    TCTI_TABRMD_DBUS_TYPE   bus,
+                                    const char             *name);
 
 #ifdef __cplusplus
 }
