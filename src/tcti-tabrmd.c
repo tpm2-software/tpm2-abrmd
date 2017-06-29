@@ -472,8 +472,9 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
         NULL,
         &error);
     if (call_ret == FALSE) {
-        g_error ("Failed to create connection with service: %s",
+        g_warning ("Failed to create connection with service: %s",
                  error->message);
+        return TSS2_TCTI_RC_NO_CONNECTION;
     }
     if (fd_list == NULL) {
         g_error ("call to CreateConnection returned a NULL GUnixFDList");
