@@ -19,3 +19,5 @@ differentiate between the connections held by a single client.
 - Deconflict command line options: -t for TCTI selection, -a to fail if
 transient objects are already loaded in the TPM.
 - Clients can hold multiple TCTI connections again (fixed regression).
+- Syslog log handler now only shows info & debug messages when
+G_MESSAGES_DEBUG is set to 'all'.
