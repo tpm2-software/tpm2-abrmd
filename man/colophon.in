@@ -1,0 +1,5 @@
+.SH COLOPHON
+This page is part of the @VERSION@ release of Intel's TPM2 Access Broker &
+Resource Management Daemon. A description of the project, information about
+reporting bugs, and the latest version of this page can be found at
+\%https://github.com/01org/tpm2\-abrmd/.
