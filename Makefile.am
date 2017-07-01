@@ -102,6 +102,7 @@ EXTRA_DIST = \
     test/integration/test.h \
     test/integration/tpm2-struct-init.h \
     src/tcti-tabrmd.map \
+    man/colophon.in \
     man/tss2_tcti_tabrmd_init.3.in \
     man/tcti-tabrmd.7.in \
     man/tpm2-abrmd.8.in \
@@ -256,7 +257,7 @@ if TCTI_SOCKET
 else
 	echo ".nr HAVE_SOCKET_TCTI 0" >> $1
 endif
-	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g;" $2 >> $1
+	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g;" $2 $(srcdir)/man/colophon.in >> $1
 endef # man_tcti_prefix
 
 %-generated.c %-generated.h : src/tabrmd.xml
