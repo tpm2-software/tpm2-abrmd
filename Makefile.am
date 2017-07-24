@@ -110,7 +110,12 @@ EXTRA_DIST = \
     dist/tcti-tabrmd.pc.in \
     dist/tpm2-abrmd.service \
     dist/tpm-udev.rules \
-    scripts/int-log-compiler.sh
+    scripts/int-log-compiler.sh \
+    CHANGELOG.md \
+    CONTRIBUTING.md \
+    INSTALL.md \
+    LICENSE \
+    README.md
 
 CLEANFILES = \
     $(man3_MANS) \
