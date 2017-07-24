@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <gio/gio.h>
 #include <glib.h>
+#include <glib-unix.h>
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,10 +81,6 @@ typedef enum {
     TABRMD_ERROR_NOT_IMPLEMENTED  = TSS2_RESMGR_RC_NOT_IMPLEMENTED,
     TABRMD_ERROR_NOT_PERMITTED    = TSS2_RESMGR_RC_NOT_PERMITTED,
 } TabrmdErrorEnum;
-/* This global pointer to the GMainLoop is necessary so that we can react to
- * unix signals. Only the signal handler should touch this.
- */
-static GMainLoop *g_loop;
 
 /*
  * Callback handling the acquisition of a GDBusProxy object for communication
@@ -528,12 +525,14 @@ on_name_lost (GDBusConnection *connection,
  * response to a Unix signal. It does one thing:
  * - Shuts down the GMainLoop.
  */
-static void
-signal_handler (int signum)
+static gboolean
+signal_handler (gpointer user_data)
 {
     g_info ("handling signal");
     /* this is the only place the global poiner to the GMainLoop is accessed */
-    main_loop_quit (g_loop);
+    main_loop_quit ((GMainLoop*)user_data);
+
+    return G_SOURCE_CONTINUE;
 }
 /**
  * This function initializes and configures all of the long-lived objects
@@ -561,16 +560,15 @@ init_thread_func (gpointer user_data)
     uint32_t loaded_trans_objs;
     TSS2_RC rc;
     CommandAttrs *command_attrs;
-    struct sigaction action = {
-        .sa_handler = signal_handler,
-        .sa_flags   = 0,
-    };
 
     g_info ("init_thread_func start");
     g_mutex_lock (&data->init_mutex);
     /* Setup program signals */
-    sigaction (SIGINT,  &action, NULL);
-    sigaction (SIGTERM, &action, NULL);
+    if (g_unix_signal_add(SIGINT, signal_handler, data->loop) <= 0 ||
+        g_unix_signal_add(SIGTERM, signal_handler, data->loop) <= 0)
+    {
+        g_error("failed to setup signal handlers");
+    }
 
     data->dbus_name_owner_id = g_bus_own_name (data->options.bus,
                                                data->options.dbus_name,
@@ -811,7 +809,7 @@ main (int argc, char *argv[])
     gmain_data.tcti = tcti_options_get_tcti (gmain_data.options.tcti_options);
 
     g_mutex_init (&gmain_data.init_mutex);
-    g_loop = gmain_data.loop = g_main_loop_new (NULL, FALSE);
+    gmain_data.loop = g_main_loop_new (NULL, FALSE);
     /*
      * Initialize program data on a separate thread. The main thread needs to
      * get into the GMainLoop ASAP to acquire a dbus name and become
