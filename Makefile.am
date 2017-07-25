@@ -27,6 +27,7 @@ TESTS_UNIT = \
     test/handle-map-entry_unit \
     test/handle-map_unit \
     test/ipc-frontend_unit \
+    test/ipc-frontend-dbus_unit \
     test/random_unit \
     test/session-entry_unit \
     test/test-skeleton_unit \
@@ -150,6 +151,10 @@ systemdpreset_DATA = dist/tpm2-abrmd.preset
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
 VALGRIND_memcheck_FLAGS = --leak-check=full --show-leak-kinds=definite,indirect --track-origins=yes --error-exitcode=1 --suppressions=dist/tabrmd.sup
 
+# This is a hack required to ensure that BUILT_SOURCES are generated before
+# the file that requires them.
+src/ipc-frontend-dbus.c : $(BUILT_SOURCES)
+
 # utility library with most of the code that makes up the daemon
 src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
@@ -172,6 +177,8 @@ src_libutil_la_SOURCES = \
     src/handle-map.h \
     src/ipc-frontend.c \
     src/ipc-frontend.h \
+    src/ipc-frontend-dbus.h \
+    src/ipc-frontend-dbus.c \
     src/logging.c \
     src/logging.h \
     src/message-queue.c \
@@ -344,6 +351,10 @@ test_handle_map_unit_SOURCES = test/handle-map_unit.c
 test_ipc_frontend_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_ipc_frontend_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_ipc_frontend_unit_SOURCES = test/ipc-frontend_unit.c
+
+test_ipc_frontend_dbus_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_ipc_frontend_dbus_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_ipc_frontend_dbus_unit_SOURCES = test/ipc-frontend-dbus_unit.c
 
 if TCTI_DEVICE
 test_tcti_device_unit_CFLAGS   = $(UNIT_AM_CFLAGS)

@@ -43,17 +43,14 @@
 #include "logging.h"
 #include "thread.h"
 #include "command-source.h"
+#include "ipc-frontend.h"
+#include "ipc-frontend-dbus.h"
 #include "random.h"
 #include "resource-manager.h"
 #include "response-sink.h"
 #include "source-interface.h"
-#include "tabrmd-generated.h"
 #include "tcti-options.h"
 #include "util.h"
-
-#ifdef G_OS_UNIX
-#include <gio/gunixfdlist.h>
-#endif
 
 /* Structure to hold data that we pass to the gmain loop as 'user_data'.
  * This data will be available to events from gmain including events from
@@ -64,439 +61,14 @@ typedef struct gmain_data {
     GMainLoop              *loop;
     AccessBroker           *access_broker;
     ResourceManager        *resource_manager;
-    TctiTabrmd             *skeleton;
-    ConnectionManager         *manager;
     CommandSource         *command_source;
     Random                 *random;
     ResponseSink           *response_sink;
     GMutex                  init_mutex;
     Tcti                   *tcti;
-    GDBusProxy             *dbus_daemon_proxy;
-    guint                   dbus_name_owner_id;
+    IpcFrontend            *ipc_frontend;
 } gmain_data_t;
 
-typedef enum {
-    TABRMD_ERROR_INTERNAL         = TSS2_RESMGR_RC_INTERNAL_ERROR,
-    TABRMD_ERROR_MAX_CONNECTIONS  = TSS2_RESMGR_RC_GENERAL_FAILURE,
-    TABRMD_ERROR_ID_GENERATION    = TSS2_RESMGR_RC_GENERAL_FAILURE,
-    TABRMD_ERROR_NOT_IMPLEMENTED  = TSS2_RESMGR_RC_NOT_IMPLEMENTED,
-    TABRMD_ERROR_NOT_PERMITTED    = TSS2_RESMGR_RC_NOT_PERMITTED,
-} TabrmdErrorEnum;
-
-/*
- * Callback handling the acquisition of a GDBusProxy object for communication
- * with the well known org.freedesktop.DBus object. This is an object exposed
- * by the dbus daemon.
- */
-static void
-on_get_dbus_daemon_proxy (GObject      *source_object,
-                          GAsyncResult *result,
-                          gpointer      user_data)
-{
-    GError *error = NULL;
-    gmain_data_t *data = (gmain_data_t*)user_data;
-
-    data->dbus_daemon_proxy = g_dbus_proxy_new_finish (result, &error);
-    if (error) {
-        g_warning ("Failed to get proxy for DBus daemon "
-                   "(org.freedesktop.DBus): %s", error->message);
-        g_error_free (error);
-        data->dbus_daemon_proxy = NULL;
-    } else {
-        g_debug ("Got proxy object for DBus daemon.");
-    }
-}
-/**
- * This is a utility function that builds an array of handles as a
- * GVariant object. The handles that make up the array are passed in
- * as a GUnixFDList.
- */
-static GVariant*
-handle_array_variant_from_fdlist (GUnixFDList *fdlist)
-{
-    GVariant *tuple;
-    GVariantBuilder *builder;
-    gint i = 0;
-
-    /* build array of handles as GVariant */
-    builder = g_variant_builder_new (G_VARIANT_TYPE ("ah"));
-    for (i = 0; i < g_unix_fd_list_get_length (fdlist); ++i)
-        g_variant_builder_add (builder, "h", i);
-    /* create tuple variant from builder */
-    tuple = g_variant_new ("ah", builder);
-    g_variant_builder_unref (builder);
-
-    return tuple;
-}
-/*
- * Give this function a dbus proxy and invocation object from a method
- * invocation and it will get the PID of the process associated with the
- * invocation. If an error occurs this function returns false.
- */
-static gboolean
-get_pid_from_dbus_invocation (GDBusProxy            *proxy,
-                              GDBusMethodInvocation *invocation,
-                              guint32               *pid)
-{
-    const gchar *name   = NULL;
-    GError      *error  = NULL;
-    GVariant    *result = NULL;
-
-    if (proxy == NULL || invocation == NULL || pid == NULL)
-        return FALSE;
-
-    name = g_dbus_method_invocation_get_sender (invocation);
-    result = g_dbus_proxy_call_sync (G_DBUS_PROXY (proxy),
-                                     "GetConnectionUnixProcessID",
-                                     g_variant_new("(s)", name),
-                                     G_DBUS_CALL_FLAGS_NONE,
-                                     -1,
-                                     NULL,
-                                     &error);
-    if (error) {
-        g_error ("Unable to get PID for %s: %s", name, error->message);
-        g_error_free (error);
-        error = NULL;
-        return FALSE;
-    } else {
-        g_variant_get (result, "(u)", pid);
-        g_variant_unref (result);
-        return TRUE;
-    }
-}
-/*
- * Generate a random uint64 returned in the id out paramter.
- * Mix this random ID with the PID from the caller. This is obtained
- * through the invocation parameter. Mix the two together using xor and
- * return the result through the id_pid_mix out parameter.
- * NOTE: if an error occurs then a response is sent through the invocation
- * to the client and FALSE is returned to the caller.
- *
- * Returns FALSE on error, TRUE otherwise.
- */
-static gboolean
-generate_id_pid_mix_from_invocation (GDBusMethodInvocation *invocation,
-                                     gmain_data_t          *data,
-                                     guint64               *id,
-                                     guint64               *id_pid_mix)
-{
-    gboolean pid_ret = FALSE;
-    guint32  pid = 0;
-
-    pid_ret = get_pid_from_dbus_invocation (data->dbus_daemon_proxy,
-                                            invocation,
-                                            &pid);
-    if (pid_ret == TRUE) {
-        *id = random_get_uint64 (data->random);
-        *id_pid_mix = *id ^ pid;
-    } else {
-        g_dbus_method_invocation_return_error (invocation,
-                                               TABRMD_ERROR,
-                                               TABRMD_ERROR_INTERNAL,
-                                               "Failed to get client PID");
-    }
-
-    return pid_ret;
-}
-/*
- * Mix PID into provide id. Returns mixed value in id_pid_mix out parameter.
- * NOTE: if an error occurs then an error response is sent through the
- * invocation to the client and FALSE is returned to the caller
- *
- * Returns FALSE on error, TRUE otherwise.
- */
-static gboolean
-get_id_pid_mix_from_invocation (GDBusProxy            *proxy,
-                                GDBusMethodInvocation *invocation,
-                                guint64                id,
-                                guint64               *id_pid_mix)
-{
-    guint32 pid = 0;
-    gboolean pid_ret = FALSE;
-
-    g_debug ("get_id_pid_mix_from_invocation");
-    pid_ret = get_pid_from_dbus_invocation (proxy,
-                                            invocation,
-                                            &pid);
-    g_debug ("id 0x%" PRIx64 " pid: 0x%" PRIx32, id, pid);
-    if (pid_ret == TRUE) {
-        *id_pid_mix = id ^ pid;
-        g_debug ("mixed: 0x%" PRIx64, *id_pid_mix);
-    } else {
-        g_dbus_method_invocation_return_error (
-            invocation,
-            TABRMD_ERROR,
-            TABRMD_ERROR_INTERNAL,
-            "Failed to get client PID");
-    }
-
-    return pid_ret;
-}
-/**
- * This is a signal handler for the handle-create-connection signal from
- * the Tpm2AccessBroker DBus interface. This signal is triggered by a
- * request from a client to create a new connection with the tabrmd. This
- * requires a few things be done:
- * - Create a new ID (uint64) for the connection.
- * - Create a new Connection object getting the FDs that must be returned
- *   to the client.
- * - Build up a dbus response to the client with their connection ID and
- *   send / receive FDs.
- * - Send the response message back to the client.
- * - Insert the new Connection object into the ConnectionManager.
- * - Notify the CommandSource of the new Connection that it needs to
- *   watch by writing a magic value to the wakeup_send_fd.
- */
-static gboolean
-on_handle_create_connection (TctiTabrmd            *skeleton,
-                             GDBusMethodInvocation *invocation,
-                             gpointer               user_data)
-{
-    gmain_data_t *data = (gmain_data_t*)user_data;
-    HandleMap   *handle_map = NULL;
-    Connection *connection = NULL;
-    gint client_fd = 0, ret = 0;
-    GIOStream *server_iostream;
-    GVariant *response_variants[2], *response_tuple;
-    GUnixFDList *fd_list = NULL;
-    guint64 id = 0, id_pid_mix = 0;
-    gboolean id_ret = FALSE;
-
-    /* make sure the init thread is done before we create new connections
-     */
-    g_mutex_lock (&data->init_mutex);
-    g_mutex_unlock (&data->init_mutex);
-    if (connection_manager_is_full (data->manager)) {
-        g_dbus_method_invocation_return_error (invocation,
-                                               TABRMD_ERROR,
-                                               TABRMD_ERROR_MAX_CONNECTIONS,
-                                               "MAX_COMMANDS exceeded. Try again later.");
-        return TRUE;
-    }
-    id_ret = generate_id_pid_mix_from_invocation (invocation,
-                                                  data,
-                                                  &id,
-                                                  &id_pid_mix);
-    /* error already returned to caller over dbus */
-    if (id_ret == FALSE) {
-        return TRUE;
-    }
-    g_debug ("Creating connection with id: 0x%" PRIx64, id_pid_mix);
-    if (connection_manager_contains_id (data->manager, id_pid_mix)) {
-        g_warning ("ID collision in ConnectionManager: %" PRIu64, id_pid_mix);
-        g_dbus_method_invocation_return_error (
-            invocation,
-            TABRMD_ERROR,
-            TABRMD_ERROR_ID_GENERATION,
-            "Failed to allocate connection ID. Try again later.");
-        return TRUE;
-    }
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, data->options.max_transient_objects);
-    if (handle_map == NULL)
-        g_error ("Failed to allocate new HandleMap");
-    server_iostream = create_connection_iostream (&client_fd);
-    connection = connection_new (server_iostream, id_pid_mix, handle_map);
-    g_object_unref (handle_map);
-    g_object_unref (server_iostream);
-    if (connection == NULL)
-        g_error ("Failed to allocate new connection.");
-    g_debug ("Created connection with fd: %d and id: 0x%" PRIx64,
-             client_fd, id_pid_mix);
-    /* prepare tuple variant for response message */
-    fd_list = g_unix_fd_list_new_from_array (&client_fd, 1);
-    response_variants[0] = handle_array_variant_from_fdlist (fd_list);
-    /* return the random id to client, *not* xor'd with PID */
-    response_variants[1] = g_variant_new_uint64 (id);
-    response_tuple = g_variant_new_tuple (response_variants, 2);
-    /* add Connection to manager */
-    ret = connection_manager_insert (data->manager, connection);
-    if (ret != 0) {
-        g_warning ("Failed to add new connection to connection_manager.");
-    }
-    /* send response */
-    g_dbus_method_invocation_return_value_with_unix_fd_list (
-        invocation,
-        response_tuple,
-        fd_list);
-    g_object_unref (fd_list);
-    g_object_unref (connection);
-
-    return TRUE;
-}
-/**
- * This is a signal handler for the Cancel event emitted by the
- * Tpm2AcessBroker. It is invoked by a signal generated by a user
- * requesting that an outstanding TPM command should be canceled. It is
- * registered with the Tabrmd in response to acquiring a name
- * on the dbus (on_name_acquired). It does X things:
- * - Ensure the init thread has completed successfully by locking and then
- *   unlocking the init mutex.
- * - Locate the Connection object associted with the 'id' parameter in
- *   the ConnectionManager.
- * - If the connection has a command being processed by the tabrmd then it's
- *   removed from the processing queue.
- * - If the connection has a command being processed by the TPM then the
- *   request to cancel the command will be sent down to the TPM.
- * - If the connection has no commands outstanding then an error is
- *   returned.
- */
-static gboolean
-on_handle_cancel (TctiTabrmd           *skeleton,
-                  GDBusMethodInvocation *invocation,
-                  gint64                 id,
-                  gpointer               user_data)
-{
-    gmain_data_t *data = (gmain_data_t*)user_data;
-    Connection *connection = NULL;
-    guint64   id_pid_mix = 0;
-    gboolean mix_ret = FALSE;
-
-    g_info ("on_handle_cancel for id 0x%" PRIx64, id);
-    mix_ret = get_id_pid_mix_from_invocation (data->dbus_daemon_proxy,
-                                              invocation,
-                                              id,
-                                              &id_pid_mix);
-    /* error already sent over dbus */
-    if (mix_ret == FALSE) {
-        return TRUE;
-    }
-    g_mutex_lock (&data->init_mutex);
-    g_mutex_unlock (&data->init_mutex);
-    connection = connection_manager_lookup_id (data->manager, id_pid_mix);
-    if (connection == NULL) {
-        g_warning ("no active connection for id_pid_mix: 0x%" PRIx64,
-                   id_pid_mix);
-        g_dbus_method_invocation_return_error (invocation,
-                                               TABRMD_ERROR,
-                                               TABRMD_ERROR_NOT_PERMITTED,
-                                               "No connection.");
-        return TRUE;
-    }
-    g_info ("canceling command for connection 0x%" PRIxPTR " with "
-            "id_pid_mix: 0x%" PRIx64, (uintptr_t)connection, id_pid_mix);
-    /* cancel any existing commands for the connection */
-    g_dbus_method_invocation_return_error (invocation,
-                                           TABRMD_ERROR,
-                                           TABRMD_ERROR_NOT_IMPLEMENTED,
-                                           "Cancel function not implemented.");
-    g_object_unref (connection);
-
-    return TRUE;
-}
-/**
- * This is a signal handler for the handle-set-locality signal from the
- * Tabrmd DBus interface. This signal is triggered by a request
- * from a client to set the locality for TPM commands associated with the
- * connection (the 'id' parameter). This requires a few things be done:
- * - Ensure the initialization thread has completed successfully by
- *   locking and unlocking the init_mutex.
- * - Find the Connection object associated with the 'id' parameter.
- * - Set the locality for the Connection object.
- * - Pass result of the operation back to the user.
- */
-static gboolean
-on_handle_set_locality (TctiTabrmd            *skeleton,
-                        GDBusMethodInvocation *invocation,
-                        gint64                 id,
-                        guint8                 locality,
-                        gpointer               user_data)
-{
-    gmain_data_t *data = (gmain_data_t*)user_data;
-    Connection *connection = NULL;
-    guint64   id_pid_mix = 0;
-    gboolean mix_ret = FALSE;
-
-    g_info ("on_handle_set_locality for id 0x%" PRIx64, id);
-    mix_ret = get_id_pid_mix_from_invocation (data->dbus_daemon_proxy,
-                                              invocation,
-                                              id,
-                                              &id_pid_mix);
-    /* error already sent over dbus */
-    if (mix_ret == FALSE) {
-        return TRUE;
-    }
-    g_mutex_lock (&data->init_mutex);
-    g_mutex_unlock (&data->init_mutex);
-    connection = connection_manager_lookup_id (data->manager, id_pid_mix);
-    if (connection == NULL) {
-        g_warning ("no active connection for id_pid_mix: 0x%" PRIx64,
-                   id_pid_mix);
-        g_dbus_method_invocation_return_error (invocation,
-                                               TABRMD_ERROR,
-                                               TABRMD_ERROR_NOT_PERMITTED,
-                                               "No connection.");
-        return TRUE;
-    }
-    g_info ("setting locality for connection 0x%" PRIxPTR " with "
-            "id_pid_mix: 0x%" PRIx64 " to: %" PRIx8,
-            (uintptr_t)connection, id_pid_mix, locality);
-    /* set locality for an existing connection */
-    g_dbus_method_invocation_return_error (invocation,
-                                           TABRMD_ERROR,
-                                           TABRMD_ERROR_NOT_IMPLEMENTED,
-                                           "setLocality function not implemented.");
-    g_object_unref (connection);
-
-    return TRUE;
-}
-/**
- * This is a signal handler of type GBusAcquiredCallback. It is registered
- * by the g_bus_own_name function and invoked then a connectiont to a bus
- * is acquired in response to a request for the parameter 'name'.
- */
-static void
-on_bus_acquired (GDBusConnection *connection,
-                 const gchar     *name,
-                 gpointer         user_data)
-{
-    g_info ("on_bus_acquired: %s", name);
-}
-/**
- * This is a signal handler of type GBusNameAcquiredCallback. It is
- * registered by the g_bus_own_name function and invoked when the parameter
- * 'name' is acquired on the requested bus. It does 3 things:
- * - Obtains a new TctiTabrmd instance and stores a reference in
- *   the 'user_data' parameter (which is a reference to the gmain_data_t.
- * - Register signal handlers for the CreateConnection, Cancel and
- *   SetLocality signals.
- * - Export the TctiTabrmd interface (skeleton) on the DBus
- *   connection.
- */
-static void
-on_name_acquired (GDBusConnection *connection,
-                  const gchar     *name,
-                  gpointer         user_data)
-{
-    g_info ("on_name_acquired: %s", name);
-    gmain_data_t *gmain_data;
-    GError *error = NULL;
-    gboolean ret;
-
-    if (user_data == NULL)
-        g_error ("bus_acquired but user_data is NULL");
-    gmain_data = (gmain_data_t*)user_data;
-    if (gmain_data->skeleton == NULL)
-        gmain_data->skeleton = tcti_tabrmd_skeleton_new ();
-    g_signal_connect (gmain_data->skeleton,
-                      "handle-create-connection",
-                      G_CALLBACK (on_handle_create_connection),
-                      user_data);
-    g_signal_connect (gmain_data->skeleton,
-                      "handle-cancel",
-                      G_CALLBACK (on_handle_cancel),
-                      user_data);
-    g_signal_connect (gmain_data->skeleton,
-                      "handle-set-locality",
-                      G_CALLBACK (on_handle_set_locality),
-                      user_data);
-    ret = g_dbus_interface_skeleton_export (
-        G_DBUS_INTERFACE_SKELETON (gmain_data->skeleton),
-        connection,
-        TABRMD_DBUS_PATH,
-        &error);
-    if (ret == FALSE)
-        g_warning ("failed to export interface: %s", error->message);
-}
 /**
  * This is a simple function to do sanity checks before calling
  * g_main_loop_quit.
@@ -507,22 +79,6 @@ main_loop_quit (GMainLoop *loop)
     g_info ("main_loop_quit");
     if (loop && g_main_loop_is_running (loop))
         g_main_loop_quit (loop);
-}
-/**
- * This is a signal handler of type GBusNameLostCallback. It is
- * registered with the g_dbus_own_name function and is invoked when the
- * parameter 'name' is lost on the requested bus. It does one thing:
- * - Ends the GMainLoop.
- */
-static void
-on_name_lost (GDBusConnection *connection,
-              const gchar     *name,
-              gpointer         user_data)
-{
-    g_info ("on_name_lost: %s", name);
-
-    gmain_data_t *data = (gmain_data_t*)user_data;
-    main_loop_quit (data->loop);
 }
 /**
  * This is a very poorly named signal handling function. It is invoked in
@@ -537,6 +93,14 @@ signal_handler (gpointer user_data)
     main_loop_quit ((GMainLoop*)user_data);
 
     return G_SOURCE_CONTINUE;
+}
+
+static void
+on_ipc_frontend_disconnect (IpcFrontend *ipc_frontend,
+                            GMainLoop   *loop)
+{
+    g_info ("IpcFrontend 0x%" PRIxPTR " disconnected", (uintptr_t)ipc_frontend);
+    main_loop_quit (loop);
 }
 /**
  * This function initializes and configures all of the long-lived objects
@@ -564,6 +128,7 @@ init_thread_func (gpointer user_data)
     uint32_t loaded_trans_objs;
     TSS2_RC rc;
     CommandAttrs *command_attrs;
+    ConnectionManager *connection_manager = NULL;
 
     g_info ("init_thread_func start");
     g_mutex_lock (&data->init_mutex);
@@ -574,32 +139,31 @@ init_thread_func (gpointer user_data)
         g_error("failed to setup signal handlers");
     }
 
-    data->dbus_name_owner_id = g_bus_own_name (data->options.bus,
-                                               data->options.dbus_name,
-                                               G_BUS_NAME_OWNER_FLAGS_NONE,
-                                               on_bus_acquired,
-                                               on_name_acquired,
-                                               on_name_lost,
-                                               data,
-                                               NULL);
-    g_dbus_proxy_new_for_bus (data->options.bus,
-                              G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
-                              NULL,
-                              "org.freedesktop.DBus",
-                              "/org/freedesktop/DBus",
-                              "org.freedesktop.DBus",
-                              NULL,
-                              (GAsyncReadyCallback)on_get_dbus_daemon_proxy,
-                              user_data);
     data->random = random_new();
     ret = random_seed_from_file (data->random, data->options.prng_seed_file);
     if (ret != 0)
         g_error ("failed to seed Random object");
 
-    data->manager = connection_manager_new(data->options.max_connections);
-    if (data->manager == NULL)
+    connection_manager = connection_manager_new(data->options.max_connections);
+    if (connection_manager == NULL)
         g_error ("failed to allocate connection_manager");
-    g_debug ("ConnectionManager: 0x%" PRIxPTR, (uintptr_t)data->manager);
+    g_debug ("ConnectionManager: 0x%" PRIxPTR, (uintptr_t)connection_manager);
+    /* setup IpcFrontend */
+    data->ipc_frontend =
+        IPC_FRONTEND (ipc_frontend_dbus_new (data->options.bus,
+                                             data->options.dbus_name,
+                                             connection_manager,
+                                             data->options.max_transient_objects,
+                                             data->random));
+    if (data->ipc_frontend == NULL) {
+        g_error ("failed to allocate IpcFrontend object");
+    }
+    g_signal_connect (data->ipc_frontend,
+                      "disconnected",
+                      (GCallback) on_ipc_frontend_disconnect,
+                      data->loop);
+    ipc_frontend_connect (data->ipc_frontend,
+                          &data->init_mutex);
 
     /**
      * this isn't strictly necessary but it allows us to detect a failure in
@@ -643,7 +207,7 @@ init_thread_func (gpointer user_data)
                  (uintptr_t)command_attrs);
 
     data->command_source =
-        command_source_new (data->manager, command_attrs);
+        command_source_new (connection_manager, command_attrs);
     g_debug ("created command source: 0x%" PRIxPTR,
              (uintptr_t)data->command_source);
     data->resource_manager = resource_manager_new (data->access_broker);
@@ -658,10 +222,11 @@ init_thread_func (gpointer user_data)
      * Connect the ResourceManager to the ConnectionManager
      * 'connection-removed' signal.
      */
-    g_signal_connect (data->manager,
+    g_signal_connect (connection_manager,
                       "connection-removed",
                       G_CALLBACK (resource_manager_on_connection_removed),
                       data->resource_manager);
+    g_object_unref (connection_manager);
     /**
      * Wire up the TPM command processing pipeline. TPM command buffers
      * flow from the CommandSource, to the Tab then finally back to the
@@ -827,15 +392,13 @@ main (int argc, char *argv[])
     g_info ("g_main_loop_run done, cleaning up");
     g_thread_join (init_thread);
     /* cleanup glib stuff first so we stop getting events */
-    g_bus_unown_name (gmain_data.dbus_name_owner_id);
-    if (gmain_data.skeleton != NULL)
-        g_object_unref (gmain_data.skeleton);
+    ipc_frontend_disconnect (gmain_data.ipc_frontend);
+    g_object_unref (gmain_data.ipc_frontend);
     /* tear down the command processing pipeline */
     thread_cleanup (THREAD (gmain_data.command_source));
     thread_cleanup (THREAD (gmain_data.resource_manager));
     thread_cleanup (THREAD (gmain_data.response_sink));
     /* clean up what remains */
-    g_object_unref (gmain_data.manager);
     g_object_unref (gmain_data.options.tcti_options);
     g_object_unref (gmain_data.random);
     g_object_unref (gmain_data.tcti);
