@@ -9,154 +9,221 @@ required:
 * GNU Libtool
 * C compiler
 * C Library Development Libraries and Header Files (for pthreads headers)
-* cmocka unit test framework (optional)
 * pkg-config
 * glib 2.0 library and development files
+* libsapi and TCTI libraries from https://github.com/01org/TPM2.0-TSS
 
 **NOTE**: Different GNU/Linux distros package glib-2.0 differently and so
 additional packages may be required. The tabrmd requires the GObject and
 GIO D-Bus support from glib-2.0 so please be sure you have whatever packages
 your distro provides are installed for these features.
 
-# Building From Source
-## Bootstrapping the build
-When building the tpm2-abrmd source code from the upstream git repo you will
-need to first run the `bootstrap` script to setup the autotools build files:
+The following dependencies are required only if the test suite is being built
+and executed.
+* cmocka unit test framework
+* Microsoft / IBM Software TPM2 simulator version 532 as packaged by IBM:
+https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm532.tar
+
+# System User & Group
+As is common security practice we encourage *everyone* to run the `tpm2-abrmd`
+as an unprivileged user. This requires creating a user account and group to
+use for this purpose. Our current configuration assumes that the name for this
+user and group is `tss` per the norm established by the `trousers` TPM 1.2
+software stack.
+
+This account and the associated group must be created before running the
+daemon. The following command should be sufficient to create the `tss`
+account:
+```
+$ sudo useradd --system --user-group tss
+```
+
+You may wish to further restrict this user account based on your needs. This
+topic however is beyond the scope of this document.
+
+# Obtaining the Source Code
+As is always the case, you should check for packages available through your
+Linux distro before you attepmt to download and build the tpm2-abrmd from
+source code directly. If you need a newer version than provided by your
+Distro of choice then you should download our latest stable release here:
+https://github.com/01org/tpm2-abrmd/releases/latest.
+
+The latest unstable development work can be obtained from the Git VCS here:
+https://github.com/01org/tpm2-abrmd.git. This method should be used only by
+developers and should be assumed to be unstable.
+
+The remainder of this document assumes that you have:
+* obtained the tpm2-abmrd source code using a method described above
+* extracted the source code if necessary
+* set your current working directory to be the root of the tpm2-abrmd source
+tree
+
+## Bootstrap the Build (git only)
+If you're looking to contribute to the project then you will need to build
+from the project's git repository. Building from git requires some additional
+work to "bootstrap" the autotools machinery. This is accomplished by
+executing the `bootstrap script:
 ```
 $ ./bootstrap
 ```
-## Configuring the build
-Next the build must be configured. You may define the environment for your
-build using a combination of the following options:
-* specifying a `config.site` file through the `CONFIG_SITE` environment
-variable
-* by manually exporting variables to the `./configure` scripts environment
-* by passing parameters directly to the configure script.
 
-**NOTE**: Invoking the configure script with the `--help` option will display
-all supported options.
+If you're building from a release source tarball you should skip this step.
 
-In most situations however invoking the `./configure` script with no
-additional options should be sufficient to build the source assuming that
-all dependencies have been met:
+## Configure the Build
+The source code for must be configured before the tpm2-abrmd can be built. In
+the most simple case you may run the `configure script without any options:
 ```
 $ ./configure
 ```
 
-## Test Execution
-Developers modifying / adding to the code, or adding new test cases may want
-to build and execute the unit and integration tests. To do so you must provide
-some combination of the following options to the `configure` script:
-* `--enable-unit` will ensure the cmocka framework is present. When the source
-code is configured with this option `make check` will execute the unit tests.
-* `--with-simulatorbin` is used to provide the build with a path to the tpm
-simulator. The simulator is required for the integration tests to function and
-so `make check` will only execute the integration tests if this option is
-provided. **NOTE** this must be an absolute path.
+If your system is capable of compiling the source code then the `configure`
+script will exit with a status code of `0`. Otherwise an error code will be
+returned.
 
-After this, `make check` will execute the unit and / or integration tests.
+### Custom `./configure` Options
+In many cases you'll need to provide the `./configure` script with additional
+information about your environment. Typically you'll either be telling the
+script about some location to install a component, or you'll be instructing
+the script to enable some additional feature or function. We'll cover each
+in turn.
 
-## Compilation
-Compiling the code requires running `make`. You may provide `make` whatever
-parameters required for your environment (e.g. to enable parallel builds) but
-the defaults should be sufficient. The maintainers build enabling parallel
-builds like so:
-```
-$ make -j$(nproc)
-```
+Invoking the configure script with the `--help` option will display
+all supported options.
 
-# Installation
-Once successfully built the tpm2-abrmd daemon can be installed using the
-command:
-```
-$ sudo make install
-```
-This will install the executable to locations determined at configure time.
-See the output of `./configure --help` for the available options. Typically
-you won't need to do much more than provide an alternative `--prefix` option
-at configure time, and maybe `DESTDIR` at install time if you're packaging
-for a distro.
-
-**NOTE**: This is the only command that should be run as root.
-
-# Integration
-Running the `tpm2-abrmd` requires the following platform support:
-* a system user account
-* D-Bus
-* udev
-* systemd
-This section discusses each in order.
-
-## System User & Group Account
-As is common security practice we encourage *everyone* to run the `tpm2-abrmd`
-as an unprivileged user. This requires creating a user account and group to
-use for this purpose. Generally this is something your distro will do for you
-since the steps to create such an account can be distro-specific.
-
-Our current configuration assumes that the name for this user and group is
-`tss` per the norm established by the `trousers` TPM 1.2 software stack.
-
-## D-Bus
+### D-Bus Policy: `--with-dbuspolicydir`
 The `tpm2-abrmd` claims a name on the D-Bus system bus. This requires policy
-to allow the user account running the daemon to be allowed to claim this
-name. The build installs such a configuration to
-`${sysconfdir}/dbus-1/system.d`.
+to allow the `tss` user account to claim this name. By default the build
+installs this configuration file to `${sysconfdir}/dbus-1/system.d`. We allow
+this to be overriden using the `--with-dbuspolicydir` option.
 
-Depending on how you've configured the source tree and how your specific
-flavor of GNU/Linux configures D-Bus your system may not be reading this
-configuration file. Please consult the documentation for your distro and
-the location of the installed D-Bus policy to be sure it is in the right
-place.
+Using Debian (and it's various derivatives) as an example we can instruct the
+build to install the dbus policy configuration in the right location with the
+following configure option:
+```
+--with-dbuspolicydir=/etc/dbus-1/system.d
+```
 
-The `dbus-daemon` will also need to be instructed to read this configuration
-file (assuming it's installed in a location consulted by `dbus-daemon`) before
-the policy will be in effect. Consult the D-Bus manual (aka `DBUS-DAEMON(1)`)
-for instructions.
+### Systemd Uint: `--with-systedsystemunitdir`
+In most configurations the `tpm2-abrmd` daemon should be started as part of
+the boot process. To enable this we provide a systemd unit. By default the
+build installs this file to `${libdir}/systemd/system`. Just like D-Bus
+the location of unit files is distro specific and so you may need to
+configure the build to install this file in the appropriate location.
 
-## udev
+Again using Debian as an example we can instruct the build to install the
+systemd unit in the right location with the following configure option:
+```
+--with-systedsystemunitdir=/lib/systemd/system
+```
+
+### udev Rules: `--with-udevrulesdir`
 The typical operation for the `tpm2-abrmd` is for it to communicate directly
 with the Linux TPM driver using `libtcti-device` from the TPM2.0-TSS project.
 This requires that the user account that's running the `tpm2-abrmd` have both
 read and write access to the TPM device node `/dev/tpm[0-9]`.
 
 This requires that `udev` be instructed to set the owner and group for this
-device node. We provide such a udev rule that is installed to
-`${libdir}/udev/rules.d` per GNU conventions. If your distro stores these
-rules elsewhere you will need to tell the build about this location using
-the configure script.
+device node when its created. We provide such a udev rule that is installed to
+`${libdir}/udev/rules.d`. If your distro stores these rules elsewhere you will
+need to tell the build about this location.
 
+Using Debian as an example we can instruct the build to install the udev
+rules in the right location with the following configure option:
+```
+--with-udevrulesdir=/etc/udev/rules.d
+```
+
+### Enable Unit Tests: `--enable-unit`
+When provided to the `./configure` script this option will attempt to detect
+whether or not the cmocka unit testing library is installed. If not then the
+configure step will fail. If it is available then the unit tests will be
+enabled in the build and they will be built and executed as part of the test
+harness:
+```
+$ ./configure --enable-unit
+```
+
+If the `./configure` script finds the cmocka framework then executing `make
+check` will cause the unit tests to be built and executed.
+
+### Enable Integration Tests: `--with-simulatorbin`
+In order for the integration tests to be run the test harness must have access
+to the TPM2 simulator software (see list of dependencies above). To execute
+the integration tests you must download and compile the software simulator
+as documented on their sourceforge site and their source packages.
+
+Once you have the `tpm_server` built you can inform the tpm2-abrmd build of
+its location by passing an absolute path to the `./configure` script through
+the `--with-simulatorbin` option:
+```
+$ ./configure --with-simulatorbin=/path/to/tpm_server
+```
+
+If the configure script is able to find the executable you provide through this
+option then executing `make check` will cause the integration tests to be built
+and executed.
+
+# Compilation
+Compiling the code requires running `make`. You may provide `make` whatever
+parameters required for your environment (e.g. to enable parallel builds) but
+the defaults should be sufficient:
+```
+$ make
+```
+
+# Installation
+Once successfully built the `tpm2-abrmd` daemon it should be installed using
+the command:
+```
+$ sudo make install
+```
+
+This will install the executable to locations determined at configure time.
+See the output of `./configure --help` for the available options. Typically
+you won't need to do much more than provide an alternative `--prefix` option
+at configure time, and maybe `DESTDIR` at install time if you're packaging
+for a distro.
+
+# Post-install
+After installing the compiled software and configuration all components with
+new configuration (Systemd, D-Bus and udev) must be prompted to reload their
+configs. This can be accomplished by restarting your system but this isn't
+strictly necessary and is generally considered bad form.
+
+Instead each component can be instructed to reload its config manually. The
+following sections describe this process for each.
+
+## udev
 Once you have this udev rule installed in the right place for your distro
 you'll need to instruct udev to reload its rules and apply the new rule.
 Typically this can be accomplished with the following command:
 ```
 $ sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
-but if this doesn't work on your distro you please consult your distro's
-documentation.
 
-## Running the Daemon
-Once you've accomplished all of the above, and assuming your system has a
-TPM2 device, you should be able to execute the `tpm2-abrmd` using the
-following command:
+If this doesn't work on your distro please consult your distro's
+documentation for UDEVADM(8).
+
+## D-Bus
+The dbus-daemon will also need to be instructed to read this configuration
+file (assuming it's installed in a location consulted by dbus-daemon) before
+the policy will be in effect. This is typically accomplished by sending the
+`dbus-daemon` the `HUP` signal like so:
 ```
-$ sudo -u tss tpm2-abrmd
+$ sudo pkill -HUP dbus-daemon
 ```
 
-This is something you'll only be doing on a development system though. A
-"real" system will want the daemon to start on boot.
+If this doesn't work on your distro please consult your distro's documentation
+for DBUS-DAEMON(1).
 
-### Systemd
-Just like the configuration files for D-Bus and udev we provide a systemd
-unit for the `tpm2-abrmd`. Just like D-Bus and udev the location of unit files
-is distro specific and so you may need to either manually place this file or
-provide a path to the `./configure` script by way of the
-`--with-systedsystemunitdir` option.
+## Systemd
+Assuming that the `tpm2-abrmd` unit was installed in the correct location for
+your distro Systemd must be instructed to reload it's configuration. This is
+accomplished with the following command:
+```
+$ systemctl daemon-reload
+```
 
-Once the provided unit file is in the right place for your distro you should
-be able to tell systemd to reload it's configuration:
-```
-$ systemctl daemon-reload &&
-```
 Once systemd has loaded the unit file you should be able to use `systemctl`
 to perform the start / stop / status operations as expected. Systemd should
 also now start the daemon when the system boots.
