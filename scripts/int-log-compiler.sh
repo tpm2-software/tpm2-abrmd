@@ -42,6 +42,8 @@ Usage:
 The '--simulator-bin' and '--tabrmd-bin' options are mandatory.
 END
 }
+SIM_BIN=""
+TABRMD_BIN=""
 while test $# -gt 0; do
     case $1 in
     --help) print_usage; exit $?;;
@@ -170,6 +172,20 @@ daemon_stop ()
 TEST_BIN=$(realpath "$1")
 TEST_DIR=$(dirname "$1")
 TEST_NAME=$(basename "${TEST_BIN}")
+
+# sanity tests
+if [ ! -x "${SIM_BIN}" ]; then
+    echo "no simulator binary provided or not executable"
+    exit 1
+fi
+if [ ! -x "${TABRMD_BIN}" ]; then
+    echo "no tarbmd binary provided or not executable"
+    exit 1
+fi
+if [ ! -x "${TEST_BIN}" ]; then
+    echo "no test binary provided or not executable"
+    exit 1
+fi
 
 # start an instance of the simulator for the test, have it use a random port
 SIM_LOG_FILE=${TEST_BIN}_simulator.log
