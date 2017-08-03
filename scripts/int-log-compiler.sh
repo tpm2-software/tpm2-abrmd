@@ -83,7 +83,7 @@ daemon_start ()
     local daemon_pid_file="$4"
     local daemon_env="$5"
 
-    env ${daemon_env} nohup ${daemon_bin} ${daemon_opts} > ${daemon_log_file} 2>&1 &
+    env ${daemon_env} ${daemon_bin} ${daemon_opts} > ${daemon_log_file} 2>&1 &
     local ret=$?
     local pid=$!
     if [ ${ret} -ne 0 ]; then
@@ -98,7 +98,6 @@ daemon_start ()
         return 1
     fi
     echo ${pid} > ${daemon_pid_file}
-    disown ${pid}
     echo "successfully started daemon: ${daemon_bin} with PID: ${pid}"
     return 0
 }
@@ -137,8 +136,7 @@ tabrmd_start ()
     local tabrmd_env="G_MESSAGES_DEBUG=all"
     local tabrmd_opts="--tcti=socket --tcti-socket-port=${tabrmd_port} --session --dbus-name=${tabrmd_name} --fail-on-loaded-trans"
 
-    daemon_start "${tabrmd_bin}" "${tabrmd_opts}" "${tabrmd_log_file}" \
-        "${tabrmd_pid_file}" "${tabrmd_env}"
+    daemon_start "${tabrmd_bin}" "${tabrmd_opts}" "${tabrmd_log_file}" "${tabrmd_pid_file}" "${tabrmd_env}"
 }
 # function to stop a running daemon
 # This function takes a single parameter: a file containing the PID of the
@@ -161,7 +159,10 @@ daemon_stop ()
     fi
     kill ${pid}
     ret=$?
-    if [ ${ret} -ne 0 ]; then
+    if [ ${ret} -eq 0 ]; then
+        wait ${pid}
+        ret=$?
+    else
         echo "failed to kill daemon process with PID: ${pid}"
     fi
     return ${ret}
@@ -200,25 +201,38 @@ for i in $(seq 5); do
         echo "Failed to start simulator on port ${SIM_PORT}, retrying"
     fi
 done
-
 # start an instance of the tpm2-abrmd daemon for the test, use port from above
 TABRMD_LOG_FILE=${TEST_BIN}_tabrmd.log
 TABRMD_PID_FILE=${TEST_BIN}_tabrmd.pid
 TABRMD_NAME=com.intel.tss2.Tabrmd${SIM_PORT}
 tabrmd_start ${TABRMD_BIN} ${SIM_PORT} ${TABRMD_NAME} ${TABRMD_LOG_FILE} ${TABRMD_PID_FILE}
 
-# execute the test script
+# execute the test script and capture exit code
 env G_MESSAGES_DEBUG=all TABRMD_TEST_BUS_TYPE=session TABRMD_TEST_BUS_NAME="${TABRMD_NAME}" $@
-ret=$?
+ret_test=$?
 
 # This sleep is sadly necessary: If we kill the tabrmd w/o sleeping for a
 # second after the test finishes the simulator will die too. Bug in the
 # simulator?
 sleep 1
-# handle response code
-# teardown
+
+# teardown tabrmd
 daemon_stop ${TABRMD_PID_FILE}
+ret_tabrmd=$?
 rm -rf ${TABRMD_PID_FILE}
+
+# teardown simulator, ignore exit code (it's 143?)
 daemon_stop ${SIM_PID_FILE}
 rm -rf ${SIM_TMP_DIR} ${SIM_PID_FILE}
-exit $ret
+
+# handle exit codes
+if [ $ret_test -ne 0 ]; then
+    echo "Execution of $@ failed: $ret_test"
+    exit $ret_test
+fi
+if [ $ret_tabrmd -ne 0 ]; then
+    echo "Execution of tabrmd failed: $ret_tabrmd"
+    exit $ret_tabrmd
+fi
+
+exit 0
