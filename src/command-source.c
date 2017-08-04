@@ -295,7 +295,7 @@ process_client_fd (CommandSource      *source,
         goto fail_out;
     }
     command_size = get_command_size (buf);
-    if (command_size > TPM_HEADER_SIZE && command_size < UTIL_BUF_MAX) {
+    if (command_size > TPM_HEADER_SIZE && command_size <= UTIL_BUF_MAX) {
         buf = g_realloc (buf, command_size);
         ret = read_data (fd, &index, buf, command_size - TPM_HEADER_SIZE);
         if (ret == 0) {
