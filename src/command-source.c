@@ -367,7 +367,8 @@ command_source_thread (void *data)
         if (!FD_ISSET (source->wakeup_receive_fd, &tmp_fds)) {
             g_warning ("selecting on fd_set w/o wakeup_receive_fd set");
         }
-        ret = select (FD_SETSIZE, &tmp_fds, NULL, NULL, NULL);
+        ret = TEMP_FAILURE_RETRY (select (FD_SETSIZE,
+                                          &tmp_fds, NULL, NULL, NULL));
         if (ret == -1) {
             g_warning ("Error selecting on pipes: %s", strerror (errno));
             break;
