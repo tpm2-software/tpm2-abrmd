@@ -298,7 +298,7 @@ tcti_options_get_group (TctiOptions *options)
             .flags           = G_OPTION_FLAG_NONE,
             .arg             = G_OPTION_ARG_FILENAME,
             .arg_data        = &options->device_name,
-            .description     = "TPM2 device nade, default is /dev/tpm0",
+            .description     = "TPM2 device node, default is /dev/tpm0",
             .arg_description = "/dev/tpm0"
         },
 #endif
