@@ -26,6 +26,7 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 #;**********************************************************************;
 set -u
+set +o nounset
 
 usage_error ()
 {
@@ -82,8 +83,10 @@ daemon_start ()
     local daemon_log_file="$3"
     local daemon_pid_file="$4"
     local daemon_env="$5"
+    local valgrind_bin="$6"
+    local valgrind_flags="$7"
 
-    env ${daemon_env} ${daemon_bin} ${daemon_opts} > ${daemon_log_file} 2>&1 &
+    env ${daemon_env} ${valgrind_bin} ${valgrind_flags} ${daemon_bin} ${daemon_opts} > ${daemon_log_file} 2>&1 &
     local ret=$?
     local pid=$!
     if [ ${ret} -ne 0 ]; then
@@ -136,7 +139,8 @@ tabrmd_start ()
     local tabrmd_env="G_MESSAGES_DEBUG=all"
     local tabrmd_opts="--tcti=socket --tcti-socket-port=${tabrmd_port} --session --dbus-name=${tabrmd_name} --fail-on-loaded-trans"
 
-    daemon_start "${tabrmd_bin}" "${tabrmd_opts}" "${tabrmd_log_file}" "${tabrmd_pid_file}" "${tabrmd_env}"
+    daemon_start "${tabrmd_bin}" "${tabrmd_opts}" "${tabrmd_log_file}" \
+        "${tabrmd_pid_file}" "${tabrmd_env}" "${VALGRIND}" "${LOG_FLAGS}"
 }
 # function to stop a running daemon
 # This function takes a single parameter: a file containing the PID of the
@@ -208,7 +212,7 @@ TABRMD_NAME=com.intel.tss2.Tabrmd${SIM_PORT}
 tabrmd_start ${TABRMD_BIN} ${SIM_PORT} ${TABRMD_NAME} ${TABRMD_LOG_FILE} ${TABRMD_PID_FILE}
 
 # execute the test script and capture exit code
-env G_MESSAGES_DEBUG=all TABRMD_TEST_BUS_TYPE=session TABRMD_TEST_BUS_NAME="${TABRMD_NAME}" $@
+env G_MESSAGES_DEBUG=all TABRMD_TEST_BUS_TYPE=session TABRMD_TEST_BUS_NAME="${TABRMD_NAME}" TABRMD_TEST_TCTI_RETRIES=10 $@
 ret_test=$?
 
 # This sleep is sadly necessary: If we kill the tabrmd w/o sleeping for a

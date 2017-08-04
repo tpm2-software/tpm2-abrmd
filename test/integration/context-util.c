@@ -193,10 +193,17 @@ sapi_init_from_tcti_ctx (TSS2_TCTI_CONTEXT *tcti_ctx)
 TSS2_SYS_CONTEXT*
 sapi_init_from_opts (test_opts_t *options)
 {
-    TSS2_TCTI_CONTEXT *tcti_ctx;
+    TSS2_TCTI_CONTEXT *tcti_ctx = NULL;
     TSS2_SYS_CONTEXT  *sapi_ctx;
+    size_t i;
 
-    tcti_ctx = tcti_init_from_opts (options);
+    for (i = 0; i < options->tcti_retries && tcti_ctx == NULL; ++i) {
+        tcti_ctx = tcti_init_from_opts (options);
+        if (tcti_ctx == NULL) {
+            g_debug ("sapi_init_from_opts: tcti_ctx returned NULL on try: %zd", i);
+            sleep (1);
+        }
+    }
     if (tcti_ctx == NULL)
         return NULL;
     sapi_ctx = sapi_init_from_tcti_ctx (tcti_ctx);

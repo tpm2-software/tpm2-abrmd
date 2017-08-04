@@ -51,10 +51,11 @@
 TSS2_RC
 tcti_tabrmd_init (TSS2_TCTI_CONTEXT **tcti_context,
                   TCTI_TABRMD_DBUS_TYPE bus_type,
-                  const char         *bus_name)
+                  const char         *bus_name,
+                  int                 retries)
 {
     TSS2_RC rc;
-    size_t size;
+    size_t size, i;
 
     rc = tss2_tcti_tabrmd_init_full (NULL, &size, bus_type, bus_name);
     if (rc != TSS2_RC_SUCCESS) {
@@ -68,10 +69,19 @@ tcti_tabrmd_init (TSS2_TCTI_CONTEXT **tcti_context,
                  strerror (errno));
         return rc;
     }
-    rc = tss2_tcti_tabrmd_init_full (*tcti_context,
-                                     &size,
-                                     bus_type,
-                                     bus_name);
+    for (i = 0; i < retries; ++i) {
+        rc = tss2_tcti_tabrmd_init_full (*tcti_context,
+                                         &size,
+                                         bus_type,
+                                         bus_name);
+        if (rc == TSS2_RC_SUCCESS) {
+            break;
+        } else {
+            g_info ("Failed to initialize tabrmd TCTI context: 0x%" PRIx32
+                    " on try %zd", rc, i);
+            sleep (1);
+        }
+    }
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr, "Failed to initialize tabrmd TCTI context: "
                  "0x%" PRIx32 "\n", rc);
@@ -110,7 +120,8 @@ main (int   argc,
     for (i = 0; i < CONNECTION_COUNT; ++i) {
         rc = tcti_tabrmd_init (&tcti_context [i],
                                opts.tabrmd_bus_type,
-                               opts.tabrmd_bus_name);
+                               opts.tabrmd_bus_name,
+                               opts.tcti_retries);
         if (tcti_context [i] == NULL || rc != TSS2_RC_SUCCESS) {
             g_error ("failed to connect to TCTI: 0x%" PRIx32, rc);
         }
