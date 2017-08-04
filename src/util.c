@@ -135,6 +135,7 @@ read_data (int                       fd,
 {
     ssize_t num_read = 0;
     int    errno_tmp = 0;
+    size_t bytes_left = count;
 
     /*
      * Index is where we left off. The caller is asking us to read 'count'
@@ -142,16 +143,17 @@ read_data (int                       fd,
      */
     do {
         g_debug ("reading %zd bytes from fd %d, to 0x%" PRIxPTR,
-                 count, fd, (uintptr_t)&buf[*index]);
+                 bytes_left, fd, (uintptr_t)&buf[*index]);
         num_read = TEMP_FAILURE_RETRY (read (fd,
                                              &buf[*index],
-                                             count));
+                                             bytes_left));
         errno_tmp = errno;
         if (num_read > 0) {
             g_debug ("successfully read %zd bytes", num_read);
             g_debug_bytes (&buf[*index], num_read, 16, 4);
             /* Advance index by the number of bytes read. */
             *index += num_read;
+            bytes_left -= num_read;
         } else if (num_read == 0) {
             g_debug ("read produced EOF");
             return -1;

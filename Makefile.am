@@ -66,9 +66,7 @@ endif
 XFAIL_TESTS = \
     test/integration/password-authorization.int \
     test/integration/start-auth-session.int \
-    test/integration/tcti-connect-multiple.int \
-    test/integration/tcti-sessions-max.int \
-    test/integration/util-buf-max-upper-bound.int
+    test/integration/tcti-sessions-max.int
 
 TESTS = $(TESTS_UNIT) $(TESTS_INTEGRATION)
 TEST_EXTENSIONS = .int
