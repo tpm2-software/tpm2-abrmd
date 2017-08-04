@@ -59,14 +59,16 @@ TESTS_INTEGRATION = \
     test/integration/tcti-sessions-max.int \
     test/integration/tcti-set-locality.int \
     test/integration/hash-sequence.int \
-    test/integration/password-authorization.int
+    test/integration/password-authorization.int \
+    test/integration/util-buf-max-upper-bound.int
 endif
 
 XFAIL_TESTS = \
     test/integration/password-authorization.int \
     test/integration/start-auth-session.int \
     test/integration/tcti-connect-multiple.int \
-    test/integration/tcti-sessions-max.int
+    test/integration/tcti-sessions-max.int \
+    test/integration/util-buf-max-upper-bound.int
 
 TESTS = $(TESTS_UNIT) $(TESTS_INTEGRATION)
 TEST_EXTENSIONS = .int
@@ -464,3 +466,8 @@ test_integration_password_authorization_int_SOURCES = test/integration/main.c te
 test_integration_manage_transient_keys_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
 test_integration_manage_transient_keys_int_SOURCES = test/integration/main.c test/integration/manage-transient-keys.int.c
+
+test_integration_util_buf_max_upper_bound_int_LDADD   = $(libtest) \
+    $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_util_buf_max_upper_bound_int_SOURCES = \
+    test/integration/main.c test/integration/util-buf-max-upper-bound.int.c
