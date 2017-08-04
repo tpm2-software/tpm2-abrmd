@@ -42,6 +42,9 @@
 #define HOSTNAME_DEFAULT "127.0.0.1"
 #define PORT_DEFAULT     2321
 
+/* Default number of attempts to init selected TCTI */
+#define TCTI_RETRIES_DEFAULT 5
+
 /* environment variables holding TCTI config */
 #define ENV_TCTI_NAME      "TPM20TEST_TCTI_NAME"
 #define ENV_DEVICE_FILE    "TPM2OTEST_DEVICE_FILE"
@@ -49,6 +52,7 @@
 #define ENV_SOCKET_PORT    "TPM20TEST_SOCKET_PORT"
 #define ENV_TABRMD_BUS_TYPE "TABRMD_TEST_BUS_TYPE"
 #define ENV_TABRMD_BUS_NAME "TABRMD_TEST_BUS_NAME"
+#define ENV_TCTI_RETRIES    "TABRMD_TEST_TCTI_RETRIES"
 
 typedef enum {
     UNKNOWN_TCTI,
@@ -69,6 +73,7 @@ typedef struct {
     uint16_t  socket_port;
     TCTI_TABRMD_DBUS_TYPE tabrmd_bus_type;
     const char *tabrmd_bus_name;
+    uintmax_t   tcti_retries;
 } test_opts_t;
 
 /* functions to get test options from the user and to print helpful stuff */

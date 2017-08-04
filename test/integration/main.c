@@ -52,6 +52,7 @@ main (int   argc,
         .socket_port    = PORT_DEFAULT,
         .tabrmd_bus_type = TCTI_TABRMD_DBUS_TYPE_DEFAULT,
         .tabrmd_bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT,
+        .tcti_retries    = TCTI_RETRIES_DEFAULT,
     };
 
     get_test_opts_from_env (&opts);

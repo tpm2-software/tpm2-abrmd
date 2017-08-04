@@ -24,7 +24,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <errno.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "test-options.h"
 #include "tcti-tabrmd.h"
@@ -192,6 +194,10 @@ get_test_opts_from_env (test_opts_t          *test_opts)
     if (env_str != NULL) {
         test_opts->tabrmd_bus_name = env_str;
     }
+    env_str = getenv (ENV_TCTI_RETRIES);
+    if (env_str != NULL) {
+        test_opts->tcti_retries = strtoumax (env_str, NULL, 10);
+    }
     return 0;
 }
 /*
@@ -207,4 +213,5 @@ dump_test_opts (test_opts_t *opts)
     printf ("  socket_port:    %d\n", opts->socket_port);
     printf ("  tabrmd_bus_type: %s\n", bus_str_from_type (opts->tabrmd_bus_type));
     printf ("  tabrmd_bus_name: %s\n", opts->tabrmd_bus_name);
+    printf ("  retries:         %" PRIuMAX "\n", opts->tcti_retries);
 }
