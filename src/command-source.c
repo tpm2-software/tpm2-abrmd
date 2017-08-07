@@ -303,7 +303,7 @@ process_client_fd (CommandSource      *source,
         } else {
             goto fail_out;
         }
-    } else if (command_size < TPM_HEADER_SIZE || command_size > UTIL_BUF_MAX) {
+    } else {
         goto fail_out;
     }
     attributes = command_attrs_from_cc (source->command_attrs,
