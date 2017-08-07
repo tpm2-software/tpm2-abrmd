@@ -41,8 +41,6 @@
 #include "tpm2-response.h"
 #include "util.h"
 
-#define RM_RC(rc) TSS2_RESMGR_ERROR_LEVEL + rc
-
 static void resource_manager_sink_interface_init   (gpointer g_iface);
 static void resource_manager_source_interface_init (gpointer g_iface);
 
@@ -456,7 +454,13 @@ resource_manager_flush_context (ResourceManager *resmgr,
         g_warning ("resource_manager_flush_context with wrong command");
         return NULL;
     }
-    handle = tpm2_command_get_flush_handle (command);
+    rc = tpm2_command_get_flush_handle (command, &handle);
+    if (rc != TSS2_RC_SUCCESS) {
+        connection = tpm2_command_get_connection (command);
+        response = tpm2_response_new_rc (connection, rc);
+        g_object_unref (connection);
+        goto out;
+    }
     g_debug ("resource_manager_flush_context handle: 0x%" PRIx32, handle);
     handle_type = handle >> HR_SHIFT;
     switch (handle_type) {
@@ -495,6 +499,7 @@ resource_manager_flush_context (ResourceManager *resmgr,
         break;
     }
 
+out:
     return response;
 }
 /*

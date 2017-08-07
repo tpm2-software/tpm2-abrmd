@@ -33,6 +33,9 @@
 
 #include "control-message.h"
 
+/* set the layer / component to indicate the RC comes from the RM */
+#define RM_RC(rc) TSS2_RESMGR_ERROR_LEVEL + rc
+
 /* allocate read blocks in BUF_SIZE increments */
 #define UTIL_BUF_SIZE 1024
 /* stop allocating at BUF_MAX */
