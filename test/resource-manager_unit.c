@@ -141,6 +141,7 @@ resource_manager_setup_two_transient_handles (void **state)
 {
     test_data_t *data;
     guint8 *buffer;
+    size_t  buffer_size;
 
     resource_manager_setup (state);
     data = *state;
@@ -150,12 +151,13 @@ resource_manager_setup_two_transient_handles (void **state)
     data->command_attrs.val = (2 << 25) + TPM_CC_StartAuthSession; /* 2 handles + TPM2_StartAuthSession */
 
     /* create Tpm2Command that we'll be transforming */
-    buffer = calloc (1, TPM_HEADER_SIZE + 2 * sizeof (TPM_HANDLE));
+    buffer_size = TPM_HEADER_SIZE + 2 * sizeof (TPM_HANDLE);
+    buffer = calloc (1, buffer_size);
     *(TPM_ST*)buffer = htobe16 (TPM_ST_NO_SESSIONS);
     buffer [2]  = 0x00;
     buffer [3]  = 0x00;
     buffer [4]  = 0x00;
-    buffer [5]  = TPM_HEADER_SIZE + 2 * sizeof (TPM_HANDLE);
+    buffer [5]  = buffer_size;
     buffer [6]  = 0x00;
     buffer [7]  = 0x00;
     buffer [8]  = TPM_CC_StartAuthSession >> 8;
@@ -170,6 +172,7 @@ resource_manager_setup_two_transient_handles (void **state)
     buffer [17] = data->vhandles [1] & 0xff; /* second virtual handle */
     data->command = tpm2_command_new (data->connection,
                                       buffer,
+                                      buffer_size,
                                       data->command_attrs);
     return 0;
 }
@@ -226,7 +229,7 @@ resource_manager_sink_enqueue_test (void **state)
     guint8 *buffer;
 
     buffer = calloc (1, TPM_HEADER_SIZE);
-    data->command = tpm2_command_new (data->connection, buffer, (TPMA_CC){ 0, });
+    data->command = tpm2_command_new (data->connection, buffer, TPM_HEADER_SIZE, (TPMA_CC){ 0, });
     resource_manager_enqueue (SINK (data->resource_manager), G_OBJECT (data->command));
     command_out = TPM2_COMMAND (message_queue_dequeue (data->resource_manager->in_queue));
 
@@ -252,7 +255,7 @@ resource_manager_process_tpm2_command_success_test (void **state)
      * it will be freed by the call to resource_manager_process_tpm2_command
      * and the teardown function will attempt to free it again if set.
      */
-    data->command = tpm2_command_new (data->connection, buffer, (TPMA_CC){ 0, });
+    data->command = tpm2_command_new (data->connection, buffer, TPM_HEADER_SIZE, (TPMA_CC){ 0, });
     response = tpm2_response_new_rc (data->connection, TSS2_RC_SUCCESS);
     /*
      * This response object will be freed by the process_tpm2_command

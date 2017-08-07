@@ -76,6 +76,7 @@ uint8_t cmd_with_auths [] = {
 typedef struct {
     Tpm2Command *command;
     guint8      *buffer;
+    size_t       buffer_size;
     Connection *connection;
 } test_data_t;
 /**
@@ -93,7 +94,8 @@ tpm2_command_setup_base (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold a TPM2 header and 3 handles */
-    data->buffer = calloc (1, TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE) * 3);
+    data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE) * 3;
+    data->buffer = calloc (1, data->buffer_size);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
@@ -112,6 +114,7 @@ tpm2_command_setup (void **state)
     data = (test_data_t*)*state;
     data->command = tpm2_command_new (data->connection,
                                       data->buffer,
+                                      data->buffer_size,
                                       attributes);
     *state = data;
     return 0;
@@ -128,6 +131,7 @@ tpm2_command_setup_two_handles (void **state)
     data = (test_data_t*)*state;
     data->command = tpm2_command_new (data->connection,
                                       data->buffer,
+                                      data->buffer_size,
                                       attributes);
     /*
      * This sets the two handles to 0x80000000 and 0x80000001, assuming the
@@ -162,6 +166,7 @@ tpm2_command_setup_with_auths (void **state)
     g_object_unref (handle_map);
     data->command = tpm2_command_new (data->connection,
                                       data->buffer,
+                                      data->buffer_size,
                                       attributes);
 
     *state = data;
