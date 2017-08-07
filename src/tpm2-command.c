@@ -32,17 +32,16 @@
 #include "util.h"
 /* macros to make getting at fields in the command more simple */
 
-#define HEADER_SIZE (sizeof (TPM_ST) + sizeof (UINT32) + sizeof (TPM_CC))
-#define HANDLE_OFFSET HEADER_SIZE
-#define HANDLE_INDEX(i) (sizeof (TPM_HANDLE) * i)
-#define HANDLE_GET(buffer, count) (*(TPM_HANDLE*)(HANDLE_START (buffer) + \
-                                                  HANDLE_INDEX (count)))
-#define HANDLE_START(buffer) (buffer + HANDLE_OFFSET)
+#define HANDLE_AREA_OFFSET TPM_HEADER_SIZE
+#define HANDLE_OFFSET(i) (HANDLE_AREA_OFFSET + sizeof (TPM_HANDLE) * i)
+#define HANDLE_END_OFFSET(i) (HANDLE_OFFSET (i) + sizeof (TPM_HANDLE))
+#define HANDLE_GET(buffer, count) \
+    (*(TPM_HANDLE*)(&buffer [HANDLE_OFFSET (count)]))
 /*
  * Offset of capability field in TPM2_GetCapability command buffer is
  * immediately after the header.
  */
-#define CAP_OFFSET HEADER_SIZE
+#define CAP_OFFSET TPM_HEADER_SIZE
 #define CAP_GET(buffer) (*(TPM_CAP*)(buffer + CAP_OFFSET))
 /*
  * Offset of property field in TPM2_GetCapability command buffer is
@@ -61,7 +60,7 @@
  * authorization area.
  */
 #define AUTH_AREA_OFFSET(handle_count) \
-    (HEADER_SIZE + (handle_count * sizeof (TPM_HANDLE)))
+    (TPM_HEADER_SIZE + (handle_count * sizeof (TPM_HANDLE)))
 #define AUTH_AREA_SIZE(buffer, handle_count) \
     (*(UINT32*)(buffer + AUTH_AREA_OFFSET(handle_count)))
 #define AUTH_FIRST_OFFSET(handle_count) \
@@ -299,11 +298,13 @@ tpm2_command_get_handle (Tpm2Command *command,
                          guint8       handle_number)
 {
     guint8 real_count;
+    size_t end;
 
     if (command == NULL)
         return 0;
     real_count = tpm2_command_get_handle_count (command);
-    if (real_count > handle_number) {
+    end = HANDLE_END_OFFSET (handle_number);
+    if (real_count > handle_number && end <= command->buffer_size) {
         return be32toh (HANDLE_GET (command->buffer, handle_number));
     } else {
         return 0;
@@ -320,11 +321,13 @@ tpm2_command_set_handle (Tpm2Command *command,
                          guint8       handle_number)
 {
     guint8 real_count;
+    size_t end;
 
     if (command == NULL)
         return FALSE;
     real_count = tpm2_command_get_handle_count (command);
-    if (real_count > handle_number) {
+    end = HANDLE_END_OFFSET (handle_number);
+    if (real_count > handle_number && end <= command->buffer_size) {
         HANDLE_GET (command->buffer, handle_number) = htobe32 (handle);
         return TRUE;
     } else {
@@ -340,22 +343,25 @@ tpm2_command_set_handle (Tpm2Command *command,
 gboolean
 tpm2_command_get_handles (Tpm2Command *command,
                           TPM_HANDLE   handles[],
-                          guint8       count)
+                          size_t      *count)
 {
-    guint8 real_count, i;
+    guint8 real_count;
+    size_t i;
 
-    if (command == NULL || handles == NULL) {
+    if (command == NULL || handles == NULL || count == NULL) {
         g_warning ("tpm2_command_get_handles passed NULL parameter");
         return FALSE;
     }
     real_count = tpm2_command_get_handle_count (command);
-    if (real_count > count) {
+    if (real_count > *count) {
         g_warning ("tpm2_command_get_handles passed insufficient handle array");
         return FALSE;
     }
 
-    for (i = 0; i < real_count; ++i)
-        handles[i] = be32toh (HANDLE_GET (command->buffer, i));
+    for (i = 0; i < real_count; ++i) {
+        handles[i] = tpm2_command_get_handle (command, i);
+    }
+    *count = i;
 
     return TRUE;
 }
@@ -372,6 +378,7 @@ tpm2_command_set_handles (Tpm2Command *command,
                           guint8       count)
 {
     guint8 real_count, i;
+    gboolean ret;
 
     if (command == NULL || handles == NULL) {
         g_warning ("tpm2_command_get_handles passed NULL parameter");
@@ -384,8 +391,12 @@ tpm2_command_set_handles (Tpm2Command *command,
         return FALSE;
     }
 
-    for (i = 0; i < real_count; ++i)
-        HANDLE_GET (command->buffer, i) = htobe32 (handles [i]);
+    for (i = 0; i < real_count; ++i) {
+        ret = tpm2_command_set_handle (command, handles [i], i);
+        if (ret == FALSE) {
+            return FALSE;
+        }
+    }
 
     return TRUE;
 }
