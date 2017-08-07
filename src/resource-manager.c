@@ -226,7 +226,8 @@ resource_manager_load_contexts (ResourceManager *resmgr,
 {
     TSS2_RC       rc = TSS2_RC_SUCCESS;
     TPM_HANDLE    handles[3] = { 0, };
-    guint8        i, handle_count;;
+    size_t        i, handle_count = 3;
+    gboolean      handle_ret;
     auth_callback_data_t auth_callback_data = {
         .resmgr = resmgr,
         .command = command,
@@ -238,9 +239,12 @@ resource_manager_load_contexts (ResourceManager *resmgr,
         g_warning ("resource_manager_load_contexts received NULL parameter.");
         return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
     }
-    handle_count = tpm2_command_get_handle_count (command);
-    tpm2_command_get_handles (command, handles, handle_count);
-    g_debug ("loading contexts for %" PRId8 " handles in command handle area",
+    handle_ret = tpm2_command_get_handles (command, handles, &handle_count);
+    if (handle_ret == FALSE) {
+        g_error ("Unable to get handles from command 0x%" PRIxPTR,
+                 (uintptr_t)command);
+    }
+    g_debug ("loading contexts for %zu handles in command handle area",
              handle_count);
     for (i = 0; i < handle_count; ++i) {
         switch (handles [i] >> HR_SHIFT) {

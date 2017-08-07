@@ -353,15 +353,14 @@ resource_manager_load_contexts_test (void **state)
     TPM_HANDLE      vhandles [3] = { 0 };
     TPM_HANDLE      handle_ret;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
-    guint8          handle_count, i;
+    size_t          handle_count = 2, i;
 
     will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_context_load, phandles [0]);
     will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_context_load, phandles [1]);
 
-    handle_count = tpm2_command_get_handle_count (data->command);
-    tpm2_command_get_handles (data->command, vhandles, 3);
+    tpm2_command_get_handles (data->command, vhandles, &handle_count);
     map = connection_get_trans_map (data->connection);
     for (i = 0; i < handle_count; ++i) {
         entry = handle_map_entry_new (phandles [i], vhandles [i]);

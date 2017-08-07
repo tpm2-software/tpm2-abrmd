@@ -149,6 +149,44 @@ tpm2_command_setup_two_handles (void **state)
     data->buffer [17] = 0x01;
     return 0;
 }
+
+uint8_t two_handles_not_three [] = {
+    0x80, 0x02, /* TPM_ST_SESSIONS */
+    0x00, 0x00, 0x00, 0x12, /* command buffer size */
+    0x00, 0x00, 0x01, 0x49, /* command code: 0x149 / TPM_CC_PolicyNV */
+    0x01, 0x02, 0x03, 0x04, /* first handle */
+    0xf0, 0xe0, 0xd0, 0xc0  /* second handle */
+};
+/*
+ * This setup function creates all of the components necessary to carry out
+ * a tpm2_command test. Additionally it creates a tpm2_command with a command
+ * buffer that should have 3 handles (per the TPMA_CC) but is only large
+ * enough to hold 2.
+ */
+static int
+tpm2_command_setup_two_handles_not_three (void **state)
+{
+    test_data_t *data   = NULL;
+    gint         fds[2] = { 0, };
+    HandleMap   *handle_map;
+
+    data = calloc (1, sizeof (test_data_t));
+    *state = data;
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
+    g_object_unref (handle_map);
+    /* */
+    data->buffer_size = sizeof (two_handles_not_three);
+    data->buffer = calloc (1, data->buffer_size);
+    memcpy (data->buffer,
+            two_handles_not_three,
+            data->buffer_size);
+    data->command = tpm2_command_new (data->connection,
+                                      data->buffer,
+                                      data->buffer_size,
+                                      (TPMA_CC)((UINT32)0x06000149));
+    return 0;
+}
 /*
  * This test setup function is much like the others with the exception of the
  * Tpm2Command buffer being set to the 'cmd_with_auths'. This allows testing
@@ -329,9 +367,10 @@ tpm2_command_get_handles_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
     TPM_HANDLE handles [3] = { 0, };
+    size_t count = 3;
     gboolean ret;
 
-    ret = tpm2_command_get_handles (data->command, handles, 3);
+    ret = tpm2_command_get_handles (data->command, handles, &count);
     assert_true (ret == TRUE);
     assert_int_equal (handles [0], HANDLE_FIRST);
     assert_int_equal (handles [1], HANDLE_SECOND);
@@ -346,10 +385,11 @@ tpm2_command_set_handles_test (void **state)
         TPM_HT_TRANSIENT + 0x2,
     };
     TPM_HANDLE handles_out [2] = { 0, };
+    size_t handle_count = 2;
 
-    ret = tpm2_command_set_handles (data->command, handles_in, 2);
+    ret = tpm2_command_set_handles (data->command, handles_in, handle_count);
     assert_true (ret == TRUE);
-    ret = tpm2_command_get_handles (data->command, handles_out, 2);
+    ret = tpm2_command_get_handles (data->command, handles_out, &handle_count);
     assert_true (ret == TRUE);
     assert_memory_equal (handles_in, handles_out, 2 * sizeof (TPM_HANDLE));
 }
@@ -507,6 +547,26 @@ tpm2_command_flush_context_handle_test (void **state)
                                         &handle);
     assert_int_equal (rc, RM_RC (TPM_RC_INSUFFICIENT));
 }
+/*
+ * This test attempts to read 3 handles from a command. It's paired with
+ * the `tpm2_command_setup_two_handles_not_three` setup function which
+ * populates the command with data appropriate for this test. The command
+ * body is for a command with 3 handles but only enough room is provided
+ * for two handles. Attempts to read 3 should stop at the end of the buffer.
+ */
+static void
+tpm2_command_two_handles_not_three (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE   handles [3] = { 0 };
+    size_t       handle_count = 3;
+    gboolean     ret = TRUE;
+
+    ret = tpm2_command_get_handles (data->command,
+                                    handles,
+                                    &handle_count);
+    assert_true (ret);
+}
 
 gint
 main (gint    argc,
@@ -566,6 +626,9 @@ main (gint    argc,
                                          tpm2_command_teardown),
         cmocka_unit_test_setup_teardown (tpm2_command_flush_context_handle_test,
                                          tpm2_command_setup_flush_context_no_handle,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_two_handles_not_three,
+                                         tpm2_command_setup_two_handles_not_three,
                                          tpm2_command_teardown),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
