@@ -60,6 +60,7 @@ TESTS_INTEGRATION = \
     test/integration/tcti-set-locality.int \
     test/integration/hash-sequence.int \
     test/integration/password-authorization.int \
+    test/integration/tpm2-command-flush-no-handle.int \
     test/integration/util-buf-max-upper-bound.int
 endif
 
@@ -464,6 +465,11 @@ test_integration_password_authorization_int_SOURCES = test/integration/main.c te
 test_integration_manage_transient_keys_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
 test_integration_manage_transient_keys_int_SOURCES = test/integration/main.c test/integration/manage-transient-keys.int.c
+
+test_integration_tpm2_command_flush_no_handle_int_LDADD   = $(libtest) \
+    $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tpm2_command_flush_no_handle_int_SOURCES = \
+    test/integration/main.c test/integration/tpm2-command-flush-no-handle.int.c
 
 test_integration_util_buf_max_upper_bound_int_LDADD   = $(libtest) \
     $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)

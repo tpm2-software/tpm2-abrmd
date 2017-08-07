@@ -398,16 +398,19 @@ tpm2_command_set_handles (Tpm2Command *command,
  * provide a special function for getting at this single handle.
  * Use this function with caution.
  */
-TPM_HANDLE
-tpm2_command_get_flush_handle (Tpm2Command *command)
+TPM_RC
+tpm2_command_get_flush_handle (Tpm2Command *command,
+                               TPM_HANDLE  *handle)
 {
-    if (command == NULL) {
-        g_warning ("tpm2_command_get_flush_handle passed null parameter");
-        return 0;
+    if (command == NULL || handle == NULL) {
+        g_error ("tpm2_command_get_flush_handle passed null parameter");
     }
     if (tpm2_command_get_code (command) != TPM_CC_FlushContext) {
         g_warning ("tpm2_command_get_flush_handle called with wrong command");
         return 0;
+    }
+    if (command->buffer_size < TPM_HEADER_SIZE + sizeof (TPM_HANDLE)) {
+        return RM_RC (TPM_RC_INSUFFICIENT);
     }
     /*
      * Despite not techncially being in the "handle area" of the command we
@@ -415,7 +418,8 @@ tpm2_command_get_flush_handle (Tpm2Command *command)
      * there are no other handles or authorizations allowd in the command and
      * the handle being flushed is the first parameter.
      */
-    return be32toh (HANDLE_GET (tpm2_command_get_buffer (command), 0));
+    *handle = be32toh (HANDLE_GET (tpm2_command_get_buffer (command), 0));
+    return TSS2_RC_SUCCESS;
 }
 /*
  * When provided with a Tpm2Command that represents a call to the

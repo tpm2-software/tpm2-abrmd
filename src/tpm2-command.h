@@ -90,7 +90,8 @@ gboolean              tpm2_command_set_handle      (Tpm2Command      *command,
 gboolean              tpm2_command_set_handles     (Tpm2Command      *command,
                                                     TPM_HANDLE        handles[],
                                                     guint8            count);
-TPM_HANDLE            tpm2_command_get_flush_handle (Tpm2Command     *command);
+TPM_RC                tpm2_command_get_flush_handle (Tpm2Command     *command,
+                                                     TPM_HANDLE      *handle);
 guint32               tpm2_command_get_size        (Tpm2Command      *command);
 TPMI_ST_COMMAND_TAG   tpm2_command_get_tag         (Tpm2Command      *command);
 Connection*           tpm2_command_get_connection  (Tpm2Command      *command);

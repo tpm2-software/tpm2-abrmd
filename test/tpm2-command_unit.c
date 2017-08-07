@@ -32,6 +32,7 @@
 #include <cmocka.h>
 
 #include "tpm2-command.h"
+#include "util.h"
 
 #define HANDLE_FIRST  0x80000000
 #define HANDLE_SECOND 0x80000001
@@ -71,6 +72,12 @@ uint8_t cmd_with_auths [] = {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
     0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
     0x0f, 0x00, 0x00
+};
+/* command buffer for ContextFlush command with no handle */
+uint8_t cmd_buf_context_flush_no_handle [] = {
+    0x80, 0x01, /* TPM_ST_NO_SESSIONS */
+    0x00, 0x00, 0x00, 0x0a, /* size: 10 bytes */
+    0x00, 0x00, 0x01, 0x65, /* command code for ContextFlush */
 };
 
 typedef struct {
@@ -161,6 +168,34 @@ tpm2_command_setup_with_auths (void **state)
     /* allocate a buffer large enough to hold the cmd_with_auths buffer */
     data->buffer = calloc (1, sizeof (cmd_with_auths));
     memcpy (data->buffer, cmd_with_auths, sizeof (cmd_with_auths));
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
+    g_object_unref (handle_map);
+    data->command = tpm2_command_new (data->connection,
+                                      data->buffer,
+                                      data->buffer_size,
+                                      attributes);
+
+    *state = data;
+    return 0;
+}
+static int
+tpm2_command_setup_flush_context_no_handle (void **state)
+{
+    test_data_t *data   = NULL;
+    gint         fds[2] = { 0, };
+    HandleMap   *handle_map;
+    TPMA_CC attributes = {
+        .val = 2 << 25,
+    };
+
+    data = calloc (1, sizeof (test_data_t));
+    /* allocate a buffer large enough to hold the cmd_with_auths buffer */
+    data->buffer_size = sizeof (cmd_buf_context_flush_no_handle);
+    data->buffer = calloc (1, data->buffer_size);
+    memcpy (data->buffer,
+            cmd_buf_context_flush_no_handle,
+            data->buffer_size);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
@@ -461,6 +496,18 @@ tpm2_command_foreach_auth_test (void **state)
                                tpm2_command_foreach_auth_callback,
                                &callback_state);
 }
+static void
+tpm2_command_flush_context_handle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TSS2_RC rc;
+    TPM_HANDLE handle;
+
+    rc = tpm2_command_get_flush_handle (data->command,
+                                        &handle);
+    assert_int_equal (rc, RM_RC (TPM_RC_INSUFFICIENT));
+}
+
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -516,6 +563,9 @@ main (gint    argc,
                                          tpm2_command_teardown),
         cmocka_unit_test_setup_teardown (tpm2_command_foreach_auth_test,
                                          tpm2_command_setup_with_auths,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_flush_context_handle_test,
+                                         tpm2_command_setup_flush_context_no_handle,
                                          tpm2_command_teardown),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
