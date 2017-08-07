@@ -74,6 +74,7 @@ enum {
     PROP_ATTRIBUTES,
     PROP_SESSION,
     PROP_BUFFER,
+    PROP_BUFFER_SIZE,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -98,6 +99,9 @@ tpm2_command_set_property (GObject        *object,
             break;
         }
         self->buffer = (guint8*)g_value_get_pointer (value);
+        break;
+    case PROP_BUFFER_SIZE:
+        self->buffer_size = g_value_get_uint (value);
         break;
     case PROP_SESSION:
         if (self->connection != NULL) {
@@ -130,6 +134,9 @@ tpm2_command_get_property (GObject     *object,
         break;
     case PROP_BUFFER:
         g_value_set_pointer (value, self->buffer);
+        break;
+    case PROP_BUFFER_SIZE:
+        g_value_set_uint (value, self->buffer_size);
         break;
     case PROP_SESSION:
         g_value_set_object (value, self->connection);
@@ -186,6 +193,14 @@ tpm2_command_class_init (Tpm2CommandClass *klass)
                               "TPM2 command buffer",
                               "memory buffer holding a TPM2 command",
                               G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_BUFFER_SIZE] =
+        g_param_spec_uint ("buffer-size",
+                           "sizeof command buffer",
+                           "size of buffer holding the TPM2 command",
+                           0,
+                           UTIL_BUF_MAX,
+                           0,
+                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_SESSION] =
         g_param_spec_object ("connection",
                              "Session object",
@@ -202,11 +217,13 @@ tpm2_command_class_init (Tpm2CommandClass *klass)
 Tpm2Command*
 tpm2_command_new (Connection     *connection,
                   guint8          *buffer,
+                  size_t           size,
                   TPMA_CC          attributes)
 {
     return TPM2_COMMAND (g_object_new (TYPE_TPM2_COMMAND,
                                        "attributes", attributes,
                                        "buffer",  buffer,
+                                       "buffer-size", size,
                                        "connection", connection,
                                        NULL));
 }
@@ -392,7 +409,6 @@ tpm2_command_get_flush_handle (Tpm2Command *command)
         g_warning ("tpm2_command_get_flush_handle called with wrong command");
         return 0;
     }
-
     /*
      * Despite not techncially being in the "handle area" of the command we
      * are still able to access the handle as though it were. This is because

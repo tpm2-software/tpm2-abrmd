@@ -317,7 +317,7 @@ process_client_fd (CommandSource      *source,
     }
     attributes = command_attrs_from_cc (source->command_attrs,
                                         get_command_code (buf));
-    command = tpm2_command_new (connection, buf, attributes);
+    command = tpm2_command_new (connection, buf, index, attributes);
     if (command != NULL) {
         sink_enqueue (source->sink, G_OBJECT (command));
         /* the sink now owns this message */

@@ -43,6 +43,7 @@ typedef struct _Tpm2Command {
     TPMA_CC         attributes;
     Connection     *connection;
     guint8         *buffer;
+    size_t          buffer_size;
 } Tpm2Command;
 
 #include "command-attrs.h"
@@ -72,6 +73,7 @@ typedef struct _Tpm2Command {
 GType                 tpm2_command_get_type        (void);
 Tpm2Command*          tpm2_command_new             (Connection      *connection,
                                                     guint8           *buffer,
+                                                    size_t            size,
                                                     TPMA_CC           attrs);
 TPMA_CC               tpm2_command_get_attributes  (Tpm2Command      *command);
 guint8*               tpm2_command_get_buffer      (Tpm2Command      *command);
