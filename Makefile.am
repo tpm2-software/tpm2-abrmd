@@ -59,6 +59,7 @@ TESTS_INTEGRATION = \
     test/integration/tcti-sessions-max.int \
     test/integration/tcti-set-locality.int \
     test/integration/hash-sequence.int \
+    test/integration/not-enough-handles-for-command.int \
     test/integration/password-authorization.int \
     test/integration/tpm2-command-flush-no-handle.int \
     test/integration/util-buf-max-upper-bound.int
@@ -457,6 +458,9 @@ test_integration_tcti_set_locality_int_SOURCES = test/integration/main.c test/in
 
 test_integration_hash_sequence_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_integration_hash_sequence_int_SOURCES = test/integration/main.c test/integration/hash-sequence.int.c
+
+test_integration_not_enough_handles_for_command_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_not_enough_handles_for_command_int_SOURCES = test/integration/main.c test/integration/not-enough-handles-for-command.int.c
 
 test_integration_password_authorization_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_integration_password_authorization_int_SOURCES = test/integration/main.c test/integration/password-authorization.int.c
