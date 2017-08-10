@@ -189,14 +189,18 @@ typedef struct {
     SessionList     *loaded_sessions;
 } auth_callback_data_t;
 void
-resource_manager_load_auth_callback (gpointer auth_ptr,
+resource_manager_load_auth_callback (gpointer auth_offset_ptr,
                                      gpointer user_data)
 {
-    TPM_HANDLE handle = AUTH_HANDLE_GET ((uint8_t*)auth_ptr);
+    TPM_HANDLE handle;
     auth_callback_data_t *data = (auth_callback_data_t*)user_data;
-    TPMA_SESSION session_attrs = AUTH_SESSION_ATTRS_GET (auth_ptr);
+    TPMA_SESSION session_attrs;
     gboolean will_flush;
+    size_t auth_offset = *(size_t*)auth_offset_ptr;
 
+    handle = tpm2_command_get_auth_handle (data->command, auth_offset);
+    session_attrs = tpm2_command_get_auth_attrs (data->command,
+                                                 auth_offset);
     will_flush = session_attrs.val & TPMA_SESSION_CONTINUESESSION ? FALSE : TRUE;
     switch (handle >> HR_SHIFT) {
     case TPM_HT_HMAC_SESSION:

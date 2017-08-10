@@ -55,27 +55,16 @@ typedef struct _Tpm2Command {
 #define IS_TPM2_COMMAND_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE    ((klass), TYPE_TPM2_COMMAND))
 #define TPM2_COMMAND_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TPM2_COMMAND, Tpm2CommandClass))
 
-/*
- * Helper macros to extract fields from an authorization. The 'ptr' parameter
- * is a pointer to the start of the authorization.
- */
-#define AUTH_HANDLE_GET(ptr) (be32toh (*(TPM_HANDLE*)ptr))
-#define AUTH_NONCE_SIZE_OFFSET(ptr) (ptr + sizeof (TPM_HANDLE))
-#define AUTH_NONCE_SIZE_GET(ptr) (be16toh (*(TPM_HANDLE*)AUTH_NONCE_SIZE_OFFSET (ptr)))
-#define AUTH_NONCE_PTR(ptr)  (AUTH_NONCE_SIZE_OFFSET (ptr) + sizeof (UINT16))
-#define AUTH_SESSION_ATTRS_OFFSET(ptr) \
-    (AUTH_NONCE_PTR (ptr) + AUTH_NONCE_SIZE_GET (ptr))
-#define AUTH_SESSION_ATTRS_GET(ptr) (*(TPMA_SESSION*)AUTH_SESSION_ATTRS_OFFSET (ptr))
-#define AUTH_AUTH_SIZE_OFFSET(ptr) (AUTH_ATTRS_OFFSET (ptr) + sizeof (UINT8))
-#define AUTH_AUTH_SIZE_GET(ptr) (be16toh (*(UINT16*)AUTH_SESSION_SIZE_OFFSET (ptr)))
-#define AUTH_AUTH_OFFSET(ptr) (AUTH_AUTH_SIZE_OFFSET (ptr) + sizeof (UINT16))
-
 GType                 tpm2_command_get_type        (void);
 Tpm2Command*          tpm2_command_new             (Connection      *connection,
                                                     guint8           *buffer,
                                                     size_t            size,
                                                     TPMA_CC           attrs);
 TPMA_CC               tpm2_command_get_attributes  (Tpm2Command      *command);
+TPMA_SESSION          tpm2_command_get_auth_attrs  (Tpm2Command      *command,
+                                                    size_t            auth_offset);
+TPM_HANDLE            tpm2_command_get_auth_handle (Tpm2Command      *command,
+                                                    size_t            offset);
 guint8*               tpm2_command_get_buffer      (Tpm2Command      *command);
 TPM_CC                tpm2_command_get_code        (Tpm2Command      *command);
 guint8                tpm2_command_get_handle_count (Tpm2Command     *command);

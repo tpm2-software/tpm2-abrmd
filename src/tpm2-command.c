@@ -59,12 +59,60 @@
  * Helper macros to aid in the access of various parts of the command
  * authorization area.
  */
-#define AUTH_AREA_OFFSET(handle_count) \
-    (TPM_HEADER_SIZE + (handle_count * sizeof (TPM_HANDLE)))
-#define AUTH_AREA_SIZE(buffer, handle_count) \
-    (*(UINT32*)(buffer + AUTH_AREA_OFFSET(handle_count)))
-#define AUTH_FIRST_OFFSET(handle_count) \
-    (size_t)(AUTH_AREA_OFFSET (handle_count) + sizeof (UINT32))
+#define AUTH_AREA_OFFSET(cmd) \
+    (TPM_HEADER_SIZE + (tpm2_command_get_handle_count (cmd) * sizeof (TPM_HANDLE)))
+#define AUTH_AREA_SIZE_OFFSET(cmd) AUTH_AREA_OFFSET (cmd)
+#define AUTH_AREA_SIZE_END_OFFSET(cmd) \
+    (AUTH_AREA_SIZE_OFFSET (cmd) + sizeof (UINT32))
+#define AUTH_AREA_GET_SIZE(cmd) \
+    (be32toh (*(UINT32*)(&cmd->buffer [AUTH_AREA_SIZE_OFFSET (cmd)])))
+#define AUTH_AREA_FIRST_OFFSET(cmd) (AUTH_AREA_SIZE_END_OFFSET (cmd))
+#define AUTH_AREA_END_OFFSET(cmd) \
+    (AUTH_AREA_FIRST_OFFSET (cmd) + AUTH_AREA_GET_SIZE (cmd))
+/*
+ * Helper macros to aid in accessing parts of a session authorization. These
+ * are the individual authorizations in the authorization area of the command.
+ * The 'cmd' parameter must be a reference to a valid Tpm2Command object.
+ * The 'index' parameter must be the index into the Tpm2Command buffer where
+ * the authorization we wish to query resides.
+ */
+#define AUTH_HANDLE_OFFSET(index) (index + 0)
+#define AUTH_HANDLE_END_OFFSET(index) \
+    (AUTH_HANDLE_OFFSET(index) + sizeof (TPM_HANDLE))
+#define AUTH_GET_HANDLE(cmd, index) \
+    (be32toh (*(TPM_HANDLE*)&cmd->buffer [AUTH_HANDLE_OFFSET (index)]))
+/* nonce */
+#define AUTH_NONCE_SIZE_OFFSET(index) (AUTH_HANDLE_END_OFFSET (index))
+#define AUTH_NONCE_SIZE_END_OFFSET(index) \
+    (AUTH_NONCE_SIZE_OFFSET(index) + sizeof (UINT16))
+#define AUTH_GET_NONCE_SIZE(cmd, index) \
+    (be16toh (*(UINT16*)&cmd->buffer [AUTH_NONCE_SIZE_OFFSET (index)]))
+#define AUTH_NONCE_BUF_OFFSET(index) \
+    (AUTH_NONCE_SIZE_END_OFFSET (index))
+#define AUTH_NONCE_BUF_END_OFFSET(cmd, index) \
+    (AUTH_NONCE_BUF_OFFSET (index) + AUTH_GET_NONCE_SIZE (cmd, index))
+/* session attributes */
+#define AUTH_SESSION_ATTRS_OFFSET(cmd, index) \
+    (AUTH_NONCE_BUF_END_OFFSET (cmd, index))
+/*
+ * in AUTH_SESSION_ATTRS_END_OFFSET the UINT8 should be TPMA_SESSION but the
+ * TSS headers got this wrong
+ */
+#define AUTH_SESSION_ATTRS_END_OFFSET(cmd, index) \
+    (AUTH_SESSION_ATTRS_OFFSET (cmd, index) + sizeof (UINT8))
+#define AUTH_GET_SESSION_ATTRS(cmd, index) \
+    ((TPMA_SESSION)(UINT32)cmd->buffer [AUTH_SESSION_ATTRS_OFFSET (cmd, index)])
+/* authorization */
+#define AUTH_AUTH_SIZE_OFFSET(cmd, index) \
+    (AUTH_SESSION_ATTRS_END_OFFSET (cmd, index))
+#define AUTH_AUTH_SIZE_END_OFFSET(cmd, index) \
+    (AUTH_AUTH_SIZE_OFFSET (cmd, index) + sizeof (UINT16))
+#define AUTH_GET_AUTH_SIZE(cmd, index) \
+    (be16toh (*(UINT16*)&cmd->buffer [AUTH_AUTH_SIZE_OFFSET (cmd, index)]))
+#define AUTH_AUTH_BUF_OFFSET(cmd, index) \
+    (AUTH_AUTH_SIZE_END_OFFSET (cmd, index))
+#define AUTH_AUTH_BUF_END_OFFSET(cmd, index) \
+    (AUTH_AUTH_BUF_OFFSET(cmd, index) + AUTH_GET_AUTH_SIZE (cmd, index))
 
 G_DEFINE_TYPE (Tpm2Command, tpm2_command, G_TYPE_OBJECT);
 
@@ -378,7 +426,7 @@ tpm2_command_set_handles (Tpm2Command *command,
                           guint8       count)
 {
     guint8 real_count, i;
-    gboolean ret;
+    gboolean ret = TRUE;
 
     if (command == NULL || handles == NULL) {
         g_warning ("tpm2_command_get_handles passed NULL parameter");
@@ -394,11 +442,11 @@ tpm2_command_set_handles (Tpm2Command *command,
     for (i = 0; i < real_count; ++i) {
         ret = tpm2_command_set_handle (command, handles [i], i);
         if (ret == FALSE) {
-            return FALSE;
+            break;
         }
     }
 
-    return TRUE;
+    return ret;
 }
 /*
  * This function is a work around. The handle in a command buffer for the
@@ -513,8 +561,7 @@ tpm2_command_has_auths (Tpm2Command *command)
 UINT32
 tpm2_command_get_auths_size (Tpm2Command *command)
 {
-    guint8 handle_count;
-    uint8_t *buffer;
+    size_t auth_size_end;
 
     if (command == NULL) {
         g_warning ("tpm2_command_get_auths_size passed NULL parameter");
@@ -525,30 +572,52 @@ tpm2_command_get_auths_size (Tpm2Command *command)
                    " has no auths", (uintptr_t)command);
         return 0;
     }
-    handle_count = tpm2_command_get_handle_count (command);
-    buffer = tpm2_command_get_buffer (command);
+    auth_size_end = AUTH_AREA_SIZE_END_OFFSET (command);
+    g_debug ("%s: auth_size_end: %zu", __func__, auth_size_end);
+    g_debug ("%s: buffer_size: %zu", __func__, command->buffer_size);
+    if (AUTH_AREA_SIZE_END_OFFSET (command) > command->buffer_size) {
+        g_warning ("%s reading size of auth area would overrun command buffer."
+                   " Returning 0", __func__);
+        return 0;
+    }
 
-    return (UINT32)be32toh (AUTH_AREA_SIZE (buffer, handle_count));
+    return AUTH_AREA_GET_SIZE (command);
 }
 /*
- * Given a pointer to a command buffer and an offset into said buffer that
- * should point to an entry in the auth area this function will return the
- * number of bytes till the next auth entry.
+ * This function extracts the authorization handle from the entry in the
+ * auth area that begins at offset 'auth_offset'. Any failure to read this
+ * value will return 0.
  */
-size_t
-next_auth_offset (uint8_t *buffer)
+TPM_HANDLE
+tpm2_command_get_auth_handle (Tpm2Command *command,
+                              size_t       auth_index)
 {
-    UINT16 hash_size, auth_size;
-    size_t accumulator = 0;
+    if (command == NULL) {
+        return 0;
+    }
+    if (AUTH_HANDLE_END_OFFSET (auth_index) > command->buffer_size) {
+        g_warning ("%s attempt to access authorization handle overruns "
+                   " command buffer", __func__);
+        return 0;
+    }
+    return AUTH_GET_HANDLE (command, auth_index);
+}
+TPMA_SESSION
+tpm2_command_get_auth_attrs (Tpm2Command *command,
+                             size_t       auth_offset)
+{
+    size_t attrs_end;
 
-    accumulator += sizeof (UINT32); /* step over session handle */
-    hash_size = be16toh (*(UINT16*)(&buffer [accumulator])); /* get hash size */
-    accumulator += sizeof (UINT16) + hash_size; /* step over hash size & hash */
-    accumulator += sizeof (UINT8); /* step over session attributes */
-    auth_size = be16toh (*(UINT16*)(&buffer [accumulator])); /* get auth size */
-    accumulator += sizeof (UINT16) + auth_size; /* step over auth size + auth */
-
-    return accumulator;
+    if (command == NULL) {
+        return (TPMA_SESSION)(UINT32)0;
+    }
+    attrs_end = AUTH_SESSION_ATTRS_END_OFFSET (command, auth_offset);
+    if (attrs_end > command->buffer_size) {
+        g_warning ("%s attempt to access session attributes overruns command "
+                   "buffer", __func__);
+        return (TPMA_SESSION)(UINT32)0;
+    }
+    return AUTH_GET_SESSION_ATTRS (command, auth_offset);
 }
 /*
  * The caller provided GFunc is invoked once for each authorization in the
@@ -561,35 +630,35 @@ tpm2_command_foreach_auth (Tpm2Command *command,
                            GFunc        callback,
                            gpointer     user_data)
 {
-    guint8   handle_count;
-    UINT32   auth_area_size;
     size_t   offset;
-    uint8_t *buffer;
 
     if (command == NULL || callback == NULL) {
-        g_warning ("tpm2_command_get_auth_handle passed NULL parameter");
-        return FALSE;
-    }
-    if (!tpm2_command_has_auths (command)) {
-        g_warning ("tpm2_command_has_auths, Tpm2Command 0x%" PRIxPTR
-                   " has no auths", (uintptr_t)command);
+        g_warning ("%s passed NULL parameter", __func__);
         return FALSE;
     }
 
-    buffer = tpm2_command_get_buffer (command);
-    handle_count = tpm2_command_get_handle_count (command);
-    auth_area_size = be32toh (AUTH_AREA_SIZE (buffer, handle_count));
+    if (AUTH_AREA_FIRST_OFFSET (command) > command->buffer_size) {
+        g_warning ("floop");
+        return FALSE;
+    }
 
-    for (offset = AUTH_FIRST_OFFSET (handle_count);
-         offset < AUTH_FIRST_OFFSET (handle_count) + auth_area_size;
-         offset += next_auth_offset (&buffer [offset]))
+    if (AUTH_AREA_END_OFFSET (command) > command->buffer_size) {
+        g_warning ("%s: command buffer size insufficient to iterate all auths",
+                   __func__);
+        return FALSE;
+    }
+
+    for (offset =  AUTH_AREA_FIRST_OFFSET (command);
+         offset <  AUTH_AREA_END_OFFSET (command);
+         offset = AUTH_AUTH_BUF_END_OFFSET   (command, offset))
     {
-        g_debug ("invoking callback at 0x%" PRIxPTR " with authorization at: "
-                 "0x%" PRIxPTR " and user data: 0x%" PRIxPTR,
+        size_t offset_tmp = offset;
+        g_debug ("invoking callback at 0x%" PRIxPTR " with authorization at "
+                 "offset: %zu and user data: 0x%" PRIxPTR,
                  (uintptr_t)callback,
-                 (uintptr_t)&buffer [offset],
+                 offset_tmp,
                  (uintptr_t)user_data);
-        callback (&buffer [offset], user_data);
+        callback (&offset, user_data);
     }
 
     return TRUE;
