@@ -100,15 +100,20 @@ AC_SUBST([udevrulesdir], [$with_udevrulesdir])
 #
 # simulator binary
 #
+AC_MSG_CHECKING([for simulator binary: $with_simulatorbin])
 AC_ARG_WITH([simulatorbin],
             [AS_HELP_STRING([--with-simulatorbin=tpm_server],[simulator executable])],
-            [],
-            [with_simulatorbin=../ibmtpm532/src/tpm_server])
-AX_NORMALIZE_PATH([with_simulatorbin])
-AS_IF([test -f "$with_simulatorbin"],
-      [AC_SUBST([SIMULATOR_BIN],[$with_simulatorbin])],
-      [AC_MSG_WARN([TPM simulator binary does not exist integration tests will not be run])])
-AM_CONDITIONAL([SIMULATOR_BIN],[test -f "$with_simulatorbin"])
+            [AS_IF([test \( -f "$with_simulatorbin" \) -a \( -x "$with_simulatorbin" \)],
+                   [AC_MSG_RESULT([yes])
+                    AC_SUBST([SIMULATOR_BIN],[$with_simulatorbin])
+                    AX_NORMALIZE_PATH([with_simulatorbin])
+                    with_simulatorbin_set=yes],
+                   [AC_MSG_RESULT([no])
+                    AC_MSG_ERROR([Simulator binary provided does not exist or not executable. Check path: $with_simulatorbin])])],
+            [AC_MSG_RESULT([no])
+             AC_MSG_WARN([No simulator binary provided. Integration tests disabled.])
+             with_simulatorbin_set=no])
+AM_CONDITIONAL([SIMULATOR_BIN],[test "x$with_simulatorbin_set" = "xyes"])
 
 # preprocessor / compiler / linker flags
 #   these macros are defined in m4/flags.m4
