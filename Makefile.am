@@ -45,9 +45,7 @@ if TCTI_SOCKET
 endif
 endif #UNIT
 
-XFAIL_TESTS = \
-    test/integration/start-auth-session.int \
-    test/integration/tcti-sessions-max.int
+if SIMULATOR_BIN
 TESTS_INTEGRATION = \
     test/integration/auth-session-start-flush.int \
     test/integration/auth-session-start-save.int \
@@ -62,17 +60,20 @@ TESTS_INTEGRATION = \
     test/integration/tcti-set-locality.int \
     test/integration/hash-sequence.int \
     test/integration/password-authorization.int
+endif
 
+XFAIL_TESTS = \
+    test/integration/start-auth-session.int \
+    test/integration/tcti-sessions-max.int
+
+TESTS = $(TESTS_UNIT) $(TESTS_INTEGRATION)
 TEST_EXTENSIONS = .int
 INT_LOG_COMPILER = $(srcdir)/scripts/int-log-compiler.sh
 INT_LOG_FLAGS = --simulator-bin=$(SIMULATOR_BIN) --tabrmd-bin=$(sbin_PROGRAMS)
 
 sbin_PROGRAMS   = src/tpm2-abrmd
 noinst_PROGRAMS = test/tcti-tabrmd_read-write
-check_PROGRAMS  = $(TESTS_UNIT)
-if SIMULATOR_BIN
-    check_PROGRAMS += $(TESTS_INTEGRATION)
-endif
+check_PROGRAMS  = $(sbin_PROGRAMS) $(TESTS)
 
 # libraries
 libtcti_tabrmd = src/libtcti-tabrmd.la
@@ -88,7 +89,6 @@ noinst_LTLIBRARIES = \
 man3_MANS = man/man3/tss2_tcti_tabrmd_init.3
 man7_MANS = man/man7/tcti-tabrmd.7
 man8_MANS = man/man8/tpm2-abrmd.8
-TESTS = $(check_PROGRAMS)
 
 install-data-hook:
 	$(LN_S) -f tss2_tcti_tabrmd_init.3 \
