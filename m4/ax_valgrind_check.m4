@@ -186,7 +186,7 @@ valgrind_lt =
 endif
 
 # Use recursive makes in order to ignore errors during check
-check-valgrind:
+check-valgrind: $(check_PROGRAMS)
 ifeq ($(VALGRIND_ENABLED),yes)
 	-$(A''M_V_at)$(foreach tool,$(valgrind_enabled_tools), \
 		$(MAKE) $(AM_MAKEFLAGS) -k check-valgrind-$(tool); \
