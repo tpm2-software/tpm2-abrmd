@@ -303,6 +303,8 @@ process_client_fd (CommandSource      *source,
         } else {
             goto fail_out;
         }
+    } else if (command_size == TPM_HEADER_SIZE) {
+        /* No more data. Command has no parameters / handles / auths etc. */
     } else {
         goto fail_out;
     }
