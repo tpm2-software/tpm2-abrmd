@@ -226,7 +226,6 @@ resource_manager_load_contexts (ResourceManager *resmgr,
                                 GSList         **entry_slist,
                                 SessionList     *loaded_sessions)
 {
-    Connection   *connection;
     TSS2_RC       rc = TSS2_RC_SUCCESS;
     TPM_HANDLE    handles[3] = { 0, };
     guint8        i, handle_count;;
@@ -241,7 +240,6 @@ resource_manager_load_contexts (ResourceManager *resmgr,
         g_warning ("resource_manager_load_contexts received NULL parameter.");
         return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
     }
-    connection = tpm2_command_get_connection (command);
     handle_count = tpm2_command_get_handle_count (command);
     tpm2_command_get_handles (command, handles, handle_count);
     g_debug ("loading contexts for %" PRId8 " handles in command handle area",
@@ -277,7 +275,6 @@ resource_manager_load_contexts (ResourceManager *resmgr,
                                    &auth_callback_data);
     }
     g_debug ("resource_manager_load_contexts end");
-    g_object_unref (connection);
 
     return rc;
 }
