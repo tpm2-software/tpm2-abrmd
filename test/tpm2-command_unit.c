@@ -204,7 +204,8 @@ tpm2_command_setup_with_auths (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold the cmd_with_auths buffer */
-    data->buffer = calloc (1, sizeof (cmd_with_auths));
+    data->buffer_size = sizeof (cmd_with_auths);
+    data->buffer = calloc (1, data->buffer_size);
     memcpy (data->buffer, cmd_with_auths, sizeof (cmd_with_auths));
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
@@ -480,6 +481,7 @@ tpm2_command_get_auth_size_test (void **state)
  * from the command authorization area.
  */
 typedef struct {
+    Tpm2Command *command;
     size_t counter;
     size_t handles_count;
     TPM_HANDLE handles [3];
@@ -497,18 +499,22 @@ static void
 tpm2_command_foreach_auth_callback (gpointer authorization,
                                     gpointer user_data)
 {
-    uint8_t *auth_start = (uint8_t*)authorization;
+    size_t auth_offset = *(size_t*)authorization;
     callback_auth_state_t *callback_state = (callback_auth_state_t*)user_data;
+    TPM_HANDLE handle;
 
+    handle = tpm2_command_get_auth_handle (callback_state->command,
+                                           auth_offset);
     g_debug ("tpm2_command_foreach_auth_callback:\n  counter: %zd\n"
             "  handles_count: %zd\n  handle: 0x%08" PRIx32,
             callback_state->counter,
             callback_state->handles_count,
             callback_state->handles [callback_state->counter]);
-    g_debug ("  auth_start: 0x%" PRIxPTR, (uintptr_t)auth_start);
-    g_debug ("  AUTH_HANDLE_GET: 0x%08" PRIx32, AUTH_HANDLE_GET (auth_start));
+    g_debug ("  auth_offset: %zu", auth_offset);
+    g_debug ("  AUTH_HANDLE_GET: 0x%08" PRIx32, handle);
+
     assert_true (callback_state->counter < callback_state->handles_count);
-    assert_int_equal (AUTH_HANDLE_GET (auth_start),
+    assert_int_equal (handle,
                       callback_state->handles [callback_state->counter]);
     ++callback_state->counter;
 }
@@ -524,6 +530,7 @@ tpm2_command_foreach_auth_test (void **state)
     test_data_t *data = (test_data_t*)*state;
     /* this data is highly dependent on the */
     callback_auth_state_t callback_state = {
+        .command = data->command,
         .counter = 0,
         .handles_count = 2,
         .handles = {
