@@ -32,7 +32,38 @@
 # runs 'make install'
 # see: https://github.com/travis-ci/travis-ci/issues/3088
 
+usage_error ()
+{
+    echo "$0: $*" >&2
+    print_usage >&2
+    exit 2
+}
+
+print_usage ()
+{
+    cat <<END
+Usage:
+    $0 --tss-srcdir=DIR
+END
+}
+TSS_SRCDIR=""
+while test $# -gt 0; do
+    case $1 in
+    --help) print_usage; exit $?;;
+    -d|--tss-srcdir) TSS_SRCDIR=$2; shift;;
+    -d=*|--tss-srcdir=*) TSS_SRCDIR="${1#*=}";;
+    --) shift; break;;
+    -*) usage_error "invalid option: '$1'";;
+    *) break;
+    esac
+    shift
+done
+
+if [ ! -d "${TSS_SRCDIR}" ]; then
+    usage_error "missing option: --tss-srcdir is required"
+fi
+
 PATH=${PATH}:/usr/local/clang/bin
-(pushd ${TRAVIS_BUILD_DIR}/TPM2.0-TSS && \
+(pushd ${TSS_SRCDIR} && \
  make install && \
  popd)

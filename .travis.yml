@@ -38,12 +38,12 @@ env:
     - coverity_scan_run_condition='"$CC" = gcc'
 
 install:
-  - git clone https://github.com/01org/TPM2.0-TSS.git
-  - pushd TPM2.0-TSS
+  - git clone -b 1.x --single-branch https://github.com/01org/tpm2-tss.git
+  - pushd tpm2-tss
   - ./bootstrap
   - ./configure
   - make -j$(nproc)
-  - sudo ../.ci/ci-tss-install.sh
+  - sudo ../.ci/ci-tss-install.sh --tss-srcdir="${TRAVIS_BUILD_DIR}"/tpm2-tss
   - popd && sudo ldconfig /usr/local/lib
   - wget https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm532.tar
   - sha256sum ibmtpm532.tar | grep -q ^abc0b420257917ccb42a9750588565d5e84a2b4e99a6f9f46c3dad1f9912864f
