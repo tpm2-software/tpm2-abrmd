@@ -1061,13 +1061,11 @@ resource_manager_thread (gpointer data)
             resource_manager_process_tpm2_command (resmgr, TPM2_COMMAND (obj));
             g_object_unref (obj);
         } else if (IS_CONTROL_MESSAGE (obj)) {
-            ControlCode code =
-                control_message_get_code (CONTROL_MESSAGE (obj));
             /* we must unref the message before processing the ControlCode
              * since the function may cause the thread to exit.
              */
             g_object_unref (obj);
-            process_control_code (code);
+            break;
         }
     }
 

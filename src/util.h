@@ -54,7 +54,6 @@
 ssize_t     write_all                       (gint const        fd,
                                              void const       *buf,
                                              size_t const      size);
-void        process_control_code            (ControlCode       code);
 int         read_data                       (int               fd,
                                              size_t           *index,
                                              uint8_t          *buf,

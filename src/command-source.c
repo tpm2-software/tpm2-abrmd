@@ -207,6 +207,12 @@ command_source_finalize (GObject  *object)
 }
 
 static void
+command_source_unblock (Thread *self)
+{
+    pthread_cancel (self->thread_id);
+}
+
+static void
 command_source_class_init (CommandSourceClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -220,6 +226,7 @@ command_source_class_init (CommandSourceClass *klass)
     object_class->get_property = command_source_get_property;
     object_class->set_property = command_source_set_property;
     thread_class->thread_run   = command_source_thread;
+    thread_class->thread_unblock = command_source_unblock;
 
     obj_properties [PROP_COMMAND_ATTRS] =
         g_param_spec_object ("command-attrs",

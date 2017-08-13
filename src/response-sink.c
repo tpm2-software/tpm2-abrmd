@@ -234,14 +234,14 @@ response_sink_thread (void *data)
         obj = message_queue_dequeue (sink->in_queue);
         g_debug ("response_sink_thread got obj: 0x%" PRIxPTR, (uintptr_t)obj);
         if (IS_CONTROL_MESSAGE (obj)) {
-            ControlCode code =
-                control_message_get_code (CONTROL_MESSAGE (obj));
             g_object_unref (obj);
-            process_control_code (code);
+            break;
         }
         if (IS_TPM2_RESPONSE (obj)) {
             response_sink_process_response (TPM2_RESPONSE (obj));
             g_object_unref (obj);
         }
     } while (TRUE);
+
+    return NULL;
 }

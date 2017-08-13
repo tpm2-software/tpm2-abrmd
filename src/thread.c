@@ -52,20 +52,18 @@ thread_start (Thread *self)
                            self);
 }
 
-gint
+void
 thread_cancel (Thread *self)
 {
     ThreadClass *class = THREAD_GET_CLASS (self);
-    gint thread_ret = 0;
 
     if (self->thread_id == 0) {
         g_warning ("thread not running");
-        return -1;
+        return;
     }
-    thread_ret = pthread_cancel (self->thread_id);
-    if (class->thread_unblock)
+
+    if (class->thread_unblock != NULL)
         class->thread_unblock (self);
-    return thread_ret;
 }
 
 gint

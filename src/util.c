@@ -113,18 +113,6 @@ write_all (const gint    fd,
 
     return (ssize_t)written_total;
 }
-void
-process_control_code (ControlCode code)
-{
-    g_debug ("Processing ControlCode: 0x%x", code);
-    switch (code) {
-    case CHECK_CANCEL:
-        pthread_testcancel ();
-        break;
-    default:
-        break;
-    }
-}
 /*
  * Read some data from the fd_receive.
  * Parameters:

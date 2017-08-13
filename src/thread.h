@@ -56,7 +56,7 @@ struct _Thread {
 #define THREAD_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_THREAD, ThreadClass))
 
 GType           thread_get_type     (void);
-gint            thread_cancel       (Thread            *self);
+void            thread_cancel       (Thread            *self);
 gint            thread_join         (Thread            *self);
 gint            thread_start        (Thread            *self);
 
