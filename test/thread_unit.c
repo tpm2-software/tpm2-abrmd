@@ -103,6 +103,7 @@ test_thread_unblock (Thread *thread)
 {
     TestThread *self = TEST_THREAD (thread);
     self->canceled = TRUE;
+    pthread_cancel (thread->thread_id);
 }
 
 static void
@@ -169,8 +170,7 @@ test_thread_lifecycle_test (void **state)
     ret = thread_start (thread);
     assert_int_equal (ret, 0);
     sched_yield ();
-    ret = thread_cancel (thread);
-    assert_int_equal (ret, 0);
+    thread_cancel (thread);
     sched_yield ();
     ret = thread_join (thread);
     assert_int_equal (ret, 0);

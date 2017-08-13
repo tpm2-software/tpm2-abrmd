@@ -136,8 +136,7 @@ command_source_start_test (void **state)
     data = (source_test_data_t*)*state;
     thread_start(THREAD (data->source));
     sleep (1);
-    ret = thread_cancel (THREAD (data->source));
-    assert_int_equal (ret, 0);
+    thread_cancel (THREAD (data->source));
     ret = thread_join (THREAD (data->source));
     assert_int_equal (ret, 0);
 }
