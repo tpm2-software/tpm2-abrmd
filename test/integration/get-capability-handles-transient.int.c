@@ -77,6 +77,61 @@ create_keys (TSS2_SYS_CONTEXT *sapi_context,
     return rc;
 }
 /*
+ * Query the TPM for transient object handles. These are returned to the
+ * caller in the `handles` parameter array. The `handle_count` parameter
+ * must hold the size of the handles array passed in. The function will
+ * update this value to the number of handles returned.
+ */
+TSS2_RC
+get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
+                       TPM_HANDLE        handles[],
+                       size_t           *handle_count)
+{
+    TSS2_RC              rc          = TSS2_RC_SUCCESS;
+    TPMI_YES_NO          more_data   = NO;
+    TPMS_CAPABILITY_DATA cap_data    = { 0, };
+    size_t               handles_left = *handle_count;
+    size_t               handles_got = 0;
+
+    handles [handles_got] = TRANSIENT_FIRST;
+    do {
+        g_print ("requesting %zu handles from TPM\n", handles_left);
+        rc = Tss2_Sys_GetCapability (sapi_context,
+                                     NULL,
+                                     TPM_CAP_HANDLES,
+                                     handles [handles_got],
+                                     handles_left,
+                                     &more_data,
+                                     &cap_data,
+                                     NULL);
+        if (rc != TSS2_RC_SUCCESS) {
+            return rc;
+        }
+        if (cap_data.capability != TPM_CAP_HANDLES) {
+            g_error ("got weird capability: 0x%" PRIx32,
+                     cap_data.capability);
+        }
+        g_print ("got %" PRIu32 " handles from TPM\n",
+                 cap_data.data.handles.count);
+        if (*handle_count < handles_got + cap_data.data.handles.count) {
+            g_warning ("too many handles for the array");
+            return 1;
+        }
+        size_t i;
+        for (i = 0; i < cap_data.data.handles.count; ++i) {
+            g_print ("  0x%" PRIx32 "\n", cap_data.data.handles.handle [i]);
+            handles [handles_got + i] = cap_data.data.handles.handle [i];
+        }
+        handles_got += cap_data.data.handles.count;
+        handles_left -= handles_got;
+        more_data == YES ? g_print ("more data\n") : g_print ("no more data\n");
+    } while (more_data == YES);
+
+    *handle_count = handles_got + 1;
+
+    return TSS2_RC_SUCCESS;
+}
+/*
  * Query the TPM for transient object handles and dump them to stdout. 'count'
  * handles are retrieved for each call to GetCapability untill we've obtained
  * all handles.
@@ -130,7 +185,9 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
 int
 test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
-    TPM_HANDLE          *handles;
+    TPM_HANDLE          *handles_load;
+    TPM_HANDLE          *handles_query;
+    size_t               handles_count;
     char                *env_str         = NULL, *end_ptr = NULL;
     uint8_t              loops           = NUM_KEYS;
     TSS2_RC              rc              = TSS2_RC_SUCCESS;
@@ -141,18 +198,42 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 
     g_print ("%s: %d\n", ENV_NUM_KEYS, loops);
 
-    handles = calloc (loops, sizeof (TPM_HANDLE));
-    rc = create_keys (sapi_context, &handles, loops);
+    handles_load = calloc (loops, sizeof (TPM_HANDLE));
+    handles_query = calloc (loops, sizeof (TPM_HANDLE));
+    handles_count = loops;
 
+    rc = create_keys (sapi_context, &handles_load, handles_count);
     if (rc != TSS2_RC_SUCCESS) {
         return rc;
     }
     g_debug ("iterating over handles:");
-    unsigned int i;
+    size_t i;
     for (i = 0; i < loops; ++i) {
-        g_print ("handle [%u]: 0x%" PRIx32 "\n", i, handles[i]);
+        g_print ("handle [%zu]: 0x%" PRIx32 "\n", i, handles_load [i]);
     }
     g_print ("quering handles with GetCapability in increments of 2\n");
 
-    return get_cap_trans_dump (sapi_context, 2);
+    rc = get_cap_trans_dump (sapi_context, 2);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("get_cap_trans_dump returned 0x%" PRIx32, rc);
+        return rc;
+    }
+
+    rc = get_transient_handles (sapi_context, handles_query, &handles_count);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("get_transient_handles returned 0x%" PRIx32, rc);
+        return rc;
+    }
+
+    g_debug ("loaded handle count: %zu", handles_count);
+    for (i = 0; i < handles_count; ++i) {
+        g_debug ("handles_load [%zu]: 0x%" PRIx32
+                 " handles_query [%zu]: 0x%" PRIx32,
+                 i, handles_load [i], i, handles_query [i]);
+        if (handles_load [i] != handles_query [i]) {
+            return -1;
+        }
+    }
+
+    return 0;
 }
