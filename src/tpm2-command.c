@@ -42,19 +42,22 @@
  * immediately after the header.
  */
 #define CAP_OFFSET TPM_HEADER_SIZE
-#define CAP_GET(buffer) (*(TPM_CAP*)(buffer + CAP_OFFSET))
+#define CAP_END_OFFSET (CAP_OFFSET + sizeof (TPM_CAP))
+#define CAP_GET(buffer) (*(TPM_CAP*)(&buffer [CAP_OFFSET]))
 /*
  * Offset of property field in TPM2_GetCapability command buffer is
  * immediately after the capability field.
  */
-#define PROPERTY_OFFSET (CAP_OFFSET + sizeof (TPM_CAP))
-#define PROPERTY_GET(buffer) (*(UINT32*)(buffer + PROPERTY_OFFSET))
+#define PROPERTY_OFFSET CAP_END_OFFSET
+#define PROPERTY_END_OFFSET (PROPERTY_OFFSET + sizeof (UINT32))
+#define PROPERTY_GET(buffer) (*(UINT32*)(&buffer [PROPERTY_OFFSET]))
 /*
  * The offset of the property count field is immediately following the
  * property field.
  */
-#define PROPERTY_COUNT_OFFSET (PROPERTY_OFFSET + sizeof (UINT32))
-#define PROPERTY_COUNT_GET(buffer) (*(UINT32*)(buffer + PROPERTY_COUNT_OFFSET))
+#define PROPERTY_COUNT_OFFSET PROPERTY_END_OFFSET
+#define PROPERTY_COUNT_END_OFFSET (PROPERTY_COUNT_OFFSET + sizeof (UINT32))
+#define PROPERTY_COUNT_GET(buffer) (*(UINT32*)(&buffer [PROPERTY_COUNT_OFFSET]))
 /*
  * Helper macros to aid in the access of various parts of the command
  * authorization area.
@@ -497,6 +500,10 @@ tpm2_command_get_cap (Tpm2Command *command)
                    "containing the wrong command code.");
         return 0;
     }
+    if (command->buffer_size < CAP_END_OFFSET) {
+        g_warning ("%s insufficient buffer", __func__);
+        return 0;
+    }
     return (TPM_CAP)be32toh (CAP_GET (tpm2_command_get_buffer (command)));
 }
 /*
@@ -516,6 +523,10 @@ tpm2_command_get_prop (Tpm2Command *command)
                    "containing the wrong command code.");
         return 0;
     }
+    if (command->buffer_size < PROPERTY_END_OFFSET) {
+        g_warning ("%s insufficient buffer", __func__);
+        return 0;
+    }
     return (UINT32)be32toh (PROPERTY_GET (tpm2_command_get_buffer (command)));
 }
 /*
@@ -533,6 +544,10 @@ tpm2_command_get_prop_count (Tpm2Command *command)
     if (tpm2_command_get_code (command) != TPM_CC_GetCapability) {
         g_warning ("tpm2_command_get_cap provided a Tpm2Command buffer "
                    "containing the wrong command code.");
+        return 0;
+    }
+    if (command->buffer_size < PROPERTY_COUNT_END_OFFSET) {
+        g_warning ("%s insufficient buffer", __func__);
         return 0;
     }
     return (UINT32)be32toh (PROPERTY_COUNT_GET (tpm2_command_get_buffer (command)));
