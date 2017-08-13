@@ -575,6 +575,69 @@ tpm2_command_two_handles_not_three (void **state)
     assert_true (ret);
 }
 
+uint8_t get_cap_no_cap [] = {
+    0x80, 0x02, /* TPM_ST_SESSIONS */
+    0x00, 0x00, 0x00, 0x0a, /* command buffer size */
+    0x00, 0x00, 0x01, 0x7a, /* TPM_CC_GetCapability */
+};
+/*
+ * This setup function creates all of the components necessary to carry out
+ * a tpm2_command test. Additionally it creates a tpm2_command with a command
+ * buffer that should have 3 handles (per the TPMA_CC) but is only large
+ * enough to hold 2.
+ */
+static int
+tpm2_command_setup_get_cap_no_cap (void **state)
+{
+    test_data_t *data   = NULL;
+    gint         fds[2] = { 0, };
+    HandleMap   *handle_map;
+
+    data = calloc (1, sizeof (test_data_t));
+    *state = data;
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
+    g_object_unref (handle_map);
+
+    data->buffer_size = sizeof (get_cap_no_cap);
+    data->buffer = calloc (1, data->buffer_size);
+    memcpy (data->buffer,
+            get_cap_no_cap,
+            data->buffer_size);
+    data->command = tpm2_command_new (data->connection,
+                                      data->buffer,
+                                      data->buffer_size,
+                                      (TPMA_CC)((UINT32)0x0600017a));
+    return 0;
+}
+static void
+tpm2_command_get_cap_no_cap (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_CAP cap;
+
+    cap = tpm2_command_get_cap (data->command);
+    assert_int_equal (cap, 0);
+}
+static void
+tpm2_command_get_cap_no_prop (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    UINT32 prop;
+
+    prop = tpm2_command_get_prop (data->command);
+    assert_int_equal (prop, 0);
+}
+static void
+tpm2_command_get_cap_no_count (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    UINT32 count;
+
+    count = tpm2_command_get_prop_count (data->command);
+    assert_int_equal (count, 0);
+}
+
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -636,6 +699,15 @@ main (gint    argc,
                                          tpm2_command_teardown),
         cmocka_unit_test_setup_teardown (tpm2_command_two_handles_not_three,
                                          tpm2_command_setup_two_handles_not_three,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_cap_no_cap,
+                                         tpm2_command_setup_get_cap_no_cap,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_cap_no_prop,
+                                         tpm2_command_setup_get_cap_no_cap,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_cap_no_count,
+                                         tpm2_command_setup_get_cap_no_cap,
                                          tpm2_command_teardown),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
