@@ -40,6 +40,7 @@
 typedef struct {
     Tpm2Response *response;
     guint8       *buffer;
+    size_t        buffer_size;
     Connection   *connection;
 } test_data_t;
 /*
@@ -55,7 +56,8 @@ tpm2_response_setup_base (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold a TPM2 header and a handle */
-    data->buffer   = calloc (1, TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE));
+    data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE);
+    data->buffer   = calloc (1, data->buffer_size);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->connection  = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
@@ -76,6 +78,7 @@ tpm2_response_setup (void **state)
     data = (test_data_t*)*state;
     data->response = tpm2_response_new (data->connection,
                                         data->buffer,
+                                        data->buffer_size,
                                         (TPMA_CC){ 0, });
     return 0;
 }
@@ -94,10 +97,12 @@ tpm2_response_setup_with_handle (void **state)
 
     tpm2_response_setup_base (state);
     data = (test_data_t*)*state;
+    data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE);
     data->response = tpm2_response_new (data->connection,
                                         data->buffer,
+                                        data->buffer_size,
                                         attributes);
-    set_response_size (data->buffer, TPM_HEADER_SIZE + sizeof (TPM_HANDLE));
+    set_response_size (data->buffer, data->buffer_size);
     data->buffer [TPM_RESPONSE_HEADER_SIZE]     = 0xde;
     data->buffer [TPM_RESPONSE_HEADER_SIZE + 1] = 0xad;
     data->buffer [TPM_RESPONSE_HEADER_SIZE + 2] = 0xbe;
@@ -358,6 +363,21 @@ tpm2_response_get_handle_test (void **state)
     assert_int_equal (handle, HANDLE_TEST);
 }
 /*
+ * This tests the Tpm2Response object's ability detect an attempt to read
+ * beyond the end of its internal buffer. We fake this by changing the
+ * buffer_size field manually and then trying to access the handle.
+ */
+static void
+tpm2_response_get_handle_no_handle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE handle;
+
+    data->response->buffer_size = TPM_HEADER_SIZE;
+    handle = tpm2_response_get_handle (data->response);
+    assert_int_equal (handle, 0);
+}
+/*
  * This tests the Tpm2Response objects ability to return the handle type
  * from the handle we set in the setup function.
  */
@@ -386,6 +406,23 @@ tpm2_response_set_handle_test (void **state)
     handle_out = tpm2_response_get_handle (data->response);
 
     assert_int_equal (handle_in, handle_out);
+}
+/*
+ * This tests the Tpm2Response object's ability detect an attempt to write
+ * beyond the end of its internal buffer. We fake this by changing the
+ * buffer_size field manually and then trying to set the handle.
+ */
+static void
+tpm2_response_set_handle_no_handle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    TPM_HANDLE handle_in = 0x80fffffe, handle_out = 0;
+
+    data->response->buffer_size = TPM_HEADER_SIZE;
+    tpm2_response_set_handle (data->response, handle_in);
+    handle_out = tpm2_response_get_handle (data->response);
+
+    assert_int_equal (handle_out, 0);
 }
 gint
 main (gint    argc,
@@ -431,10 +468,16 @@ main (gint    argc,
         cmocka_unit_test_setup_teardown (tpm2_response_get_handle_test,
                                          tpm2_response_setup_with_handle,
                                          tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_get_handle_no_handle_test,
+                                         tpm2_response_setup_with_handle,
+                                         tpm2_response_teardown),
         cmocka_unit_test_setup_teardown (tpm2_response_get_handle_type_test,
                                          tpm2_response_setup_with_handle,
                                          tpm2_response_teardown),
         cmocka_unit_test_setup_teardown (tpm2_response_set_handle_test,
+                                         tpm2_response_setup_with_handle,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_set_handle_no_handle_test,
                                          tpm2_response_setup_with_handle,
                                          tpm2_response_teardown),
     };

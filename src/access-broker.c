@@ -34,6 +34,7 @@
 #include "tcti.h"
 #include "tpm2-command.h"
 #include "tpm2-response.h"
+#include "util.h"
 
 G_DEFINE_TYPE (AccessBroker, access_broker, G_TYPE_OBJECT);
 
@@ -389,28 +390,32 @@ access_broker_send_cmd (AccessBroker *broker,
  * containing the response from the TPM. Determine the size of the buffer
  * by reading the size field from the TPM command header.
  */
-static guint8*
+static TSS2_RC
 access_broker_get_response (AccessBroker *broker,
-                            TSS2_RC      *rc)
+                            uint8_t     **buffer,
+                            size_t       *buffer_size)
 {
-    guint32   max_resp_size;
-    guint8   *buffer;
-    size_t    size;
+    TSS2_RC rc;
+    guint32 max_size;
 
-    *rc = access_broker_get_max_response (broker, &max_resp_size);
-    if (*rc != TSS2_RC_SUCCESS)
-        return NULL;
-    buffer = calloc (1, max_resp_size);
-    if (buffer == NULL) {
+    if (broker == NULL || buffer == NULL || buffer_size == NULL) {
+        g_error ("%s passed NULL parameter.", __func__);
+    }
+    rc = access_broker_get_max_response (broker, &max_size);
+    if (rc != TSS2_RC_SUCCESS)
+        return rc;
+
+    *buffer = calloc (1, max_size);
+    if (*buffer == NULL) {
         g_warning ("failed to allocate buffer for Tpm2Response: %s",
                    strerror (errno));
-        return NULL;
+        return RM_RC (TPM_RC_MEMORY);
     }
-    size = max_resp_size;
-    *rc = tcti_receive (broker->tcti, &size, buffer, TSS2_TCTI_TIMEOUT_BLOCK);
-    buffer = realloc (buffer, size);
+    *buffer_size = max_size;
+    rc = tcti_receive (broker->tcti, buffer_size, *buffer, TSS2_TCTI_TIMEOUT_BLOCK);
+    *buffer = realloc (*buffer, *buffer_size);
 
-    return buffer;
+    return rc;
 }
 /**
  * In the most simple case the caller will want to send just a single
@@ -432,6 +437,7 @@ access_broker_send_command (AccessBroker  *broker,
     Tpm2Response   *response = NULL;
     Connection     *connection = NULL;
     guint8         *buffer;
+    size_t          buffer_size = 0;
 
     g_debug ("access_broker_send_command: AccessBroker: 0x%" PRIxPTR
              " Tpm2Command: 0x%" PRIxPTR, (uintptr_t)broker,
@@ -440,7 +446,7 @@ access_broker_send_command (AccessBroker  *broker,
     *rc = access_broker_send_cmd (broker, command);
     if (*rc != TSS2_RC_SUCCESS)
         goto unlock_out;
-    buffer = access_broker_get_response (broker, rc);
+    *rc = access_broker_get_response (broker, &buffer, &buffer_size);
     if (*rc != TSS2_RC_SUCCESS) {
         if (buffer != NULL)
             free (buffer);
@@ -450,6 +456,7 @@ access_broker_send_command (AccessBroker  *broker,
     connection = tpm2_command_get_connection (command);
     response = tpm2_response_new (connection,
                                   buffer,
+                                  buffer_size,
                                   tpm2_command_get_attributes (command));
     g_debug ("access_broker_send_command: AccessBroker: 0x%" PRIxPTR
              " Tpm2Response: 0x%" PRIxPTR " RC: 0x%" PRIx32, (uintptr_t)broker,

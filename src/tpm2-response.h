@@ -42,6 +42,7 @@ typedef struct _Tpm2Response {
     GObject         parent_instance;
     Connection     *connection;
     guint8         *buffer;
+    size_t          buffer_size;
     TPMA_CC         attributes;
 } Tpm2Response;
 
@@ -57,6 +58,7 @@ typedef struct _Tpm2Response {
 GType               tpm2_response_get_type      (void);
 Tpm2Response*       tpm2_response_new           (Connection      *connection,
                                                  guint8          *buffer,
+                                                 size_t           buffer_size,
                                                  TPMA_CC          attributes);
 Tpm2Response*       tpm2_response_new_rc        (Connection      *connection,
                                                  TPM_RC           rc);
