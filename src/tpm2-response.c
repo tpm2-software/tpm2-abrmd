@@ -31,6 +31,12 @@
 
 #include "tpm2-header.h"
 #include "tpm2-response.h"
+#include "util.h"
+
+#define HANDLE_AREA_OFFSET TPM_HEADER_SIZE
+#define HANDLE_OFFSET (HANDLE_AREA_OFFSET)
+#define HANDLE_END_OFFSET (HANDLE_OFFSET + sizeof (TPM_HANDLE))
+#define HANDLE_GET(buffer) (*(TPM_HANDLE*)(&buffer [HANDLE_OFFSET]))
 
 #define TPM_RESPONSE_TAG(buffer) (*(TPM_ST*)buffer)
 #define TPM_RESPONSE_SIZE(buffer) (*(guint32*)(buffer + \
@@ -38,10 +44,6 @@
 #define TPM_RESPONSE_CODE(buffer) (*(TPM_RC*)(buffer + \
                                               sizeof (TPM_ST) + \
                                               sizeof (UINT32)))
-#define TPM_RESPONSE_HANDLE(buffer) (*(TPM_HANDLE*)(buffer + \
-                                                    sizeof (TPM_ST) + \
-                                                    sizeof (UINT32) + \
-                                                    sizeof (TPM_RC)))
 
 G_DEFINE_TYPE (Tpm2Response, tpm2_response, G_TYPE_OBJECT);
 
@@ -50,6 +52,7 @@ enum {
     PROP_ATTRIBUTES,
     PROP_SESSION,
     PROP_BUFFER,
+    PROP_BUFFER_SIZE,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -74,6 +77,9 @@ tpm2_response_set_property (GObject        *object,
             break;
         }
         self->buffer = (guint8*)g_value_get_pointer (value);
+        break;
+    case PROP_BUFFER_SIZE:
+        self->buffer_size = g_value_get_uint (value);
         break;
     case PROP_SESSION:
         if (self->connection != NULL) {
@@ -106,6 +112,9 @@ tpm2_response_get_property (GObject     *object,
         break;
     case PROP_BUFFER:
         g_value_set_pointer (value, self->buffer);
+        break;
+    case PROP_BUFFER_SIZE:
+        g_value_set_uint (value, self->buffer_size);
         break;
     case PROP_SESSION:
         g_value_set_object (value, self->connection);
@@ -162,6 +171,14 @@ tpm2_response_class_init (Tpm2ResponseClass *klass)
                               "TPM2 response buffer",
                               "memory buffer holding a TPM2 response",
                               G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_BUFFER_SIZE] =
+        g_param_spec_uint ("buffer-size",
+                           "sizeof command buffer",
+                           "size of buffer holding the TPM2 command",
+                           0,
+                           UTIL_BUF_MAX,
+                           0,
+                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_SESSION] =
         g_param_spec_object ("connection",
                              "Connection object",
@@ -178,11 +195,13 @@ tpm2_response_class_init (Tpm2ResponseClass *klass)
 Tpm2Response*
 tpm2_response_new (Connection     *connection,
                    guint8          *buffer,
+                   size_t           buffer_size,
                    TPMA_CC          attributes)
 {
     return TPM2_RESPONSE (g_object_new (TYPE_TPM2_RESPONSE,
                                         "attributes", attributes,
                                        "buffer",  buffer,
+                                       "buffer-size", buffer_size,
                                        "connection", connection,
                                        NULL));
 }
@@ -206,7 +225,7 @@ tpm2_response_new_rc (Connection *connection,
     TPM_RESPONSE_TAG (buffer)  = htobe16 (TPM_ST_NO_SESSIONS);
     TPM_RESPONSE_SIZE (buffer) = htobe32 (TPM_RESPONSE_HEADER_SIZE);
     TPM_RESPONSE_CODE (buffer) = htobe32 (rc);
-    return tpm2_response_new (connection, buffer, (TPMA_CC){ 0 });
+    return tpm2_response_new (connection, buffer, be32toh (TPM_RESPONSE_SIZE (buffer)), (TPMA_CC){ 0 });
 }
 /* Simple "getter" to expose the attributes associated with the command. */
 TPMA_CC
@@ -279,7 +298,14 @@ tpm2_response_has_handle (Tpm2Response  *response)
 TPM_HANDLE
 tpm2_response_get_handle (Tpm2Response *response)
 {
-    return be32toh (TPM_RESPONSE_HANDLE (response->buffer));
+    if (response == NULL) {
+        g_error ("%s passed NULL parameter", __func__);
+    }
+    if (HANDLE_END_OFFSET > response->buffer_size) {
+        g_warning ("%s: insufficient buffer to get handle", __func__);
+        return 0;
+    }
+    return be32toh (HANDLE_GET (response->buffer));
 }
 /*
  */
@@ -287,7 +313,14 @@ void
 tpm2_response_set_handle (Tpm2Response *response,
                           TPM_HANDLE    handle)
 {
-    TPM_RESPONSE_HANDLE (response->buffer) = htobe32 (handle);
+    if (response == NULL) {
+        g_error ("%s passed NULL parameter", __func__);
+    }
+    if (HANDLE_END_OFFSET > response->buffer_size) {
+        g_warning ("%s: insufficient buffer to set handle", __func__);
+        return;
+    }
+    HANDLE_GET (response->buffer) = htobe32 (handle);
 }
 /*
  * Return the type of the handle from the Tpm2Response object.

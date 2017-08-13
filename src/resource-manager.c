@@ -739,10 +739,10 @@ get_cap_handles (HandleMap            *map,
 #define CAP_RESP_SIZE(value) \
     (TPM_HEADER_SIZE + \
      sizeof (TPMI_YES_NO) + \
-     sizeof (value->capability) + \
-     sizeof (value->data.handles.count) + \
-     (value->data.handles.count * \
-      sizeof (value->data.handles.handle [0])))
+     sizeof ((value)->capability) + \
+     sizeof ((value)->data.handles.count) + \
+     ((value)->data.handles.count * \
+      sizeof ((value)->data.handles.handle [0])))
 /*
  * This function is used to build a response buffer that contains the provided
  * TPMS_CAPABILITY_DATA and TPMI_YES_NO. These are the two response parameters
@@ -805,6 +805,7 @@ get_cap_handles_response (Tpm2Command *command,
         resp_buf = build_cap_handles_response (&cap_data, more_data);
         response = tpm2_response_new (connection,
                                       resp_buf,
+                                      CAP_RESP_SIZE (&cap_data),
                                       tpm2_command_get_attributes (command));
     }
 
