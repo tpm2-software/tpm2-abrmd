@@ -293,11 +293,11 @@ tss2_tcti_tabrmd_cancel (TSS2_TCTI_CONTEXT *context)
     GError *error = NULL;
     gboolean cancel_ret;
 
-    g_info("tss2_tcti_tabrmd_cancel: id 0x%" PRIx64,
-           TSS2_TCTI_TABRMD_ID (context));
     if (context == NULL) {
         return TSS2_TCTI_RC_BAD_CONTEXT;
     }
+    g_info("tss2_tcti_tabrmd_cancel: id 0x%" PRIx64,
+           TSS2_TCTI_TABRMD_ID (context));
     if (TSS2_TCTI_TABRMD_STATE (context) != TABRMD_STATE_RECEIVE) {
         return TSS2_TCTI_RC_BAD_SEQUENCE;
     }
@@ -346,11 +346,11 @@ tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *context,
     TSS2_RC ret = TSS2_RC_SUCCESS;
     GError *error = NULL;
 
-    g_info ("tss2_tcti_tabrmd_set_locality: id 0x%" PRIx64,
-            TSS2_TCTI_TABRMD_ID (context));
     if (context == NULL) {
         return TSS2_TCTI_RC_BAD_CONTEXT;
     }
+    g_info ("tss2_tcti_tabrmd_set_locality: id 0x%" PRIx64,
+            TSS2_TCTI_TABRMD_ID (context));
     if (TSS2_TCTI_TABRMD_STATE (context) != TABRMD_STATE_TRANSMIT) {
         return TSS2_TCTI_RC_BAD_SEQUENCE;
     }
