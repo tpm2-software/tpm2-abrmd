@@ -145,7 +145,7 @@ read_data (int                       fd,
            uint8_t                  *buf,
            size_t                    count)
 {
-    size_t num_read = 0;
+    ssize_t num_read = 0;
     int    errno_tmp = 0;
 
     /*
@@ -159,19 +159,18 @@ read_data (int                       fd,
                                              &buf[*index],
                                              count));
         errno_tmp = errno;
-        switch (num_read) {
-        case -1: /* error */
-            g_warning ("read on fd %d produced error: %d, %s",
-                       fd, errno_tmp, strerror (errno_tmp));
-            return errno_tmp;
-        case 0:  /* EOF / fd closed */
-            g_debug ("read produced EOF");
-            return -1;
-        default:
+        if (num_read > 0) {
             g_debug ("successfully read %zd bytes", num_read);
             g_debug_bytes (&buf[*index], num_read, 16, 4);
             /* Advance index by the number of bytes read. */
             *index += num_read;
+        } else if (num_read == 0) {
+            g_debug ("read produced EOF");
+            return -1;
+        } else { /* num_read < 0 */
+            g_warning ("read on fd %d produced error: %d, %s",
+                       fd, errno_tmp, strerror (errno_tmp));
+            return errno_tmp;
         }
     } while (*index < count);
 
