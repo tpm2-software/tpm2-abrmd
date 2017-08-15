@@ -29,7 +29,7 @@
 
 #include <glib.h>
 #include <sys/types.h>
-#include <tpm20.h>
+#include <sapi/tpm20.h>
 
 #include "control-message.h"
 
