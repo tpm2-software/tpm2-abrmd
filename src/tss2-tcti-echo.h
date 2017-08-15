@@ -27,7 +27,7 @@
 #ifndef TSS2_TCTI_ECHO_H
 #define TSS2_TCTI_ECHO_H
 
-#include <tpm20.h>
+#include <sapi/tpm20.h>
 
 #define TCTI_ECHO_MAGIC 0xd511f126d4656f6d
 #define TSS2_TCTI_ECHO_MIN_BUF ( 1024 )
