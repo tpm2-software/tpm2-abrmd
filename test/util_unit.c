@@ -145,7 +145,7 @@ typedef struct {
     size_t  buf_size;
 } data_t;
 
-static void
+static int
 read_data_setup (void **state)
 {
     data_t *data;
@@ -154,9 +154,10 @@ read_data_setup (void **state)
     data->buf_size = 26;
 
     *state = data;
+    return 0;
 }
 
-static void
+static int
 read_data_teardown (void **state)
 {
     data_t *data = *state;
@@ -164,6 +165,7 @@ read_data_teardown (void **state)
     if (data != NULL) {
         free (data);
     }
+    return 0;
 }
 /*
  * Simple call to read wrapper function. Returns exactly what we ask for.
@@ -580,59 +582,59 @@ gint
 main (gint    argc,
       gchar  *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test (write_in_one),
-        unit_test (write_in_two),
-        unit_test (write_in_three),
-        unit_test (write_error),
-        unit_test (write_zero),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test (write_in_one),
+        cmocka_unit_test (write_in_two),
+        cmocka_unit_test (write_in_three),
+        cmocka_unit_test (write_error),
+        cmocka_unit_test (write_zero),
         /* read_data tests */
-        unit_test_setup_teardown (read_data_success_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_data_short_success_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_data_short_err_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_data_error_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_data_eof_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_data_eintr_test,
-                                  read_data_setup,
-                                  read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_data_success_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_data_short_success_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_data_short_err_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_data_error_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_data_eof_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_data_eintr_test,
+                                         read_data_setup,
+                                         read_data_teardown),
         /* read_tpm_buf tests */
-        unit_test_setup_teardown (read_tpm_buf_success_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_tpm_buf_header_only_success_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_tpm_buf_short_header_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_tpm_buf_lt_header_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_tpm_buf_lt_body_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_tpm_buf_short_body_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_tpm_buf_populated_header_half_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_tpm_buf_populated_header_only_test,
-                                  read_data_setup,
-                                  read_data_teardown),
-        unit_test_setup_teardown (read_tpm_buf_populated_body_test,
-                                  read_data_setup,
-                                  read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_success_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_header_only_success_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_short_header_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_lt_header_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_lt_body_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_short_body_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_populated_header_half_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_populated_header_only_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_populated_body_test,
+                                         read_data_setup,
+                                         read_data_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

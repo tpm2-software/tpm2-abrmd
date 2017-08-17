@@ -52,7 +52,7 @@ connection_manager_allocate_test (void **state)
     g_object_unref (manager);
 }
 
-static void
+static int
 connection_manager_setup (void **state)
 {
     ConnectionManager *manager = NULL;
@@ -60,14 +60,16 @@ connection_manager_setup (void **state)
     manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
     assert_non_null (manager);
     *state = manager;
+    return 0;
 }
 
-static void
+static int
 connection_manager_teardown (void **state)
 {
     ConnectionManager *manager = CONNECTION_MANAGER (*state);
 
     g_object_unref (manager);
+    return 0;
 }
 
 static void
@@ -141,20 +143,20 @@ connection_manager_remove_test (void **state)
 int
 main(int argc, char* argv[])
 {
-    const UnitTest tests[] = {
-        unit_test (connection_manager_allocate_test),
-        unit_test_setup_teardown (connection_manager_insert_test,
-                                  connection_manager_setup,
-                                  connection_manager_teardown),
-        unit_test_setup_teardown (connection_manager_lookup_fd_test,
-                                  connection_manager_setup,
-                                  connection_manager_teardown),
-        unit_test_setup_teardown (connection_manager_lookup_id_test,
-                                  connection_manager_setup,
-                                  connection_manager_teardown),
-        unit_test_setup_teardown (connection_manager_remove_test,
-                                  connection_manager_setup,
-                                  connection_manager_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test (connection_manager_allocate_test),
+        cmocka_unit_test_setup_teardown (connection_manager_insert_test,
+                                         connection_manager_setup,
+                                         connection_manager_teardown),
+        cmocka_unit_test_setup_teardown (connection_manager_lookup_fd_test,
+                                         connection_manager_setup,
+                                         connection_manager_teardown),
+        cmocka_unit_test_setup_teardown (connection_manager_lookup_id_test,
+                                         connection_manager_setup,
+                                         connection_manager_teardown),
+        cmocka_unit_test_setup_teardown (connection_manager_remove_test,
+                                         connection_manager_setup,
+                                         connection_manager_teardown),
     };
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

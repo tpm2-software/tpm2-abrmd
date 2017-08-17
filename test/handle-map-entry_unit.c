@@ -41,7 +41,7 @@ typedef struct {
 /*
  * Setup function
  */
-static void
+static int
 handle_map_entry_setup (void **state)
 {
     test_data_t *data   = NULL;
@@ -50,19 +50,21 @@ handle_map_entry_setup (void **state)
     data->handle_map_entry = handle_map_entry_new (PHANDLE, VHANDLE);
 
     *state = data;
+    return 0;
 }
 /**
  * Tear down all of the data from the setup function. We don't have to
  * free the data buffer (data->buffer) since the Tpm2Command frees it as
  * part of its finalize function.
  */
-static void
+static int
 handle_map_entry_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
 
     g_object_unref (data->handle_map_entry);
     free (data);
+    return 0;
 }
 /*
  * This is a test for memory management / reference counting. The setup
@@ -108,16 +110,16 @@ gint
 main (gint    argc,
       gchar  *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (handle_map_entry_type_test,
-                                  handle_map_entry_setup,
-                                  handle_map_entry_teardown),
-        unit_test_setup_teardown (handle_map_entry_get_phandle_test,
-                                  handle_map_entry_setup,
-                                  handle_map_entry_teardown),
-        unit_test_setup_teardown (handle_map_entry_get_vhandle_test,
-                                  handle_map_entry_setup,
-                                  handle_map_entry_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (handle_map_entry_type_test,
+                                         handle_map_entry_setup,
+                                         handle_map_entry_teardown),
+        cmocka_unit_test_setup_teardown (handle_map_entry_get_phandle_test,
+                                         handle_map_entry_setup,
+                                         handle_map_entry_teardown),
+        cmocka_unit_test_setup_teardown (handle_map_entry_get_vhandle_test,
+                                         handle_map_entry_setup,
+                                         handle_map_entry_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

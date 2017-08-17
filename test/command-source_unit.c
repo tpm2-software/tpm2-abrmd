@@ -99,7 +99,7 @@ command_source_allocate_test (void **state)
     assert_non_null (data->source);
 }
 
-static void
+static int
 command_source_allocate_setup (void **state)
 {
     source_test_data_t *data;
@@ -108,9 +108,10 @@ command_source_allocate_setup (void **state)
     data->manager = connection_manager_new (TPM_HT_TRANSIENT);
 
     *state = data;
+    return 0;
 }
 
-static void
+static int
 command_source_allocate_teardown (void **state)
 {
     source_test_data_t *data = (source_test_data_t*)*state;
@@ -118,6 +119,7 @@ command_source_allocate_teardown (void **state)
     g_object_unref (data->source);
     g_object_unref (data->manager);
     free (data);
+    return 0;
 }
 /* command_source_allocate end */
 
@@ -140,7 +142,7 @@ command_source_start_test (void **state)
     assert_int_equal (ret, 0);
 }
 
-static void
+static int
 command_source_start_setup (void **state)
 {
     source_test_data_t *data;
@@ -156,9 +158,10 @@ command_source_start_setup (void **state)
         g_error ("failed to allocate new command_source");
 
     *state = data;
+    return 0;
 }
 
-static void
+static int
 command_source_start_teardown (void **state)
 {
     source_test_data_t *data = (source_test_data_t*)*state;
@@ -167,6 +170,7 @@ command_source_start_teardown (void **state)
     g_object_unref (data->manager);
     g_object_unref (data->command_attrs);
     free (data);
+    return 0;
 }
 /* command_source_start_test end */
 
@@ -179,7 +183,7 @@ command_source_start_teardown (void **state)
  * connection pipe is set. This is how we know that the source is now watching
  * for data from the new connection.
  */
-static void
+static int
 command_source_wakeup_setup (void **state)
 {
     source_test_data_t *data;
@@ -190,6 +194,7 @@ command_source_wakeup_setup (void **state)
     data->source  = command_source_new (data->manager,
                                         data->command_attrs);
     *state = data;
+    return 0;
 }
 
 static void
@@ -217,7 +222,7 @@ command_source_connection_insert_test (void **state)
 }
 /* command_source_sesion_insert_test end */
 /* command_source_connection_test start */
-static void
+static int
 command_source_connection_setup (void **state)
 {
     source_test_data_t *data;
@@ -229,8 +234,9 @@ command_source_connection_setup (void **state)
                                        data->command_attrs);
 
     *state = data;
+    return 0;
 }
-static void
+static int
 command_source_connection_teardown (void **state)
 {
     source_test_data_t *data = (source_test_data_t*)*state;
@@ -241,6 +247,7 @@ command_source_connection_teardown (void **state)
     g_object_unref (data->source);
     g_object_unref (data->manager);
     free (data);
+    return 0;
 }
 /**
  * A test: Test the command_source_connection_responder function. We do this
@@ -300,19 +307,19 @@ int
 main (int argc,
       char* argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (command_source_allocate_test,
-                                  command_source_allocate_setup,
-                                  command_source_allocate_teardown),
-        unit_test_setup_teardown (command_source_start_test,
-                                  command_source_start_setup,
-                                  command_source_start_teardown),
-        unit_test_setup_teardown (command_source_connection_insert_test,
-                                  command_source_wakeup_setup,
-                                  command_source_start_teardown),
-        unit_test_setup_teardown (command_source_process_client_fd_test,
-                                  command_source_connection_setup,
-                                  command_source_connection_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (command_source_allocate_test,
+                                         command_source_allocate_setup,
+                                         command_source_allocate_teardown),
+        cmocka_unit_test_setup_teardown (command_source_start_test,
+                                         command_source_start_setup,
+                                         command_source_start_teardown),
+        cmocka_unit_test_setup_teardown (command_source_connection_insert_test,
+                                         command_source_wakeup_setup,
+                                         command_source_start_teardown),
+        cmocka_unit_test_setup_teardown (command_source_process_client_fd_test,
+                                         command_source_connection_setup,
+                                         command_source_connection_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

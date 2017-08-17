@@ -41,7 +41,7 @@ typedef struct test_data {
 /**
  * Setup function to create all necessary stuff for our tests.
  */
-static void
+static int
 tcti_echo_setup (void **state)
 {
     test_data_t *data;
@@ -52,11 +52,12 @@ tcti_echo_setup (void **state)
     data->tcti           = TCTI (data->tcti_echo);
 
     *state = data;
+    return 0;
 }
 /**
  * Setup function that additionally calls the tcti_initialize function.
  */
-static void
+static int
 tcti_echo_setup_with_init (void **state)
 {
     test_data_t *data;
@@ -67,17 +68,19 @@ tcti_echo_setup_with_init (void **state)
     assert_int_equal (rc, TSS2_RC_SUCCESS);
 
     *state = data;
+    return 0;
 }
 /**
  * Teardown function to deallocate everything allocated in the setup.
  */
-static void
+static int
 tcti_echo_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
 
     g_object_unref (data->tcti_echo);
     free (data);
+    return 0;
 }
 /**
  * Test object life cycle: create new object then unref it.
@@ -159,19 +162,19 @@ gint
 main (gint     argc,
       gchar   *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (tcti_echo_new_unref_test,
-                                  tcti_echo_setup,
-                                  tcti_echo_teardown),
-        unit_test_setup_teardown (tcti_echo_initialize_test,
-                                  tcti_echo_setup,
-                                  tcti_echo_teardown),
-        unit_test_setup_teardown (tcti_echo_transmit_test,
-                                  tcti_echo_setup_with_init,
-                                  tcti_echo_teardown),
-        unit_test_setup_teardown (tcti_echo_receive_test,
-                                  tcti_echo_setup_with_init,
-                                  tcti_echo_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (tcti_echo_new_unref_test,
+                                         tcti_echo_setup,
+                                         tcti_echo_teardown),
+        cmocka_unit_test_setup_teardown (tcti_echo_initialize_test,
+                                         tcti_echo_setup,
+                                         tcti_echo_teardown),
+        cmocka_unit_test_setup_teardown (tcti_echo_transmit_test,
+                                         tcti_echo_setup_with_init,
+                                         tcti_echo_teardown),
+        cmocka_unit_test_setup_teardown (tcti_echo_receive_test,
+                                         tcti_echo_setup_with_init,
+                                         tcti_echo_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

@@ -39,7 +39,7 @@ typedef struct msgq_test_data {
     MessageQueue *queue;
 } msgq_test_data_t;
 
-static void
+static int
 message_queue_setup (void **state)
 {
     msgq_test_data_t *data = NULL;
@@ -48,15 +48,17 @@ message_queue_setup (void **state)
     assert_non_null (data);
     data->queue = message_queue_new ();
     *state = data;
+    return 0;
 }
 
-static void
+static int
 message_queue_teardown (void **state)
 {
     msgq_test_data_t *data = (msgq_test_data_t*)*state;
 
     g_object_unref (data->queue);
     free (data);
+    return 0;
 }
 
 static void
@@ -157,17 +159,17 @@ message_queue_thread_unblock_test (void **state)
 int
 main(int argc, char* argv[])
 {
-    const UnitTest tests[] = {
-        unit_test (message_queue_allocate_test),
-        unit_test_setup_teardown (message_queue_enqueue_dequeue_test,
-                                  message_queue_setup,
-                                  message_queue_teardown),
-        unit_test_setup_teardown (message_queue_dequeue_order_test,
-                                  message_queue_setup,
-                                  message_queue_teardown),
-        unit_test_setup_teardown (message_queue_thread_unblock_test,
-                                  message_queue_setup,
-                                  message_queue_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test (message_queue_allocate_test),
+        cmocka_unit_test_setup_teardown (message_queue_enqueue_dequeue_test,
+                                         message_queue_setup,
+                                         message_queue_teardown),
+        cmocka_unit_test_setup_teardown (message_queue_dequeue_order_test,
+                                         message_queue_setup,
+                                         message_queue_teardown),
+        cmocka_unit_test_setup_teardown (message_queue_thread_unblock_test,
+                                         message_queue_setup,
+                                         message_queue_teardown),
     };
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

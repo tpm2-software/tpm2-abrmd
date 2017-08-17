@@ -105,7 +105,7 @@ connection_allocate_test (void **state)
     g_object_unref (connection);
 }
 
-static void
+static int
 connection_setup (void **state)
 {
     connection_test_data_t *data = NULL;
@@ -118,9 +118,10 @@ connection_setup (void **state)
     assert_non_null (data->connection);
     g_object_unref (handle_map);
     *state = data;
+    return 0;
 }
 
-static void
+static int
 connection_teardown (void **state)
 {
     connection_test_data_t *data = (connection_test_data_t*)*state;
@@ -129,6 +130,7 @@ connection_teardown (void **state)
     close (data->receive_fd);
     close (data->send_fd);
     free (data);
+    return 0;
 }
 
 static void
@@ -204,28 +206,28 @@ connection_server_to_client_test (void **state)
 int
 main(int argc, char* argv[])
 {
-    const UnitTest tests[] = {
-        unit_test (connection_allocate_test),
-        unit_test (connection_create_pipe_pair_test),
-        unit_test (connection_create_pipe_pairs_test),
-        unit_test_setup_teardown (connection_key_fd_test,
-                                  connection_setup,
-                                  connection_teardown),
-        unit_test_setup_teardown (connection_key_id_test,
-                                  connection_setup,
-                                  connection_teardown),
-        unit_test_setup_teardown (connection_equal_fd_test,
-                                  connection_setup,
-                                  connection_teardown),
-        unit_test_setup_teardown (connection_equal_id_test,
-                                  connection_setup,
-                                  connection_teardown),
-        unit_test_setup_teardown (connection_client_to_server_test,
-                                  connection_setup,
-                                  connection_teardown),
-        unit_test_setup_teardown (connection_server_to_client_test,
-                                  connection_setup,
-                                  connection_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test (connection_allocate_test),
+        cmocka_unit_test (connection_create_pipe_pair_test),
+        cmocka_unit_test (connection_create_pipe_pairs_test),
+        cmocka_unit_test_setup_teardown (connection_key_fd_test,
+                                         connection_setup,
+                                         connection_teardown),
+        cmocka_unit_test_setup_teardown (connection_key_id_test,
+                                         connection_setup,
+                                         connection_teardown),
+        cmocka_unit_test_setup_teardown (connection_equal_fd_test,
+                                         connection_setup,
+                                         connection_teardown),
+        cmocka_unit_test_setup_teardown (connection_equal_id_test,
+                                         connection_setup,
+                                         connection_teardown),
+        cmocka_unit_test_setup_teardown (connection_client_to_server_test,
+                                         connection_setup,
+                                         connection_teardown),
+        cmocka_unit_test_setup_teardown (connection_server_to_client_test,
+                                         connection_setup,
+                                         connection_teardown),
     };
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -37,7 +37,7 @@ typedef struct test_data {
 } test_data_t;
 
 /* Setup function to allocate our Random gobject. */
-static void
+static int
 random_setup (void **state)
 {
     test_data_t *data;
@@ -46,15 +46,17 @@ random_setup (void **state)
     data->random = RANDOM (random_new ());
 
     *state = data;
+    return 0;
 }
 /* Teardown function to deallocate the Random object. */
-static void
+static int
 random_teardown (void **state)
 {
     test_data_t *data = *state;
 
     g_object_unref (data->random);
     free (data);
+    return 0;
 }
 /* wrap function for the 'open' system call */
 int
@@ -194,7 +196,7 @@ random_seed_from_file_read_short_test (void **state)
     ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
     assert_int_equal (ret, -1);
 }
-static void
+static int
 random_get_bytes_setup (void **state)
 {
     test_data_t *data;
@@ -208,6 +210,7 @@ random_get_bytes_setup (void **state)
     will_return (__wrap_close, 0);
     ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
     assert_int_equal (ret, 0);
+    return 0;
 }
 /*
  * Test a successful call to the random_get_bytes function.
@@ -257,41 +260,41 @@ gint
 main (gint    argc,
       gchar  *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (random_type_test,
-                                  random_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_seed_from_file_success_test,
-                                  random_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_seed_from_file_open_fail_test,
-                                  random_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_seed_from_file_read_fail_test,
-                                  random_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_seed_from_file_close_fail_test,
-                                  random_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_seed_from_file_read_close_fail_test,
-                                  random_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_seed_from_file_read_short_test,
-                                  random_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_get_bytes_success_test,
-                                  random_get_bytes_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_get_uint64_success_test,
-                                  random_get_bytes_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_get_uint32_success_test,
-                                  random_get_bytes_setup,
-                                  random_teardown),
-        unit_test_setup_teardown (random_get_uint32_range_success_test,
-                                  random_get_bytes_setup,
-                                  random_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (random_type_test,
+                                         random_setup,
+                                         random_teardown),
+        cmocka_unit_test_setup_teardown (random_seed_from_file_success_test,
+                                         random_setup,
+                                         random_teardown),
+        cmocka_unit_test_setup_teardown (random_seed_from_file_open_fail_test,
+                                         random_setup,
+                                         random_teardown),
+        cmocka_unit_test_setup_teardown (random_seed_from_file_read_fail_test,
+                                         random_setup,
+                                         random_teardown),
+        cmocka_unit_test_setup_teardown (random_seed_from_file_close_fail_test,
+                                         random_setup,
+                                         random_teardown),
+        cmocka_unit_test_setup_teardown (random_seed_from_file_read_close_fail_test,
+                                         random_setup,
+                                         random_teardown),
+        cmocka_unit_test_setup_teardown (random_seed_from_file_read_short_test,
+                                         random_setup,
+                                         random_teardown),
+        cmocka_unit_test_setup_teardown (random_get_bytes_success_test,
+                                         random_get_bytes_setup,
+                                         random_teardown),
+        cmocka_unit_test_setup_teardown (random_get_uint64_success_test,
+                                         random_get_bytes_setup,
+                                         random_teardown),
+        cmocka_unit_test_setup_teardown (random_get_uint32_success_test,
+                                         random_get_bytes_setup,
+                                         random_teardown),
+        cmocka_unit_test_setup_teardown (random_get_uint32_range_success_test,
+                                         random_get_bytes_setup,
+                                         random_teardown),
         NULL,
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

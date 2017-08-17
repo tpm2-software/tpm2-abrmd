@@ -46,7 +46,7 @@ typedef struct {
  * This function does all of the setup required to run a test *except*
  * for instantiating the Tpm2Response object.
  */
-static void
+static int
 tpm2_response_setup_base (void **state)
 {
     test_data_t *data   = NULL;
@@ -61,12 +61,13 @@ tpm2_response_setup_base (void **state)
     g_object_unref (handle_map);
 
     *state = data;
+    return 0;
 }
 /*
  * This function sets up all required test data with a Tpm2Response
  * object that has no attributes set.
  */
-static void
+static int
 tpm2_response_setup (void **state)
 {
     test_data_t *data;
@@ -76,13 +77,14 @@ tpm2_response_setup (void **state)
     data->response = tpm2_response_new (data->connection,
                                         data->buffer,
                                         (TPMA_CC){ 0, });
+    return 0;
 }
 /*
  * This function sets up all required test data with a Tpm2Response
  * object that has attributes indicating the response has a handle
  * in it.
  */
-static void
+static int
 tpm2_response_setup_with_handle (void **state)
 {
     test_data_t *data;
@@ -100,13 +102,14 @@ tpm2_response_setup_with_handle (void **state)
     data->buffer [TPM_RESPONSE_HEADER_SIZE + 1] = 0xad;
     data->buffer [TPM_RESPONSE_HEADER_SIZE + 2] = 0xbe;
     data->buffer [TPM_RESPONSE_HEADER_SIZE + 3] = 0xef;
+    return 0;
 }
 /**
  * Tear down all of the data from the setup function. We don't have to
  * free the data buffer (data->buffer) since the Tpm2Response frees it as
  * part of its finalize function.
  */
-static void
+static int
 tpm2_response_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -114,6 +117,7 @@ tpm2_response_teardown (void **state)
     g_object_unref (data->connection);
     g_object_unref (data->response);
     free (data);
+    return 0;
 }
 /**
  * Here we check to be sure that the object instantiated in the setup
@@ -238,7 +242,7 @@ tpm2_response_get_code_test (void **state)
  * This is a setup function for testing the "short-cut" constructor for the
  * Tpm2Response object that creates the response buffer with the provided RC.
  */
-static void
+static int
 tpm2_response_new_rc_setup (void **state)
 {
     test_data_t *data   = NULL;
@@ -253,6 +257,7 @@ tpm2_response_new_rc_setup (void **state)
     data->response = tpm2_response_new_rc (data->connection, TPM_RC_BINDING);
 
     *state = data;
+    return 0;
 }
 /**
  * The tpm2_response_new_rc sets the TPM_ST_NO_SESSIONS tag for us since
@@ -386,52 +391,52 @@ gint
 main (gint    argc,
       gchar  *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (tpm2_response_type_test,
-                                  tpm2_response_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_get_connection_test,
-                                  tpm2_response_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_get_buffer_test,
-                                  tpm2_response_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_get_tag_test,
-                                  tpm2_response_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_get_size_test,
-                                  tpm2_response_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_get_code_test,
-                                  tpm2_response_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_new_rc_tag_test,
-                                  tpm2_response_new_rc_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_new_rc_size_test,
-                                  tpm2_response_new_rc_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_new_rc_code_test,
-                                  tpm2_response_new_rc_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_new_rc_connection_test,
-                                  tpm2_response_new_rc_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_no_handle_test,
-                                  tpm2_response_setup,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_has_handle_test,
-                                  tpm2_response_setup_with_handle,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_get_handle_test,
-                                  tpm2_response_setup_with_handle,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_get_handle_type_test,
-                                  tpm2_response_setup_with_handle,
-                                  tpm2_response_teardown),
-        unit_test_setup_teardown (tpm2_response_set_handle_test,
-                                  tpm2_response_setup_with_handle,
-                                  tpm2_response_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (tpm2_response_type_test,
+                                         tpm2_response_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_get_connection_test,
+                                         tpm2_response_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_get_buffer_test,
+                                         tpm2_response_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_get_tag_test,
+                                         tpm2_response_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_get_size_test,
+                                         tpm2_response_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_get_code_test,
+                                         tpm2_response_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_new_rc_tag_test,
+                                         tpm2_response_new_rc_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_new_rc_size_test,
+                                         tpm2_response_new_rc_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_new_rc_code_test,
+                                         tpm2_response_new_rc_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_new_rc_connection_test,
+                                         tpm2_response_new_rc_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_no_handle_test,
+                                         tpm2_response_setup,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_has_handle_test,
+                                         tpm2_response_setup_with_handle,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_get_handle_test,
+                                         tpm2_response_setup_with_handle,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_get_handle_type_test,
+                                         tpm2_response_setup_with_handle,
+                                         tpm2_response_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_response_set_handle_test,
+                                         tpm2_response_setup_with_handle,
+                                         tpm2_response_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

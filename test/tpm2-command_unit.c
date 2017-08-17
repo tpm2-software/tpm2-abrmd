@@ -84,7 +84,7 @@ typedef struct {
  * allocate a structure to hold these things so that we can free them in
  * the teardown.
  */
-static void
+static int
 tpm2_command_setup_base (void **state)
 {
     test_data_t *data   = NULL;
@@ -98,8 +98,9 @@ tpm2_command_setup_base (void **state)
     data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
     *state = data;
+    return 0;
 }
-static void
+static int
 tpm2_command_setup (void **state)
 {
     test_data_t *data   = NULL;
@@ -113,8 +114,9 @@ tpm2_command_setup (void **state)
                                       data->buffer,
                                       attributes);
     *state = data;
+    return 0;
 }
-static void
+static int
 tpm2_command_setup_two_handles (void **state)
 {
     test_data_t *data = NULL;
@@ -134,13 +136,14 @@ tpm2_command_setup_two_handles (void **state)
     data->buffer [10] = 0x80;
     data->buffer [14] = 0x80;
     data->buffer [17] = 0x01;
+    return 0;
 }
 /*
  * This test setup function is much like the others with the exception of the
  * Tpm2Command buffer being set to the 'cmd_with_auths'. This allows testing
  * of the functions that parse / process the auth are of the command.
  */
-static void
+static int
 tpm2_command_setup_with_auths (void **state)
 {
     test_data_t *data   = NULL;
@@ -162,13 +165,14 @@ tpm2_command_setup_with_auths (void **state)
                                       attributes);
 
     *state = data;
+    return 0;
 }
 /**
  * Tear down all of the data from the setup function. We don't have to
  * free the data buffer (data->buffer) since the Tpm2Command frees it as
  * part of its finalize function.
  */
-static void
+static int
 tpm2_command_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -176,6 +180,7 @@ tpm2_command_teardown (void **state)
     g_object_unref (data->connection);
     g_object_unref (data->command);
     free (data);
+    return 0;
 }
 /**
  * This is a test for memory management / reference counting. The setup
@@ -455,58 +460,58 @@ gint
 main (gint    argc,
       gchar  *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (tpm2_command_type_test,
-                                  tpm2_command_setup,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_connection_test,
-                                  tpm2_command_setup,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_buffer_test,
-                                  tpm2_command_setup,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_tag_test,
-                                  tpm2_command_setup,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_size_test,
-                                  tpm2_command_setup,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_code_test,
-                                  tpm2_command_setup,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_two_handle_count_test,
-                                  tpm2_command_setup_two_handles,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_handles_test,
-                                  tpm2_command_setup_two_handles,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_set_handles_test,
-                                  tpm2_command_setup_two_handles,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_handle_first_test,
-                                  tpm2_command_setup_two_handles,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_handle_second_test,
-                                  tpm2_command_setup_two_handles,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_handle_fail_test,
-                                  tpm2_command_setup_two_handles,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_set_handle_first_test,
-                                  tpm2_command_setup_two_handles,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_set_handle_second_test,
-                                  tpm2_command_setup_two_handles,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_set_handle_fail_test,
-                                  tpm2_command_setup_two_handles,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_get_auth_size_test,
-                                  tpm2_command_setup_with_auths,
-                                  tpm2_command_teardown),
-        unit_test_setup_teardown (tpm2_command_foreach_auth_test,
-                                  tpm2_command_setup_with_auths,
-                                  tpm2_command_teardown),
-      };
-    return run_tests (tests);
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (tpm2_command_type_test,
+                                         tpm2_command_setup,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_connection_test,
+                                         tpm2_command_setup,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_buffer_test,
+                                         tpm2_command_setup,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_tag_test,
+                                         tpm2_command_setup,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_size_test,
+                                         tpm2_command_setup,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_code_test,
+                                         tpm2_command_setup,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_two_handle_count_test,
+                                         tpm2_command_setup_two_handles,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_handles_test,
+                                         tpm2_command_setup_two_handles,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_set_handles_test,
+                                         tpm2_command_setup_two_handles,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_handle_first_test,
+                                         tpm2_command_setup_two_handles,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_handle_second_test,
+                                         tpm2_command_setup_two_handles,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_handle_fail_test,
+                                         tpm2_command_setup_two_handles,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_set_handle_first_test,
+                                         tpm2_command_setup_two_handles,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_set_handle_second_test,
+                                         tpm2_command_setup_two_handles,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_set_handle_fail_test,
+                                         tpm2_command_setup_two_handles,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_get_auth_size_test,
+                                         tpm2_command_setup_with_auths,
+                                         tpm2_command_teardown),
+        cmocka_unit_test_setup_teardown (tpm2_command_foreach_auth_test,
+                                         tpm2_command_setup_with_auths,
+                                         tpm2_command_teardown),
+    };
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

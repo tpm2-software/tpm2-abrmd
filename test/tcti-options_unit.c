@@ -42,17 +42,19 @@
  * Very simple setup / teardown functions to instantiate a TctiOptions
  * object and unref it.
  */
-static void
+static int
 tcti_options_setup (void **state)
 {
     *state = tcti_options_new ();
+    return 0;
 }
-static void
+static int
 tcti_options_teardown (void **state)
 {
     TctiOptions *tcti_options = TCTI_OPTIONS (*state);
 
     g_object_unref (tcti_options);
+    return 0;
 }
 /**
  * Test the object lifecycle. The setup /teardown functions must be invoked
@@ -103,23 +105,23 @@ gint
 main (gint     argc,
       gchar   *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (tcti_options_new_unref_test,
-                                  tcti_options_setup,
-                                  tcti_options_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (tcti_options_new_unref_test,
+                                         tcti_options_setup,
+                                         tcti_options_teardown),
 #ifdef HAVE_TCTI_DEVICE
-        unit_test_setup_teardown (tcti_options_defaults_device_test,
-                                  tcti_options_setup,
-                                  tcti_options_teardown),
+        cmocka_unit_test_setup_teardown (tcti_options_defaults_device_test,
+                                         tcti_options_setup,
+                                         tcti_options_teardown),
 #endif
 #ifdef HAVE_TCTI_SOCKET
-        unit_test_setup_teardown (tcti_options_defaults_socket_address_test,
-                                  tcti_options_setup,
-                                  tcti_options_teardown),
-        unit_test_setup_teardown (tcti_options_defaults_socket_port_test,
-                                  tcti_options_setup,
-                                  tcti_options_teardown),
+        cmocka_unit_test_setup_teardown (tcti_options_defaults_socket_address_test,
+                                         tcti_options_setup,
+                                         tcti_options_teardown),
+        cmocka_unit_test_setup_teardown (tcti_options_defaults_socket_port_test,
+                                         tcti_options_setup,
+                                         tcti_options_teardown),
 #endif
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

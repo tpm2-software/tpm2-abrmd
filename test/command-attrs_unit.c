@@ -42,7 +42,7 @@ typedef struct test_data {
 } test_data_t;
 
 /* Setup function to allocate our Random gobject. */
-static void
+static int
 command_attrs_setup (void **state)
 {
     test_data_t *data;
@@ -57,9 +57,10 @@ command_attrs_setup (void **state)
     data->command_attrs = command_attrs_new ();
 
     *state = data;
+    return 0;
 }
 /* Setup function to allocate and initialize the object. */
-static void
+static int
 command_attrs_init_tpm_setup (void **state)
 {
     test_data_t *data;
@@ -85,15 +86,17 @@ command_attrs_init_tpm_setup (void **state)
 
     ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, 0);
+    return 0;
 }
 /* Teardown function to deallocate the Random object. */
-static void
+static int
 command_attrs_teardown (void **state)
 {
     test_data_t *data = *state;
 
     g_object_unref (data->command_attrs);
     free (data);
+    return 0;
 }
 /* Simple test to test type checking macros. */
 static void
@@ -295,32 +298,32 @@ gint
 main (gint    argc,
       gchar  *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (command_attrs_type_test,
-                                  command_attrs_setup,
-                                  command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_init_tpm_success_test,
-                                  command_attrs_setup,
-                                  command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_init_tpm_null_sapi_test,
-                                  command_attrs_setup,
-                                  command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_init_tpm_fail_get_max_command_test,
-                                  command_attrs_setup,
-                                  command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_init_tpm_zero_get_max_command_test,
-                                  command_attrs_setup,
-                                  command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_init_tpm_fail_get_capability_test,
-                                  command_attrs_setup,
-                                  command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_from_cc_success_test,
-                                  command_attrs_init_tpm_setup,
-                                  command_attrs_teardown),
-        unit_test_setup_teardown (command_attrs_from_cc_fail_test,
-                                  command_attrs_init_tpm_setup,
-                                  command_attrs_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (command_attrs_type_test,
+                                         command_attrs_setup,
+                                         command_attrs_teardown),
+        cmocka_unit_test_setup_teardown (command_attrs_init_tpm_success_test,
+                                         command_attrs_setup,
+                                         command_attrs_teardown),
+        cmocka_unit_test_setup_teardown (command_attrs_init_tpm_null_sapi_test,
+                                         command_attrs_setup,
+                                         command_attrs_teardown),
+        cmocka_unit_test_setup_teardown (command_attrs_init_tpm_fail_get_max_command_test,
+                                         command_attrs_setup,
+                                         command_attrs_teardown),
+        cmocka_unit_test_setup_teardown (command_attrs_init_tpm_zero_get_max_command_test,
+                                         command_attrs_setup,
+                                         command_attrs_teardown),
+        cmocka_unit_test_setup_teardown (command_attrs_init_tpm_fail_get_capability_test,
+                                         command_attrs_setup,
+                                         command_attrs_teardown),
+        cmocka_unit_test_setup_teardown (command_attrs_from_cc_success_test,
+                                         command_attrs_init_tpm_setup,
+                                         command_attrs_teardown),
+        cmocka_unit_test_setup_teardown (command_attrs_from_cc_fail_test,
+                                         command_attrs_init_tpm_setup,
+                                         command_attrs_teardown),
         NULL,
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

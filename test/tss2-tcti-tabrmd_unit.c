@@ -161,7 +161,7 @@ typedef struct {
  * tests that require the initialization be done before the test can be
  * executed. It *must* be paired with a call to the teardown function.
  */
-void
+static int
 tcti_tabrmd_setup (void **state)
 {
     data_t *data;
@@ -174,12 +174,12 @@ tcti_tabrmd_setup (void **state)
     ret = tss2_tcti_tabrmd_init (NULL, &tcti_size);
     if (ret != TSS2_RC_SUCCESS) {
         printf ("tss2_tcti_tabrmd_init failed: %d\n", ret);
-        return;
+        return 1;
     }
     data->context = calloc (1, tcti_size);
     if (data->context == NULL) {
         perror ("calloc");
-        return;
+        return 1;
     }
     g_debug ("preparing g_dbus_proxy_call_with_unix_fd_list_sync mock wrapper");
     assert_int_equal (pipe (fds), 0);
@@ -199,12 +199,13 @@ tcti_tabrmd_setup (void **state)
     assert_int_equal (ret, TSS2_RC_SUCCESS);
 
     *state = data;
+    return 0;
 }
 /*
  * This is a teardown function to deallocate / cleanup all resources
  * associated with these tests.
  */
-void
+static int
 tcti_tabrmd_teardown (void **state)
 {
     data_t *data = *state;
@@ -217,6 +218,7 @@ tcti_tabrmd_teardown (void **state)
     if (data->context)
         free (data->context);
     free (data);
+    return 0;
 }
 /*
  * Ensure that after initialization the 'magic' value in the TCTI structure
@@ -411,7 +413,7 @@ tcti_tabrmd_transmit_bad_sequence_final_test (void **state)
  * additional thing done is to set the state machine to the RECEIVE state
  * to simplify testing the receive function.
  */
-static void
+static int
 tcti_tabrmd_receive_setup (void **state)
 {
     data_t *data = NULL;
@@ -419,6 +421,7 @@ tcti_tabrmd_receive_setup (void **state)
     tcti_tabrmd_setup (state);
     data = *state;
     TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_RECEIVE;
+    return 0;
 }
 /*
  * This is a mock function for 'read_data' from the util module. It expects:
@@ -1120,115 +1123,115 @@ tcti_tabrmd_set_locality_bad_sequence_test (void **state)
 int
 main(int argc, char* argv[])
 {
-    const UnitTest tests[] = {
-        unit_test (tcti_tabrmd_init_size_test),
-        unit_test (tcti_tabrmd_init_success_return_value_test),
-        unit_test (tcti_tabrmd_init_allnull_is_bad_value_test),
-        unit_test (tcti_tabrmd_init_success_test),
-        unit_test_setup_teardown (tcti_tabrmd_magic_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_version_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test (tcti_tabrmd_transmit_null_context_test),
-        unit_test (tcti_tabrmd_receive_null_context_test),
-        unit_test (tcti_tabrmd_cancel_null_context_test),
-        unit_test (tcti_tabrmd_get_poll_handles_null_context_test),
-        unit_test (tcti_tabrmd_set_locality_null_context_test),
-        unit_test_setup_teardown (tcti_tabrmd_transmit_success_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_transmit_bad_magic_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_transmit_bad_version_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_transmit_bad_sequence_receive_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_transmit_bad_sequence_final_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_success_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_poll_eintr_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_poll_fail_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_poll_timeout_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_bad_magic_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_bad_version_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_bad_sequence_transmit_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_bad_sequence_final_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_bad_timeout_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_null_size_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_null_response_size_nonzero_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_size_lt_header_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_size_lt_body_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_error_first_read_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_malformed_header_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_two_reads_header_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_get_size_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_receive_get_size_and_body_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_cancel_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_cancel_bad_sequence_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_all_null_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_bad_handles_count_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_count_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_handles_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_set_locality_test,
-                                  tcti_tabrmd_setup,
-                                  tcti_tabrmd_teardown),
-        unit_test_setup_teardown (tcti_tabrmd_set_locality_bad_sequence_test,
-                                  tcti_tabrmd_receive_setup,
-                                  tcti_tabrmd_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test (tcti_tabrmd_init_size_test),
+        cmocka_unit_test (tcti_tabrmd_init_success_return_value_test),
+        cmocka_unit_test (tcti_tabrmd_init_allnull_is_bad_value_test),
+        cmocka_unit_test (tcti_tabrmd_init_success_test),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_magic_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_version_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test (tcti_tabrmd_transmit_null_context_test),
+        cmocka_unit_test (tcti_tabrmd_receive_null_context_test),
+        cmocka_unit_test (tcti_tabrmd_cancel_null_context_test),
+        cmocka_unit_test (tcti_tabrmd_get_poll_handles_null_context_test),
+        cmocka_unit_test (tcti_tabrmd_set_locality_null_context_test),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_transmit_success_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_transmit_bad_magic_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_transmit_bad_version_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_transmit_bad_sequence_receive_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_transmit_bad_sequence_final_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_success_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_poll_eintr_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_poll_fail_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_poll_timeout_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_bad_magic_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_bad_version_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_bad_sequence_transmit_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_bad_sequence_final_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_bad_timeout_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_null_size_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_null_response_size_nonzero_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_size_lt_header_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_size_lt_body_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_error_first_read_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_malformed_header_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_two_reads_header_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_get_size_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_receive_get_size_and_body_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_cancel_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_cancel_bad_sequence_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_all_null_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_bad_handles_count_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_count_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_get_poll_handles_handles_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_set_locality_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_set_locality_bad_sequence_test,
+                                         tcti_tabrmd_receive_setup,
+                                         tcti_tabrmd_teardown),
     };
-    return run_tests(tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }
