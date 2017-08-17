@@ -680,7 +680,7 @@ tpm2_command_foreach_auth (Tpm2Command *command,
                  (uintptr_t)callback,
                  offset_tmp,
                  (uintptr_t)user_data);
-        callback (&offset, user_data);
+        callback (&offset_tmp, user_data);
     }
 
     return TRUE;
