@@ -302,24 +302,18 @@ access_broker_get_fixed_property (AccessBroker           *broker,
                                   TPM_PT                  property,
                                   guint32                *value)
 {
-    TSS2_RC rc = TSS2_RC_SUCCESS;
-    gboolean found = false;
     gint i;
 
     if (broker->properties_fixed.data.tpmProperties.count == 0) {
-        rc = TSS2_RESMGR_RC_INTERNAL_ERROR;
-        goto out;
+        return TSS2_RESMGR_RC_INTERNAL_ERROR;
     }
     for (i = 0; i < broker->properties_fixed.data.tpmProperties.count; ++i) {
         if (broker->properties_fixed.data.tpmProperties.tpmProperty[i].property == property) {
-            found = true;
             *value = broker->properties_fixed.data.tpmProperties.tpmProperty[i].value;
+            return TSS2_RC_SUCCESS;
         }
     }
-    if (!found)
-        rc = TSS2_RESMGR_RC_BAD_VALUE;
-out:
-    return rc;
+    return TSS2_RESMGR_RC_BAD_VALUE;
 }
 /*
  * This function exposes the underlying SAPI context in the AccessBroker.
