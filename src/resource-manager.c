@@ -229,8 +229,8 @@ resource_manager_load_contexts (ResourceManager *resmgr,
                                 SessionList     *loaded_sessions)
 {
     TSS2_RC       rc = TSS2_RC_SUCCESS;
-    TPM_HANDLE    handles[3] = { 0, };
-    size_t        i, handle_count = 3;
+    TPM_HANDLE    handles[TPM2_COMMAND_MAX_HANDLES] = { 0, };
+    size_t        i, handle_count = TPM2_COMMAND_MAX_HANDLES;
     gboolean      handle_ret;
     auth_callback_data_t auth_callback_data = {
         .resmgr = resmgr,

@@ -55,6 +55,8 @@ typedef struct _Tpm2Command {
 #define IS_TPM2_COMMAND_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE    ((klass), TYPE_TPM2_COMMAND))
 #define TPM2_COMMAND_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TPM2_COMMAND, Tpm2CommandClass))
 
+#define TPM2_COMMAND_MAX_HANDLES     3
+
 GType                 tpm2_command_get_type        (void);
 Tpm2Command*          tpm2_command_new             (Connection      *connection,
                                                     guint8           *buffer,
