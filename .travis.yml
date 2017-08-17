@@ -3,7 +3,8 @@ compiler:
   - gcc
   - clang
 
-sudo: false
+# Requring sudo as a work around for https://github.com/travis-ci/travis-ci/issues/8082
+sudo: required
 dist: trusty
 
 addons:
