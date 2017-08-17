@@ -469,15 +469,17 @@ tpm2_command_get_flush_handle (Tpm2Command *command,
     }
     if (tpm2_command_get_code (command) != TPM_CC_FlushContext) {
         g_warning ("tpm2_command_get_flush_handle called with wrong command");
-        return 0;
+        *handle = 0;
+        return RM_RC (TPM_RC_TYPE);
     }
     if (command->buffer_size < TPM_HEADER_SIZE + sizeof (TPM_HANDLE)) {
+        *handle = 0;
         return RM_RC (TPM_RC_INSUFFICIENT);
     }
     /*
-     * Despite not techncially being in the "handle area" of the command we
+     * Despite not technically being in the "handle area" of the command we
      * are still able to access the handle as though it were. This is because
-     * there are no other handles or authorizations allowd in the command and
+     * there are no other handles or authorizations allowed in the command and
      * the handle being flushed is the first parameter.
      */
     *handle = be32toh (HANDLE_GET (tpm2_command_get_buffer (command), 0));
