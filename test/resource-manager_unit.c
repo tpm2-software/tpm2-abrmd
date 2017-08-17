@@ -115,7 +115,7 @@ __wrap_access_broker_context_load (AccessBroker *access_broker,
 
     return rc;
 }
-static void
+static int
 resource_manager_setup (void **state)
 {
     test_data_t *data;
@@ -134,8 +134,9 @@ resource_manager_setup (void **state)
     g_object_unref (handle_map);
 
     *state = data;
+    return 0;
 }
-static void
+static int
 resource_manager_setup_two_transient_handles (void **state)
 {
     test_data_t *data;
@@ -170,8 +171,9 @@ resource_manager_setup_two_transient_handles (void **state)
     data->command = tpm2_command_new (data->connection,
                                       buffer,
                                       data->command_attrs);
+    return 0;
 }
-static void
+static int
 resource_manager_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -195,6 +197,7 @@ resource_manager_teardown (void **state)
         g_object_unref (data->command);
     }
     free (data);
+    return 0;
 }
 /**
  * A test: ensure that that ResourceManager created in the 'setup' function
@@ -380,28 +383,28 @@ int
 main (int   argc,
       char *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (resource_manager_type_test,
-                                  resource_manager_setup,
-                                  resource_manager_teardown),
-        unit_test_setup_teardown (resource_manager_sink_enqueue_test,
-                                  resource_manager_setup,
-                                  resource_manager_teardown),
-        unit_test_setup_teardown (resource_manager_process_tpm2_command_success_test,
-                                  resource_manager_setup,
-                                  resource_manager_teardown),
-        unit_test_setup_teardown (resource_manager_flushsave_context_test,
-                                  resource_manager_setup,
-                                  resource_manager_teardown),
-        unit_test_setup_teardown (resource_manager_flushsave_context_fail_test,
-                                  resource_manager_setup,
-                                  resource_manager_teardown),
-        unit_test_setup_teardown (resource_manager_virt_to_phys_test,
-                                  resource_manager_setup_two_transient_handles,
-                                  resource_manager_teardown),
-        unit_test_setup_teardown (resource_manager_load_contexts_test,
-                                  resource_manager_setup_two_transient_handles,
-                                  resource_manager_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (resource_manager_type_test,
+                                         resource_manager_setup,
+                                         resource_manager_teardown),
+        cmocka_unit_test_setup_teardown (resource_manager_sink_enqueue_test,
+                                         resource_manager_setup,
+                                         resource_manager_teardown),
+        cmocka_unit_test_setup_teardown (resource_manager_process_tpm2_command_success_test,
+                                         resource_manager_setup,
+                                         resource_manager_teardown),
+        cmocka_unit_test_setup_teardown (resource_manager_flushsave_context_test,
+                                         resource_manager_setup,
+                                         resource_manager_teardown),
+        cmocka_unit_test_setup_teardown (resource_manager_flushsave_context_fail_test,
+                                         resource_manager_setup,
+                                         resource_manager_teardown),
+        cmocka_unit_test_setup_teardown (resource_manager_virt_to_phys_test,
+                                         resource_manager_setup_two_transient_handles,
+                                         resource_manager_teardown),
+        cmocka_unit_test_setup_teardown (resource_manager_load_contexts_test,
+                                         resource_manager_setup_two_transient_handles,
+                                         resource_manager_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

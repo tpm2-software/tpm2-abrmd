@@ -42,7 +42,7 @@ typedef struct {
 /*
  * Setup and teardown functions.
  */
-static void
+static int
 handle_map_setup_base (void **state)
 {
     test_data_t *data = NULL;
@@ -52,8 +52,9 @@ handle_map_setup_base (void **state)
     data->entry = handle_map_entry_new (PHANDLE, VHANDLE);
 
     *state = data;
+    return 0;
 }
-static void
+static int
 handle_map_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -63,8 +64,9 @@ handle_map_teardown (void **state)
     if (data->entry)
         g_object_unref (data->entry);
     free (data);
+    return 0;
 }
-static void
+static int
 handle_map_setup_with_entry (void **state)
 {
     test_data_t *data = NULL;
@@ -74,6 +76,7 @@ handle_map_setup_with_entry (void **state)
     handle_map_insert (data->map,
                        handle_map_entry_get_vhandle (data->entry),
                        data->entry);
+    return 0;
 }
 /*
  * This test ensures that the object instances created in the setup function
@@ -155,22 +158,22 @@ handle_map_next_vhandle_test (void **state)
 int
 main(int argc, char* argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (handle_map_type_test,
-                                  handle_map_setup_base,
-                                  handle_map_teardown),
-        unit_test_setup_teardown (handle_map_insert_test,
-                                  handle_map_setup_base,
-                                  handle_map_teardown),
-        unit_test_setup_teardown (handle_map_remove_test,
-                                  handle_map_setup_with_entry,
-                                  handle_map_teardown),
-        unit_test_setup_teardown (handle_map_vlookup_test,
-                                  handle_map_setup_with_entry,
-                                  handle_map_teardown),
-        unit_test_setup_teardown (handle_map_next_vhandle_test,
-                                  handle_map_setup_with_entry,
-                                  handle_map_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (handle_map_type_test,
+                                         handle_map_setup_base,
+                                         handle_map_teardown),
+        cmocka_unit_test_setup_teardown (handle_map_insert_test,
+                                         handle_map_setup_base,
+                                         handle_map_teardown),
+        cmocka_unit_test_setup_teardown (handle_map_remove_test,
+                                         handle_map_setup_with_entry,
+                                         handle_map_teardown),
+        cmocka_unit_test_setup_teardown (handle_map_vlookup_test,
+                                         handle_map_setup_with_entry,
+                                         handle_map_teardown),
+        cmocka_unit_test_setup_teardown (handle_map_next_vhandle_test,
+                                         handle_map_setup_with_entry,
+                                         handle_map_teardown),
     };
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

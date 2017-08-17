@@ -49,8 +49,8 @@ int
 main (int argc,
       char* argv[])
 {
-    const UnitTest tests[] = {
-        unit_test (response_sink_allocate_test),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test (response_sink_allocate_test),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

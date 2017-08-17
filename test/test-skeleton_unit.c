@@ -39,7 +39,7 @@ typedef struct test_data {
  * Test setup function: allocate structure to hold test data, initialize
  * some value in said structure.
  */
-static void
+static int
 test_setup (void **state)
 {
     test_data_t *data;
@@ -48,12 +48,13 @@ test_setup (void **state)
     data->value = EXPECTED_VALUE;
 
     *state = data;
+    return 0;
 }
 /**
  * Test teardown function: deallocate whatever resources are allocated in
  * the setup and test functions.
  */
-static void
+static int
 test_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -61,6 +62,7 @@ test_teardown (void **state)
     free (data);
 
     *state = NULL;
+    return 0;
 }
 /**
  * A test: verify that something functioned properly.
@@ -79,10 +81,10 @@ int
 main (int     argc,
       char   *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (test_unit,
-                                  test_setup,
-                                  test_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (test_unit,
+                                         test_setup,
+                                         test_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

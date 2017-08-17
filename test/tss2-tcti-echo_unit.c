@@ -40,7 +40,7 @@ typedef struct test_data {
  * Test setup function: allocate structure to hold test data, initialize
  * some value in said structure.
  */
-static void
+static int
 tss2_tcti_echo_setup (void **state)
 {
     test_data_t *data;
@@ -48,12 +48,13 @@ tss2_tcti_echo_setup (void **state)
     data = calloc (1, sizeof (test_data_t));
 
     *state = data;
+    return 0;
 }
 /**
  * Test teardown function: deallocate whatever resources are allocated in
  * the setup and test functions.
  */
-static void
+static int
 tss2_tcti_echo_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -61,6 +62,7 @@ tss2_tcti_echo_teardown (void **state)
     free (data);
 
     *state = NULL;
+    return 0;
 }
 /**
  * A test: verify that something functioned properly.
@@ -139,7 +141,7 @@ tss2_tcti_echo_init_success_unit (void **state)
  * Test initialization routine that additionally initializes the echo TCTI.
  * This should only be used after the initialization tests have passed.
  */
-static void
+static int
 tss2_tcti_echo_init_setup (void **state)
 {
     test_data_t *data;
@@ -161,12 +163,13 @@ tss2_tcti_echo_init_setup (void **state)
     assert_int_equal (rc, TSS2_RC_SUCCESS);
 
     *state = data;
+    return 0;
 }
 /**
  * Test teardown function to finalize and free the echo TCTI context as
  * well as the test data structure.
  */
-static void
+static int
 tss2_tcti_echo_init_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -176,6 +179,7 @@ tss2_tcti_echo_init_teardown (void **state)
     free (data);
 
     *state = NULL;
+    return 0;
 }
 /**
  * A test: Cancel a command sent to the Echo TCTI. This is currently
@@ -447,67 +451,67 @@ int
 main (int     argc,
       char   *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (tss2_tcti_echo_get_size_unit,
-                                  tss2_tcti_echo_setup,
-                                  tss2_tcti_echo_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_null_ctx_and_size_unit,
-                                  tss2_tcti_echo_setup,
-                                  tss2_tcti_echo_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_init_buf_lt_min_unit,
-                                  tss2_tcti_echo_setup,
-                                  tss2_tcti_echo_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_init_buf_gt_max_unit,
-                                  tss2_tcti_echo_setup,
-                                  tss2_tcti_echo_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_init_success_unit,
-                                  tss2_tcti_echo_setup,
-                                  tss2_tcti_echo_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_cancel_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_get_poll_handles_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_set_locality_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_transmit_null_context_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_transmit_null_command_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_transmit_negative_size_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_transmit_size_gt_max_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_transmit_bad_sequence_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_transmit_success_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_receive_null_context_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_receive_null_size_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_receive_insufficient_size_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_receive_null_response_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_receive_negative_timeout_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
-        unit_test_setup_teardown (tss2_tcti_echo_receive_success_unit,
-                                  tss2_tcti_echo_init_setup,
-                                  tss2_tcti_echo_init_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_get_size_unit,
+                                         tss2_tcti_echo_setup,
+                                         tss2_tcti_echo_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_null_ctx_and_size_unit,
+                                         tss2_tcti_echo_setup,
+                                         tss2_tcti_echo_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_init_buf_lt_min_unit,
+                                         tss2_tcti_echo_setup,
+                                         tss2_tcti_echo_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_init_buf_gt_max_unit,
+                                         tss2_tcti_echo_setup,
+                                         tss2_tcti_echo_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_init_success_unit,
+                                         tss2_tcti_echo_setup,
+                                         tss2_tcti_echo_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_cancel_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_get_poll_handles_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_set_locality_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_transmit_null_context_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_transmit_null_command_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_transmit_negative_size_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_transmit_size_gt_max_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_transmit_bad_sequence_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_transmit_success_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_receive_null_context_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_receive_null_size_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_receive_insufficient_size_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_receive_null_response_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_receive_negative_timeout_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
+        cmocka_unit_test_setup_teardown (tss2_tcti_echo_receive_success_unit,
+                                         tss2_tcti_echo_init_setup,
+                                         tss2_tcti_echo_init_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

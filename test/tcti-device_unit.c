@@ -41,18 +41,20 @@ __wrap_InitDeviceTcti (TSS2_TCTI_CONTEXT   *tcti_context,
     return (TSS2_RC) mock ();
 }
 
-static void
+static int
 tcti_device_setup (void **state)
 {
     *state = tcti_device_new ("test");
+    return 0;
 }
 
-static void
+static int
 tcti_device_teardown (void **state)
 {
     TctiDevice *tcti_sock = *state;
 
     g_object_unref (tcti_sock);
+    return 0;
 }
 /**
  * Test object life cycle: create new object then unref it.
@@ -145,20 +147,20 @@ gint
 main (gint     argc,
       gchar   *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test (tcti_device_new_unref_test),
-        unit_test_setup_teardown (tcti_device_initialize_success_unit,
-                                  tcti_device_setup,
-                                  tcti_device_teardown),
-        unit_test_setup_teardown (tcti_device_initialize_success_interface_unit,
-                                  tcti_device_setup,
-                                  tcti_device_teardown),
-        unit_test_setup_teardown (tcti_device_initialize_fail_on_first_init_unit,
-                                  tcti_device_setup,
-                                  tcti_device_teardown),
-        unit_test_setup_teardown (tcti_device_initialize_fail_on_second_init_unit,
-                                  tcti_device_setup,
-                                  tcti_device_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test (tcti_device_new_unref_test),
+        cmocka_unit_test_setup_teardown (tcti_device_initialize_success_unit,
+                                         tcti_device_setup,
+                                         tcti_device_teardown),
+        cmocka_unit_test_setup_teardown (tcti_device_initialize_success_interface_unit,
+                                         tcti_device_setup,
+                                         tcti_device_teardown),
+        cmocka_unit_test_setup_teardown (tcti_device_initialize_fail_on_first_init_unit,
+                                         tcti_device_setup,
+                                         tcti_device_teardown),
+        cmocka_unit_test_setup_teardown (tcti_device_initialize_fail_on_second_init_unit,
+                                         tcti_device_setup,
+                                         tcti_device_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

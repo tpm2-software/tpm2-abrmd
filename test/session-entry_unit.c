@@ -45,7 +45,7 @@ typedef struct {
 /*
  * Setup function
  */
-static void
+static int
 session_entry_setup (void **state)
 {
     test_data_t *data   = NULL;
@@ -59,13 +59,14 @@ session_entry_setup (void **state)
     data->session_entry = session_entry_new (data->connection, TEST_HANDLE);
 
     *state = data;
+    return 0;
 }
 /**
  * Tear down all of the data from the setup function. We don't have to
  * free the data buffer (data->buffer) since the Tpm2Command frees it as
  * part of its finalize function.
  */
-static void
+static int
 session_entry_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -74,6 +75,7 @@ session_entry_teardown (void **state)
     g_object_unref (data->handle_map);
     g_object_unref (data->session_entry);
     free (data);
+    return 0;
 }
 /*
  * This is a test for memory management / reference counting. The setup
@@ -126,19 +128,19 @@ gint
 main (gint argc,
       gchar *arvg[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (session_entry_type_test,
-                                  session_entry_setup,
-                                  session_entry_teardown),
-        unit_test_setup_teardown (session_entry_get_context_test,
-                                  session_entry_setup,
-                                  session_entry_teardown),
-        unit_test_setup_teardown (session_entry_get_connection_test,
-                                  session_entry_setup,
-                                  session_entry_teardown),
-        unit_test_setup_teardown (session_entry_get_handle_test,
-                                  session_entry_setup,
-                                  session_entry_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (session_entry_type_test,
+                                         session_entry_setup,
+                                         session_entry_teardown),
+        cmocka_unit_test_setup_teardown (session_entry_get_context_test,
+                                         session_entry_setup,
+                                         session_entry_teardown),
+        cmocka_unit_test_setup_teardown (session_entry_get_connection_test,
+                                         session_entry_setup,
+                                         session_entry_teardown),
+        cmocka_unit_test_setup_teardown (session_entry_get_handle_test,
+                                         session_entry_setup,
+                                         session_entry_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

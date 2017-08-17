@@ -119,7 +119,7 @@ __wrap_tcti_echo_receive (TSS2_TCTI_CONTEXT *tcti_context,
  * call the access_broker_init_tpm function intentionally. We test that function
  * in a separate test.
  */
-static void
+static int
 access_broker_setup (void **state)
 {
     test_data_t *data;
@@ -133,6 +133,7 @@ access_broker_setup (void **state)
     data->broker = access_broker_new (TCTI (data->tcti));
 
     *state = data;
+    return 0;
 }
 /*
  * This setup function chains up to the base setup function. Additionally
@@ -141,7 +142,7 @@ access_broker_setup (void **state)
  * function pointers. Finally we also invoke the AccessBroker init function
  * while preparing return values for various SAPI commands that it invokes.
  */
-static void
+static int
 access_broker_setup_with_init (void **state)
 {
     test_data_t *data;
@@ -157,13 +158,14 @@ access_broker_setup_with_init (void **state)
     will_return (__wrap_Tss2_Sys_GetCapability, MAX_RESPONSE_VALUE);
     will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
     access_broker_init_tpm (data->broker);
+    return 0;
 }
 /*
  * This setup function chains up to the 'setup_with_init' function.
  * Additionally it creates a Connection and Tpm2Command object for use in
  * the unit test.
  */
-static void
+static int
 access_broker_setup_with_command (void **state)
 {
     test_data_t *data;
@@ -178,11 +180,12 @@ access_broker_setup_with_command (void **state)
     data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
     g_object_unref (handle_map);
     data->command = tpm2_command_new (data->connection, buffer, (TPMA_CC){ 0, });
+    return 0;
 }
 /*
  * Function to teardown data created for tests.
  */
-static void
+static int
 access_broker_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -195,6 +198,7 @@ access_broker_teardown (void **state)
     if (G_IS_OBJECT (data->response))
         g_object_unref (data->response);
     free (data);
+    return 0;
 }
 /**
  * Test to ensure that the GObject type system gives us back the type that
@@ -361,31 +365,31 @@ int
 main (int   argc,
       char *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (access_broker_type_test,
-                                  access_broker_setup,
-                                  access_broker_teardown),
-        unit_test_setup_teardown (access_broker_init_tpm_test,
-                                  access_broker_setup,
-                                  access_broker_teardown),
-        unit_test_setup_teardown (access_broker_get_max_command_test,
-                                  access_broker_setup_with_init,
-                                  access_broker_teardown),
-        unit_test_setup_teardown (access_broker_get_max_response_test,
-                                  access_broker_setup_with_init,
-                                  access_broker_teardown),
-        unit_test_setup_teardown (access_broker_lock_test,
-                                  access_broker_setup_with_init,
-                                  access_broker_teardown),
-        unit_test_setup_teardown (access_broker_send_command_tcti_transmit_fail_test,
-                                  access_broker_setup_with_command,
-                                  access_broker_teardown),
-        unit_test_setup_teardown (access_broker_send_command_tcti_receive_fail_test,
-                                  access_broker_setup_with_command,
-                                  access_broker_teardown),
-        unit_test_setup_teardown (access_broker_send_command_success,
-                                  access_broker_setup_with_command,
-                                  access_broker_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (access_broker_type_test,
+                                         access_broker_setup,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_init_tpm_test,
+                                         access_broker_setup,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_get_max_command_test,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_get_max_response_test,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_lock_test,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_send_command_tcti_transmit_fail_test,
+                                         access_broker_setup_with_command,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_send_command_tcti_receive_fail_test,
+                                         access_broker_setup_with_command,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_send_command_success,
+                                         access_broker_setup_with_command,
+                                         access_broker_teardown),
     };
-    return run_tests (tests);
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }

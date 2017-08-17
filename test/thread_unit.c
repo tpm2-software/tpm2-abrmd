@@ -133,15 +133,17 @@ test_thread_new (void)
 /*
  * End of TestThread GObject implementation.
  */
-static void
+static int
 test_thread_setup (void **state)
 {
     *state = test_thread_new ();
+    return 0;
 }
-static void
+static int
 test_thread_teardown (void **state)
 {
     g_object_unref (*state);
+    return 0;
 }
 /*
  * This test ensures that the object created in the _setup function can be
@@ -185,14 +187,13 @@ int
 main (int   argc,
       char *argv[])
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown (test_thread_type_test,
-                                  test_thread_setup,
-                                  test_thread_teardown),
-        unit_test_setup_teardown (test_thread_lifecycle_test,
-                                  test_thread_setup,
-                                  test_thread_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown (test_thread_type_test,
+                                         test_thread_setup,
+                                         test_thread_teardown),
+        cmocka_unit_test_setup_teardown (test_thread_lifecycle_test,
+                                         test_thread_setup,
+                                         test_thread_teardown),
     };
-    return run_tests(tests);
-
+    return cmocka_run_group_tests (tests, NULL, NULL);
 }
