@@ -411,6 +411,11 @@ tpm2_command_get_handles (Tpm2Command *command,
 
     for (i = 0; i < real_count; ++i) {
         handles[i] = tpm2_command_get_handle (command, i);
+
+        if (handles[i] == 0) {
+            // no more handle could be extracted
+            break;
+        }
     }
     *count = i;
 
