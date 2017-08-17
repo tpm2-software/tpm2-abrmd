@@ -57,20 +57,12 @@ before_script:
   - ./bootstrap
 
 script :
-  - echo 'Configuring source code...' && echo -en 'travis_fold:start:tabrmd-configure\\r'
   - ./configure --enable-unit --enable-valgrind --with-simulatorbin=$(pwd)/ibmtpm532/src/tpm_server
-  - echo -en 'travis_fold:end:tabrmd-configure\\r'
-  - echo "Running make 'distcheck' target..." && echo -en 'travis_fold:start:tabrmd-distcheck\\r'
   - dbus-launch make -j$(nproc) distcheck
-  - echo -en 'travis_fold:end:tabrmd-distcheck\\r'
-  - echo "Running make 'check-valgrind' target..." && echo -en 'travis_fold:start:tabrmd-check-valgrind\\r'
   - dbus-launch make -j$(nproc) check-valgrind
-  - echo -en 'travis_fold:end:tabrmd-check-valgrind\\r'
-  - echo 'Dumping unit test logs...' && echo -en 'travis_fold:start:tabrmd-unit-logs\\r'
   - |
     cat test-suite*.log
     for LOG in $(ls -1 test/*.log); do
         echo "${LOG}"
         cat ${LOG}
     done
-  - echo -en 'travis_fold:end:tabrmd-unit-logs\\r'
