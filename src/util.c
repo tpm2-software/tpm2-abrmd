@@ -162,7 +162,7 @@ read_data (int                       fd,
                        fd, errno_tmp, strerror (errno_tmp));
             return errno_tmp;
         }
-    } while (*index < count);
+    } while (bytes_left);
 
     return 0;
 }
