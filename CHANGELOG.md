@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
 ## Unreleased
+### Changed
+- Replace use of sigaction with g_unix_signal_* stuff from glib.
+- Rewrite of INSTALL.md including info on custom configure script options.
+- Default value for --with-simulatorbin configure option has been removed.
+New default behavior is to disable integration tests.
+- CommandSource will no longer reject commands without parameters.
+- Unit tests updated to use cmocka v1.0.0 API.
+- Integration tests now run daemon under valgrind memcheck and fail when
+errors are found.
+### Fixed
+- Release tarballs now include essential files missing from 1.1.0 release.
+- Robustness fixes in CommandSource.
+- Stability fixes in Tpm2Command handling that could result in crashes.
+- int-log-compiler.sh now fails if required binaries not found.
+- check-valgrind target now depends on check_PROGRAMS to ensure daemon is
+built before tests are run.
+- NULL deref bug in TCTI.
+- Mishandling of short reads in util module.
+- Race condition on daemon shutdown that could cause deadlock.
 
 ## 1.1.0 - 2017-07-01
 ### Added
