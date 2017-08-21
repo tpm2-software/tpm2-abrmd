@@ -430,7 +430,7 @@ access_broker_send_command (AccessBroker  *broker,
 {
     Tpm2Response   *response = NULL;
     Connection     *connection = NULL;
-    guint8         *buffer;
+    guint8         *buffer = NULL;
     size_t          buffer_size = 0;
 
     g_debug ("access_broker_send_command: AccessBroker: 0x%" PRIxPTR
