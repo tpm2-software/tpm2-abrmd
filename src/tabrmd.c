@@ -623,7 +623,7 @@ init_thread_func (gpointer user_data)
                  "access broker 0x%" PRIxPTR " RC: 0x%" PRIx32,
                  (uintptr_t)data->access_broker,
                  rc);
-    if ((loaded_trans_objs > 0) & data->options.fail_on_loaded_trans) {
+    if ((loaded_trans_objs > 0) && data->options.fail_on_loaded_trans) {
         tabrmd_critical ("TPM reports 0x%" PRIx32 " loaded transient objects, "
                          "aborting", loaded_trans_objs);
     }
