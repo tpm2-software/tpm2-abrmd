@@ -39,12 +39,10 @@
 
 G_BEGIN_DECLS
 
-/* Chunk size for allocations to hold data from clients. */
-#define BUF_SIZE 4096
 /* Maximum buffer size for client data. Connections that send a single
  * command larger than this size will be closed.
  */
-#define BUF_MAX  4*BUF_SIZE
+#define BUF_MAX  PIPE_BUF
 
 typedef struct _CommandSourceClass {
     ThreadClass       parent;
