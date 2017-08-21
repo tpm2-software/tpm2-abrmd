@@ -104,7 +104,7 @@
 #define AUTH_SESSION_ATTRS_END_OFFSET(cmd, index) \
     (AUTH_SESSION_ATTRS_OFFSET (cmd, index) + sizeof (UINT8))
 #define AUTH_GET_SESSION_ATTRS(cmd, index) \
-    ((TPMA_SESSION)(UINT32)cmd->buffer [AUTH_SESSION_ATTRS_OFFSET (cmd, index)])
+    ((TPMA_SESSION)(UINT8)cmd->buffer [AUTH_SESSION_ATTRS_OFFSET (cmd, index)])
 /* authorization */
 #define AUTH_AUTH_SIZE_OFFSET(cmd, index) \
     (AUTH_SESSION_ATTRS_END_OFFSET (cmd, index))
