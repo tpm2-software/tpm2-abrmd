@@ -64,6 +64,7 @@ typedef struct tabrmd_options {
     guint           max_transient_objects;
     gchar          *dbus_name;
     const gchar    *prng_seed_file;
+    gboolean        allow_root;
 } tabrmd_options_t;
 
 GQuark  tabrmd_error_quark (void);

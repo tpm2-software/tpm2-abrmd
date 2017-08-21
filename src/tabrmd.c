@@ -746,6 +746,9 @@ parse_opts (gint            argc,
           options->prng_seed_file },
         { "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK,
           show_version, "Show version string" },
+        { "allow-root", 0, 0, G_OPTION_ARG_NONE,
+          &options->allow_root,
+          "Allow the daemon to run as root, which is not recommended" },
         { NULL },
     };
 
@@ -807,6 +810,11 @@ main (int argc, char *argv[])
     gmain_data.options.tcti_options = tcti_options_new ();
     parse_opts (argc, argv, &gmain_data.options);
     gmain_data.tcti = tcti_options_get_tcti (gmain_data.options.tcti_options);
+
+    if (geteuid() == 0 && ! gmain_data.options.allow_root) {
+        g_print ("refusing to run as root. pass --allow-root if you know what you're doing.");
+        return 1;
+    }
 
     g_mutex_init (&gmain_data.init_mutex);
     gmain_data.loop = g_main_loop_new (NULL, FALSE);
