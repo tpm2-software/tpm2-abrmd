@@ -75,7 +75,6 @@ INT_LOG_COMPILER = $(srcdir)/scripts/int-log-compiler.sh
 INT_LOG_FLAGS = --simulator-bin=$(SIMULATOR_BIN) --tabrmd-bin=$(sbin_PROGRAMS)
 
 sbin_PROGRAMS   = src/tpm2-abrmd
-noinst_PROGRAMS = test/tcti-tabrmd_read-write
 check_PROGRAMS  = $(sbin_PROGRAMS) $(TESTS)
 
 # libraries
@@ -412,9 +411,6 @@ test_tss2_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(libtcti_echo)
 test_tss2_tcti_echo_unit_SOURCES = test/tss2-tcti-echo_unit.c
 endif
-
-test_tcti_tabrmd_read_write_LDADD   = $(GLIB_LIBS) $(libtcti_tabrmd)
-test_tcti_tabrmd_read_write_SOURCES = test/tcti-tabrmd_read-write.c
 
 test_integration_auth_session_start_flush_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS)
