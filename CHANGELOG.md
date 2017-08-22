@@ -13,6 +13,8 @@ New default behavior is to disable integration tests.
 - Unit tests updated to use cmocka v1.0.0 API.
 - Integration tests now run daemon under valgrind memcheck and fail when
 errors are found.
+- CommandSource now tracks max FD in set of client FDs to prevent unnecessary
+iterations over FD_SETSIZE fds.
 ### Fixed
 - Release tarballs now include essential files missing from 1.1.0 release.
 - Robustness fixes in CommandSource.
@@ -23,6 +25,8 @@ built before tests are run.
 - NULL deref bug in TCTI.
 - Mishandling of short reads in util module.
 - Race condition on daemon shutdown that could cause deadlock.
+- Several logic errors & data initialization for more strict compiler
+versions.
 
 ## 1.1.0 - 2017-07-01
 ### Added
