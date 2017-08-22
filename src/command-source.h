@@ -56,6 +56,7 @@ typedef struct _CommandSource {
     gint               wakeup_send_fd;
     fd_set             receive_fdset;
     Sink              *sink;
+    int                maxfd;
 } CommandSource;
 
 #define TYPE_COMMAND_SOURCE              (command_source_get_type   ())
