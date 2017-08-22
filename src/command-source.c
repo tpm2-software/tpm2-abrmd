@@ -123,6 +123,8 @@ command_source_set_property (GObject       *object,
     case PROP_WAKEUP_RECEIVE_FD:
         self->wakeup_receive_fd = g_value_get_int (value);
         FD_SET (self->wakeup_receive_fd, &self->receive_fdset);
+        if (self->wakeup_receive_fd > self->maxfd)
+            self->maxfd = self->wakeup_receive_fd;
         g_debug ("  wakeup_receive_fd: %d", self->wakeup_receive_fd);
         break;
     case PROP_WAKEUP_SEND_FD:
@@ -171,10 +173,13 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
                                   CommandSource       *command_source)
 {
     ssize_t ret;
+    int new_fd = connection_receive_fd (connection);
 
     g_info ("command_source_on_new_connection: adding new client fd: %d",
-            connection_receive_fd (connection));
-    FD_SET (connection_receive_fd (connection), &command_source->receive_fdset);
+            new_fd);
+    FD_SET (new_fd, &command_source->receive_fdset);
+    if (new_fd > command_source->maxfd)
+        command_source->maxfd = new_fd;
     g_debug ("command_source_on_new_connection: writing \"%s\" to fd: %d",
              WAKEUP_DATA, command_source->wakeup_send_fd);
     ret = write (command_source->wakeup_send_fd, WAKEUP_DATA, WAKEUP_SIZE);
@@ -336,6 +341,15 @@ fail_out:
              (uintptr_t)connection,
              (uintptr_t)source->connection_manager);
     FD_CLR (fd, &source->receive_fdset);
+    if (fd == source->maxfd) {
+        /* find the new maxfd in the set */
+        for (; fd >= 0; fd--) {
+            if (FD_ISSET(fd, &source->receive_fdset)) {
+                source->maxfd = fd;
+                break;
+            }
+        }
+    }
     connection_manager_remove (source->connection_manager,
                                connection);
     g_object_unref (connection);
@@ -367,16 +381,18 @@ void*
 command_source_thread (void *data)
 {
     CommandSource *source;
-    gint ret, i;
+    gint ret, i, tmp_maxfd;
     fd_set tmp_fds;
 
     source = COMMAND_SOURCE (data);
     do {
         tmp_fds = source->receive_fdset;
+        tmp_maxfd = source->maxfd;
+
         if (!FD_ISSET (source->wakeup_receive_fd, &tmp_fds)) {
             g_warning ("selecting on fd_set w/o wakeup_receive_fd set");
         }
-        ret = TEMP_FAILURE_RETRY (select (FD_SETSIZE,
+        ret = TEMP_FAILURE_RETRY (select (tmp_maxfd + 1,
                                           &tmp_fds, NULL, NULL, NULL));
         if (ret == -1) {
             g_warning ("Error selecting on pipes: %s", strerror (errno));
@@ -387,7 +403,7 @@ command_source_thread (void *data)
          * This takes advantage of the fact that fds are integers so the
          * loop counter 'i' is used as a stand in for the fd.
          */
-        for (i = 0; i < FD_SETSIZE; ++i) {
+        for (i = 0; i <= tmp_maxfd; ++i) {
             if (!FD_ISSET (i, &tmp_fds)) {
                 continue;
             } else if (i != source->wakeup_receive_fd) {
