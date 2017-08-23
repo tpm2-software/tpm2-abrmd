@@ -1,5 +1,8 @@
 AC_INIT([tpm2-abrmd],
-        [m4_esyscmd_s([git describe --tags --always --dirty])])
+        [1.1.1_rc1],
+        [https://github.com/01org/tpm2-abrmd/issues],
+        [],
+        [https://github.com/01org/tpm2-abrmd])
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_CC
 AC_PROG_LN_S
