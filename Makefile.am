@@ -95,6 +95,9 @@ man8_MANS = man/man8/tpm2-abrmd.8
 install-data-hook:
 	$(LN_S) -f tss2_tcti_tabrmd_init.3 \
                 $(DESTDIR)$(mandir)/man3/tss2_tcti_tabrmd_init_full.3
+if WITH_UDEVRULESPREFIX
+	mv $(DESTDIR)$(udevrulesdir)/tpm-udev.rules $(DESTDIR)$(udevrulesdir)/$(udevrulesprefix)tpm-udev.rules
+endif
 
 libtcti_tabrmddir      = $(includedir)/tcti
 libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h

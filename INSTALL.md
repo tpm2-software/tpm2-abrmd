@@ -116,12 +116,13 @@ systemd unit in the right location with the following configure option:
 --with-systedsystemunitdir=/lib/systemd/system
 ```
 
-### udev Rules: `--with-udevrulesdir`
+### udev Rules
 The typical operation for the `tpm2-abrmd` is for it to communicate directly
 with the Linux TPM driver using `libtcti-device` from the TPM2.0-TSS project.
 This requires that the user account that's running the `tpm2-abrmd` have both
 read and write access to the TPM device node `/dev/tpm[0-9]`.
 
+#### `--with-udevrulesdir`
 This requires that `udev` be instructed to set the owner and group for this
 device node when its created. We provide such a udev rule that is installed to
 `${libdir}/udev/rules.d`. If your distro stores these rules elsewhere you will
@@ -132,6 +133,12 @@ rules in the right location with the following configure option:
 ```
 --with-udevrulesdir=/etc/udev/rules.d
 ```
+
+#### `--with-udevrulesprefix`
+It is common for Linux distros to prefix udev rules files with a numeric
+string (e.g. "70-"). This allows for the rules to be applied in a predictable
+order. This option allows for the name of the installed udev rules file to
+have a string prepended to the file name when it is installed.
 
 ### Enable Unit Tests: `--enable-unit`
 When provided to the `./configure` script this option will attempt to detect

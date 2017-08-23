@@ -97,6 +97,10 @@ AC_ARG_WITH([udevrulesdir],
             [with_udevrulesdir=${libdir}/udev/rules.d])
 AX_NORMALIZE_PATH([with_udevrulesdir])
 AC_SUBST([udevrulesdir], [$with_udevrulesdir])
+AC_ARG_WITH([udevrulesprefix],
+            [AS_HELP_STRING([--with-udevrulesprefix=XY],[prefix for udev rules file])],
+            [AC_SUBST([udevrulesprefix],[$with_udevrulesprefix])])
+AM_CONDITIONAL(WITH_UDEVRULESPREFIX, [test -n "$with_udevrulesprefix"])
 #
 # simulator binary
 #
