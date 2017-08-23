@@ -40,4 +40,5 @@ test/tcti-tabrmd_read-write
 test/integration/*
 !test/integration/*.c
 !test/integration/*.h
+dist/*.preset
 dist/*.service
