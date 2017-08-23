@@ -113,6 +113,7 @@ EXTRA_DIST = \
     man/tpm2-abrmd.8.in \
     dist/tpm2-abrmd.conf \
     dist/tcti-tabrmd.pc.in \
+    dist/tpm2-abrmd.preset \
     dist/tpm2-abrmd.service \
     dist/tpm-udev.rules \
     scripts/int-log-compiler.sh \
@@ -142,7 +143,7 @@ udevrules_DATA   = dist/tpm-udev.rules
 if HAVE_SYSTEMD
 systemdsystemunit_DATA = dist/tpm2-abrmd.service
 endif # HAVE_SYSTEMD
-
+systemdpreset_DATA = dist/tpm2-abrmd.preset
 
 @VALGRIND_CHECK_RULES@
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
@@ -274,6 +275,10 @@ endef # man_tcti_prefix
 	$(call make_parent_dir,$@)
 	$(GDBUS_CODEGEN) --interface-prefix=com.intel.tss2. \
 	    --generate-c-code=src/tabrmd-generated $^
+
+%.preset : %.preset.in
+	$(call make_parent_dir,$@)
+	sed -e "s,[@]SYSTEMD_PRESET_DEFAULT[@],$(SYSTEMD_PRESET_DEFAULT),g;" $^ > $@
 
 %.service : %.service.in
 	$(call make_parent_dir,$@)

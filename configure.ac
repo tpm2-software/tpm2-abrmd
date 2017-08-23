@@ -82,6 +82,21 @@ AS_IF([test "x$with_systemdsystemunitdir" != xno],
       [$with_systemdsystemunitdir])])
 AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno ])
 
+# systemd preset directory
+AC_ARG_WITH([systemdpresetdir],
+            AS_HELP_STRING([--with-systemdpresetdir=DIR],
+                           [Directory for systemd preset files]),
+            [],
+            [with_systemdpresetdir=${libdir}/systemd/system-preset])
+AC_SUBST([systemdpresetdir], [$with_systemdpresetdir])
+
+# systemd preset default (enable / disable)
+AC_ARG_WITH([systemdpresetdisable],
+             AS_HELP_STRING([--with-systemdpresetdisable],
+                            [Configure systemd preset to 'disable', default is 'enable']),
+            [AC_SUBST([SYSTEMD_PRESET_DEFAULT],[disable])],
+            [AC_SUBST([SYSTEMD_PRESET_DEFAULT],[enable])])
+
 #
 # dbus
 #

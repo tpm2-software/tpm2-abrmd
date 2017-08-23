@@ -103,18 +103,33 @@ following configure option:
 --with-dbuspolicydir=/etc/dbus-1/system.d
 ```
 
-### Systemd Uint: `--with-systedsystemunitdir`
+### Systemd
 In most configurations the `tpm2-abrmd` daemon should be started as part of
-the boot process. To enable this we provide a systemd unit. By default the
-build installs this file to `${libdir}/systemd/system`. Just like D-Bus
-the location of unit files is distro specific and so you may need to
-configure the build to install this file in the appropriate location.
+the boot process. To enable this we provide a systemd unit as well as a
+systemd preset file.
+
+#### Systemd Uint: `--with-systedsystemunitdir`
+By default the build installs this file to `${libdir}/systemd/system. Just
+like D-Bus the location of unit files is distro specific and so you may need
+to configure the build to install this file in the appropriate location.
 
 Again using Debian as an example we can instruct the build to install the
 systemd unit in the right location with the following configure option:
 ```
 --with-systedsystemunitdir=/lib/systemd/system
 ```
+
+#### Systemd Preset Dir: `--with-systemdpresetdir=DIR`
+By default the build installs the systemd preset file for the tabrmd to
+`${libdir}/systemd/system-preset`. If you need to install this file to a
+different directory pass the desired path to the `configure` script using this
+option.
+
+#### Systemd Preset Default: `--with-systemdpresetdisable`
+The systemd preset file will enable the tabrmd by default, causing it to be
+started by systemd on boot. If you wish for the daemon to be disabled by
+default some reason you may use this option to the `configure` script to do
+so.
 
 ### udev Rules
 The typical operation for the `tpm2-abrmd` is for it to communicate directly
