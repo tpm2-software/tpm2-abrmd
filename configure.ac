@@ -1,5 +1,5 @@
 AC_INIT([tpm2-abrmd],
-        [1.1.1_rc1],
+        [1.1.1],
         [https://github.com/01org/tpm2-abrmd/issues],
         [],
         [https://github.com/01org/tpm2-abrmd])
