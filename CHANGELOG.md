@@ -3,7 +3,11 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-## Unreleased
+## 1.1.1 - 2017-08-25
+### Added
+- Systemd 'preset' file and corresponding options to the configure script.
+- Option to configure script to allow the addition of a string prefix to
+the udev rules file name.
 ### Changed
 - Replace use of sigaction with g_unix_signal_* stuff from glib.
 - Rewrite of INSTALL.md including info on custom configure script options.
