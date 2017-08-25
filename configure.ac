@@ -29,7 +29,7 @@ PKG_CHECK_MODULES([DBUS], [dbus-1])
 PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GOBJECT], [gobject-2.0])
-PKG_CHECK_MODULES([SAPI],[sapi])
+PKG_CHECK_MODULES([SAPI],[sapi < 2.0.0])
 AC_ARG_VAR([GDBUS_CODEGEN],[The gdbus-codegen executable.])
 AC_PATH_PROG([GDBUS_CODEGEN], [`$PKG_CONFIG --variable=gdbus_codegen gio-2.0`])
 if test -z "$GDBUS_CODEGEN"; then

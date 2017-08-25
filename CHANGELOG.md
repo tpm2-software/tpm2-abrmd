@@ -3,6 +3,10 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## Unreleased
+### Added
+- Check SAPI library is < 2.0.0 (API change upstream).
+
 ## 1.1.1 - 2017-08-25
 ### Added
 - Systemd 'preset' file and corresponding options to the configure script.
