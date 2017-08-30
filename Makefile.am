@@ -356,12 +356,6 @@ test_tcti_options_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tcti_options_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) \
     $(libutil) $(libtcti_echo) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
 test_tcti_options_unit_SOURCES = test/tcti-options_unit.c
-if TCTI_DEVICE
-test_tcti_options_unit_SOURCES += src/tcti-device.c
-endif
-if TCTI_SOCKET
-test_tcti_options_unit_SOURCES += src/tcti-socket.c
-endif
 
 test_thread_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_thread_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
