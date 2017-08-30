@@ -108,7 +108,7 @@ In most configurations the `tpm2-abrmd` daemon should be started as part of
 the boot process. To enable this we provide a systemd unit as well as a
 systemd preset file.
 
-#### Systemd Uint: `--with-systedsystemunitdir`
+#### Systemd Uint: `--with-systemdsystemunitdir`
 By default the build installs this file to `${libdir}/systemd/system. Just
 like D-Bus the location of unit files is distro specific and so you may need
 to configure the build to install this file in the appropriate location.
@@ -116,7 +116,7 @@ to configure the build to install this file in the appropriate location.
 Again using Debian as an example we can instruct the build to install the
 systemd unit in the right location with the following configure option:
 ```
---with-systedsystemunitdir=/lib/systemd/system
+--with-systemdsystemunitdir=/lib/systemd/system
 ```
 
 #### Systemd Preset Dir: `--with-systemdpresetdir=DIR`
