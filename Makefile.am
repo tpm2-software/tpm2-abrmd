@@ -151,7 +151,7 @@ VALGRIND_memcheck_FLAGS = --leak-check=summary --show-leak-kinds=definite,indire
 
 # utility library with most of the code that makes up the daemon
 src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(SAPI_LIBS)
+    $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
 src_libutil_la_SOURCES = \
     src/access-broker.c \
     src/access-broker.h \
@@ -210,11 +210,9 @@ src_libutil_la_SOURCES = \
     src/util.c \
     src/util.h
 if TCTI_DEVICE
-src_libutil_la_LIBADD  += $(TCTI_DEVICE_LIBS)
 src_libutil_la_SOURCES += src/tcti-device.c src/tcti-device.h
 endif
 if TCTI_SOCKET
-src_libutil_la_LIBADD  += $(TCTI_SOCKET_LIBS)
 src_libutil_la_SOURCES += src/tcti-socket.c src/tcti-socket.h
 endif
 
@@ -355,14 +353,13 @@ test_tcti_socket_unit_SOURCES  = test/tcti-socket_unit.c
 endif
 
 test_tcti_options_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tcti_options_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
+test_tcti_options_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) \
+    $(libutil) $(libtcti_echo) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
 test_tcti_options_unit_SOURCES = test/tcti-options_unit.c
 if TCTI_DEVICE
-test_tcti_options_unit_LDADD   += $(TCTI_DEVICE_LIBS)
 test_tcti_options_unit_SOURCES += src/tcti-device.c
 endif
 if TCTI_SOCKET
-test_tcti_options_unit_LDADD   += $(TCTI_SOCKET_LIBS)
 test_tcti_options_unit_SOURCES += src/tcti-socket.c
 endif
 
