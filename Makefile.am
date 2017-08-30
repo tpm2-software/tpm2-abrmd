@@ -30,7 +30,6 @@ TESTS_UNIT = \
     test/session-entry_unit \
     test/test-skeleton_unit \
     test/tcti-echo_unit \
-    test/tcti-options_unit \
     test/thread_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
@@ -351,11 +350,6 @@ test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TCTI_SOCKET_LIBS)
 test_tcti_socket_unit_LDFLAGS  = -Wl,--wrap=InitSocketTcti
 test_tcti_socket_unit_SOURCES  = test/tcti-socket_unit.c
 endif
-
-test_tcti_options_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tcti_options_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) \
-    $(libutil) $(libtcti_echo) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
-test_tcti_options_unit_SOURCES = test/tcti-options_unit.c
 
 test_thread_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_thread_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
