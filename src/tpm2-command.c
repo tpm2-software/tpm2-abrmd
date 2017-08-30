@@ -104,7 +104,7 @@
 #define AUTH_SESSION_ATTRS_END_OFFSET(cmd, index) \
     (AUTH_SESSION_ATTRS_OFFSET (cmd, index) + sizeof (UINT8))
 #define AUTH_GET_SESSION_ATTRS(cmd, index) \
-    ((TPMA_SESSION)(UINT32)cmd->buffer [AUTH_SESSION_ATTRS_OFFSET (cmd, index)])
+    ((TPMA_SESSION)(UINT8)cmd->buffer [AUTH_SESSION_ATTRS_OFFSET (cmd, index)])
 /* authorization */
 #define AUTH_AUTH_SIZE_OFFSET(cmd, index) \
     (AUTH_SESSION_ATTRS_END_OFFSET (cmd, index))
@@ -631,13 +631,13 @@ tpm2_command_get_auth_attrs (Tpm2Command *command,
     size_t attrs_end;
 
     if (command == NULL) {
-        return (TPMA_SESSION)(UINT32)0;
+        return (TPMA_SESSION)(UINT8)0;
     }
     attrs_end = AUTH_SESSION_ATTRS_END_OFFSET (command, auth_offset);
     if (attrs_end > command->buffer_size) {
         g_warning ("%s attempt to access session attributes overruns command "
                    "buffer", __func__);
-        return (TPMA_SESSION)(UINT32)0;
+        return (TPMA_SESSION)(UINT8)0;
     }
     return AUTH_GET_SESSION_ATTRS (command, auth_offset);
 }
