@@ -30,6 +30,18 @@
 #include <inttypes.h>
 #include <sapi/tpm20.h>
 
+/*
+ * This macro is useful as a wrapper around SAPI functions to automatically
+ * retry function calls when the RC is TPM_RC_RETRY.
+ */
+#define TSS2_RETRY_EXP(expression)                         \
+    ({                                                     \
+        TSS2_RC __result = 0;                              \
+        do {                                               \
+            __result = (expression);                       \
+        } while ((__result & 0x0000ffff) == TPM_RC_RETRY); \
+        __result;                                          \
+    })
 #define PRIxHANDLE "08" PRIx32
 
 TSS2_RC

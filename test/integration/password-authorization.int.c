@@ -183,13 +183,13 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     // Attempt write with the correct password. It should pass.
-    rval = Tss2_Sys_NV_Write (sapi_context,
+    rval = TSS2_RETRY_EXP (Tss2_Sys_NV_Write (sapi_context,
                               TPM20_INDEX_PASSWORD_TEST,
                               TPM20_INDEX_PASSWORD_TEST,
                               &sessionsData,
                               &nvWriteData,
                               0,
-                              &sessionsDataOut);
+                              &sessionsDataOut));
     // Check that the function passed as expected.  Otherwise, exit.
     if (rval != TSS2_RC_SUCCESS) {
 	g_warning("Failed to write in NV with correct password. RC = 0x%x", rval);
