@@ -144,7 +144,7 @@ create_primary (TSS2_SYS_CONTEXT *sapi_context,
     /* TPMU_PUBLIC_ID / unique */
     in_public.t.publicArea.unique.rsa.t.size = 0;
 
-    rc = Tss2_Sys_CreatePrimary (
+    rc = TSS2_RETRY_EXP (Tss2_Sys_CreatePrimary (
         sapi_context,
         TPM_RH_NULL,      /* in: hierarchy */
         &cmd_auths,       /* in: in sessions / auths */
@@ -159,7 +159,7 @@ create_primary (TSS2_SYS_CONTEXT *sapi_context,
         &creation_ticket, /* out: ticket used to associate object and TPM */
         &name,            /* out: name of created object */
         NULL              /* out: sessions / auths returned */
-    );
+    ));
     if (rc == TSS2_RC_SUCCESS) {
         g_print ("  handle returned: 0x%" PRIx32 "\n", *handle);
     } else {
@@ -212,7 +212,7 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
 
     g_print ("Tss2_Sys_Create with parent handle: 0x%" PRIx32 "\n",
              parent_handle);
-    rc = Tss2_Sys_Create(
+    rc = TSS2_RETRY_EXP (Tss2_Sys_Create(
         sapi_context,
         parent_handle,
         &cmd_auths,
@@ -226,7 +226,7 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
         &creation_hash,
         &creation_ticket,
         NULL
-    );
+    ));
     if (rc == TSS2_RC_SUCCESS) {
         g_print ("Tss2_Sys_Create returned TSS2_RC_SUCCESS\n  parent handle: "
                  "0x%" PRIx32 "\n  out_private: 0x%" PRIxPTR "\n  out_public: "
