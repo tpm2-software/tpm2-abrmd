@@ -240,9 +240,6 @@ command_source_connection_teardown (void **state)
 {
     source_test_data_t *data = (source_test_data_t*)*state;
 
-    thread_cancel (THREAD (data->source));
-    thread_join (THREAD (data->source));
-
     g_object_unref (data->source);
     g_object_unref (data->manager);
     free (data);
