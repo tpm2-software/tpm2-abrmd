@@ -105,7 +105,7 @@ command_source_allocate_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = connection_manager_new (TPM_HT_TRANSIENT);
+    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
 
     *state = data;
     return 0;
@@ -147,7 +147,7 @@ command_source_start_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = connection_manager_new (TPM_HT_TRANSIENT);
+    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
     if (data->manager == NULL)
         g_error ("failed to allocate new connection_manager");
     data->command_attrs = command_attrs_new ();
@@ -227,7 +227,7 @@ command_source_connection_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = connection_manager_new (TPM_HT_TRANSIENT);
+    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
                                        data->command_attrs);
