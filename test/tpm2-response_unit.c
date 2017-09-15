@@ -51,7 +51,7 @@ static int
 tpm2_response_setup_base (void **state)
 {
     test_data_t *data   = NULL;
-    gint         fds[2] = { 0, };
+    gint         client_fd;
     HandleMap   *handle_map;
 
     data = calloc (1, sizeof (test_data_t));
@@ -59,7 +59,7 @@ tpm2_response_setup_base (void **state)
     data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE);
     data->buffer   = calloc (1, data->buffer_size);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection  = connection_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection  = connection_new (&client_fd, 0, handle_map);
     g_object_unref (handle_map);
 
     *state = data;
@@ -251,13 +251,13 @@ static int
 tpm2_response_new_rc_setup (void **state)
 {
     test_data_t *data   = NULL;
-    gint         fds[2] = { 0, };
+    gint         client_fd;
     HandleMap   *handle_map;
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold a TPM2 header */
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection  = connection_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection  = connection_new (&client_fd, 0, handle_map);
     g_object_unref (handle_map);
     data->response = tpm2_response_new_rc (data->connection, TPM_RC_BINDING);
 

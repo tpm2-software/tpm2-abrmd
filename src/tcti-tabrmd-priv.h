@@ -40,12 +40,8 @@
 
 #define TSS2_TCTI_TABRMD_ID(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->id
-#define TSS2_TCTI_TABRMD_FDS(context) \
-    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->pipe_fds
-#define TSS2_TCTI_TABRMD_FD_RECEIVE(context) \
-    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->fd_receive
-#define TSS2_TCTI_TABRMD_FD_TRANSMIT(context) \
-    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->fd_transmit
+#define TSS2_TCTI_TABRMD_FD(context) \
+    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->fd
 #define TSS2_TCTI_TABRMD_PROXY(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->proxy
 #define TSS2_TCTI_TABRMD_HEADER(context) \
@@ -94,8 +90,7 @@ typedef enum {
 typedef struct {
     TSS2_TCTI_CONTEXT_COMMON_V1    common;
     guint64                        id;
-    int                            fd_receive;
-    int                            fd_transmit;
+    int                            fd;
     TctiTabrmd                    *proxy;
     tpm_header_t                   header;
     tcti_tabrmd_state_t            state;

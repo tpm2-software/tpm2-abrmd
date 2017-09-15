@@ -207,7 +207,7 @@ response_sink_process_response (Tpm2Response *response)
     guint32      size    = tpm2_response_get_size (response);
     guint8      *buffer  = tpm2_response_get_buffer (response);
     Connection  *connection = tpm2_response_get_connection (response);
-    gint         fd      = connection_send_fd (connection);
+    gint         fd      = connection_fd (connection);
 
     g_debug ("response_sink_thread got response: 0x%" PRIxPTR " size %d",
              (uintptr_t)response, size);

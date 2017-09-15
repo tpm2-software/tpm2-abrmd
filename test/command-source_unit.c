@@ -203,18 +203,18 @@ command_source_connection_insert_test (void **state)
     CommandSource *source = data->source;
     HandleMap     *handle_map;
     Connection *connection;
-    gint ret, receive_fd, send_fd;
+    gint ret, client_fd;
 
     /* */
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    connection = connection_new (&receive_fd, &send_fd, 5, handle_map);
+    connection = connection_new (&client_fd, 5, handle_map);
     g_object_unref (handle_map);
-    assert_false (FD_ISSET (connection->receive_fd, &source->receive_fdset));
+    assert_false (FD_ISSET (connection->fd, &source->receive_fdset));
     ret = thread_start(THREAD (source));
     assert_int_equal (ret, 0);
     connection_manager_insert (data->manager, connection);
     sleep (1);
-    assert_true (FD_ISSET (connection->receive_fd, &source->receive_fdset));
+    assert_true (FD_ISSET (connection->fd, &source->receive_fdset));
     connection_manager_remove (data->manager, connection);
     thread_cancel (THREAD (source));
     thread_join (THREAD (source));
@@ -268,14 +268,14 @@ command_source_process_client_fd_test (void **state)
     HandleMap   *handle_map;
     Connection *connection;
     Tpm2Command *command_out;
-    gint fds[2] = { 0, };
+    gint client_fd;
     guint8 data_in [] = { 0x80, 0x01, 0x0,  0x0,  0x0,  0x17,
                           0x0,  0x0,  0x01, 0x7a, 0x0,  0x0,
                           0x0,  0x06, 0x0,  0x0,  0x01, 0x0,
                           0x0,  0x0,  0x0,  0x7f, 0x0a };
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    connection = connection_new (&fds[0], &fds[1], 0, handle_map);
+    connection = connection_new (&client_fd, 0, handle_map);
     g_object_unref (handle_map);
         /* prime wraps */
     will_return (__wrap_connection_manager_lookup_fd, connection);

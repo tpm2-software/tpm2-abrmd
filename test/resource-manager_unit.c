@@ -45,7 +45,7 @@ typedef struct test_data {
     TctiEcho        *tcti_echo;
     Tpm2Command     *command;
     Tpm2Response    *response;
-    gint             send_fd, recv_fd;
+    gint             client_fd;
     TPM_HANDLE       vhandles [2];
     TPMA_CC         command_attrs;
 } test_data_t;
@@ -130,7 +130,7 @@ resource_manager_setup (void **state)
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->access_broker = access_broker_new (TCTI (data->tcti_echo));
     data->resource_manager = resource_manager_new (data->access_broker);
-    data->connection = connection_new (&data->recv_fd, &data->send_fd, 10, handle_map);
+    data->connection = connection_new (&data->client_fd, 10, handle_map);
     g_object_unref (handle_map);
 
     *state = data;

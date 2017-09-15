@@ -29,6 +29,7 @@
 #include <glib.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <sys/socket.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
@@ -95,17 +96,16 @@ __wrap_g_dbus_proxy_call_with_unix_fd_list_sync (
     GError **error)
 {
     GVariant *variant_array[2] = { 0 }, *variant_tuple;
-    gint32 fds[2];
+    gint client_fd;
     guint64 id;
 
-    fds[0] = (gint32)mock ();
-    fds[1] = (gint32)mock ();
+    client_fd = (gint)mock ();
     id = (guint64)mock ();
 
-    *out_fd_list = g_unix_fd_list_new_from_array (fds, 2);
+    *out_fd_list = g_unix_fd_list_new_from_array (&client_fd, 1);
     variant_array[0] = g_variant_new_fixed_array (G_VARIANT_TYPE ("h"),
-                                                  fds,
-                                                  2,
+                                                  &client_fd,
+                                                  1,
                                                   sizeof (gint32));
     variant_array[1] = g_variant_new_uint64 (id);
     variant_tuple = g_variant_new_tuple (variant_array, 2);
@@ -150,10 +150,8 @@ __wrap_tcti_tabrmd_call_set_locality_sync (
  */
 typedef struct {
     guint64 id;
-    gint32  fd_receive_client;
-    gint32  fd_receive_server;
-    gint32  fd_transmit_client;
-    gint32  fd_transmit_server;
+    gint    client_fd;
+    gint    server_fd;
     TSS2_TCTI_CONTEXT  *context;
 } data_t;
 /*
@@ -167,7 +165,7 @@ tcti_tabrmd_setup (void **state)
     data_t *data;
     TSS2_RC ret = TSS2_RC_SUCCESS;
     size_t tcti_size = 0;
-    gint32 fds[2] = { 0 };
+    gint fds [2];
     guint64 id = 666;
 
     data = calloc (1, sizeof (data_t));
@@ -182,16 +180,11 @@ tcti_tabrmd_setup (void **state)
         return 1;
     }
     g_debug ("preparing g_dbus_proxy_call_with_unix_fd_list_sync mock wrapper");
-    assert_int_equal (pipe (fds), 0);
-    data->fd_receive_client  = fds [0];
-    data->fd_transmit_server = fds [1];
-    assert_int_equal (pipe (fds), 0);
-    data->fd_receive_server  = fds [0];
-    data->fd_transmit_client = fds [1];
+    assert_int_equal (socketpair (PF_LOCAL, SOCK_STREAM, 0, fds), 0);
+    data->client_fd = fds [0];
+    data->server_fd = fds [1];
     will_return (__wrap_g_dbus_proxy_call_with_unix_fd_list_sync,
-                 data->fd_receive_client);
-    will_return (__wrap_g_dbus_proxy_call_with_unix_fd_list_sync,
-                 data->fd_transmit_client);
+                 data->client_fd);
     data->id = id;
     will_return (__wrap_g_dbus_proxy_call_with_unix_fd_list_sync, id);
     g_debug ("about to call real tss2_tcti_tabrmd_init function");
@@ -211,10 +204,8 @@ tcti_tabrmd_teardown (void **state)
     data_t *data = *state;
 
     tss2_tcti_finalize (data->context);
-    close (data->fd_receive_client);
-    close (data->fd_receive_server);
-    close (data->fd_transmit_client);
-    close (data->fd_transmit_server);
+    close (data->client_fd);
+    close (data->server_fd);
     if (data->context)
         free (data->context);
     free (data);
@@ -330,7 +321,7 @@ tcti_tabrmd_transmit_success_test (void **state)
 
     rc = tss2_tcti_transmit (data->context, size, command_in);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
-    ret = read (data->fd_receive_server, command_out, size);
+    ret = read (data->server_fd, command_out, size);
     assert_int_equal (ret, size);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_RECEIVE);
@@ -1086,7 +1077,7 @@ tcti_tabrmd_get_poll_handles_handles_test (void **state)
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_int_equal (1, num_handles);
     assert_int_equal (handles [0].fd,
-                      TSS2_TCTI_TABRMD_FD_RECEIVE (data->context));
+                      TSS2_TCTI_TABRMD_FD (data->context));
 }
 /*
  * This test sets up the call_set_locality mock function to return values

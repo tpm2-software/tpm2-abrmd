@@ -42,8 +42,7 @@
 
 typedef struct connection_test_data {
     Connection *connection;
-    gint receive_fd;
-    gint send_fd;
+    gint client_fd;
 } connection_test_data_t;
 
 static int
@@ -65,27 +64,27 @@ write_read (int write_fd, int read_fd, const char* buf, size_t length)
 static void
 connection_create_pipe_pair_test (void **state)
 {
-    int ret, fds[2];
+    int ret, client_fd, server_fd;
     const char *test_str = "test";
     size_t length = strlen (test_str);
 
-    ret = create_pipe_pair (&fds[0], &fds[1], O_CLOEXEC);
+    ret = create_fd_pair (&client_fd, &server_fd, O_CLOEXEC);
     if (ret == -1)
         g_error ("create_pipe_pair failed: %s", strerror (errno));
-    assert_int_equal (write_read (fds[1], fds[0], test_str, length), length);
+    assert_int_equal (write_read (client_fd, server_fd, test_str, length), length);
 }
 
 static void
 connection_create_pipe_pairs_test (void **state)
 {
-    int client_fds[2], server_fds[2], ret;
+    int client_fd, server_fd, ret;
     const char *test_str = "test";
     size_t length = strlen (test_str);
 
-    assert_int_equal (create_pipe_pairs (client_fds, server_fds, O_CLOEXEC), 0);
-    ret = write_read (client_fds[1], server_fds[0], test_str, length);
+    assert_int_equal (create_fd_pair (&client_fd, &server_fd, O_CLOEXEC), 0);
+    ret = write_read (client_fd, server_fd, test_str, length);
     assert_int_equal (ret, length);
-    ret = write_read (server_fds[1], client_fds[0], test_str, length);
+    ret = write_read (server_fd, client_fd, test_str, length);
     assert_int_equal (ret, length);
 }
 
@@ -94,13 +93,12 @@ connection_allocate_test (void **state)
 {
     HandleMap   *handle_map = NULL;
     Connection *connection = NULL;
-    gint receive_fd, send_fd;
+    gint client_fd;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    connection = connection_new (&receive_fd, &send_fd, 0, handle_map);
+    connection = connection_new (&client_fd, 0, handle_map);
     assert_non_null (connection);
-    assert_true (receive_fd >= 0);
-    assert_true (send_fd >= 0);
+    assert_true (client_fd >= 0);
     g_object_unref (handle_map);
     g_object_unref (connection);
 }
@@ -114,7 +112,7 @@ connection_setup (void **state)
     data = calloc (1, sizeof (connection_test_data_t));
     assert_non_null (data);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection = connection_new (&data->receive_fd, &data->send_fd, 0, handle_map);
+    data->connection = connection_new (&data->client_fd, 0, handle_map);
     assert_non_null (data->connection);
     g_object_unref (handle_map);
     *state = data;
@@ -127,8 +125,7 @@ connection_teardown (void **state)
     connection_test_data_t *data = (connection_test_data_t*)*state;
 
     g_object_unref (data->connection);
-    close (data->receive_fd);
-    close (data->send_fd);
+    close (data->client_fd);
     free (data);
     return 0;
 }
@@ -141,7 +138,7 @@ connection_key_fd_test (void **state)
     int *key = NULL;
 
     key = (int*)connection_key_fd (connection);
-    assert_int_equal (connection->receive_fd, *key);
+    assert_int_equal (connection->fd, *key);
 }
 
 static void
@@ -181,7 +178,7 @@ connection_client_to_server_test (void ** state)
     connection_test_data_t *data = (connection_test_data_t*)*state;
     gint ret = 0;
 
-    ret = write_read (data->connection->send_fd, data->receive_fd, "test", strlen ("test"));
+    ret = write_read (data->connection->fd, data->client_fd, "test", strlen ("test"));
     if (ret == -1)
         g_print ("write_read failed: %d\n", ret);
     assert_int_equal (ret, strlen ("test"));
@@ -196,7 +193,7 @@ connection_server_to_client_test (void **state)
     connection_test_data_t *data = (connection_test_data_t*)*state;
     gint ret = 0;
 
-    ret = write_read (data->send_fd, data->connection->receive_fd, "test", strlen ("test"));
+    ret = write_read (data->client_fd, data->connection->fd, "test", strlen ("test"));
     if (ret == -1)
         g_print ("write_read failed: %d\n", ret);
     assert_int_equal (ret, strlen ("test"));
