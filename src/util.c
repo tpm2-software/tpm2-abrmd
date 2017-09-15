@@ -95,9 +95,9 @@ write_all (const gint    fd,
                  size - written_total,
                  (uintptr_t)buf + written_total,
                  fd);
-        written = write (fd,
-                         buf  + written_total,
-                         size - written_total);
+        written = TEMP_FAILURE_RETRY (write (fd,
+                                             buf  + written_total,
+                                             size - written_total));
         switch (written) {
         case -1:
             g_warning ("failed to write to fd %d: %s", fd, strerror (errno));
