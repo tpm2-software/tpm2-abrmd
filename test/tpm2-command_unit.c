@@ -96,7 +96,7 @@ static int
 tpm2_command_setup_base (void **state)
 {
     test_data_t *data   = NULL;
-    gint         fds[2] = { 0, };
+    gint         client_fd;
     HandleMap   *handle_map;
 
     data = calloc (1, sizeof (test_data_t));
@@ -104,7 +104,7 @@ tpm2_command_setup_base (void **state)
     data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE) * 3;
     data->buffer = calloc (1, data->buffer_size);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection = connection_new (&client_fd, 0, handle_map);
     g_object_unref (handle_map);
     *state = data;
     return 0;
@@ -167,13 +167,13 @@ static int
 tpm2_command_setup_two_handles_not_three (void **state)
 {
     test_data_t *data   = NULL;
-    gint         fds[2] = { 0, };
+    gint         client_fd;
     HandleMap   *handle_map;
 
     data = calloc (1, sizeof (test_data_t));
     *state = data;
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection = connection_new (&client_fd, 0, handle_map);
     g_object_unref (handle_map);
     /* */
     data->buffer_size = sizeof (two_handles_not_three);
@@ -196,7 +196,7 @@ static int
 tpm2_command_setup_with_auths (void **state)
 {
     test_data_t *data   = NULL;
-    gint         fds[2] = { 0, };
+    gint         client_fd;
     HandleMap   *handle_map;
     TPMA_CC attributes = {
         .val = 2 << 25,
@@ -208,7 +208,7 @@ tpm2_command_setup_with_auths (void **state)
     data->buffer = calloc (1, data->buffer_size);
     memcpy (data->buffer, cmd_with_auths, sizeof (cmd_with_auths));
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection = connection_new (&client_fd, 0, handle_map);
     g_object_unref (handle_map);
     data->command = tpm2_command_new (data->connection,
                                       data->buffer,
@@ -222,7 +222,7 @@ static int
 tpm2_command_setup_flush_context_no_handle (void **state)
 {
     test_data_t *data   = NULL;
-    gint         fds[2] = { 0, };
+    gint         client_fd;
     HandleMap   *handle_map;
     TPMA_CC attributes = {
         .val = 2 << 25,
@@ -236,7 +236,7 @@ tpm2_command_setup_flush_context_no_handle (void **state)
             cmd_buf_context_flush_no_handle,
             data->buffer_size);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection = connection_new (&client_fd, 0, handle_map);
     g_object_unref (handle_map);
     data->command = tpm2_command_new (data->connection,
                                       data->buffer,
@@ -590,13 +590,13 @@ static int
 tpm2_command_setup_get_cap_no_cap (void **state)
 {
     test_data_t *data   = NULL;
-    gint         fds[2] = { 0, };
+    gint         client_fd;
     HandleMap   *handle_map;
 
     data = calloc (1, sizeof (test_data_t));
     *state = data;
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection = connection_new (&client_fd, 0, handle_map);
     g_object_unref (handle_map);
 
     data->buffer_size = sizeof (get_cap_no_cap);

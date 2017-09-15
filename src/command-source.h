@@ -30,7 +30,6 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <pthread.h>
-#include <sys/select.h>
 
 #include "command-attrs.h"
 #include "connection-manager.h"
@@ -42,7 +41,7 @@ G_BEGIN_DECLS
 /* Maximum buffer size for client data. Connections that send a single
  * command larger than this size will be closed.
  */
-#define BUF_MAX  PIPE_BUF
+#define BUF_MAX 4096
 
 typedef struct _CommandSourceClass {
     ThreadClass       parent;

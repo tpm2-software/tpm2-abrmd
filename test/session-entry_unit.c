@@ -37,8 +37,7 @@
 
 typedef struct {
     Connection   *connection;
-    gint          receive_fd;
-    gint          send_fd;
+    gint          client_fd;
     HandleMap    *handle_map;
     SessionEntry *session_entry;
 } test_data_t;
@@ -52,8 +51,7 @@ session_entry_setup (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     data->handle_map = handle_map_new (TPM_HT_TRANSIENT, 100);
-    data->connection = connection_new (&data->receive_fd,
-                                       &data->send_fd,
+    data->connection = connection_new (&data->client_fd,
                                        CLIENT_ID,
                                        data->handle_map);
     data->session_entry = session_entry_new (data->connection, TEST_HANDLE);

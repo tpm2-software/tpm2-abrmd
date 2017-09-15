@@ -64,8 +64,8 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
         return TSS2_TCTI_RC_BAD_SEQUENCE;
     }
     g_debug_bytes (command, size, 16, 4);
-    g_debug ("blocking on FD_TRANSMIT: %d", TSS2_TCTI_TABRMD_FD_TRANSMIT (context));
-    write_ret = write_all (TSS2_TCTI_TABRMD_FD_TRANSMIT (context),
+    g_debug ("blocking on FD_TRANSMIT: %d", TSS2_TCTI_TABRMD_FD (context));
+    write_ret = write_all (TSS2_TCTI_TABRMD_FD (context),
                            command,
                            size);
     /* should switch on possible errors to translate to TSS2 error codes */
@@ -201,7 +201,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     if (response != NULL && *size < TPM_HEADER_SIZE) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
-    ret = tcti_tabrmd_poll (tabrmd_ctx->fd_receive, timeout);
+    ret = tcti_tabrmd_poll (TSS2_TCTI_TABRMD_FD (context), timeout);
     switch (ret) {
     case -1:
         return TSS2_TCTI_RC_TRY_AGAIN;
@@ -212,7 +212,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     }
     /* make sure we've got the response header */
     if (tabrmd_ctx->index < TPM_HEADER_SIZE) {
-        ret = read_data (tabrmd_ctx->fd_receive,
+        ret = read_data (TSS2_TCTI_TABRMD_FD (tabrmd_ctx),
                          &tabrmd_ctx->index,
                          tabrmd_ctx->header_buf,
                          TPM_HEADER_SIZE - tabrmd_ctx->index);
@@ -245,7 +245,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     if (*size < tabrmd_ctx->header.size) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
-    ret = read_data (tabrmd_ctx->fd_receive,
+    ret = read_data (TSS2_TCTI_TABRMD_FD (tabrmd_ctx),
                      &tabrmd_ctx->index,
                      response,
                      tabrmd_ctx->header.size - tabrmd_ctx->index);
@@ -268,19 +268,12 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *context)
         g_warning ("Invalid parameter");
         return;
     }
-    if (TSS2_TCTI_TABRMD_FD_RECEIVE (context) != 0) {
-        ret = close (TSS2_TCTI_TABRMD_FD_RECEIVE (context));
-        TSS2_TCTI_TABRMD_FD_RECEIVE (context) = 0;
+    if (TSS2_TCTI_TABRMD_FD (context) != 0) {
+        ret = close (TSS2_TCTI_TABRMD_FD (context));
+        TSS2_TCTI_TABRMD_FD (context) = 0;
     }
     if (ret != 0 && ret != EBADF) {
         g_warning ("Failed to close receive pipe: %s", strerror (errno));
-    }
-    if (TSS2_TCTI_TABRMD_FD_TRANSMIT (context) != 0) {
-        ret = close (TSS2_TCTI_TABRMD_FD_TRANSMIT (context));
-        TSS2_TCTI_TABRMD_FD_TRANSMIT (context) = 0;
-    }
-    if (ret != 0 && ret != EBADF) {
-        g_warning ("Failed to close send pipe: %s", strerror (errno));
     }
     TSS2_TCTI_TABRMD_STATE (context) = TABRMD_STATE_FINAL;
     g_object_unref (TSS2_TCTI_TABRMD_PROXY (context));
@@ -333,7 +326,7 @@ tss2_tcti_tabrmd_get_poll_handles (TSS2_TCTI_CONTEXT     *context,
     }
     *num_handles = 1;
     if (handles != NULL) {
-        handles [0].fd = TSS2_TCTI_TABRMD_FD_RECEIVE (context);
+        handles [0].fd = TSS2_TCTI_TABRMD_FD (context);
     }
     return TSS2_RC_SUCCESS;
 }
@@ -480,8 +473,8 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
         g_error ("call to CreateConnection returned a NULL GUnixFDList");
     }
     gint num_handles = g_unix_fd_list_get_length (fd_list);
-    if (num_handles != 2) {
-        g_error ("CreateConnection expected to return 2 handles, received %d",
+    if (num_handles != 1) {
+        g_error ("CreateConnection expected to return 1 handles, received %d",
                  num_handles);
     }
     gint fd = g_unix_fd_list_get (fd_list, 0, &error);
@@ -493,13 +486,7 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
     if (ret == -1) {
         g_error ("failed to set O_NONBLOCK for client fd: %d", fd);
     }
-    TSS2_TCTI_TABRMD_FD_RECEIVE (context) = fd;
-    fd = g_unix_fd_list_get (fd_list, 1, &error);
-    if (fd == -1) {
-        g_error ("failed to get transmit handle from GUnixFDList: %s",
-                 error->message);
-    }
-    TSS2_TCTI_TABRMD_FD_TRANSMIT (context) = fd;
+    TSS2_TCTI_TABRMD_FD (context) = fd;
     TSS2_TCTI_TABRMD_ID (context) = id;
     g_debug ("initialized tabrmd TCTI context with id: 0x%" PRIx64,
              TSS2_TCTI_TABRMD_ID (context));
