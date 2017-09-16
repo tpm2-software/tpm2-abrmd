@@ -49,15 +49,12 @@ install:
   - cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release
   - make -j$(nproc) install
   - popd
-  - git clone -b master --single-branch https://github.com/01org/tpm2-tss.git
+  - git clone -b 1.x --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
   - ./bootstrap
   - ./configure --prefix=${PREFIX}
   - make -j$(nproc) install
   - popd
-  - cat ${DESTDIR}${PREFIX}/lib/*.la
-  - sed -i -e "s&\(\/usr\/lib\/lib.*\.la\)&$(pwd)/destdir\1&" ${DESTDIR}${PREFIX}/lib/*.la
-  - cat ${DESTDIR}${PREFIX}/lib/*.la
   - wget https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm974.tar.gz
   - sha256sum ibmtpm974.tar.gz | grep -q ^8e45d86129a0adb95fee4cee51f4b1e5b2d81ed3e55af875df53f98f39eb7ad7
   - mkdir ibmtpm
