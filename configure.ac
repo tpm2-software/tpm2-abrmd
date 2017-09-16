@@ -1,5 +1,5 @@
 AC_INIT([tpm2-abrmd],
-        [1.1.1],
+        [m4_esyscmd_s([cat ./VERSION])],
         [https://github.com/01org/tpm2-abrmd/issues],
         [],
         [https://github.com/01org/tpm2-abrmd])

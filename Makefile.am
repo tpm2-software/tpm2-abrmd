@@ -120,7 +120,8 @@ EXTRA_DIST = \
     CONTRIBUTING.md \
     INSTALL.md \
     LICENSE \
-    README.md
+    README.md \
+    VERSION
 
 CLEANFILES = \
     $(man3_MANS) \
