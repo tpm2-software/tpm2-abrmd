@@ -6,6 +6,12 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 ## Unreleased
 ### Added
 - Check SAPI library is < 2.0.0 (API change upstream).
+### Changed
+- Client / server communication uses PF_LOCAL sockets instead of pipes.
+- bootstrap script now creates VERSION file from 'git describe'. Autoconf gets
+version string from it, automake distributes it in 'distcheck'.
+- Test harness upgraded to simulator version 974.
+- Unit tests upgraded to the 1.x cmocka API.
 
 ## 1.1.1 - 2017-08-25
 ### Added
