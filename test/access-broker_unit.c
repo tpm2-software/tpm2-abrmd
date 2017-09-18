@@ -169,7 +169,7 @@ static int
 access_broker_setup_with_command (void **state)
 {
     test_data_t *data;
-    gint fds [2] = { 0 };
+    gint client_fd;
     guint8 *buffer;
     size_t  buffer_size;
     HandleMap *handle_map;
@@ -179,7 +179,7 @@ access_broker_setup_with_command (void **state)
     buffer_size = TPM_HEADER_SIZE;
     buffer = calloc (1, buffer_size);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection = connection_new (&fds[0], &fds[1], 0, handle_map);
+    data->connection = connection_new (&client_fd, 0, handle_map);
     g_object_unref (handle_map);
     data->command = tpm2_command_new (data->connection,
                                       buffer,

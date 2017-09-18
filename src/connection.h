@@ -40,8 +40,7 @@ typedef struct _ConnectionClass {
 
 typedef struct _Connection {
     GObject             parent_instance;
-    gint                receive_fd;
-    gint                send_fd;
+    gint                fd;
     guint64             id;
     HandleMap          *transient_handle_map;
 } Connection;
@@ -54,8 +53,7 @@ typedef struct _Connection {
 #define CONNECTION_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj),  TYPE_CONNECTION, ConnectionClass))
 
 GType            connection_get_type     (void);
-Connection*      connection_new          (gint            *receive_fd,
-                                          gint            *send_fd,
+Connection*      connection_new          (gint            *client_fd,
                                           guint64          id,
                                           HandleMap       *transient_handle_map);
 gboolean         connection_equal_fd     (gconstpointer    a,
@@ -64,15 +62,11 @@ gboolean         connection_equal_id     (gconstpointer    a,
                                           gconstpointer    b);
 gpointer         connection_key_fd       (Connection      *session);
 gpointer         connection_key_id       (Connection      *session);
-gint             connection_receive_fd   (Connection      *session);
-gint             connection_send_fd      (Connection      *session);
+gint             connection_fd           (Connection      *session);
 HandleMap*       connection_get_trans_map(Connection      *session);
 /* not part of the public API but included here for testing */
-int              create_pipe_pair  (int *recv,
-                                    int *send,
-                                    int flags);
-int              create_pipe_pairs (int pipe_fds_a[],
-                                    int pipe_fds_b[],
-                                    int flags);
+int              create_fd_pair (int *client_fd,
+                                 int *server_fd,
+                                 int  flags);
 
 #endif /* CONNECTION_H */

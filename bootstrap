@@ -1,3 +1,4 @@
 #!/bin/sh
 
+git describe --tags --always --dirty > VERSION
 autoreconf --install --sym

@@ -30,6 +30,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include "connection.h"
@@ -40,8 +41,7 @@ G_DEFINE_TYPE (Connection, connection, G_TYPE_OBJECT);
 enum {
     PROP_0,
     PROP_ID,
-    PROP_RECEIVE_FD,
-    PROP_SEND_FD,
+    PROP_FD,
     PROP_TRANSIENT_HANDLE_MAP,
     N_PROPERTIES
 };
@@ -62,15 +62,10 @@ connection_set_property (GObject       *object,
         g_debug ("Connection 0x%" PRIxPTR " set id to 0x%" PRIx64,
                  (uintptr_t)self, self->id);
         break;
-    case PROP_RECEIVE_FD:
-        self->receive_fd = g_value_get_int (value);
-        g_debug ("Connection 0x%" PRIxPTR " set receive_fd to %d",
-                 (uintptr_t)self, self->receive_fd);
-        break;
-    case PROP_SEND_FD:
-        self->send_fd = g_value_get_int (value);
-        g_debug ("Connection 0x%" PRIxPTR " set send_fd to %d",
-                 (uintptr_t)self, self->send_fd);
+    case PROP_FD:
+        self->fd = g_value_get_int (value);
+        g_debug ("Connection 0x%" PRIxPTR " set fd to %d",
+                 (uintptr_t)self, self->fd);
         break;
     case PROP_TRANSIENT_HANDLE_MAP:
         self->transient_handle_map = g_value_get_object (value);
@@ -97,11 +92,8 @@ connection_get_property (GObject     *object,
     case PROP_ID:
         g_value_set_uint64 (value, self->id);
         break;
-    case PROP_RECEIVE_FD:
-        g_value_set_int (value, self->receive_fd);
-        break;
-    case PROP_SEND_FD:
-        g_value_set_int (value, self->send_fd);
+    case PROP_FD:
+        g_value_set_int (value, self->fd);
         break;
     case PROP_TRANSIENT_HANDLE_MAP:
         g_value_set_object (value, self->transient_handle_map);
@@ -127,8 +119,7 @@ connection_finalize (GObject *obj)
     g_debug ("connection_finalize: 0x%" PRIxPTR, (uintptr_t)connection);
     if (connection == NULL)
         return;
-    close (connection->receive_fd);
-    close (connection->send_fd);
+    close (connection->fd);
     g_object_unref (connection->transient_handle_map);
     if (connection_parent_class)
         G_OBJECT_CLASS (connection_parent_class)->finalize (obj);
@@ -155,18 +146,10 @@ connection_class_init (ConnectionClass *klass)
                              UINT64_MAX,
                              0,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties [PROP_RECEIVE_FD] =
-        g_param_spec_int ("receive_fd",
-                          "Receie File Descriptor",
-                          "File descriptor for receiving data",
-                          0,
-                          INT_MAX,
-                          0,
-                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties [PROP_SEND_FD] =
-        g_param_spec_int ("send_fd",
-                          "Send file descriptor",
-                          "File descriptor for sending data",
+    obj_properties [PROP_FD] =
+        g_param_spec_int ("file-descriptor",
+                          "File Descriptor",
+                          "File descriptor for sending and receiving data",
                           0,
                           INT_MAX,
                           0,
@@ -183,80 +166,50 @@ connection_class_init (ConnectionClass *klass)
 }
 /* Create a pipe and return the recv and send fds. */
 int
-create_pipe_pair (int *recv,
-                  int *send,
-                  int flags)
+create_fd_pair (int *client_fd,
+                int *server_fd,
+                int  flags)
 {
     int ret, fds[2] = { 0, };
 
-    ret = pipe2 (fds, flags);
+    ret = socketpair (PF_LOCAL, SOCK_STREAM, 0, fds);
     if (ret == -1)
         return ret;
-    *recv = fds[0];
-    *send = fds[1];
+    *client_fd = fds[0];
+    *server_fd = fds[1];
+    fcntl (*client_fd, flags);
+    fcntl (*server_fd, flags);
     return 0;
 }
-/* Create a pipe of receive / send pipe pairs. The parameter integer arrays
- * will both be given a receive / send end of two separate pipes. This allows
- * a sender and receiver to communicate over the two pipes. The flags parameter
- * is the same as passed to the pipe2 system call.
- */
-int
-create_pipe_pairs (int pipe_fds_a[],
-                   int pipe_fds_b[],
-                   int flags)
-{
-    int ret = 0;
-
-    /* b -> a */
-    ret = create_pipe_pair (&pipe_fds_a[0], &pipe_fds_b[1], flags);
-    if (ret == -1)
-        return ret;
-    /* a -> b */
-    ret = create_pipe_pair (&pipe_fds_b[0], &pipe_fds_a[1], flags);
-    if (ret == -1)
-        return ret;
-    return 0;
-}
-
 /* CreateConnection builds two pipes for communicating with client
  * applications. It's provided with an array of two integers by the caller
  * and it returns this array populated with the receiving and sending pipe fds
  * respectively.
  */
 Connection*
-connection_new (gint       *receive_fd,
-                gint       *send_fd,
+connection_new (gint       *client_fd,
                 guint64     id,
                 HandleMap  *transient_handle_map)
 {
 
     g_info ("CreateConnection");
-    int ret, connection_fds[2], client_fds[2];
+    int ret, server_fd;
 
     g_debug ("connection_new creating pipe pairs");
-    ret = create_pipe_pairs (connection_fds, client_fds, O_CLOEXEC);
+    ret = create_fd_pair (client_fd, &server_fd, O_CLOEXEC);
     if (ret == -1)
-        g_error ("CreateConnection failed to make pipe pair %s", strerror (errno));
+        g_error ("CreateConnection failed to make fd pair %s", strerror (errno));
     /* Make the fds used by the server non-blocking, the client will have to
      * set its own flags.
      */
-    ret = set_flags (connection_fds [0], O_NONBLOCK);
+    ret = set_flags (server_fd, O_NONBLOCK);
     if (ret == -1)
         g_error ("Failed to set O_NONBLOCK for server receive fd %d: %s",
-                 connection_fds [0], strerror (errno));
-    ret = set_flags (connection_fds [1], O_NONBLOCK);
-    if (ret == -1)
-        g_error ("Failed to set O_NONBLOCK for server send fd %d: %s",
-                 connection_fds [1], strerror (errno));
-    /* return a receive & send end back for the client */
-    *receive_fd = client_fds[0];
-    *send_fd = client_fds[1];
+                 server_fd, strerror (errno));
 
     return CONNECTION (g_object_new (TYPE_CONNECTION,
                                      "id", id,
-                                     "receive_fd", connection_fds [0],
-                                     "send_fd", connection_fds [1],
+                                     "file-descriptor", server_fd,
                                      "transient-handle-map", transient_handle_map,
                                      NULL));
 }
@@ -264,7 +217,7 @@ connection_new (gint       *receive_fd,
 gpointer
 connection_key_fd (Connection *connection)
 {
-    return &connection->receive_fd;
+    return &connection->fd;
 }
 
 gpointer
@@ -287,24 +240,13 @@ connection_equal_id (gconstpointer a,
     return g_int_equal (a, b);
 }
 gint
-connection_receive_fd (Connection *connection)
+connection_fd (Connection *connection)
 {
     GValue value = G_VALUE_INIT;
 
     g_value_init (&value, G_TYPE_INT);
     g_object_get_property (G_OBJECT (connection),
-                           "receive_fd",
-                           &value);
-    return g_value_get_int (&value);
-}
-gint
-connection_send_fd (Connection *connection)
-{
-    GValue value = G_VALUE_INIT;
-
-    g_value_init (&value, G_TYPE_INT);
-    g_object_get_property (G_OBJECT (connection),
-                           "send_fd",
+                           "file-descriptor",
                            &value);
     return g_value_get_int (&value);
 }

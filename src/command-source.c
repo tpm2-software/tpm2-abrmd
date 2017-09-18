@@ -173,7 +173,7 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
                                   CommandSource       *command_source)
 {
     ssize_t ret;
-    int new_fd = connection_receive_fd (connection);
+    int new_fd = connection_fd (connection);
 
     g_info ("command_source_on_new_connection: adding new client fd: %d",
             new_fd);
