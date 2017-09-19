@@ -29,6 +29,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include <gio/gio.h>
 
 #include "handle-map.h"
 
@@ -40,6 +41,7 @@ typedef struct _ConnectionClass {
 
 typedef struct _Connection {
     GObject             parent_instance;
+    GSocket            *socket;
     gint                fd;
     guint64             id;
     HandleMap          *transient_handle_map;
@@ -56,13 +58,9 @@ GType            connection_get_type     (void);
 Connection*      connection_new          (gint            *client_fd,
                                           guint64          id,
                                           HandleMap       *transient_handle_map);
-gboolean         connection_equal_fd     (gconstpointer    a,
-                                          gconstpointer    b);
-gboolean         connection_equal_id     (gconstpointer    a,
-                                          gconstpointer    b);
 gpointer         connection_key_fd       (Connection      *session);
 gpointer         connection_key_id       (Connection      *session);
-gint             connection_fd           (Connection      *session);
+GSocket*         connection_get_gsocket  (Connection      *connection);
 HandleMap*       connection_get_trans_map(Connection      *session);
 /* not part of the public API but included here for testing */
 int              create_fd_pair (int *client_fd,

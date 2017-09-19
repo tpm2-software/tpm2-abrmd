@@ -83,29 +83,37 @@ g_debug_bytes (uint8_t const *byte_array,
 /** Write as many of the size bytes from buf to fd as possible.
  */
 ssize_t
-write_all (const gint    fd,
-           const void   *buf,
-           const size_t  size)
+write_all (GSocket       *socket,
+           const uint8_t *buf,
+           const size_t   size)
 {
     ssize_t written = 0;
     size_t written_total = 0;
+    GError *error = NULL;
 
     do {
-        g_debug ("writing %zu bytes starting at 0x%" PRIxPTR " to fd %d",
+        g_debug ("writing %zu bytes starting at 0x%" PRIxPTR " to socket 0x%"
+                 PRIxPTR,
                  size - written_total,
                  (uintptr_t)buf + written_total,
-                 fd);
-        written = TEMP_FAILURE_RETRY (write (fd,
-                                             buf  + written_total,
-                                             size - written_total));
+                 (uintptr_t)socket);
+        written = g_socket_send (socket,
+                                 (const gchar*)&buf [written_total],
+                                 size - written_total,
+                                 NULL,
+                                 &error);
         switch (written) {
         case -1:
-            g_warning ("failed to write to fd %d: %s", fd, strerror (errno));
+            g_assert (error != NULL);
+            g_warning ("failed to write to socket 0x%" PRIxPTR ": %s",
+                       (uintptr_t)socket, error->message);
+            g_error_free (error);
             return written;
         case  0:
             return (ssize_t)written_total;
         default:
-            g_debug ("wrote %zd bytes to fd %d", written, fd);
+            g_debug ("wrote %zd bytes to socket 0x%" PRIxPTR,
+                     written, (uintptr_t)socket);
         }
         written_total += (size_t)written;
     } while (written_total < size);
@@ -114,12 +122,14 @@ write_all (const gint    fd,
     return (ssize_t)written_total;
 }
 /*
- * Read some data from the fd_receive.
+ * Read data from a GSocket.
  * Parameters:
- *   context:  tabrmd context
+ *   socket:  A connected GSocket.
+ *   *index:  A reference to the location in the buffer where data will be
+ *            written. This reference is updated to the end of the location
+ *            where data is written.
  *   buf:      destination buffer
  *   count:    number of bytes to read
- *     NOTE: some bytes may have already been read on past calls
  * Returns:
  *   -1:     when EOF is reached
  *   0:      if requested number of bytes received
@@ -128,29 +138,28 @@ write_all (const gint    fd,
  *       bytes.
  */
 int
-read_data (int                       fd,
-           size_t                   *index,
-           uint8_t                  *buf,
-           size_t                    count)
+read_data (GSocket       *socket,
+           size_t        *index,
+           uint8_t       *buf,
+           size_t         count)
 {
     ssize_t num_read = 0;
-    int    errno_tmp = 0;
     size_t bytes_left = count;
+    gint error_code;
+    GError *error = NULL;
 
-    /*
-     * Index is where we left off. The caller is asking us to read 'count'
-     * bytes. So count - index is the number of bytes we need to read.
-     */
+    g_assert (index != NULL);
     do {
-        g_debug ("reading %zd bytes from fd %d, to 0x%" PRIxPTR,
-                 bytes_left, fd, (uintptr_t)&buf[*index]);
-        num_read = TEMP_FAILURE_RETRY (read (fd,
-                                             &buf[*index],
-                                             bytes_left));
-        errno_tmp = errno;
+        g_debug ("reading %zd bytes socket 0x%" PRIxPTR", to 0x%" PRIxPTR,
+                 bytes_left, (uintptr_t)socket, (uintptr_t)&buf [*index]);
+        num_read = g_socket_receive (socket,
+                                     (gchar*)&buf [*index],
+                                     bytes_left,
+                                     NULL,
+                                     &error);
         if (num_read > 0) {
             g_debug ("successfully read %zd bytes", num_read);
-            g_debug_bytes (&buf[*index], num_read, 16, 4);
+            g_debug_bytes ((uint8_t*)&buf [*index], num_read, 16, 4);
             /* Advance index by the number of bytes read. */
             *index += num_read;
             bytes_left -= num_read;
@@ -158,9 +167,12 @@ read_data (int                       fd,
             g_debug ("read produced EOF");
             return -1;
         } else { /* num_read < 0 */
-            g_warning ("read on fd %d produced error: %d, %s",
-                       fd, errno_tmp, strerror (errno_tmp));
-            return errno_tmp;
+            g_assert (error != NULL);
+            g_warning ("read on socket 0x%" PRIxPTR " produced error: %s",
+                       (uintptr_t)socket, error->message);
+            error_code = error->code;
+            g_error_free (error);
+            return error_code;
         }
     } while (bytes_left);
 
@@ -179,7 +191,7 @@ read_data (int                       fd,
  *   EPROTO: If buf_size is less than the size from the command buffer.
  */
 int
-read_tpm_buffer (int                       fd,
+read_tpm_buffer (GSocket                  *socket,
                  size_t                   *index,
                  uint8_t                  *buf,
                  size_t                    buf_size)
@@ -193,7 +205,7 @@ read_tpm_buffer (int                       fd,
     }
     /* If we don't have the whole header yet try to get it. */
     if (*index < TPM_HEADER_SIZE) {
-        ret = read_data (fd, index, buf, TPM_HEADER_SIZE - *index);
+        ret = read_data (socket, index, buf, TPM_HEADER_SIZE - *index);
         if (ret != 0) {
             /* Pass errors up to the caller. */
             return ret;
@@ -211,7 +223,7 @@ read_tpm_buffer (int                       fd,
         return EPROTO;
     }
     /* Now that we have the header, we know the whole buffer size. Get it. */
-    return read_data (fd, index, buf, size - *index);
+    return read_data (socket, index, buf, size - *index);
 }
 /* pretty print */
 void
@@ -227,18 +239,4 @@ g_debug_tpma_cc (TPMA_CC tpma_cc)
     g_debug ("  rHandle:      %s", prop_str (tpma_cc.val & TPMA_CC_RHANDLE));
     g_debug ("  V:            %s", prop_str (tpma_cc.val & TPMA_CC_V));
     g_debug ("  Res:          0x%" PRIx8, (tpma_cc.val & TPMA_CC_RES) >> 30);
-}
-int
-set_flags (const int fd,
-           const int flags)
-{
-    int local_flags, ret = 0;
-
-    local_flags = fcntl(fd, F_GETFL, 0);
-    if (!(local_flags && flags)) {
-        g_debug ("connection: setting flags for fd %d to %d",
-                 fd, local_flags | flags);
-        ret = fcntl(fd, F_SETFL, local_flags | flags);
-    }
-    return ret;
 }

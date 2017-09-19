@@ -41,7 +41,7 @@ G_DEFINE_TYPE (Connection, connection, G_TYPE_OBJECT);
 enum {
     PROP_0,
     PROP_ID,
-    PROP_FD,
+    PROP_SOCKET,
     PROP_TRANSIENT_HANDLE_MAP,
     N_PROPERTIES
 };
@@ -62,10 +62,11 @@ connection_set_property (GObject       *object,
         g_debug ("Connection 0x%" PRIxPTR " set id to 0x%" PRIx64,
                  (uintptr_t)self, self->id);
         break;
-    case PROP_FD:
-        self->fd = g_value_get_int (value);
-        g_debug ("Connection 0x%" PRIxPTR " set fd to %d",
-                 (uintptr_t)self, self->fd);
+    case PROP_SOCKET:
+        self->socket = G_SOCKET (g_value_dup_object (value));
+        self->fd = g_socket_get_fd (self->socket);
+        g_debug ("Connection 0x%" PRIxPTR " set socket to %" PRIxPTR,
+                 (uintptr_t)self, (uintptr_t)self->socket);
         break;
     case PROP_TRANSIENT_HANDLE_MAP:
         self->transient_handle_map = g_value_get_object (value);
@@ -92,8 +93,8 @@ connection_get_property (GObject     *object,
     case PROP_ID:
         g_value_set_uint64 (value, self->id);
         break;
-    case PROP_FD:
-        g_value_set_int (value, self->fd);
+    case PROP_SOCKET:
+        g_value_set_object (value, self->socket);
         break;
     case PROP_TRANSIENT_HANDLE_MAP:
         g_value_set_object (value, self->transient_handle_map);
@@ -119,7 +120,7 @@ connection_finalize (GObject *obj)
     g_debug ("connection_finalize: 0x%" PRIxPTR, (uintptr_t)connection);
     if (connection == NULL)
         return;
-    close (connection->fd);
+    g_clear_object (&connection->socket);
     g_object_unref (connection->transient_handle_map);
     if (connection_parent_class)
         G_OBJECT_CLASS (connection_parent_class)->finalize (obj);
@@ -146,14 +147,12 @@ connection_class_init (ConnectionClass *klass)
                              UINT64_MAX,
                              0,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties [PROP_FD] =
-        g_param_spec_int ("file-descriptor",
-                          "File Descriptor",
-                          "File descriptor for sending and receiving data",
-                          0,
-                          INT_MAX,
-                          0,
-                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_SOCKET] =
+        g_param_spec_object ("gsocket",
+                             "GSocket",
+                             "Reference to GSocket for exchanging data with client",
+                             G_TYPE_SOCKET,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_TRANSIENT_HANDLE_MAP] =
         g_param_spec_object ("transient-handle-map",
                              "HandleMap",
@@ -193,6 +192,9 @@ connection_new (gint       *client_fd,
 {
 
     g_info ("CreateConnection");
+    GError  *error;
+    GObject *object;
+    GSocket *socket;
     int ret, server_fd;
 
     g_debug ("connection_new creating pipe pairs");
@@ -202,16 +204,24 @@ connection_new (gint       *client_fd,
     /* Make the fds used by the server non-blocking, the client will have to
      * set its own flags.
      */
-    ret = set_flags (server_fd, O_NONBLOCK);
-    if (ret == -1)
-        g_error ("Failed to set O_NONBLOCK for server receive fd %d: %s",
-                 server_fd, strerror (errno));
-
-    return CONNECTION (g_object_new (TYPE_CONNECTION,
-                                     "id", id,
-                                     "file-descriptor", server_fd,
-                                     "transient-handle-map", transient_handle_map,
-                                     NULL));
+    socket = g_socket_new_from_fd (server_fd, &error);
+    if (socket == NULL) {
+        /* this is guaranteed to be non-NULL by glib but assert anyways */
+        g_assert (error != NULL);
+        g_warning ("Failed to create GSocket from fd %d: %s",
+                   server_fd, error->message);
+        close (server_fd);
+        *client_fd = 0;
+        return NULL;
+    }
+    g_socket_set_blocking (socket, TRUE);
+    object = g_object_new (TYPE_CONNECTION,
+                           "id", id,
+                           "gsocket", socket,
+                           "transient-handle-map", transient_handle_map,
+                           NULL);
+    g_object_unref (socket);
+    return CONNECTION (object);
 }
 
 gpointer
@@ -220,35 +230,16 @@ connection_key_fd (Connection *connection)
     return &connection->fd;
 }
 
+GSocket*
+connection_get_gsocket (Connection *connection)
+{
+    return connection->socket;
+}
+
 gpointer
 connection_key_id (Connection *connection)
 {
     return &connection->id;
-}
-
-gboolean
-connection_equal_fd (gconstpointer a,
-                       gconstpointer b)
-{
-    return g_int_equal (a, b);
-}
-
-gboolean
-connection_equal_id (gconstpointer a,
-                       gconstpointer b)
-{
-    return g_int_equal (a, b);
-}
-gint
-connection_fd (Connection *connection)
-{
-    GValue value = G_VALUE_INIT;
-
-    g_value_init (&value, G_TYPE_INT);
-    g_object_get_property (G_OBJECT (connection),
-                           "file-descriptor",
-                           &value);
-    return g_value_get_int (&value);
 }
 /*
  * Return a reference to the HandleMap for transient handles to the caller.

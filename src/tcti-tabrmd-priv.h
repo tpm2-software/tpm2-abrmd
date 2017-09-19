@@ -40,8 +40,8 @@
 
 #define TSS2_TCTI_TABRMD_ID(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->id
-#define TSS2_TCTI_TABRMD_FD(context) \
-    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->fd
+#define TSS2_TCTI_TABRMD_SOCKET(context) \
+    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->socket
 #define TSS2_TCTI_TABRMD_PROXY(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->proxy
 #define TSS2_TCTI_TABRMD_HEADER(context) \
@@ -90,7 +90,7 @@ typedef enum {
 typedef struct {
     TSS2_TCTI_CONTEXT_COMMON_V1    common;
     guint64                        id;
-    int                            fd;
+    GSocket                       *socket;
     TctiTabrmd                    *proxy;
     tpm_header_t                   header;
     tcti_tabrmd_state_t            state;

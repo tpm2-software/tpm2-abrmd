@@ -207,16 +207,18 @@ response_sink_process_response (Tpm2Response *response)
     guint32      size    = tpm2_response_get_size (response);
     guint8      *buffer  = tpm2_response_get_buffer (response);
     Connection  *connection = tpm2_response_get_connection (response);
-    gint         fd      = connection_fd (connection);
+    GSocket     *socket  = connection_get_gsocket (connection);
 
     g_debug ("response_sink_thread got response: 0x%" PRIxPTR " size %d",
              (uintptr_t)response, size);
     g_debug ("  writing 0x%x bytes", size);
     g_debug_bytes (buffer, size, 16, 4);
-    written = write_all (fd, buffer, size);
+    written = write_all (socket, buffer, size);
     if (written <= 0)
-        g_warning ("write failed (%zu) on fd %d for connection 0x%" PRIxPTR ": %s",
-                   written, fd, (uintptr_t)connection, strerror (errno));
+        g_warning ("write failed (%zu) on socket 0x%" PRIxPTR " for connection"
+                   "  0x%" PRIxPTR ": %s",
+                   written, (uintptr_t)socket, (uintptr_t)connection,
+                   strerror (errno));
     g_object_unref (connection);
 
     return written;

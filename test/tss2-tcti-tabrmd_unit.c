@@ -798,7 +798,7 @@ tcti_tabrmd_receive_error_first_read_test (void **state)
      */
     will_return (__wrap_read_data, buffer_in);
     will_return (__wrap_read_data, 0);
-    will_return (__wrap_read_data, EAGAIN);
+    will_return (__wrap_read_data, G_IO_ERROR_WOULD_BLOCK);
 
     rc = tss2_tcti_receive (data->context,
                             &size,
@@ -868,7 +868,7 @@ tcti_tabrmd_receive_two_reads_header_test (void **state)
     */
     will_return (__wrap_read_data, buffer_in);
     will_return (__wrap_read_data, TPM_HEADER_SIZE / 2);
-    will_return (__wrap_read_data, EAGAIN);
+    will_return (__wrap_read_data, G_IO_ERROR_WOULD_BLOCK);
 
     rc = tss2_tcti_receive (data->context,
                             &size,
@@ -1072,12 +1072,13 @@ tcti_tabrmd_get_poll_handles_handles_test (void **state)
     TSS2_TCTI_POLL_HANDLE handles[5] = { 0 };
     size_t num_handles = 5;
     TSS2_RC rc;
+    int fd;
 
     rc = tss2_tcti_get_poll_handles (data->context, handles, &num_handles);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_int_equal (1, num_handles);
-    assert_int_equal (handles [0].fd,
-                      TSS2_TCTI_TABRMD_FD (data->context));
+    fd = g_socket_get_fd (TSS2_TCTI_TABRMD_SOCKET (data->context));
+    assert_int_equal (handles [0].fd, fd);
 }
 /*
  * This test sets up the call_set_locality mock function to return values
