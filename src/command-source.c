@@ -173,7 +173,8 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
                                   CommandSource       *command_source)
 {
     ssize_t ret;
-    int new_fd = connection_fd (connection);
+    GSocket *socket = connection_get_gsocket (connection);
+    gint     new_fd = g_socket_get_fd (socket);
 
     g_info ("command_source_on_new_connection: adding new client fd: %d",
             new_fd);
@@ -291,6 +292,7 @@ process_client_fd (CommandSource      *source,
     uint32_t command_size = 0;
     size_t index = 0;
     int ret = 0;
+    GSocket *socket;
 
     g_debug ("process_client_fd 0x%" PRIxPTR, (uintptr_t)source);
     connection = connection_manager_lookup_fd (source->connection_manager, fd);
@@ -299,8 +301,9 @@ process_client_fd (CommandSource      *source,
     else
         g_debug ("connection_manager_lookup_fd for fd %d: 0x%" PRIxPTR, fd,
                  (uintptr_t)connection);
+    socket = connection_get_gsocket (connection);
     buf = g_malloc0 (TPM_HEADER_SIZE);
-    ret = read_data (fd, &index, buf, TPM_HEADER_SIZE);
+    ret = read_data (socket, &index, buf, TPM_HEADER_SIZE);
     if (ret == 0) {
         g_debug_bytes (buf, index, 16, 4);
     } else {
@@ -309,7 +312,7 @@ process_client_fd (CommandSource      *source,
     command_size = get_command_size (buf);
     if (command_size > TPM_HEADER_SIZE && command_size <= UTIL_BUF_MAX) {
         buf = g_realloc (buf, command_size);
-        ret = read_data (fd, &index, buf, command_size - TPM_HEADER_SIZE);
+        ret = read_data (socket, &index, buf, command_size - TPM_HEADER_SIZE);
         if (ret == 0) {
             g_debug_bytes (buf, index, 16, 4);
         } else {

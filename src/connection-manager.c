@@ -118,12 +118,12 @@ connection_manager_new (guint max_connections)
      */
     mgr->connection_from_fd_table =
         g_hash_table_new_full (g_int_hash,
-                               connection_equal_fd,
+                               g_int_equal,
                                NULL,
                                NULL);
     mgr->connection_from_id_table =
         g_hash_table_new_full (g_int64_hash,
-                               connection_equal_id,
+                               g_int64_equal,
                                NULL,
                                (GDestroyNotify)g_object_unref);
     return mgr;

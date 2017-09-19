@@ -28,7 +28,7 @@
 #define UTIL_H
 
 #include <glib.h>
-#include <sys/types.h>
+#include <gio/gio.h>
 #include <sapi/tpm20.h>
 
 #include "control-message.h"
@@ -54,14 +54,14 @@
 #define TPMA_CC_RES(attrs)         (attrs.val & 0xc0000000)
 */
 
-ssize_t     write_all                       (gint const        fd,
-                                             void const       *buf,
-                                             size_t const      size);
-int         read_data                       (int               fd,
+ssize_t     write_all                       (GSocket          *socket,
+                                             const uint8_t    *buf,
+                                             const size_t      size);
+int         read_data                       (GSocket          *socket,
                                              size_t           *index,
                                              uint8_t          *buf,
                                              size_t            count);
-int         read_tpm_buffer                 (int               fd,
+int         read_tpm_buffer                 (GSocket          *socket,
                                              size_t           *index,
                                              uint8_t          *buf,
                                              size_t            buf_size);
@@ -70,6 +70,4 @@ void        g_debug_bytes                   (uint8_t const    *byte_array,
                                              size_t            width,
                                              size_t            indent);
 void        g_debug_tpma_cc                 (TPMA_CC           tpma_cc);
-int         set_flags                       (const int         fd,
-                                             const int         flags);
 #endif /* UTIL_H */

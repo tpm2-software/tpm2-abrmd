@@ -68,7 +68,6 @@ __wrap_read_data (int                       fd,
                   uint8_t                  *buf,
                   size_t                    count)
 {
-    g_debug ("__wrap_read_data");
     memcpy (&buf[*index], mock_type(uint8_t*), count);
     *index = mock_type (size_t);
     return mock_type (int);

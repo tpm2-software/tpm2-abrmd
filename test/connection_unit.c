@@ -152,22 +152,6 @@ connection_key_id_test (void **state)
     assert_int_equal (connection->id, *key);
 }
 
-static void
-connection_equal_fd_test (void **state)
-{
-    connection_test_data_t *data = (connection_test_data_t*)*state;
-    const gint *key = connection_key_fd (data->connection);
-    assert_true (connection_equal_fd (key, connection_key_fd (data->connection)));
-}
-
-static void
-connection_equal_id_test (void **state)
-{
-    connection_test_data_t *data = (connection_test_data_t*)*state;
-    const guint64 *key = connection_key_id (data->connection);
-    assert_true (connection_equal_id (key, connection_key_id (data->connection)));
-}
-
 /* connection_client_to_server_test begin
  * This test creates a connection and communicates with it as though the pipes
  * that are created as part of connection setup.
@@ -211,12 +195,6 @@ main(int argc, char* argv[])
                                          connection_setup,
                                          connection_teardown),
         cmocka_unit_test_setup_teardown (connection_key_id_test,
-                                         connection_setup,
-                                         connection_teardown),
-        cmocka_unit_test_setup_teardown (connection_equal_fd_test,
-                                         connection_setup,
-                                         connection_teardown),
-        cmocka_unit_test_setup_teardown (connection_equal_id_test,
                                          connection_setup,
                                          connection_teardown),
         cmocka_unit_test_setup_teardown (connection_client_to_server_test,
