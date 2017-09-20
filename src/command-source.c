@@ -289,9 +289,7 @@ process_client_fd (CommandSource      *source,
     Tpm2Command *command;
     Connection  *connection;
     uint8_t *buf = NULL;
-    uint32_t command_size = 0;
-    size_t index = 0;
-    int ret = 0;
+    size_t command_size = 0;
     GSocket *socket;
 
     g_debug ("process_client_fd 0x%" PRIxPTR, (uintptr_t)source);
@@ -302,30 +300,13 @@ process_client_fd (CommandSource      *source,
         g_debug ("connection_manager_lookup_fd for fd %d: 0x%" PRIxPTR, fd,
                  (uintptr_t)connection);
     socket = connection_get_gsocket (connection);
-    buf = g_malloc0 (TPM_HEADER_SIZE);
-    ret = read_data (socket, &index, buf, TPM_HEADER_SIZE);
-    if (ret == 0) {
-        g_debug_bytes (buf, index, 16, 4);
-    } else {
-        goto fail_out;
-    }
-    command_size = get_command_size (buf);
-    if (command_size > TPM_HEADER_SIZE && command_size <= UTIL_BUF_MAX) {
-        buf = g_realloc (buf, command_size);
-        ret = read_data (socket, &index, buf, command_size - TPM_HEADER_SIZE);
-        if (ret == 0) {
-            g_debug_bytes (buf, index, 16, 4);
-        } else {
-            goto fail_out;
-        }
-    } else if (command_size == TPM_HEADER_SIZE) {
-        /* No more data. Command has no parameters / handles / auths etc. */
-    } else {
+    buf = read_tpm_buffer_alloc (socket, &command_size);
+    if (buf == NULL) {
         goto fail_out;
     }
     attributes = command_attrs_from_cc (source->command_attrs,
                                         get_command_code (buf));
-    command = tpm2_command_new (connection, buf, index, attributes);
+    command = tpm2_command_new (connection, buf, command_size, attributes);
     if (command != NULL) {
         sink_enqueue (source->sink, G_OBJECT (command));
         /* the sink now owns this message */

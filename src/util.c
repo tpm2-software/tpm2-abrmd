@@ -225,6 +225,57 @@ read_tpm_buffer (GSocket                  *socket,
     /* Now that we have the header, we know the whole buffer size. Get it. */
     return read_data (socket, index, buf, size - *index);
 }
+/*
+ * This fucntion is a wrapper around the read_tpm_buffer function above. It
+ * adds the memory allocation logic necessary to create the buffer to hold
+ * the TPM command / response buffer.
+ * Returns NULL on error, and a pointer to the allocated buffer on success.
+ *   The size of the allocated buffer is returned through the *buf_size
+ *   parameter on success.
+ */
+uint8_t*
+read_tpm_buffer_alloc (GSocket  *socket,
+                       size_t   *buf_size)
+{
+    uint8_t *buf = NULL;
+    size_t   size_tmp = TPM_HEADER_SIZE, index = 0;
+    int ret = 0;
+
+    if (socket == NULL || buf_size == NULL) {
+        g_warning ("%s: got null parameter", __func__);
+        return NULL;
+    }
+    do {
+        buf = g_realloc (buf, size_tmp);
+        ret = read_tpm_buffer (socket, &index, buf, size_tmp);
+        switch (ret) {
+        case EPROTO:
+            size_tmp = get_command_size (buf);
+            if (size_tmp < TPM_HEADER_SIZE && size_tmp > UTIL_BUF_MAX) {
+                g_warning ("%s: tpm buffer size is ouside of acceptable bounds: %zd",
+                           __func__, size_tmp);
+                goto err_out;
+            }
+            break;
+        case 0:
+            /* done */
+            break;
+        default:
+            goto err_out;
+        }
+    } while (ret == EPROTO);
+    g_debug ("%s: read TPM buffer to 0x%" PRIxPTR " of size: %zd",
+             __func__, (uintptr_t)buf, index);
+    g_debug_bytes (buf, index, 16, 4);
+    *buf_size = size_tmp;
+    return buf;
+err_out:
+    g_debug ("%s: err_out freeing buffer at 0x%" PRIxPTR, __func__, (uintptr_t)buf);
+    if (buf != NULL) {
+        g_free (buf);
+    }
+    return NULL;
+}
 /* pretty print */
 void
 g_debug_tpma_cc (TPMA_CC tpma_cc)

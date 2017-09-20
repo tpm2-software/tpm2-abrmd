@@ -62,15 +62,20 @@ __wrap_connection_manager_lookup_fd (ConnectionManager *manager,
     g_debug ("__wrap_connection_manager_lookup_fd");
     return CONNECTION (mock ());
 }
-int
-__wrap_read_data (int                       fd,
-                  size_t                   *index,
-                  uint8_t                  *buf,
-                  size_t                    count)
+uint8_t*
+__wrap_read_tpm_buffer_alloc (GSocket   *socket,
+                              size_t    *buf_size)
 {
-    memcpy (&buf[*index], mock_type(uint8_t*), count);
-    *index = mock_type (size_t);
-    return mock_type (int);
+    uint8_t *buf_src = mock_type (uint8_t*);
+    uint8_t *buf_dst = NULL;
+    size_t   size = mock_type (size_t);
+
+    g_debug ("%s", __func__);
+    buf_dst = g_malloc0 (size);
+    memcpy (buf_dst, buf_src, size);
+    *buf_size = size;
+
+    return buf_dst;
 }
 void
 __wrap_sink_enqueue (Sink     *sink,
@@ -279,14 +284,9 @@ command_source_process_client_fd_test (void **state)
         /* prime wraps */
     will_return (__wrap_connection_manager_lookup_fd, connection);
 
-    /* setup read of header */
-    will_return (__wrap_read_data, &data_in [0]);
-    will_return (__wrap_read_data, 10);
-    will_return (__wrap_read_data, 0);
-    /* setup read of body */
-    will_return (__wrap_read_data, &data_in [10]);
-    will_return (__wrap_read_data, sizeof (data_in) - 10);
-    will_return (__wrap_read_data, 0);
+    /* setup read of tpm buffer */
+    will_return (__wrap_read_tpm_buffer_alloc, data_in);
+    will_return (__wrap_read_tpm_buffer_alloc, sizeof (data_in));
 
     will_return (__wrap_sink_enqueue, &command_out);
 
