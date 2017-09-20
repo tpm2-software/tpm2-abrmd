@@ -65,6 +65,8 @@ int         read_tpm_buffer                 (GSocket          *socket,
                                              size_t           *index,
                                              uint8_t          *buf,
                                              size_t            buf_size);
+uint8_t*    read_tpm_buffer_alloc           (GSocket          *socket,
+                                             size_t           *buf_size);
 void        g_debug_bytes                   (uint8_t const    *byte_array,
                                              size_t            array_size,
                                              size_t            width,

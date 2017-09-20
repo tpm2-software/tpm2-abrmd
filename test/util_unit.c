@@ -183,6 +183,7 @@ read_data_setup (void **state)
 
     data = calloc (1, sizeof (data_t));
     data->buf_size = 26;
+    data->socket = (GSocket*)1;
 
     *state = data;
     return 0;
@@ -592,6 +593,72 @@ read_tpm_buf_populated_body_test (void **state)
     assert_memory_equal (data->buf_out, buf_in, data->buf_size);
 }
 
+static void
+read_tpm_buf_alloc_success_test (void **state)
+{
+    data_t *data = *state;
+    uint8_t *buf;
+    size_t   buf_size;
+
+    /* prime read to successfully produce the header */
+    will_return (__wrap_g_socket_receive, buf_in);
+    will_return (__wrap_g_socket_receive, 0);
+    will_return (__wrap_g_socket_receive, 0);
+    will_return (__wrap_g_socket_receive, 10);
+    /* prime read to successfully produce the rest of the buffer */
+    will_return (__wrap_g_socket_receive, buf_in);
+    will_return (__wrap_g_socket_receive, 10);
+    will_return (__wrap_g_socket_receive, 0);
+    will_return (__wrap_g_socket_receive, data->buf_size - 10);
+
+    buf = read_tpm_buffer_alloc (data->socket,
+                                 &buf_size);
+    assert_non_null (buf);
+    assert_int_equal (buf_size, data->buf_size);
+    assert_memory_equal (buf, buf_in, data->buf_size);
+    g_free (buf);
+}
+
+static void
+read_tpm_buf_alloc_header_only_test (void **state)
+{
+    data_t *data = *state;
+    uint8_t buf [10] = {
+        0x80, 0x02, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x00
+    };
+    uint8_t *buf_out = NULL;
+
+    /* prime read to successfully produce the header */
+    data->buf_size = 10;
+    will_return (__wrap_g_socket_receive, buf);
+    will_return (__wrap_g_socket_receive, 0);
+    will_return (__wrap_g_socket_receive, 0);
+    will_return (__wrap_g_socket_receive, 10);
+
+    buf_out = read_tpm_buffer_alloc (data->socket,
+                                     &data->buf_size);
+    assert_non_null (buf_out);
+    assert_int_equal (data->buf_size, TPM_HEADER_SIZE);
+    assert_memory_equal (buf_out, buf, data->buf_size);
+    g_free (buf_out);
+}
+static void
+read_tpm_buf_alloc_eof_test (void **state)
+{
+    data_t *data = *state;
+    uint8_t *buf;
+    size_t   buf_size;
+
+    /* prime read to successfully produce the header */
+    will_return (__wrap_g_socket_receive, buf_in);
+    will_return (__wrap_g_socket_receive, 0);
+    will_return (__wrap_g_socket_receive, 0);
+    will_return (__wrap_g_socket_receive, 0);
+
+    buf = read_tpm_buffer_alloc (data->socket, &buf_size);
+    assert_null (buf);
+}
+
 gint
 main (gint    argc,
       gchar  *argv[])
@@ -644,6 +711,16 @@ main (gint    argc,
                                          read_data_setup,
                                          read_data_teardown),
         cmocka_unit_test_setup_teardown (read_tpm_buf_populated_body_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        /* read_tpm_buffer_alloc*/
+        cmocka_unit_test_setup_teardown (read_tpm_buf_alloc_success_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_alloc_header_only_test,
+                                         read_data_setup,
+                                         read_data_teardown),
+        cmocka_unit_test_setup_teardown (read_tpm_buf_alloc_eof_test,
                                          read_data_setup,
                                          read_data_teardown),
     };
