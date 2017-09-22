@@ -7,6 +7,7 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 ### Added
 - Check SAPI library is < 2.0.0 (API change upstream).
 ### Changed
+- Set valgrind leak-check flag to 'full'.
 - Client / server communication uses PF_LOCAL sockets instead of pipes.
 - bootstrap script now creates VERSION file from 'git describe'. Autoconf gets
 version string from it, automake distributes it in 'distcheck'.
