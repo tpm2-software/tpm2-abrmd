@@ -147,7 +147,7 @@ systemdpreset_DATA = dist/tpm2-abrmd.preset
 
 @VALGRIND_CHECK_RULES@
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
-VALGRIND_memcheck_FLAGS = --leak-check=summary --show-leak-kinds=definite,indirect --track-origins=yes --error-exitcode=1 --suppressions=dist/tabrmd.sup
+VALGRIND_memcheck_FLAGS = --leak-check=full --show-leak-kinds=definite,indirect --track-origins=yes --error-exitcode=1 --suppressions=dist/tabrmd.sup
 
 # utility library with most of the code that makes up the daemon
 src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
