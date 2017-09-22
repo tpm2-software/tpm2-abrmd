@@ -514,6 +514,7 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
     TSS2_TCTI_TABRMD_ID (context) = id;
     g_debug ("initialized tabrmd TCTI context with id: 0x%" PRIx64,
              TSS2_TCTI_TABRMD_ID (context));
+    g_object_unref (fd_list);
 
     return TSS2_RC_SUCCESS;
 }
