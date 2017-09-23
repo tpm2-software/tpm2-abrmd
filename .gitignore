@@ -42,3 +42,4 @@ test/integration/*
 !test/integration/*.h
 dist/*.preset
 dist/*.service
+VERSION
