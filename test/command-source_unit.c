@@ -132,7 +132,6 @@ command_source_allocate_test (void **state)
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
                                        data->command_attrs);
-    g_object_unref (data->command_attrs);
     assert_non_null (data->source);
 }
 
@@ -145,17 +144,6 @@ command_source_allocate_setup (void **state)
     data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
 
     *state = data;
-    return 0;
-}
-
-static int
-command_source_allocate_teardown (void **state)
-{
-    source_test_data_t *data = (source_test_data_t*)*state;
-
-    g_object_unref (data->source);
-    g_object_unref (data->manager);
-    free (data);
     return 0;
 }
 /* command_source_allocate end */
@@ -192,21 +180,20 @@ command_source_start_setup (void **state)
                                        data->command_attrs);
     if (data->source == NULL)
         g_error ("failed to allocate new command_source");
-    g_object_unref (data->command_attrs);
 
     *state = data;
     return 0;
 }
 
 static int
-command_source_start_teardown (void **state)
+command_source_teardown (void **state)
 {
     source_test_data_t *data = (source_test_data_t*)*state;
 
-    g_object_unref (data->source);
-    g_object_unref (data->manager);
-    g_object_unref (data->command_attrs);
-    free (data);
+    g_clear_object (&data->source);
+    g_clear_object (&data->manager);
+    g_clear_object (&data->command_attrs);
+    g_clear_pointer (&data, g_free);
     return 0;
 }
 /* command_source_start_test end */
@@ -231,7 +218,6 @@ command_source_connection_setup (void **state)
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
                                        data->command_attrs);
-    g_object_unref (data->command_attrs);
 
     *state = data;
     return 0;
@@ -358,19 +344,19 @@ main (int argc,
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (command_source_allocate_test,
                                          command_source_allocate_setup,
-                                         command_source_allocate_teardown),
+                                         command_source_teardown),
         cmocka_unit_test_setup_teardown (command_source_start_test,
                                          command_source_start_setup,
-                                         command_source_start_teardown),
+                                         command_source_teardown),
         cmocka_unit_test_setup_teardown (command_source_connection_insert_test,
                                          command_source_connection_setup,
-                                         command_source_start_teardown),
+                                         command_source_teardown),
         cmocka_unit_test_setup_teardown (command_source_on_io_ready_success_test,
                                          command_source_connection_setup,
-                                         command_source_allocate_teardown),
+                                         command_source_teardown),
         cmocka_unit_test_setup_teardown (command_source_on_io_ready_eof_test,
                                          command_source_connection_setup,
-                                         command_source_allocate_teardown),
+                                         command_source_teardown),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
 }
