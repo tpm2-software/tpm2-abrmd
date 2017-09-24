@@ -100,7 +100,8 @@ connection_manager_lookup_fd_test (void **state)
     g_object_unref (handle_map);
     ret = connection_manager_insert (manager, connection);
     assert_int_equal (ret, TSS2_RC_SUCCESS);
-    connection_lookup = connection_manager_lookup_fd (manager, *(int*)connection_key_fd (connection));
+    connection_lookup = connection_manager_lookup_socket (manager,
+                                                          connection_key_socket (connection));
     assert_int_equal (connection, connection_lookup);
     g_object_unref (connection_lookup);
 }

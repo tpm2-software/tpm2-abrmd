@@ -64,7 +64,6 @@ connection_set_property (GObject       *object,
         break;
     case PROP_SOCKET:
         self->socket = G_SOCKET (g_value_dup_object (value));
-        self->fd = g_socket_get_fd (self->socket);
         g_debug ("Connection 0x%" PRIxPTR " set socket to %" PRIxPTR,
                  (uintptr_t)self, (uintptr_t)self->socket);
         break;
@@ -190,8 +189,6 @@ connection_new (gint       *client_fd,
                 guint64     id,
                 HandleMap  *transient_handle_map)
 {
-
-    g_info ("CreateConnection");
     GError  *error;
     GObject *object;
     GSocket *socket;
@@ -201,9 +198,6 @@ connection_new (gint       *client_fd,
     ret = create_fd_pair (client_fd, &server_fd, O_CLOEXEC);
     if (ret == -1)
         g_error ("CreateConnection failed to make fd pair %s", strerror (errno));
-    /* Make the fds used by the server non-blocking, the client will have to
-     * set its own flags.
-     */
     socket = g_socket_new_from_fd (server_fd, &error);
     if (socket == NULL) {
         /* this is guaranteed to be non-NULL by glib but assert anyways */
@@ -214,7 +208,11 @@ connection_new (gint       *client_fd,
         *client_fd = 0;
         return NULL;
     }
-    g_socket_set_blocking (socket, TRUE);
+    /*
+     * Make the fds used by the server non-blocking, the client will have to
+     * set its own flags.
+     */
+    g_socket_set_blocking (socket, FALSE);
     object = g_object_new (TYPE_CONNECTION,
                            "id", id,
                            "gsocket", socket,
@@ -225,9 +223,9 @@ connection_new (gint       *client_fd,
 }
 
 gpointer
-connection_key_fd (Connection *connection)
+connection_key_socket (Connection *connection)
 {
-    return &connection->fd;
+    return connection->socket;
 }
 
 GSocket*
