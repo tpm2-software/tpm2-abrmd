@@ -42,19 +42,22 @@
 
 typedef struct connection_test_data {
     Connection *connection;
-    gint client_fd;
+    GSocket    *client_socket;
 } connection_test_data_t;
 
 static int
-write_read (int write_fd, int read_fd, const char* buf, size_t length)
+write_read (GSocket    *socket_in,
+            GSocket    *socket_out,
+            const char *buf,
+            size_t      length)
 {
     char out_buf[256] = { 0 };
     ssize_t ret;
 
-    ret = write (write_fd, buf, length);
+    ret = g_socket_send (socket_in, buf, length, NULL, NULL);
     if (ret != length)
         g_error ("error writing to fds[1]: %s", strerror (errno));
-    ret = read (read_fd, out_buf, length);
+    ret = g_socket_receive (socket_out, out_buf, length, NULL, NULL);
     if (ret != length)
         g_error ("error reading from fds[0]: %s", strerror (errno));
 
@@ -65,27 +68,38 @@ static void
 connection_create_pipe_pair_test (void **state)
 {
     int ret, client_fd, server_fd;
+    GSocket *client_socket, *server_socket;
     const char *test_str = "test";
     size_t length = strlen (test_str);
 
     ret = create_fd_pair (&client_fd, &server_fd, O_CLOEXEC);
     if (ret == -1)
         g_error ("create_pipe_pair failed: %s", strerror (errno));
-    assert_int_equal (write_read (client_fd, server_fd, test_str, length), length);
+    client_socket = g_socket_new_from_fd (client_fd, NULL);
+    server_socket = g_socket_new_from_fd (server_fd, NULL);
+    ret = write_read (client_socket, server_socket, test_str, length);
+    assert_int_equal (ret, length);
+    g_object_unref (client_socket);
+    g_object_unref (server_socket);
 }
 
 static void
 connection_create_pipe_pairs_test (void **state)
 {
     int client_fd, server_fd, ret;
+    GSocket *client_socket, *server_socket;
     const char *test_str = "test";
     size_t length = strlen (test_str);
 
     assert_int_equal (create_fd_pair (&client_fd, &server_fd, O_CLOEXEC), 0);
-    ret = write_read (client_fd, server_fd, test_str, length);
+    client_socket = g_socket_new_from_fd (client_fd, NULL);
+    server_socket = g_socket_new_from_fd (server_fd, NULL);
+    ret = write_read (client_socket, server_socket, test_str, length);
     assert_int_equal (ret, length);
-    ret = write_read (server_fd, client_fd, test_str, length);
+    ret = write_read (server_socket, client_socket, test_str, length);
     assert_int_equal (ret, length);
+    g_object_unref (client_socket);
+    g_object_unref (server_socket);
 }
 
 static void
@@ -108,11 +122,13 @@ connection_setup (void **state)
 {
     connection_test_data_t *data = NULL;
     HandleMap *handle_map = NULL;
+    int client_fd;
 
     data = calloc (1, sizeof (connection_test_data_t));
     assert_non_null (data);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection = connection_new (&data->client_fd, 0, handle_map);
+    data->connection = connection_new (&client_fd, 0, handle_map);
+    data->client_socket = g_socket_new_from_fd (client_fd, NULL);
     assert_non_null (data->connection);
     g_object_unref (handle_map);
     *state = data;
@@ -125,20 +141,20 @@ connection_teardown (void **state)
     connection_test_data_t *data = (connection_test_data_t*)*state;
 
     g_object_unref (data->connection);
-    close (data->client_fd);
+    g_object_unref (data->client_socket);
     free (data);
     return 0;
 }
 
 static void
-connection_key_fd_test (void **state)
+connection_key_socket_test (void **state)
 {
     connection_test_data_t *data = (connection_test_data_t*)*state;
     Connection *connection = CONNECTION (data->connection);
-    int *key = NULL;
+    gpointer *key = NULL;
 
-    key = (int*)connection_key_fd (connection);
-    assert_int_equal (connection->fd, *key);
+    key = connection_key_socket (connection);
+    assert_ptr_equal (connection->socket, key);
 }
 
 static void
@@ -162,7 +178,7 @@ connection_client_to_server_test (void ** state)
     connection_test_data_t *data = (connection_test_data_t*)*state;
     gint ret = 0;
 
-    ret = write_read (data->connection->fd, data->client_fd, "test", strlen ("test"));
+    ret = write_read (data->connection->socket, data->client_socket, "test", strlen ("test"));
     if (ret == -1)
         g_print ("write_read failed: %d\n", ret);
     assert_int_equal (ret, strlen ("test"));
@@ -177,7 +193,10 @@ connection_server_to_client_test (void **state)
     connection_test_data_t *data = (connection_test_data_t*)*state;
     gint ret = 0;
 
-    ret = write_read (data->client_fd, data->connection->fd, "test", strlen ("test"));
+    ret = write_read (data->client_socket,
+                      data->connection->socket,
+                      "test",
+                      strlen ("test"));
     if (ret == -1)
         g_print ("write_read failed: %d\n", ret);
     assert_int_equal (ret, strlen ("test"));
@@ -191,7 +210,7 @@ main(int argc, char* argv[])
         cmocka_unit_test (connection_allocate_test),
         cmocka_unit_test (connection_create_pipe_pair_test),
         cmocka_unit_test (connection_create_pipe_pairs_test),
-        cmocka_unit_test_setup_teardown (connection_key_fd_test,
+        cmocka_unit_test_setup_teardown (connection_key_socket_test,
                                          connection_setup,
                                          connection_teardown),
         cmocka_unit_test_setup_teardown (connection_key_id_test,

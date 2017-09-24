@@ -29,6 +29,7 @@
 #include <errno.h>
 #include <error.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,12 +56,25 @@ typedef struct source_test_data {
 } source_test_data_t;
 
 
-Connection*
-__wrap_connection_manager_lookup_fd (ConnectionManager *manager,
-                                  gint            fd_in)
+/* mock function to return TPM command attributes TPMA_CC */
+TPMA_CC
+__wrap_command_attrs_from_cc (CommandAttrs *attrs,
+                              TPM_CC        command_code)
 {
-    g_debug ("__wrap_connection_manager_lookup_fd");
+    return (TPMA_CC)mock_type (UINT32);
+}
+Connection*
+__wrap_connection_manager_lookup_socket (ConnectionManager *manager,
+                                         GSocket *socket)
+{
+    g_debug ("%s", __func__);
     return CONNECTION (mock ());
+}
+gint
+__wrap_connection_manager_remove      (ConnectionManager  *manager,
+                                       Connection         *connection)
+{
+    return mock_type (int);
 }
 uint8_t*
 __wrap_read_tpm_buffer_alloc (GSocket   *socket,
@@ -83,11 +97,29 @@ __wrap_sink_enqueue (Sink     *sink,
 {
     Tpm2Command **command;
 
-    g_debug ("__wrap_sink_enqueue");
+    g_debug ("%s", __func__);
     command = (Tpm2Command**)mock ();
 
     *command = TPM2_COMMAND (obj);
     g_object_ref (*command);
+}
+/*
+ * This wrap function allows us to gain access to the data that will be
+ * passed to the source callback registered by the CommandSource object when
+ * a new Connection is added. Without this callback it's not possible to get
+ * access to the source_data_t structure created by the CommandSource insert
+ * function which is required for us to simulate the callback function.
+ */
+void
+__wrap_g_source_set_callback (GSource *source,
+                              GSourceFunc func,
+                              gpointer data,
+                              GDestroyNotify notify)
+{
+    source_data_t *source_data = (source_data_t*)data;
+    source_data_t **source_data_param = mock_type (source_data_t**);
+
+    *source_data_param = source_data;
 }
 /* command_source_allocate_test begin
  * Test to allcoate and destroy a CommandSource.
@@ -100,6 +132,7 @@ command_source_allocate_test (void **state)
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
                                        data->command_attrs);
+    g_object_unref (data->command_attrs);
     assert_non_null (data->source);
 }
 
@@ -159,6 +192,7 @@ command_source_start_setup (void **state)
                                        data->command_attrs);
     if (data->source == NULL)
         g_error ("failed to allocate new command_source");
+    g_object_unref (data->command_attrs);
 
     *state = data;
     return 0;
@@ -187,68 +221,51 @@ command_source_start_teardown (void **state)
  * for data from the new connection.
  */
 static int
-command_source_wakeup_setup (void **state)
-{
-    source_test_data_t *data;
-
-    data = calloc (1, sizeof (source_test_data_t));
-    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
-    data->command_attrs = command_attrs_new ();
-    data->source  = command_source_new (data->manager,
-                                        data->command_attrs);
-    *state = data;
-    return 0;
-}
-
-static void
-command_source_connection_insert_test (void **state)
-{
-    struct source_test_data *data = (struct source_test_data*)*state;
-    CommandSource *source = data->source;
-    HandleMap     *handle_map;
-    Connection *connection;
-    gint ret, client_fd;
-
-    /* */
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    connection = connection_new (&client_fd, 5, handle_map);
-    g_object_unref (handle_map);
-    assert_false (FD_ISSET (connection->fd, &source->receive_fdset));
-    ret = thread_start(THREAD (source));
-    assert_int_equal (ret, 0);
-    connection_manager_insert (data->manager, connection);
-    sleep (1);
-    assert_true (FD_ISSET (connection->fd, &source->receive_fdset));
-    connection_manager_remove (data->manager, connection);
-    thread_cancel (THREAD (source));
-    thread_join (THREAD (source));
-}
-/* command_source_sesion_insert_test end */
-/* command_source_connection_test start */
-static int
 command_source_connection_setup (void **state)
 {
     source_test_data_t *data;
 
+    g_debug ("%s", __func__);
     data = calloc (1, sizeof (source_test_data_t));
     data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
                                        data->command_attrs);
+    g_object_unref (data->command_attrs);
 
     *state = data;
     return 0;
 }
-static int
-command_source_connection_teardown (void **state)
+static void
+command_source_connection_insert_test (void **state)
 {
-    source_test_data_t *data = (source_test_data_t*)*state;
+    struct source_test_data *data = (struct source_test_data*)*state;
+    source_data_t *source_data;
+    CommandSource *source = data->source;
+    HandleMap     *handle_map;
+    Connection *connection;
+    gint ret, client_fd;
 
-    g_object_unref (data->source);
-    g_object_unref (data->manager);
-    free (data);
-    return 0;
+    g_debug ("%s", __func__);
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    connection = connection_new (&client_fd, 5, handle_map);
+    g_object_unref (handle_map);
+    /* starts the main loop in the CommandSource */
+    ret = thread_start(THREAD (source));
+    will_return (__wrap_g_source_set_callback, &source_data);
+    assert_int_equal (ret, 0);
+    /* normally a callback from the connection manager but we fake it here */
+    sleep (1);
+    command_source_on_new_connection (data->manager, connection, source);
+    /* check internal state of the CommandSource*/
+    assert_int_equal (g_hash_table_size (source->socket_to_source_data_map),
+                      1);
+    thread_cancel (THREAD (source));
+    thread_join (THREAD (source));
+    g_object_unref (connection);
 }
+/* command_source_sesion_insert_test end */
+
 /**
  * A test: Test the command_source_connection_responder function. We do this
  * by creating a new Connection object, associating it with a new
@@ -266,7 +283,7 @@ command_source_connection_teardown (void **state)
  * the command under test (command_source_connection_responder).
  */
 static void
-command_source_process_client_fd_test (void **state)
+command_source_on_io_ready_success_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
     HandleMap   *handle_map;
@@ -282,20 +299,56 @@ command_source_process_client_fd_test (void **state)
     connection = connection_new (&client_fd, 0, handle_map);
     g_object_unref (handle_map);
         /* prime wraps */
-    will_return (__wrap_connection_manager_lookup_fd, connection);
+    will_return (__wrap_connection_manager_lookup_socket, connection);
 
     /* setup read of tpm buffer */
     will_return (__wrap_read_tpm_buffer_alloc, data_in);
     will_return (__wrap_read_tpm_buffer_alloc, sizeof (data_in));
+    /* setup query for command attributes */
+    will_return (__wrap_command_attrs_from_cc, 0);
 
     will_return (__wrap_sink_enqueue, &command_out);
 
-    process_client_fd (data->source, 0);
+    command_source_on_io_ready (NULL, G_IO_IN, data->source);
 
     assert_memory_equal (tpm2_command_get_buffer (command_out),
                          data_in,
                          sizeof (data_in));
     g_object_unref (command_out);
+}
+/*
+ * This tests the CommandSource on_io_ready function for situations where
+ * the GSocket assocaited with a client connection is closed. This causes
+ * the attempt to read data from the socket to return an error indicating
+ * that the socket was closed. In this case the function should return a
+ * value telling GLib to remove the GSource from the main loop. Additionally
+ * the data held internally by the CommandSource must be freed.
+ */
+static void
+command_source_on_io_ready_eof_test (void **state)
+{
+    struct source_test_data *data = (struct source_test_data*)*state;
+    source_data_t *source_data;
+    HandleMap   *handle_map;
+    Connection *connection;
+    gint client_fd, hash_table_size;
+    gboolean ret;
+
+    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    connection = connection_new (&client_fd, 0, handle_map);
+    g_object_unref (handle_map);
+        /* prime wraps */
+    will_return (__wrap_g_source_set_callback, &source_data);
+    will_return (__wrap_connection_manager_lookup_socket, connection);
+    will_return (__wrap_read_tpm_buffer_alloc, NULL);
+    will_return (__wrap_read_tpm_buffer_alloc, 0);
+    will_return (__wrap_connection_manager_remove, TRUE);
+
+    command_source_on_new_connection (data->manager, connection, data->source);
+    ret = command_source_on_io_ready (connection->socket, G_IO_IN, source_data);
+    assert_int_equal (ret, G_SOURCE_REMOVE);
+    hash_table_size = g_hash_table_size (data->source->socket_to_source_data_map);
+    assert_int_equal (hash_table_size, 0);
 }
 /* command_source_connection_test end */
 int
@@ -310,11 +363,14 @@ main (int argc,
                                          command_source_start_setup,
                                          command_source_start_teardown),
         cmocka_unit_test_setup_teardown (command_source_connection_insert_test,
-                                         command_source_wakeup_setup,
-                                         command_source_start_teardown),
-        cmocka_unit_test_setup_teardown (command_source_process_client_fd_test,
                                          command_source_connection_setup,
-                                         command_source_connection_teardown),
+                                         command_source_start_teardown),
+        cmocka_unit_test_setup_teardown (command_source_on_io_ready_success_test,
+                                         command_source_connection_setup,
+                                         command_source_allocate_teardown),
+        cmocka_unit_test_setup_teardown (command_source_on_io_ready_eof_test,
+                                         command_source_connection_setup,
+                                         command_source_allocate_teardown),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
 }

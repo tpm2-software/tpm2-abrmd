@@ -116,9 +116,9 @@ connection_manager_new (guint max_connections)
      * set this for one of the hash tables because we only want to free
      * each Connection object once.
      */
-    mgr->connection_from_fd_table =
-        g_hash_table_new_full (g_int_hash,
-                               g_int_equal,
+    mgr->connection_from_socket_table =
+        g_hash_table_new_full (g_direct_hash,
+                               g_direct_equal,
                                NULL,
                                NULL);
     mgr->connection_from_id_table =
@@ -144,7 +144,7 @@ connection_manager_finalize (GObject *obj)
     if (ret != 0)
         g_error ("Error locking connection_manager mutex: %s",
                  strerror (errno));
-    g_hash_table_unref (manager->connection_from_fd_table);
+    g_hash_table_unref (manager->connection_from_socket_table);
     g_hash_table_unref (manager->connection_from_id_table);
     ret = pthread_mutex_unlock (&manager->mutex);
     if (ret != 0)
@@ -235,8 +235,8 @@ connection_manager_insert (ConnectionManager    *manager,
      * count to be decreased (see g_hash_table_new_full).
      */
     g_object_ref (connection);
-    g_hash_table_insert (manager->connection_from_fd_table,
-                         connection_key_fd (connection),
+    g_hash_table_insert (manager->connection_from_socket_table,
+                         connection_key_socket (connection),
                          connection);
     g_hash_table_insert (manager->connection_from_id_table,
                          connection_key_id (connection),
@@ -260,18 +260,18 @@ connection_manager_insert (ConnectionManager    *manager,
  * by the caller.
  */
 Connection*
-connection_manager_lookup_fd (ConnectionManager *manager,
-                              gint               fd_in)
+connection_manager_lookup_socket (ConnectionManager *manager,
+                                  GSocket           *socket)
 {
     Connection *connection;
 
     pthread_mutex_lock (&manager->mutex);
-    connection = g_hash_table_lookup (manager->connection_from_fd_table,
-                                      &fd_in);
+    connection = g_hash_table_lookup (manager->connection_from_socket_table,
+                                      socket);
     if (connection != NULL) {
         g_object_ref (connection);
     } else {
-        g_warning ("connection_manager_lookup_fd returned NULL connection");
+        g_warning ("%s returned NULL connection", __func__);
     }
     pthread_mutex_unlock (&manager->mutex);
 
@@ -321,19 +321,19 @@ connection_manager_remove (ConnectionManager   *manager,
     g_debug ("connection_manager 0x%" PRIxPTR " removing Connection 0x%" PRIxPTR,
              (uintptr_t)manager, (uintptr_t)connection);
     pthread_mutex_lock (&manager->mutex);
-    ret = g_hash_table_remove (manager->connection_from_fd_table,
-                               connection_key_fd (connection));
+    ret = g_hash_table_remove (manager->connection_from_socket_table,
+                               connection_key_socket (connection));
     if (ret != TRUE)
         g_error ("failed to remove Connection 0x%" PRIxPTR " from g_hash_table "
                  "0x%" PRIxPTR "using key 0x%" PRIxPTR, (uintptr_t)connection,
-                 (uintptr_t)manager->connection_from_fd_table,
-                 (uintptr_t)connection_key_fd (connection));
+                 (uintptr_t)manager->connection_from_socket_table,
+                 (uintptr_t)connection_key_socket (connection));
     ret = g_hash_table_remove (manager->connection_from_id_table,
                                connection_key_id (connection));
     if (ret != TRUE)
         g_error ("failed to remove Connection 0x%" PRIxPTR " from g_hash_table "
                  "0x%" PRIxPTR " using key %" PRIxPTR, (uintptr_t)connection,
-                 (uintptr_t)manager->connection_from_fd_table,
+                 (uintptr_t)manager->connection_from_socket_table,
                  (uintptr_t)connection_key_id (connection));
     pthread_mutex_unlock (&manager->mutex);
     g_signal_emit (manager,
@@ -348,7 +348,7 @@ connection_manager_remove (ConnectionManager   *manager,
 guint
 connection_manager_size (ConnectionManager   *manager)
 {
-    return g_hash_table_size (manager->connection_from_fd_table);
+    return g_hash_table_size (manager->connection_from_socket_table);
 }
 
 gboolean
@@ -356,7 +356,7 @@ connection_manager_is_full (ConnectionManager *manager)
 {
     guint table_size;
 
-    table_size = g_hash_table_size (manager->connection_from_fd_table);
+    table_size = g_hash_table_size (manager->connection_from_socket_table);
     if (table_size < manager->max_connections) {
         return FALSE;
     } else {

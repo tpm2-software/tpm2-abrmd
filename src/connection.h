@@ -42,7 +42,6 @@ typedef struct _ConnectionClass {
 typedef struct _Connection {
     GObject             parent_instance;
     GSocket            *socket;
-    gint                fd;
     guint64             id;
     HandleMap          *transient_handle_map;
 } Connection;
@@ -58,7 +57,7 @@ GType            connection_get_type     (void);
 Connection*      connection_new          (gint            *client_fd,
                                           guint64          id,
                                           HandleMap       *transient_handle_map);
-gpointer         connection_key_fd       (Connection      *session);
+gpointer         connection_key_socket   (Connection      *session);
 gpointer         connection_key_id       (Connection      *session);
 GSocket*         connection_get_gsocket  (Connection      *connection);
 HandleMap*       connection_get_trans_map(Connection      *session);
