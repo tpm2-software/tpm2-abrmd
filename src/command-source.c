@@ -312,46 +312,38 @@ command_source_source_cancel (gpointer key,
 }
 /*
  * GObject dispose function. It's used to unref / release all GObjects held
- * by the CommandSource.
+ * by the CommandSource before chaining up to the parent.
  */
 static void
 command_source_dispose (GObject *object) {
     CommandSource *self = COMMAND_SOURCE (object);
 
-    g_debug ("%s", __func__);
+    g_clear_object (&self->sink);
+    g_clear_object (&self->connection_manager);
+    g_clear_object (&self->command_attrs);
     /* cancel all outstanding G_IO_IN conndition GSources and destroy them */
-    g_hash_table_foreach (self->socket_to_source_data_map,
-                          command_source_source_cancel,
-                          NULL);
-    g_debug ("%s: clearing socket_to_source_data_map with g_hash_table_unref",
-             __func__);
+    if (self->socket_to_source_data_map != NULL) {
+        g_hash_table_foreach (self->socket_to_source_data_map,
+                              command_source_source_cancel,
+                              NULL);
+    }
     g_clear_pointer (&self->socket_to_source_data_map, g_hash_table_unref);
-    g_debug ("%s: done", __func__);
+    if (self->main_loop != NULL && g_main_loop_is_running (self->main_loop)) {
+        g_main_loop_quit (self->main_loop);
+    }
+    g_clear_pointer (&self->main_loop, g_main_loop_unref);
+    g_clear_pointer (&self->main_context, g_main_context_unref);
+    G_OBJECT_CLASS (command_source_parent_class)->dispose (object);
 }
 
-/* Not doing any sanity checks here. Be sure to shut things downon your own
- * first.
+/*
+ * GObject finalize function releases all resources not freed in 'dispose'
+ * & chain up to parent.
  */
 static void
 command_source_finalize (GObject  *object)
 {
-    CommandSource *source = COMMAND_SOURCE (object);
-
-    if (source->sink)
-        g_object_unref (source->sink);
-    if (source->connection_manager)
-        g_object_unref (source->connection_manager);
-    if (source->command_attrs) {
-        g_object_unref (source->command_attrs);
-        source->command_attrs = NULL;
-    }
-    if (g_main_loop_is_running (source->main_loop)) {
-        g_main_loop_quit (source->main_loop);
-    }
-    g_clear_pointer (&source->main_loop, g_main_loop_unref);
-    g_clear_pointer (&source->main_context, g_main_context_unref);
-    if (command_source_parent_class)
-        G_OBJECT_CLASS (command_source_parent_class)->finalize (object);
+    G_OBJECT_CLASS (command_source_parent_class)->finalize (object);
 }
 /*
  * Cause the GMainLoop to stop monitoring whatever GSources are attached to
