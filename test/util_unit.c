@@ -25,6 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -199,6 +200,19 @@ read_data_teardown (void **state)
     }
     return 0;
 }
+/*
+ */
+static void
+create_socket_pair_success_test (void **state)
+{
+    int ret, client_fd, server_fd;
+
+    ret = create_socket_pair (&client_fd, &server_fd, O_CLOEXEC);
+    if (ret == -1)
+        g_error ("create_pipe_pair failed: %s", strerror (errno));
+    close (client_fd);
+}
+
 /*
  * Simple call to read wrapper function. Returns exactly what we ask for.
  * We check to be sure return value is 0, the index variable is updated
@@ -669,6 +683,7 @@ main (gint    argc,
         cmocka_unit_test (write_in_three),
         cmocka_unit_test (write_error),
         cmocka_unit_test (write_zero),
+        cmocka_unit_test (create_socket_pair_success_test),
         /* read_data tests */
         cmocka_unit_test_setup_teardown (read_data_success_test,
                                          read_data_setup,

@@ -37,6 +37,7 @@
 #include "source-interface.h"
 #include "tpm2-command.h"
 #include "tpm2-header.h"
+#include "util.h"
 
 typedef struct test_data {
     AccessBroker    *access_broker;
@@ -119,6 +120,7 @@ static int
 resource_manager_setup (void **state)
 {
     test_data_t *data;
+    GSocket     *server_socket;
     HandleMap   *handle_map;
     TSS2_RC rc;
 
@@ -130,8 +132,10 @@ resource_manager_setup (void **state)
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->access_broker = access_broker_new (TCTI (data->tcti_echo));
     data->resource_manager = resource_manager_new (data->access_broker);
-    data->connection = connection_new (&data->client_fd, 10, handle_map);
+    server_socket = create_socket_connection (&data->client_fd);
+    data->connection = connection_new (server_socket, 10, handle_map);
     g_object_unref (handle_map);
+    g_object_unref (server_socket);
 
     *state = data;
     return 0;

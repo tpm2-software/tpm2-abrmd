@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include "util.h"
@@ -275,6 +276,57 @@ err_out:
         g_free (buf);
     }
     return NULL;
+}
+/*
+ * Create a GSocket for use by the daemon for communicating with the client.
+ * The client end of the socket pair is returned through the client_fd
+ * parameter.
+ */
+GSocket*
+create_socket_connection (int *client_fd)
+{
+    GError *error;
+    GSocket *socket;
+    int server_fd, ret;
+
+    ret = create_socket_pair (client_fd, &server_fd, SOCK_CLOEXEC);
+    if (ret == -1)
+        g_error ("CreateConnection failed to make fd pair %s", strerror (errno));
+    socket = g_socket_new_from_fd (server_fd, &error);
+    if (socket == NULL) {
+        /* this is guaranteed to be non-NULL by glib but assert anyways */
+        g_assert (error != NULL);
+        g_warning ("Failed to create GSocket from fd %d: %s",
+                   server_fd, error->message);
+        g_error_free (error);
+        close (server_fd);
+        *client_fd = 0;
+        return NULL;
+    }
+    /* Make the fds used by the server non-blocking. */
+    g_socket_set_blocking (socket, FALSE);
+    return socket;
+}
+/*
+ * Create a socket and return the fds for both ends of the communication
+ * channel.
+ */
+int
+create_socket_pair (int *fd_a,
+                    int *fd_b,
+                    int  flags)
+{
+    int ret, fds[2] = { 0, };
+
+    ret = socketpair (PF_LOCAL, SOCK_STREAM | flags, 0, fds);
+    if (ret == -1) {
+        g_warning ("%s: failed to create socket pair with errno: %d",
+                   __func__, errno);
+        return ret;
+    }
+    *fd_a = fds [0];
+    *fd_b = fds [1];
+    return 0;
 }
 /* pretty print */
 void

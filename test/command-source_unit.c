@@ -46,6 +46,7 @@
 #include "command-attrs.h"
 #include "command-source.h"
 #include "tpm2-command.h"
+#include "util.h"
 
 typedef struct source_test_data {
     ConnectionManager *manager;
@@ -228,14 +229,17 @@ command_source_connection_insert_test (void **state)
     struct source_test_data *data = (struct source_test_data*)*state;
     source_data_t *source_data;
     CommandSource *source = data->source;
+    GSocket       *server_socket;
     HandleMap     *handle_map;
     Connection *connection;
     gint ret, client_fd;
 
     g_debug ("%s", __func__);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    connection = connection_new (&client_fd, 5, handle_map);
+    server_socket = create_socket_connection (&client_fd);
+    connection = connection_new (server_socket, 5, handle_map);
     g_object_unref (handle_map);
+    g_object_unref (server_socket);
     /* starts the main loop in the CommandSource */
     ret = thread_start(THREAD (source));
     will_return (__wrap_g_source_set_callback, &source_data);
@@ -272,6 +276,7 @@ static void
 command_source_on_io_ready_success_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
+    GSocket     *server_socket;
     HandleMap   *handle_map;
     Connection *connection;
     Tpm2Command *command_out;
@@ -282,8 +287,10 @@ command_source_on_io_ready_success_test (void **state)
                           0x0,  0x0,  0x0,  0x7f, 0x0a };
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    connection = connection_new (&client_fd, 0, handle_map);
+    server_socket = create_socket_connection (&client_fd);
+    connection = connection_new (server_socket, 0, handle_map);
     g_object_unref (handle_map);
+    g_object_unref (server_socket);
         /* prime wraps */
     will_return (__wrap_connection_manager_lookup_socket, connection);
 
@@ -315,14 +322,17 @@ command_source_on_io_ready_eof_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
     source_data_t *source_data;
+    GSocket     *server_socket;
     HandleMap   *handle_map;
     Connection *connection;
     gint client_fd, hash_table_size;
     gboolean ret;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    connection = connection_new (&client_fd, 0, handle_map);
+    server_socket = create_socket_connection (&client_fd);
+    connection = connection_new (server_socket, 0, handle_map);
     g_object_unref (handle_map);
+    g_object_unref (server_socket);
         /* prime wraps */
     will_return (__wrap_g_source_set_callback, &source_data);
     will_return (__wrap_connection_manager_lookup_socket, connection);

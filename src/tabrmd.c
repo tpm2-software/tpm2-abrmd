@@ -49,6 +49,7 @@
 #include "source-interface.h"
 #include "tabrmd-generated.h"
 #include "tcti-options.h"
+#include "util.h"
 
 #ifdef G_OS_UNIX
 #include <gio/gunixfdlist.h>
@@ -255,6 +256,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     HandleMap   *handle_map = NULL;
     Connection *connection = NULL;
     gint client_fd = 0, ret = 0;
+    GSocket *server_socket;
     GVariant *response_variants[2], *response_tuple;
     GUnixFDList *fd_list = NULL;
     guint64 id = 0, id_pid_mix = 0;
@@ -292,8 +294,10 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     handle_map = handle_map_new (TPM_HT_TRANSIENT, data->options.max_transient_objects);
     if (handle_map == NULL)
         g_error ("Failed to allocate new HandleMap");
-    connection = connection_new (&client_fd, id_pid_mix, handle_map);
+    server_socket = create_socket_connection (&client_fd);
+    connection = connection_new (server_socket, id_pid_mix, handle_map);
     g_object_unref (handle_map);
+    g_object_unref (server_socket);
     if (connection == NULL)
         g_error ("Failed to allocate new connection.");
     g_debug ("Created connection with fd: %d and id: 0x%" PRIx64,
