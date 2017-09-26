@@ -54,16 +54,11 @@ typedef struct _Connection {
 #define CONNECTION_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj),  TYPE_CONNECTION, ConnectionClass))
 
 GType            connection_get_type     (void);
-Connection*      connection_new          (gint            *client_fd,
+Connection*      connection_new          (GSocket         *socket,
                                           guint64          id,
                                           HandleMap       *transient_handle_map);
 gpointer         connection_key_socket   (Connection      *session);
 gpointer         connection_key_id       (Connection      *session);
 GSocket*         connection_get_gsocket  (Connection      *connection);
 HandleMap*       connection_get_trans_map(Connection      *session);
-/* not part of the public API but included here for testing */
-int              create_fd_pair (int *client_fd,
-                                 int *server_fd,
-                                 int  flags);
-
 #endif /* CONNECTION_H */

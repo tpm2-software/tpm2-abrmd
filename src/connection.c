@@ -25,7 +25,6 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <errno.h>
-#include <fcntl.h>
 #include <glib.h>
 #include <inttypes.h>
 #include <stdlib.h>
@@ -162,64 +161,21 @@ connection_class_init (ConnectionClass *klass)
                                        N_PROPERTIES,
                                        obj_properties);
 }
-/* Create a pipe and return the recv and send fds. */
-int
-create_fd_pair (int *client_fd,
-                int *server_fd,
-                int  flags)
-{
-    int ret, fds[2] = { 0, };
-
-    ret = socketpair (PF_LOCAL, SOCK_STREAM, 0, fds);
-    if (ret == -1)
-        return ret;
-    *client_fd = fds[0];
-    *server_fd = fds[1];
-    fcntl (*client_fd, flags);
-    fcntl (*server_fd, flags);
-    return 0;
-}
 /* CreateConnection builds two pipes for communicating with client
  * applications. It's provided with an array of two integers by the caller
  * and it returns this array populated with the receiving and sending pipe fds
  * respectively.
  */
 Connection*
-connection_new (gint       *client_fd,
+connection_new (GSocket    *socket,
                 guint64     id,
                 HandleMap  *transient_handle_map)
 {
-    GError  *error;
-    GObject *object;
-    GSocket *socket;
-    int ret, server_fd;
-
-    g_debug ("connection_new creating pipe pairs");
-    ret = create_fd_pair (client_fd, &server_fd, O_CLOEXEC);
-    if (ret == -1)
-        g_error ("CreateConnection failed to make fd pair %s", strerror (errno));
-    socket = g_socket_new_from_fd (server_fd, &error);
-    if (socket == NULL) {
-        /* this is guaranteed to be non-NULL by glib but assert anyways */
-        g_assert (error != NULL);
-        g_warning ("Failed to create GSocket from fd %d: %s",
-                   server_fd, error->message);
-        close (server_fd);
-        *client_fd = 0;
-        return NULL;
-    }
-    /*
-     * Make the fds used by the server non-blocking, the client will have to
-     * set its own flags.
-     */
-    g_socket_set_blocking (socket, FALSE);
-    object = g_object_new (TYPE_CONNECTION,
-                           "id", id,
-                           "gsocket", socket,
-                           "transient-handle-map", transient_handle_map,
-                           NULL);
-    g_object_unref (socket);
-    return CONNECTION (object);
+    return CONNECTION (g_object_new (TYPE_CONNECTION,
+                                     "id", id,
+                                     "gsocket", socket,
+                                     "transient-handle-map", transient_handle_map,
+                                     NULL));
 }
 
 gpointer

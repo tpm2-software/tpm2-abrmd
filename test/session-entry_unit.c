@@ -31,6 +31,7 @@
 #include <cmocka.h>
 
 #include "session-entry.h"
+#include "util.h"
 
 #define CLIENT_ID        1ULL
 #define TEST_HANDLE      0x03000000
@@ -48,10 +49,12 @@ static int
 session_entry_setup (void **state)
 {
     test_data_t *data   = NULL;
+    GSocket *server_socket;
 
     data = calloc (1, sizeof (test_data_t));
     data->handle_map = handle_map_new (TPM_HT_TRANSIENT, 100);
-    data->connection = connection_new (&data->client_fd,
+    server_socket = create_socket_connection (&data->client_fd);
+    data->connection = connection_new (server_socket,
                                        CLIENT_ID,
                                        data->handle_map);
     data->session_entry = session_entry_new (data->connection, TEST_HANDLE);

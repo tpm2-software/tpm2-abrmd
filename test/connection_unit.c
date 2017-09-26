@@ -28,7 +28,6 @@
 
 #include <errno.h>
 #include <error.h>
-#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,6 +38,7 @@
 #include <cmocka.h>
 
 #include "connection.h"
+#include "util.h"
 
 typedef struct connection_test_data {
     Connection *connection;
@@ -65,55 +65,20 @@ write_read (GSocket    *socket_in,
 }
 
 static void
-connection_create_pipe_pair_test (void **state)
-{
-    int ret, client_fd, server_fd;
-    GSocket *client_socket, *server_socket;
-    const char *test_str = "test";
-    size_t length = strlen (test_str);
-
-    ret = create_fd_pair (&client_fd, &server_fd, O_CLOEXEC);
-    if (ret == -1)
-        g_error ("create_pipe_pair failed: %s", strerror (errno));
-    client_socket = g_socket_new_from_fd (client_fd, NULL);
-    server_socket = g_socket_new_from_fd (server_fd, NULL);
-    ret = write_read (client_socket, server_socket, test_str, length);
-    assert_int_equal (ret, length);
-    g_object_unref (client_socket);
-    g_object_unref (server_socket);
-}
-
-static void
-connection_create_pipe_pairs_test (void **state)
-{
-    int client_fd, server_fd, ret;
-    GSocket *client_socket, *server_socket;
-    const char *test_str = "test";
-    size_t length = strlen (test_str);
-
-    assert_int_equal (create_fd_pair (&client_fd, &server_fd, O_CLOEXEC), 0);
-    client_socket = g_socket_new_from_fd (client_fd, NULL);
-    server_socket = g_socket_new_from_fd (server_fd, NULL);
-    ret = write_read (client_socket, server_socket, test_str, length);
-    assert_int_equal (ret, length);
-    ret = write_read (server_socket, client_socket, test_str, length);
-    assert_int_equal (ret, length);
-    g_object_unref (client_socket);
-    g_object_unref (server_socket);
-}
-
-static void
 connection_allocate_test (void **state)
 {
     HandleMap   *handle_map = NULL;
     Connection *connection = NULL;
     gint client_fd;
+    GSocket *server_socket;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    connection = connection_new (&client_fd, 0, handle_map);
+    server_socket = create_socket_connection (&client_fd);
+    connection = connection_new (server_socket, 0, handle_map);
+    g_object_unref (handle_map);
+    g_object_unref (server_socket);
     assert_non_null (connection);
     assert_true (client_fd >= 0);
-    g_object_unref (handle_map);
     g_object_unref (connection);
 }
 
@@ -123,14 +88,17 @@ connection_setup (void **state)
     connection_test_data_t *data = NULL;
     HandleMap *handle_map = NULL;
     int client_fd;
+    GSocket *server_socket;
 
     data = calloc (1, sizeof (connection_test_data_t));
     assert_non_null (data);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->connection = connection_new (&client_fd, 0, handle_map);
+    server_socket = create_socket_connection (&client_fd);
+    data->connection = connection_new (server_socket, 0, handle_map);
     data->client_socket = g_socket_new_from_fd (client_fd, NULL);
     assert_non_null (data->connection);
     g_object_unref (handle_map);
+    g_object_unref (server_socket);
     *state = data;
     return 0;
 }
@@ -208,8 +176,6 @@ main(int argc, char* argv[])
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (connection_allocate_test),
-        cmocka_unit_test (connection_create_pipe_pair_test),
-        cmocka_unit_test (connection_create_pipe_pairs_test),
         cmocka_unit_test_setup_teardown (connection_key_socket_test,
                                          connection_setup,
                                          connection_teardown),

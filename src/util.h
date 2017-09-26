@@ -71,5 +71,9 @@ void        g_debug_bytes                   (uint8_t const    *byte_array,
                                              size_t            array_size,
                                              size_t            width,
                                              size_t            indent);
+GSocket*    create_socket_connection        (int              *client_fd);
+int         create_socket_pair              (int              *fd_a,
+                                             int              *fd_b,
+                                             int               flags);
 void        g_debug_tpma_cc                 (TPMA_CC           tpma_cc);
 #endif /* UTIL_H */
