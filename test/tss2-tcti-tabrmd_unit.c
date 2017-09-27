@@ -1077,7 +1077,7 @@ tcti_tabrmd_get_poll_handles_handles_test (void **state)
     rc = tss2_tcti_get_poll_handles (data->context, handles, &num_handles);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_int_equal (1, num_handles);
-    fd = g_socket_get_fd (TSS2_TCTI_TABRMD_SOCKET (data->context));
+    fd = TSS2_TCTI_TABRMD_FD (data->context);
     assert_int_equal (handles [0].fd, fd);
 }
 /*

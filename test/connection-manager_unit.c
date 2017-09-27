@@ -80,13 +80,13 @@ connection_manager_insert_test (void **state)
     Connection *connection = NULL;
     HandleMap   *handle_map = NULL;
     gint ret, client_fd;
-    GSocket *server_socket;
+    GIOStream *iostream;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    server_socket = create_socket_connection (&client_fd);
-    connection = connection_new (server_socket, 5, handle_map);
+    iostream = create_connection_iostream (&client_fd);
+    connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
-    g_object_unref (server_socket);
+    g_object_unref (iostream);
     ret = connection_manager_insert (manager, connection);
     assert_int_equal (ret, 0);
 }
@@ -98,17 +98,17 @@ connection_manager_lookup_fd_test (void **state)
     Connection *connection = NULL, *connection_lookup = NULL;
     HandleMap   *handle_map = NULL;
     gint ret, client_fd;
-    GSocket *server_socket;
+    GIOStream *iostream;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    server_socket = create_socket_connection (&client_fd);
-    connection = connection_new (server_socket, 5, handle_map);
+    iostream = create_connection_iostream (&client_fd);
+    connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
-    g_object_unref (server_socket);
+    g_object_unref (iostream);
     ret = connection_manager_insert (manager, connection);
     assert_int_equal (ret, TSS2_RC_SUCCESS);
-    connection_lookup = connection_manager_lookup_socket (manager,
-                                                          connection_key_socket (connection));
+    connection_lookup = connection_manager_lookup_istream (manager,
+                                                           connection_key_istream (connection));
     assert_int_equal (connection, connection_lookup);
     g_object_unref (connection_lookup);
 }
@@ -119,14 +119,14 @@ connection_manager_lookup_id_test (void **state)
     ConnectionManager *manager = CONNECTION_MANAGER (*state);
     Connection *connection = NULL, *connection_lookup = NULL;
     HandleMap   *handle_map = NULL;
-    GSocket     *server_socket;
+    GIOStream *iostream;
     gint ret, client_fd;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    server_socket = create_socket_connection (&client_fd);
-    connection = connection_new (server_socket, 5, handle_map);
+    iostream = create_connection_iostream (&client_fd);
+    connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
-    g_object_unref (server_socket);
+    g_object_unref (iostream);
     ret = connection_manager_insert (manager, connection);
     assert_int_equal (ret, TSS2_RC_SUCCESS);
     connection_lookup = connection_manager_lookup_id (manager, *(int*)connection_key_id (connection));
@@ -138,16 +138,16 @@ connection_manager_remove_test (void **state)
 {
     ConnectionManager *manager = CONNECTION_MANAGER (*state);
     Connection *connection = NULL;
-    GSocket     *server_socket;
+    GIOStream *iostream;
     HandleMap   *handle_map = NULL;
     gint ret_int, client_fd;
     gboolean ret_bool;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    server_socket = create_socket_connection (&client_fd);
-    connection = connection_new (server_socket, 5, handle_map);
+    iostream = create_connection_iostream (&client_fd);
+    connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
-    g_object_unref (server_socket);
+    g_object_unref (iostream);
     ret_int = connection_manager_insert (manager, connection);
     assert_int_equal (ret_int, 0);
     ret_bool = connection_manager_remove (manager, connection);

@@ -40,14 +40,28 @@
 
 #define TSS2_TCTI_TABRMD_ID(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->id
-#define TSS2_TCTI_TABRMD_SOCKET(context) \
-    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->socket
+#define TSS2_TCTI_TABRMD_IOSTREAM(context) \
+    G_IO_STREAM (TSS2_TCTI_TABRMD_SOCK_CONNECT (context))
 #define TSS2_TCTI_TABRMD_PROXY(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->proxy
 #define TSS2_TCTI_TABRMD_HEADER(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->header
 #define TSS2_TCTI_TABRMD_STATE(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->state
+
+/*
+ * Macros for accessing the internals of the I/O stream. These are helpers
+ * for getting at the underlying GSocket and raw fds that we need to
+ * implement polling etc.
+ */
+#define TSS2_TCTI_TABRMD_ISTREAM(context) \
+    g_io_stream_get_input_stream (TSS2_TCTI_TABRMD_IOSTREAM(context))
+#define TSS2_TCTI_TABRMD_SOCK_CONNECT(context) \
+    ((TSS2_TCTI_TABRMD_CONTEXT*)context)->sock_connect
+#define TSS2_TCTI_TABRMD_SOCKET(context) \
+    g_socket_connection_get_socket (TSS2_TCTI_TABRMD_SOCK_CONNECT (context))
+#define TSS2_TCTI_TABRMD_FD(context) \
+    g_socket_get_fd (TSS2_TCTI_TABRMD_SOCKET (context))
 
 /*
  * The elements in this enumeration represent the possible states that the
@@ -90,7 +104,7 @@ typedef enum {
 typedef struct {
     TSS2_TCTI_CONTEXT_COMMON_V1    common;
     guint64                        id;
-    GSocket                       *socket;
+    GSocketConnection             *sock_connect;
     TctiTabrmd                    *proxy;
     tpm_header_t                   header;
     tcti_tabrmd_state_t            state;

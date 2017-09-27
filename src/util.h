@@ -54,24 +54,24 @@
 #define TPMA_CC_RES(attrs)         (attrs.val & 0xc0000000)
 */
 
-ssize_t     write_all                       (GSocket          *socket,
+ssize_t     write_all                       (GOutputStream    *ostream,
                                              const uint8_t    *buf,
                                              const size_t      size);
-int         read_data                       (GSocket          *socket,
+int         read_data                       (GInputStream     *istream,
                                              size_t           *index,
                                              uint8_t          *buf,
                                              size_t            count);
-int         read_tpm_buffer                 (GSocket          *socket,
+int         read_tpm_buffer                 (GInputStream     *istream,
                                              size_t           *index,
                                              uint8_t          *buf,
                                              size_t            buf_size);
-uint8_t*    read_tpm_buffer_alloc           (GSocket          *socket,
+uint8_t*    read_tpm_buffer_alloc           (GInputStream     *istream,
                                              size_t           *buf_size);
 void        g_debug_bytes                   (uint8_t const    *byte_array,
                                              size_t            array_size,
                                              size_t            width,
                                              size_t            indent);
-GSocket*    create_socket_connection        (int              *client_fd);
+GIOStream*  create_connection_iostream      (int              *client_fd);
 int         create_socket_pair              (int              *fd_a,
                                              int              *fd_b,
                                              int               flags);

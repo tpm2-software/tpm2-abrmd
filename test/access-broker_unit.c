@@ -174,17 +174,17 @@ access_broker_setup_with_command (void **state)
     guint8 *buffer;
     size_t  buffer_size;
     HandleMap *handle_map;
-    GSocket   *server_socket;
+    GIOStream *iostream;
 
     access_broker_setup_with_init (state);
     data = (test_data_t*)*state;
     buffer_size = TPM_HEADER_SIZE;
     buffer = calloc (1, buffer_size);
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    server_socket = create_socket_connection (&client_fd);
-    data->connection = connection_new (server_socket, 0, handle_map);
+    iostream = create_connection_iostream (&client_fd);
+    data->connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
-    g_object_unref (server_socket);
+    g_object_unref (iostream);
     data->command = tpm2_command_new (data->connection,
                                       buffer,
                                       buffer_size,
