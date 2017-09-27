@@ -53,7 +53,7 @@ typedef struct _CommandSource {
     CommandAttrs      *command_attrs;
     GMainContext      *main_context;
     GMainLoop         *main_loop;
-    GHashTable        *socket_to_source_data_map;
+    GHashTable        *istream_to_source_data_map;
     Sink              *sink;
 } CommandSource;
 
@@ -74,8 +74,7 @@ gint            command_source_on_new_connection (ConnectionManager  *connection
  * The following are private functions. They are exposed here for unit
  * testing. Do not call these from anywhere else.
  */
-gboolean        command_source_on_io_ready       (GSocket            *socket,
-                                                  GIOCondition        condition,
+gboolean        command_source_on_input_ready    (GInputStream       *socket,
                                                   gpointer            user_data);
 /*
  * Instances of this structure are used to track GSources and their

@@ -327,7 +327,7 @@ test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
 test_command_source_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_command_source_unit_LDFLAGS = -Wl,--wrap=g_source_set_callback,--wrap=connection_manager_lookup_socket,--wrap=connection_manager_remove,--wrap=sink_enqueue,--wrap=read_tpm_buffer_alloc,--wrap=command_attrs_from_cc
+test_command_source_unit_LDFLAGS = -Wl,--wrap=g_source_set_callback,--wrap=connection_manager_lookup_istream,--wrap=connection_manager_remove,--wrap=sink_enqueue,--wrap=read_tpm_buffer_alloc,--wrap=command_attrs_from_cc
 test_command_source_unit_SOURCES = test/command-source_unit.c
 
 test_handle_map_entry_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -366,7 +366,7 @@ test_tpm2_response_unit_SOURCES = test/tpm2-response_unit.c
 
 test_util_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(libutil)
-test_util_unit_LDFLAGS = -Wl,--wrap=g_socket_receive,--wrap=g_socket_send
+test_util_unit_LDFLAGS = -Wl,--wrap=g_input_stream_read,--wrap=g_output_stream_write
 test_util_unit_SOURCES = test/util_unit.c
 
 test_message_queue_unit_CFLAGS  = $(UNIT_AM_CFLAGS)

@@ -49,11 +49,11 @@ util_unit_error_quark (void)
 }
 
 ssize_t
-__wrap_g_socket_send (gint           fd,
-                      const void    *buf,
-                      size_t         count,
-                      GCancellable  *cancellable,
-                      GError       **error)
+__wrap_g_output_stream_write (GOutputStream *ostream,
+                              const void    *buf,
+                              size_t         count,
+                              GCancellable  *cancellable,
+                              GError       **error)
 {
     GError *error_tmp = mock_type (GError*);
     if (error_tmp != NULL && error != NULL) {
@@ -67,8 +67,8 @@ write_in_one (void **state)
 {
     ssize_t written;
 
-    will_return (__wrap_g_socket_send, NULL);
-    will_return (__wrap_g_socket_send, WRITE_SIZE);
+    will_return (__wrap_g_output_stream_write, NULL);
+    will_return (__wrap_g_output_stream_write, WRITE_SIZE);
     written = write_all (0, NULL, WRITE_SIZE);
     assert_int_equal (written, WRITE_SIZE);
 }
@@ -78,10 +78,10 @@ write_in_two (void **state)
 {
     ssize_t written;
 
-    will_return (__wrap_g_socket_send, NULL);
-    will_return (__wrap_g_socket_send, 5);
-    will_return (__wrap_g_socket_send, NULL);
-    will_return (__wrap_g_socket_send, 5);
+    will_return (__wrap_g_output_stream_write, NULL);
+    will_return (__wrap_g_output_stream_write, 5);
+    will_return (__wrap_g_output_stream_write, NULL);
+    will_return (__wrap_g_output_stream_write, 5);
     written = write_all (0, NULL, WRITE_SIZE);
     assert_int_equal (written, WRITE_SIZE);
 }
@@ -91,12 +91,12 @@ write_in_three (void **state)
 {
     ssize_t written;
 
-    will_return (__wrap_g_socket_send, NULL);
-    will_return (__wrap_g_socket_send, 3);
-    will_return (__wrap_g_socket_send, NULL);
-    will_return (__wrap_g_socket_send, 3);
-    will_return (__wrap_g_socket_send, NULL);
-    will_return (__wrap_g_socket_send, 4);
+    will_return (__wrap_g_output_stream_write, NULL);
+    will_return (__wrap_g_output_stream_write, 3);
+    will_return (__wrap_g_output_stream_write, NULL);
+    will_return (__wrap_g_output_stream_write, 3);
+    will_return (__wrap_g_output_stream_write, NULL);
+    will_return (__wrap_g_output_stream_write, 4);
     written = write_all (0, NULL, WRITE_SIZE);
     assert_int_equal (written, WRITE_SIZE);
 }
@@ -111,8 +111,8 @@ write_error (void **state)
     error = g_error_new (UTIL_UNIT_ERROR,
                          G_IO_ERROR_WOULD_BLOCK,
                          "g-io-error-would-block");
-    will_return (__wrap_g_socket_send, error);
-    will_return (__wrap_g_socket_send, -1);
+    will_return (__wrap_g_output_stream_write, error);
+    will_return (__wrap_g_output_stream_write, -1);
     written = write_all (0, NULL, WRITE_SIZE);
     assert_int_equal (written, -1);
 }
@@ -122,8 +122,8 @@ write_zero (void **state)
 {
     ssize_t written;
 
-    will_return (__wrap_g_socket_send, NULL);
-    will_return (__wrap_g_socket_send, 0);
+    will_return (__wrap_g_output_stream_write, NULL);
+    will_return (__wrap_g_output_stream_write, 0);
     written = write_all (0, NULL, WRITE_SIZE);
     assert_int_equal (written, 0);
 }
@@ -136,17 +136,18 @@ write_zero (void **state)
  *   return value
  */
 ssize_t
-__wrap_g_socket_receive (GSocket       *socket,
-                         gint          *buf,
-                         size_t         count,
-                         GCancellable  *cancellable,
-                         GError       **error)
+__wrap_g_input_stream_read (GInputStream  *istream,
+                            gint          *buf,
+                            size_t         count,
+                            GCancellable  *cancellable,
+                            GError       **error)
 {
     uint8_t *buf_in    = mock_type (uint8_t*);
     size_t   buf_index = mock_type (size_t);
     GError  *error_in  = mock_type (GError*);
     ssize_t  ret       = mock_type (ssize_t);
 
+    g_debug ("%s", __func__);
     if (error_in != NULL && error != NULL) {
         *error = error_in;
     }
@@ -171,7 +172,7 @@ static uint8_t buf_in [MAX_BUF] = {
  * Data structure to hold data for read tests.
  */
 typedef struct {
-    GSocket *socket;
+    GIOStream *iostream;
     size_t  index;
     uint8_t buf_out [MAX_BUF];
     size_t  buf_size;
@@ -184,7 +185,7 @@ read_data_setup (void **state)
 
     data = calloc (1, sizeof (data_t));
     data->buf_size = 26;
-    data->socket = (GSocket*)1;
+    data->iostream = (GIOStream*)1;
 
     *state = data;
     return 0;
@@ -225,12 +226,12 @@ read_data_success_test (void **state)
     int ret = 0;
 
     /* prime the wrap queue for a successful read */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, data->index);
-    will_return (__wrap_g_socket_receive, NULL);
-    will_return (__wrap_g_socket_receive, data->buf_size);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, data->index);
+    will_return (__wrap_g_input_stream_read, NULL);
+    will_return (__wrap_g_input_stream_read, data->buf_size);
 
-    ret = read_data (data->socket, &data->index, data->buf_out, data->buf_size);
+    ret = read_data (NULL, &data->index, data->buf_out, data->buf_size);
     assert_int_equal (ret, 0);
     assert_int_equal (data->index, data->buf_size);
     assert_memory_equal (data->buf_out, buf_in, data->buf_size);
@@ -250,12 +251,12 @@ read_data_error_test (void **state)
     error = g_error_new (UTIL_UNIT_ERROR,
                          G_IO_ERROR_WOULD_BLOCK,
                          "g-io-error-would-block");
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, data->index);
-    will_return (__wrap_g_socket_receive, error);
-    will_return (__wrap_g_socket_receive, -1);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, data->index);
+    will_return (__wrap_g_input_stream_read, error);
+    will_return (__wrap_g_input_stream_read, -1);
 
-    ret = read_data (data->socket, &data->index, data->buf_out, data->buf_size);
+    ret = read_data (NULL, &data->index, data->buf_out, data->buf_size);
     assert_int_equal (ret, G_IO_ERROR_WOULD_BLOCK);
     assert_int_equal (data->index, 0);
 }
@@ -271,17 +272,17 @@ read_data_short_success_test (void **state)
     int ret = 0;
 
     /* prime the wrap queue for a short read (half the requested size) */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, data->index);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, data->buf_size / 2);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, data->index);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, data->buf_size / 2);
     /* do it again for the second half of the read */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, data->buf_size / 2);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, data->buf_size / 2);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, data->buf_size / 2);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, data->buf_size / 2);
 
-    ret = read_data (data->socket, &data->index, data->buf_out, data->buf_size);
+    ret = read_data (NULL, &data->index, data->buf_out, data->buf_size);
     assert_int_equal (ret, 0);
     assert_int_equal (data->index, data->buf_size);
     assert_memory_equal (data->buf_out, buf_in, data->buf_size);
@@ -301,20 +302,20 @@ read_data_short_err_test (void **state)
      * Prime the wrap queue for another short read, again half the requested
      * size.
      */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, data->index);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, data->buf_size / 2);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, data->index);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, data->buf_size / 2);
     /* */
     error = g_error_new (UTIL_UNIT_ERROR,
                          G_IO_ERROR_WOULD_BLOCK,
                          "g-io-error-would-block");
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, data->buf_size / 2);
-    will_return (__wrap_g_socket_receive, error);
-    will_return (__wrap_g_socket_receive, -1);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, data->buf_size / 2);
+    will_return (__wrap_g_input_stream_read, error);
+    will_return (__wrap_g_input_stream_read, -1);
     /* read the second half of the buffer, the index maintains the state */
-    ret = read_data (data->socket, &data->index, data->buf_out, data->buf_size);
+    ret = read_data (NULL, &data->index, data->buf_out, data->buf_size);
     assert_int_equal (ret, G_IO_ERROR_WOULD_BLOCK);
     assert_int_equal (data->index, data->buf_size / 2);
     assert_memory_equal (data->buf_out, buf_in, data->buf_size / 2);
@@ -329,12 +330,12 @@ read_data_eof_test (void **state)
     data_t *data = *state;
     int ret = 0;
 
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, data->index);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 0);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, data->index);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 0);
 
-    ret = read_data (data->socket, &data->index, data->buf_out, data->buf_size);
+    ret = read_data (NULL, &data->index, data->buf_out, data->buf_size);
     assert_int_equal (ret, -1);
     assert_int_equal (data->index, 0);
 }
@@ -351,17 +352,17 @@ read_tpm_buf_success_test (void **state)
     int ret = 0;
 
     /* prime read to successfully produce the header */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 10);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 10);
     /* prime read to successfully produce the rest of the buffer */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 10);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, data->buf_size - 10);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 10);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, data->buf_size - 10);
 
-    ret = read_tpm_buffer (data->socket,
+    ret = read_tpm_buffer (NULL,
                            &data->index,
                            data->buf_out,
                            data->buf_size);
@@ -384,12 +385,12 @@ read_tpm_buf_header_only_success_test (void **state)
 
     /* prime read to successfully produce the header */
     data->buf_size = 10;
-    will_return (__wrap_g_socket_receive, buf);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 10);
+    will_return (__wrap_g_input_stream_read, buf);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 10);
 
-    ret = read_tpm_buffer (data->socket,
+    ret = read_tpm_buffer (NULL,
                            &data->index,
                            data->buf_out,
                            data->buf_size);
@@ -407,7 +408,7 @@ read_tpm_buf_lt_header_test (void **state)
     data_t *data = *state;
     int ret = 0;
 
-    ret = read_tpm_buffer (data->socket, &data->index, data->buf_out, 8);
+    ret = read_tpm_buffer (NULL, &data->index, data->buf_out, 8);
     assert_int_equal (ret, EPROTO);
     assert_int_equal (data->index, 0);
 }
@@ -423,20 +424,20 @@ read_tpm_buf_short_header_test (void **state)
      * Prime read to successfully produce 4 bytes. This is a short read to
      * exercise the error handling path in the function under test.
      */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 4);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 4);
 
     error = g_error_new (UTIL_UNIT_ERROR,
                          G_IO_ERROR_WOULD_BLOCK,
                          "g-io-error-would-block");
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 4);
-    will_return (__wrap_g_socket_receive, error);
-    will_return (__wrap_g_socket_receive, -1);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 4);
+    will_return (__wrap_g_input_stream_read, error);
+    will_return (__wrap_g_input_stream_read, -1);
 
-    ret = read_tpm_buffer (data->socket,
+    ret = read_tpm_buffer (NULL,
                            &data->index,
                            data->buf_out,
                            data->buf_size);
@@ -458,12 +459,12 @@ read_tpm_buf_lt_body_test (void **state)
      * Prime read to successfully produce 10 bytes. This is the number of
      * bytes that the first 'read' syscall is asked to produce (header).
      */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, data->index);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 10);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, data->index);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 10);
 
-    ret = read_tpm_buffer (data->socket, &data->index, data->buf_out, 11);
+    ret = read_tpm_buffer (NULL, &data->index, data->buf_out, 11);
     assert_int_equal (ret, EPROTO);
     assert_int_equal (data->index, 10);
     assert_memory_equal (data->buf_out, buf_in, 10);
@@ -483,22 +484,22 @@ read_tpm_buf_short_body_test (void **state)
      * Prime read to successfully produce 10 bytes. This is the number of
      * bytes that the first 'read' syscall is asked to produce (header).
      */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 10);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 10);
     /* Now cause a short read when getting the body of the buffer. */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 10);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 5);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 10);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 5);
     /* And then the rest of the buffer */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 15);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, data->buf_size - 15);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 15);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, data->buf_size - 15);
 
-    ret = read_tpm_buffer (data->socket,
+    ret = read_tpm_buffer (NULL,
                            &data->index,
                            data->buf_out,
                            data->buf_size);
@@ -529,17 +530,17 @@ read_tpm_buf_populated_header_half_test (void **state)
     /* prime read to successfully produce the header */
     data->index = 4;
     /* read the last 6 bytes of the header */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 4);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 6);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 4);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 6);
     /* read the rest of the body (26 - 10) */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 10);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 16);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 10);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 16);
 
-    ret = read_tpm_buffer (data->socket,
+    ret = read_tpm_buffer (NULL,
                            &data->index,
                            data->buf_out,
                            data->buf_size);
@@ -568,7 +569,7 @@ read_tpm_buf_populated_header_only_test (void **state)
     data->index = 10;
     memcpy (data->buf_out, buf, data->buf_size);
 
-    ret = read_tpm_buffer (data->socket,
+    ret = read_tpm_buffer (NULL,
                            &data->index,
                            data->buf_out,
                            data->buf_size);
@@ -593,12 +594,12 @@ read_tpm_buf_populated_body_test (void **state)
     /* prime read to successfully produce the header */
     data->index = 16;
 
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 16);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 10);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 16);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 10);
 
-    ret = read_tpm_buffer (data->socket,
+    ret = read_tpm_buffer (NULL,
                            &data->index,
                            data->buf_out,
                            data->buf_size);
@@ -615,18 +616,17 @@ read_tpm_buf_alloc_success_test (void **state)
     size_t   buf_size;
 
     /* prime read to successfully produce the header */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 10);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 10);
     /* prime read to successfully produce the rest of the buffer */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 10);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, data->buf_size - 10);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 10);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, data->buf_size - 10);
 
-    buf = read_tpm_buffer_alloc (data->socket,
-                                 &buf_size);
+    buf = read_tpm_buffer_alloc ((GInputStream*)1, &buf_size);
     assert_non_null (buf);
     assert_int_equal (buf_size, data->buf_size);
     assert_memory_equal (buf, buf_in, data->buf_size);
@@ -644,13 +644,12 @@ read_tpm_buf_alloc_header_only_test (void **state)
 
     /* prime read to successfully produce the header */
     data->buf_size = 10;
-    will_return (__wrap_g_socket_receive, buf);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 10);
+    will_return (__wrap_g_input_stream_read, buf);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 10);
 
-    buf_out = read_tpm_buffer_alloc (data->socket,
-                                     &data->buf_size);
+    buf_out = read_tpm_buffer_alloc ((GInputStream*)1, &data->buf_size);
     assert_non_null (buf_out);
     assert_int_equal (data->buf_size, TPM_HEADER_SIZE);
     assert_memory_equal (buf_out, buf, data->buf_size);
@@ -659,17 +658,16 @@ read_tpm_buf_alloc_header_only_test (void **state)
 static void
 read_tpm_buf_alloc_eof_test (void **state)
 {
-    data_t *data = *state;
     uint8_t *buf;
     size_t   buf_size;
 
     /* prime read to successfully produce the header */
-    will_return (__wrap_g_socket_receive, buf_in);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 0);
-    will_return (__wrap_g_socket_receive, 0);
+    will_return (__wrap_g_input_stream_read, buf_in);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 0);
+    will_return (__wrap_g_input_stream_read, 0);
 
-    buf = read_tpm_buffer_alloc (data->socket, &buf_size);
+    buf = read_tpm_buffer_alloc ((GInputStream*)1, &buf_size);
     assert_null (buf);
 }
 

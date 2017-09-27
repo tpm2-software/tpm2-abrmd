@@ -77,17 +77,17 @@ message_queue_enqueue_dequeue_test (void **state)
     Connection  *obj_in, *obj_out;
     HandleMap    *handle_map;
     gint          client_fd;
-    GSocket      *server_socket;
+    GIOStream *iostream;
 
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    server_socket = create_socket_connection (&client_fd);
-    obj_in = connection_new (server_socket, 0, handle_map);
+    iostream = create_connection_iostream (&client_fd);
+    obj_in = connection_new (iostream, 0, handle_map);
     message_queue_enqueue (queue, G_OBJECT (obj_in));
     obj_out = CONNECTION (message_queue_dequeue (queue));
     /* ptr != int but they're the same size usually? */
     assert_int_equal (obj_in, obj_out);
     g_object_unref (handle_map);
-    g_object_unref (server_socket);
+    g_object_unref (iostream);
 }
 
 static void
@@ -98,21 +98,21 @@ message_queue_dequeue_order_test (void **state)
     MessageQueue *queue = data->queue;
     Connection *obj_0, *obj_1, *obj_2, *obj_tmp;
     gint client_fd;
-    GSocket *server_socket;
+    GIOStream *iostream;
 
     map_0 = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     map_1 = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     map_2 = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
 
-    server_socket = create_socket_connection (&client_fd);
-    obj_0 = connection_new (server_socket, 0, map_0);
-    g_object_unref (server_socket);
-    server_socket = create_socket_connection (&client_fd);
-    obj_1 = connection_new (server_socket, 0, map_1);
-    g_object_unref (server_socket);
-    server_socket = create_socket_connection (&client_fd);
-    obj_2 = connection_new (server_socket, 0, map_2);
-    g_object_unref (server_socket);
+    iostream = create_connection_iostream (&client_fd);
+    obj_0 = connection_new (iostream, 0, map_0);
+    g_object_unref (iostream);
+    iostream = create_connection_iostream (&client_fd);
+    obj_1 = connection_new (iostream, 0, map_1);
+    g_object_unref (iostream);
+    iostream = create_connection_iostream (&client_fd);
+    obj_2 = connection_new (iostream, 0, map_2);
+    g_object_unref (iostream);
 
     message_queue_enqueue (queue, G_OBJECT (obj_0));
     message_queue_enqueue (queue, G_OBJECT (obj_1));

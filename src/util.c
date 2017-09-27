@@ -26,6 +26,8 @@
  */
 #include <errno.h>
 #include <fcntl.h>
+#include <gio/gunixinputstream.h>
+#include <gio/gunixoutputstream.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +86,7 @@ g_debug_bytes (uint8_t const *byte_array,
 /** Write as many of the size bytes from buf to fd as possible.
  */
 ssize_t
-write_all (GSocket       *socket,
+write_all (GOutputStream *ostream,
            const uint8_t *buf,
            const size_t   size)
 {
@@ -98,23 +100,23 @@ write_all (GSocket       *socket,
                  size - written_total,
                  (uintptr_t)buf + written_total,
                  (uintptr_t)socket);
-        written = g_socket_send (socket,
-                                 (const gchar*)&buf [written_total],
-                                 size - written_total,
-                                 NULL,
-                                 &error);
+        written = g_output_stream_write (ostream,
+                                         (const gchar*)&buf [written_total],
+                                         size - written_total,
+                                         NULL,
+                                         &error);
         switch (written) {
         case -1:
             g_assert (error != NULL);
-            g_warning ("failed to write to socket 0x%" PRIxPTR ": %s",
-                       (uintptr_t)socket, error->message);
+            g_warning ("failed to write to ostream 0x%" PRIxPTR ": %s",
+                       (uintptr_t)ostream, error->message);
             g_error_free (error);
             return written;
         case  0:
             return (ssize_t)written_total;
         default:
-            g_debug ("wrote %zd bytes to socket 0x%" PRIxPTR,
-                     written, (uintptr_t)socket);
+            g_debug ("wrote %zd bytes to ostream 0x%" PRIxPTR,
+                     written, (uintptr_t)ostream);
         }
         written_total += (size_t)written;
     } while (written_total < size);
@@ -139,7 +141,7 @@ write_all (GSocket       *socket,
  *       bytes.
  */
 int
-read_data (GSocket       *socket,
+read_data (GInputStream  *istream,
            size_t        *index,
            uint8_t       *buf,
            size_t         count)
@@ -153,11 +155,11 @@ read_data (GSocket       *socket,
     do {
         g_debug ("reading %zd bytes socket 0x%" PRIxPTR", to 0x%" PRIxPTR,
                  bytes_left, (uintptr_t)socket, (uintptr_t)&buf [*index]);
-        num_read = g_socket_receive (socket,
-                                     (gchar*)&buf [*index],
-                                     bytes_left,
-                                     NULL,
-                                     &error);
+        num_read = g_input_stream_read (istream,
+                                        (gchar*)&buf [*index],
+                                        bytes_left,
+                                        NULL,
+                                        &error);
         if (num_read > 0) {
             g_debug ("successfully read %zd bytes", num_read);
             g_debug_bytes ((uint8_t*)&buf [*index], num_read, 16, 4);
@@ -169,8 +171,8 @@ read_data (GSocket       *socket,
             return -1;
         } else { /* num_read < 0 */
             g_assert (error != NULL);
-            g_warning ("read on socket 0x%" PRIxPTR " produced error: %s",
-                       (uintptr_t)socket, error->message);
+            g_warning ("read on istream 0x%" PRIxPTR " produced error: %s",
+                       (uintptr_t)istream, error->message);
             error_code = error->code;
             g_error_free (error);
             return error_code;
@@ -192,7 +194,7 @@ read_data (GSocket       *socket,
  *   EPROTO: If buf_size is less than the size from the command buffer.
  */
 int
-read_tpm_buffer (GSocket                  *socket,
+read_tpm_buffer (GInputStream             *istream,
                  size_t                   *index,
                  uint8_t                  *buf,
                  size_t                    buf_size)
@@ -206,7 +208,7 @@ read_tpm_buffer (GSocket                  *socket,
     }
     /* If we don't have the whole header yet try to get it. */
     if (*index < TPM_HEADER_SIZE) {
-        ret = read_data (socket, index, buf, TPM_HEADER_SIZE - *index);
+        ret = read_data (istream, index, buf, TPM_HEADER_SIZE - *index);
         if (ret != 0) {
             /* Pass errors up to the caller. */
             return ret;
@@ -224,7 +226,7 @@ read_tpm_buffer (GSocket                  *socket,
         return EPROTO;
     }
     /* Now that we have the header, we know the whole buffer size. Get it. */
-    return read_data (socket, index, buf, size - *index);
+    return read_data (istream, index, buf, size - *index);
 }
 /*
  * This fucntion is a wrapper around the read_tpm_buffer function above. It
@@ -235,20 +237,20 @@ read_tpm_buffer (GSocket                  *socket,
  *   parameter on success.
  */
 uint8_t*
-read_tpm_buffer_alloc (GSocket  *socket,
-                       size_t   *buf_size)
+read_tpm_buffer_alloc (GInputStream *istream,
+                       size_t       *buf_size)
 {
     uint8_t *buf = NULL;
     size_t   size_tmp = TPM_HEADER_SIZE, index = 0;
     int ret = 0;
 
-    if (socket == NULL || buf_size == NULL) {
+    if (istream == NULL || buf_size == NULL) {
         g_warning ("%s: got null parameter", __func__);
         return NULL;
     }
     do {
         buf = g_realloc (buf, size_tmp);
-        ret = read_tpm_buffer (socket, &index, buf, size_tmp);
+        ret = read_tpm_buffer (istream, &index, buf, size_tmp);
         switch (ret) {
         case EPROTO:
             size_tmp = get_command_size (buf);
@@ -279,33 +281,28 @@ err_out:
 }
 /*
  * Create a GSocket for use by the daemon for communicating with the client.
- * The client end of the socket pair is returned through the client_fd
+ * The client end of the socket is returned through the client_fd
  * parameter.
  */
-GSocket*
-create_socket_connection (int *client_fd)
+GIOStream*
+create_connection_iostream (int *client_fd)
 {
-    GError *error;
-    GSocket *socket;
+    GIOStream *iostream;
+    GSocket *sock;
     int server_fd, ret;
 
     ret = create_socket_pair (client_fd, &server_fd, SOCK_CLOEXEC);
     if (ret == -1)
         g_error ("CreateConnection failed to make fd pair %s", strerror (errno));
-    socket = g_socket_new_from_fd (server_fd, &error);
-    if (socket == NULL) {
-        /* this is guaranteed to be non-NULL by glib but assert anyways */
-        g_assert (error != NULL);
-        g_warning ("Failed to create GSocket from fd %d: %s",
-                   server_fd, error->message);
-        g_error_free (error);
-        close (server_fd);
-        *client_fd = 0;
-        return NULL;
-    }
     /* Make the fds used by the server non-blocking. */
-    g_socket_set_blocking (socket, FALSE);
-    return socket;
+    if (fcntl (server_fd, O_NONBLOCK) == -1) {
+        g_warning ("%s: fcntl failed to make server FD O_NONBLOCK: %s",
+                   __func__, strerror (errno));
+    }
+    sock = g_socket_new_from_fd (server_fd, NULL);
+    iostream = G_IO_STREAM (g_socket_connection_factory_create_connection (sock));
+    g_object_unref (sock);
+    return iostream;
 }
 /*
  * Create a socket and return the fds for both ends of the communication

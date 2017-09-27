@@ -107,10 +107,11 @@ command_source_init (CommandSource *source)
      * The hash table owns a reference to the socket (key) and it owns
      * the structure held in the value (it will be freed when removed).
      */
-    source->socket_to_source_data_map = g_hash_table_new_full (g_direct_hash,
-                                                               g_direct_equal,
-                                                               g_object_unref,
-                                                               source_data_free);
+    source->istream_to_source_data_map =
+        g_hash_table_new_full (g_direct_hash,
+                               g_direct_equal,
+                               g_object_unref,
+                               source_data_free);
 }
 
 G_DEFINE_TYPE_WITH_CODE (
@@ -191,9 +192,8 @@ command_source_get_property (GObject      *object,
  * monitor the GSocket for the G_IO_IN condition.
  */
 gboolean
-command_source_on_io_ready (GSocket      *socket,
-                            GIOCondition  condition,
-                            gpointer      user_data)
+command_source_on_input_ready (GInputStream *istream,
+                               gpointer      user_data)
 {
     source_data_t *data = (source_data_t*)user_data;
     Connection    *connection;
@@ -202,20 +202,20 @@ command_source_on_io_ready (GSocket      *socket,
     uint8_t       *buf;
     size_t         buf_size;
 
-    g_debug ("%s: GSocket: 0x%" PRIxPTR ", CommandSource: 0x%" PRIxPTR,
-             __func__, (uintptr_t)socket, (uintptr_t)data->self);
+    g_debug ("%s: GInputStream: 0x%" PRIxPTR ", CommandSource: 0x%" PRIxPTR,
+             __func__, (uintptr_t)istream, (uintptr_t)data->self);
     connection =
-        connection_manager_lookup_socket (data->self->connection_manager,
-                                          socket);
+        connection_manager_lookup_istream (data->self->connection_manager,
+                                           istream);
     if (connection == NULL) {
-        g_error ("failed to get connection associated with socket: 0x%"
-                 PRIxPTR, (uintptr_t)socket);
+        g_error ("failed to get connection associated with istream: 0x%"
+                 PRIxPTR, (uintptr_t)istream);
     } else {
         g_debug ("connection_manager_lookup_socket for socket: 0x%" PRIxPTR
-                 ", connection: 0x%" PRIxPTR, (uintptr_t)socket,
+                 ", connection: 0x%" PRIxPTR, (uintptr_t)istream,
                  (uintptr_t)connection);
     }
-    buf = read_tpm_buffer_alloc (socket, &buf_size);
+    buf = read_tpm_buffer_alloc (istream, &buf_size);
     if (buf == NULL) {
         goto fail_out;
     }
@@ -250,7 +250,7 @@ fail_out:
      * (returning FALSE).
      */
     g_debug ("%s: reomvingunref GCancellable: 0x%" PRIxPTR, __func__, (uintptr_t)data->cancellable);
-    g_hash_table_remove (data->self->socket_to_source_data_map, socket);
+    g_hash_table_remove (data->self->istream_to_source_data_map, istream);
     return G_SOURCE_REMOVE;
 }
 /*
@@ -263,7 +263,8 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
                                   Connection          *connection,
                                   CommandSource       *self)
 {
-    GSocket *socket = connection_get_gsocket (connection);
+    GIOStream *iostream;
+    GPollableInputStream *istream;
     source_data_t *data;
 
     g_info ("%s: adding new connection: 0x%" PRIxPTR, __func__, (uintptr_t)connection);
@@ -271,23 +272,26 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
      * Take reference to socket, will be freed when the source_data_t
      * structure is freed
      */
-    g_object_ref (socket);
+    iostream = connection_get_iostream (connection);
+    istream = G_POLLABLE_INPUT_STREAM (g_io_stream_get_input_stream (iostream));
+    g_object_ref (istream);
     data = g_malloc0 (sizeof (source_data_t));
     data->cancellable = g_cancellable_new ();
-    data->source = g_socket_create_source (socket, G_IO_IN, data->cancellable);
+    data->source = g_pollable_input_stream_create_source (istream,
+                                                          data->cancellable);
     /* we ignore the ID returned since we keep a reference to the source around */
     g_source_attach (data->source, self->main_context);
     data->self = self;
     g_source_set_callback (data->source,
-                           (GSourceFunc)command_source_on_io_ready,
+                           (GSourceFunc)command_source_on_input_ready,
                            data,
                            NULL);
     /*
      * To stop watching this socket for G_IO_IN condition use this GHashTable
      * to look up the GCancellable object. The hash table takes ownership of
-     * the reference to the socket and the source_data_t pointer.
+     * the reference to the istream and the source_data_t pointer.
      */
-    g_hash_table_insert (self->socket_to_source_data_map, socket, data);
+    g_hash_table_insert (self->istream_to_source_data_map, istream, data);
 
     return 0;
 }
@@ -322,12 +326,12 @@ command_source_dispose (GObject *object) {
     g_clear_object (&self->connection_manager);
     g_clear_object (&self->command_attrs);
     /* cancel all outstanding G_IO_IN conndition GSources and destroy them */
-    if (self->socket_to_source_data_map != NULL) {
-        g_hash_table_foreach (self->socket_to_source_data_map,
+    if (self->istream_to_source_data_map != NULL) {
+        g_hash_table_foreach (self->istream_to_source_data_map,
                               command_source_source_cancel,
                               NULL);
     }
-    g_clear_pointer (&self->socket_to_source_data_map, g_hash_table_unref);
+    g_clear_pointer (&self->istream_to_source_data_map, g_hash_table_unref);
     if (self->main_loop != NULL && g_main_loop_is_running (self->main_loop)) {
         g_main_loop_quit (self->main_loop);
     }

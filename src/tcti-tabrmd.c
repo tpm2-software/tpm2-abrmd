@@ -48,6 +48,7 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
 {
     ssize_t write_ret;
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
+    GOutputStream *ostream;
 
     g_debug ("tss2_tcti_tabrmd_transmit");
     if (context == NULL || command == NULL) {
@@ -64,11 +65,10 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
         return TSS2_TCTI_RC_BAD_SEQUENCE;
     }
     g_debug_bytes (command, size, 16, 4);
-    g_debug ("blocking write on socket: 0x%" PRIxPTR,
-             (uintptr_t)TSS2_TCTI_TABRMD_SOCKET (context));
-    write_ret = write_all (TSS2_TCTI_TABRMD_SOCKET (context),
-                           command,
-                           size);
+    ostream = g_io_stream_get_output_stream (TSS2_TCTI_TABRMD_IOSTREAM (context));
+    g_debug ("blocking write on iostream: 0x%" PRIxPTR,
+             (uintptr_t)ostream);
+    write_ret = write_all (ostream, command, size);
     /* should switch on possible errors to translate to TSS2 error codes */
     switch (write_ret) {
     case -1:
@@ -203,7 +203,6 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
 {
     TSS2_TCTI_TABRMD_CONTEXT *tabrmd_ctx = (TSS2_TCTI_TABRMD_CONTEXT*)context;
     size_t ret = 0;
-    int fd;
 
     g_debug ("tss2_tcti_tabrmd_receive");
     if (context == NULL || size == NULL) {
@@ -229,8 +228,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     if (response != NULL && *size < TPM_HEADER_SIZE) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
-    fd = g_socket_get_fd (TSS2_TCTI_TABRMD_SOCKET (context));
-    ret = tcti_tabrmd_poll (fd, timeout);
+    ret = tcti_tabrmd_poll (TSS2_TCTI_TABRMD_FD (context), timeout);
     switch (ret) {
     case -1:
         return TSS2_TCTI_RC_TRY_AGAIN;
@@ -241,7 +239,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     }
     /* make sure we've got the response header */
     if (tabrmd_ctx->index < TPM_HEADER_SIZE) {
-        ret = read_data (TSS2_TCTI_TABRMD_SOCKET (tabrmd_ctx),
+        ret = read_data (TSS2_TCTI_TABRMD_ISTREAM (context),
                          &tabrmd_ctx->index,
                          tabrmd_ctx->header_buf,
                          TPM_HEADER_SIZE - tabrmd_ctx->index);
@@ -274,7 +272,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     if (*size < tabrmd_ctx->header.size) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
-    ret = read_data (TSS2_TCTI_TABRMD_SOCKET (tabrmd_ctx),
+    ret = read_data (TSS2_TCTI_TABRMD_ISTREAM (context),
                      &tabrmd_ctx->index,
                      response,
                      tabrmd_ctx->header.size - tabrmd_ctx->index);
@@ -296,7 +294,7 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *context)
         return;
     }
     TSS2_TCTI_TABRMD_STATE (context) = TABRMD_STATE_FINAL;
-    g_clear_pointer (&TSS2_TCTI_TABRMD_SOCKET (context), g_object_unref);
+    g_clear_pointer (&TSS2_TCTI_TABRMD_SOCK_CONNECT (context), g_object_unref);
     g_object_unref (TSS2_TCTI_TABRMD_PROXY (context));
 }
 
@@ -347,7 +345,7 @@ tss2_tcti_tabrmd_get_poll_handles (TSS2_TCTI_CONTEXT     *context,
     }
     *num_handles = 1;
     if (handles != NULL) {
-        handles [0].fd = g_socket_get_fd (TSS2_TCTI_TABRMD_SOCKET (context));
+        handles [0].fd = TSS2_TCTI_TABRMD_FD (context);
     }
     return TSS2_RC_SUCCESS;
 }
@@ -438,6 +436,7 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
 {
     GBusType g_bus_type;
     GError *error = NULL;
+    GSocket *sock;
     GVariant *fds_variant;
     guint64 id;
     GUnixFDList *fd_list;
@@ -502,15 +501,14 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
         g_error ("unable to get receive handle from GUnixFDList: %s",
                  error->message);
     }
-    TSS2_TCTI_TABRMD_SOCKET (context) = g_socket_new_from_fd (fd, &error);
-    if (TSS2_TCTI_TABRMD_SOCKET (context) == NULL) {
-        g_assert (error != NULL);
-        g_warning ("failed to allocate socket for fd %d: %s",
-                   fd, error->message);
-        g_error_free (error);
-        return TSS2_TCTI_RC_GENERAL_FAILURE;
+    if (fcntl (fd, O_NONBLOCK) == -1) {
+        g_warning ("Failed to set fd %d to NONBLOCK: %s",
+                   fd, strerror (errno));
     }
-    g_socket_set_blocking (TSS2_TCTI_TABRMD_SOCKET (context), FALSE);
+    sock = g_socket_new_from_fd (fd, NULL);
+    TSS2_TCTI_TABRMD_SOCK_CONNECT (context) = \
+        g_socket_connection_factory_create_connection (sock);
+    g_object_unref (sock);
     TSS2_TCTI_TABRMD_ID (context) = id;
     g_debug ("initialized tabrmd TCTI context with id: 0x%" PRIx64,
              TSS2_TCTI_TABRMD_ID (context));
