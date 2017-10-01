@@ -26,10 +26,13 @@
  */
 #include <errno.h>
 #include <fcntl.h>
+#include <gio/gunixinputstream.h>
+#include <gio/gunixoutputstream.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include "util.h"
@@ -83,29 +86,37 @@ g_debug_bytes (uint8_t const *byte_array,
 /** Write as many of the size bytes from buf to fd as possible.
  */
 ssize_t
-write_all (const gint    fd,
-           const void   *buf,
-           const size_t  size)
+write_all (GOutputStream *ostream,
+           const uint8_t *buf,
+           const size_t   size)
 {
     ssize_t written = 0;
     size_t written_total = 0;
+    GError *error = NULL;
 
     do {
-        g_debug ("writing %zu bytes starting at 0x%" PRIxPTR " to fd %d",
+        g_debug ("writing %zu bytes starting at 0x%" PRIxPTR " to socket 0x%"
+                 PRIxPTR,
                  size - written_total,
                  (uintptr_t)buf + written_total,
-                 fd);
-        written = TEMP_FAILURE_RETRY (write (fd,
-                                             buf  + written_total,
-                                             size - written_total));
+                 (uintptr_t)socket);
+        written = g_output_stream_write (ostream,
+                                         (const gchar*)&buf [written_total],
+                                         size - written_total,
+                                         NULL,
+                                         &error);
         switch (written) {
         case -1:
-            g_warning ("failed to write to fd %d: %s", fd, strerror (errno));
+            g_assert (error != NULL);
+            g_warning ("failed to write to ostream 0x%" PRIxPTR ": %s",
+                       (uintptr_t)ostream, error->message);
+            g_error_free (error);
             return written;
         case  0:
             return (ssize_t)written_total;
         default:
-            g_debug ("wrote %zd bytes to fd %d", written, fd);
+            g_debug ("wrote %zd bytes to ostream 0x%" PRIxPTR,
+                     written, (uintptr_t)ostream);
         }
         written_total += (size_t)written;
     } while (written_total < size);
@@ -114,12 +125,14 @@ write_all (const gint    fd,
     return (ssize_t)written_total;
 }
 /*
- * Read some data from the fd_receive.
+ * Read data from a GSocket.
  * Parameters:
- *   context:  tabrmd context
+ *   socket:  A connected GSocket.
+ *   *index:  A reference to the location in the buffer where data will be
+ *            written. This reference is updated to the end of the location
+ *            where data is written.
  *   buf:      destination buffer
  *   count:    number of bytes to read
- *     NOTE: some bytes may have already been read on past calls
  * Returns:
  *   -1:     when EOF is reached
  *   0:      if requested number of bytes received
@@ -128,29 +141,28 @@ write_all (const gint    fd,
  *       bytes.
  */
 int
-read_data (int                       fd,
-           size_t                   *index,
-           uint8_t                  *buf,
-           size_t                    count)
+read_data (GInputStream  *istream,
+           size_t        *index,
+           uint8_t       *buf,
+           size_t         count)
 {
     ssize_t num_read = 0;
-    int    errno_tmp = 0;
     size_t bytes_left = count;
+    gint error_code;
+    GError *error = NULL;
 
-    /*
-     * Index is where we left off. The caller is asking us to read 'count'
-     * bytes. So count - index is the number of bytes we need to read.
-     */
+    g_assert (index != NULL);
     do {
-        g_debug ("reading %zd bytes from fd %d, to 0x%" PRIxPTR,
-                 bytes_left, fd, (uintptr_t)&buf[*index]);
-        num_read = TEMP_FAILURE_RETRY (read (fd,
-                                             &buf[*index],
-                                             bytes_left));
-        errno_tmp = errno;
+        g_debug ("reading %zd bytes socket 0x%" PRIxPTR", to 0x%" PRIxPTR,
+                 bytes_left, (uintptr_t)socket, (uintptr_t)&buf [*index]);
+        num_read = g_input_stream_read (istream,
+                                        (gchar*)&buf [*index],
+                                        bytes_left,
+                                        NULL,
+                                        &error);
         if (num_read > 0) {
             g_debug ("successfully read %zd bytes", num_read);
-            g_debug_bytes (&buf[*index], num_read, 16, 4);
+            g_debug_bytes ((uint8_t*)&buf [*index], num_read, 16, 4);
             /* Advance index by the number of bytes read. */
             *index += num_read;
             bytes_left -= num_read;
@@ -158,9 +170,12 @@ read_data (int                       fd,
             g_debug ("read produced EOF");
             return -1;
         } else { /* num_read < 0 */
-            g_warning ("read on fd %d produced error: %d, %s",
-                       fd, errno_tmp, strerror (errno_tmp));
-            return errno_tmp;
+            g_assert (error != NULL);
+            g_warning ("read on istream 0x%" PRIxPTR " produced error: %s",
+                       (uintptr_t)istream, error->message);
+            error_code = error->code;
+            g_error_free (error);
+            return error_code;
         }
     } while (bytes_left);
 
@@ -179,7 +194,7 @@ read_data (int                       fd,
  *   EPROTO: If buf_size is less than the size from the command buffer.
  */
 int
-read_tpm_buffer (int                       fd,
+read_tpm_buffer (GInputStream             *istream,
                  size_t                   *index,
                  uint8_t                  *buf,
                  size_t                    buf_size)
@@ -193,7 +208,7 @@ read_tpm_buffer (int                       fd,
     }
     /* If we don't have the whole header yet try to get it. */
     if (*index < TPM_HEADER_SIZE) {
-        ret = read_data (fd, index, buf, TPM_HEADER_SIZE - *index);
+        ret = read_data (istream, index, buf, TPM_HEADER_SIZE - *index);
         if (ret != 0) {
             /* Pass errors up to the caller. */
             return ret;
@@ -211,7 +226,104 @@ read_tpm_buffer (int                       fd,
         return EPROTO;
     }
     /* Now that we have the header, we know the whole buffer size. Get it. */
-    return read_data (fd, index, buf, size - *index);
+    return read_data (istream, index, buf, size - *index);
+}
+/*
+ * This fucntion is a wrapper around the read_tpm_buffer function above. It
+ * adds the memory allocation logic necessary to create the buffer to hold
+ * the TPM command / response buffer.
+ * Returns NULL on error, and a pointer to the allocated buffer on success.
+ *   The size of the allocated buffer is returned through the *buf_size
+ *   parameter on success.
+ */
+uint8_t*
+read_tpm_buffer_alloc (GInputStream *istream,
+                       size_t       *buf_size)
+{
+    uint8_t *buf = NULL;
+    size_t   size_tmp = TPM_HEADER_SIZE, index = 0;
+    int ret = 0;
+
+    if (istream == NULL || buf_size == NULL) {
+        g_warning ("%s: got null parameter", __func__);
+        return NULL;
+    }
+    do {
+        buf = g_realloc (buf, size_tmp);
+        ret = read_tpm_buffer (istream, &index, buf, size_tmp);
+        switch (ret) {
+        case EPROTO:
+            size_tmp = get_command_size (buf);
+            if (size_tmp < TPM_HEADER_SIZE && size_tmp > UTIL_BUF_MAX) {
+                g_warning ("%s: tpm buffer size is ouside of acceptable bounds: %zd",
+                           __func__, size_tmp);
+                goto err_out;
+            }
+            break;
+        case 0:
+            /* done */
+            break;
+        default:
+            goto err_out;
+        }
+    } while (ret == EPROTO);
+    g_debug ("%s: read TPM buffer to 0x%" PRIxPTR " of size: %zd",
+             __func__, (uintptr_t)buf, index);
+    g_debug_bytes (buf, index, 16, 4);
+    *buf_size = size_tmp;
+    return buf;
+err_out:
+    g_debug ("%s: err_out freeing buffer at 0x%" PRIxPTR, __func__, (uintptr_t)buf);
+    if (buf != NULL) {
+        g_free (buf);
+    }
+    return NULL;
+}
+/*
+ * Create a GSocket for use by the daemon for communicating with the client.
+ * The client end of the socket is returned through the client_fd
+ * parameter.
+ */
+GIOStream*
+create_connection_iostream (int *client_fd)
+{
+    GIOStream *iostream;
+    GSocket *sock;
+    int server_fd, ret;
+
+    ret = create_socket_pair (client_fd, &server_fd, SOCK_CLOEXEC);
+    if (ret == -1)
+        g_error ("CreateConnection failed to make fd pair %s", strerror (errno));
+    /* Make the fds used by the server non-blocking. */
+    if (fcntl (server_fd, O_NONBLOCK) == -1) {
+        g_warning ("%s: fcntl failed to make server FD O_NONBLOCK: %s",
+                   __func__, strerror (errno));
+    }
+    sock = g_socket_new_from_fd (server_fd, NULL);
+    iostream = G_IO_STREAM (g_socket_connection_factory_create_connection (sock));
+    g_object_unref (sock);
+    return iostream;
+}
+/*
+ * Create a socket and return the fds for both ends of the communication
+ * channel.
+ */
+int
+create_socket_pair (int *fd_a,
+                    int *fd_b,
+                    int  flags)
+{
+    int ret, fds[2] = { 0, };
+
+    ret = socketpair (PF_LOCAL, SOCK_STREAM | flags, 0, fds);
+    if (ret == -1) {
+        g_warning ("%s: failed to create socket pair with errno: %d",
+                   __func__, errno);
+        return ret;
+    }
+    *fd_a = fds [0];
+    *fd_b = fds [1];
+    return 0;
 }
 /* pretty print */
 void
@@ -227,18 +339,4 @@ g_debug_tpma_cc (TPMA_CC tpma_cc)
     g_debug ("  rHandle:      %s", prop_str (tpma_cc.val & TPMA_CC_RHANDLE));
     g_debug ("  V:            %s", prop_str (tpma_cc.val & TPMA_CC_V));
     g_debug ("  Res:          0x%" PRIx8, (tpma_cc.val & TPMA_CC_RES) >> 30);
-}
-int
-set_flags (const int fd,
-           const int flags)
-{
-    int local_flags, ret = 0;
-
-    local_flags = fcntl(fd, F_GETFL, 0);
-    if (!(local_flags && flags)) {
-        g_debug ("connection: setting flags for fd %d to %d",
-                 fd, local_flags | flags);
-        ret = fcntl(fd, F_SETFL, local_flags | flags);
-    }
-    return ret;
 }

@@ -26,6 +26,8 @@ TESTS_UNIT = \
     test/command-source_unit \
     test/handle-map-entry_unit \
     test/handle-map_unit \
+    test/ipc-frontend_unit \
+    test/ipc-frontend-dbus_unit \
     test/random_unit \
     test/session-entry_unit \
     test/test-skeleton_unit \
@@ -147,7 +149,11 @@ systemdpreset_DATA = dist/tpm2-abrmd.preset
 
 @VALGRIND_CHECK_RULES@
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
-VALGRIND_memcheck_FLAGS = --leak-check=summary --show-leak-kinds=definite,indirect --track-origins=yes --error-exitcode=1
+VALGRIND_memcheck_FLAGS = --leak-check=full --show-leak-kinds=definite,indirect --track-origins=yes --error-exitcode=1 --suppressions=dist/tabrmd.sup
+
+# This is a hack required to ensure that BUILT_SOURCES are generated before
+# the file that requires them.
+src/ipc-frontend-dbus.c : $(BUILT_SOURCES)
 
 # utility library with most of the code that makes up the daemon
 src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
@@ -169,6 +175,10 @@ src_libutil_la_SOURCES = \
     src/handle-map-entry.h \
     src/handle-map.c \
     src/handle-map.h \
+    src/ipc-frontend.c \
+    src/ipc-frontend.h \
+    src/ipc-frontend-dbus.h \
+    src/ipc-frontend-dbus.c \
     src/logging.c \
     src/logging.h \
     src/message-queue.c \
@@ -327,7 +337,7 @@ test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
 test_command_source_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_command_source_unit_LDFLAGS = -Wl,--wrap=connection_manager_lookup_fd,--wrap=sink_enqueue,--wrap=read_data
+test_command_source_unit_LDFLAGS = -Wl,--wrap=g_source_set_callback,--wrap=connection_manager_lookup_istream,--wrap=connection_manager_remove,--wrap=sink_enqueue,--wrap=read_tpm_buffer_alloc,--wrap=command_attrs_from_cc
 test_command_source_unit_SOURCES = test/command-source_unit.c
 
 test_handle_map_entry_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -337,6 +347,14 @@ test_handle_map_entry_unit_SOURCES = test/handle-map-entry_unit.c
 test_handle_map_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_handle_map_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_handle_map_unit_SOURCES = test/handle-map_unit.c
+
+test_ipc_frontend_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_ipc_frontend_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_ipc_frontend_unit_SOURCES = test/ipc-frontend_unit.c
+
+test_ipc_frontend_dbus_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_ipc_frontend_dbus_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_ipc_frontend_dbus_unit_SOURCES = test/ipc-frontend-dbus_unit.c
 
 if TCTI_DEVICE
 test_tcti_device_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
@@ -366,7 +384,7 @@ test_tpm2_response_unit_SOURCES = test/tpm2-response_unit.c
 
 test_util_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(libutil)
-test_util_unit_LDFLAGS = -Wl,--wrap=read,--wrap=write
+test_util_unit_LDFLAGS = -Wl,--wrap=g_input_stream_read,--wrap=g_output_stream_write
 test_util_unit_SOURCES = test/util_unit.c
 
 test_message_queue_unit_CFLAGS  = $(UNIT_AM_CFLAGS)

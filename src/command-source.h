@@ -51,11 +51,10 @@ typedef struct _CommandSource {
     Thread             parent_instance;
     ConnectionManager *connection_manager;
     CommandAttrs      *command_attrs;
-    gint               wakeup_receive_fd;
-    gint               wakeup_send_fd;
-    fd_set             receive_fdset;
+    GMainContext      *main_context;
+    GMainLoop         *main_loop;
+    GHashTable        *istream_to_source_data_map;
     Sink              *sink;
-    int                maxfd;
 } CommandSource;
 
 #define TYPE_COMMAND_SOURCE              (command_source_get_type   ())
@@ -75,8 +74,31 @@ gint            command_source_on_new_connection (ConnectionManager  *connection
  * The following are private functions. They are exposed here for unit
  * testing. Do not call these from anywhere else.
  */
-void            process_client_fd                (CommandSource      *source,
-                                                  gint                fd);
+gboolean        command_source_on_input_ready    (GInputStream       *socket,
+                                                  gpointer            user_data);
+/*
+ * Instances of this structure are used to track GSources and their
+ * GCancellable objects that have been registered with the
+ * GMainContext/Loop. We keep these structures in a GHashTable
+ * (socket_to_source_data_map) keyed on the client's GSocket.
+ * - When we're notified of a new connection we create a new GSource to
+ *   receive a callback when the GSocket associated with the connection is in
+ *   the G_IO_IN state.
+ * - When we receive a callback for a GSocket that has the G_IO_IN condition
+ *   and the peer has closed their connection we use this data (passed to the
+ *   callback when the GSource is created and the callback registered) to find
+ *   and remove the same structure from the hash table (and free it). This way
+ *   when the CommandSource is destroyed we won't have stale GSources hanging
+ *   around.
+ * - When the CommandSource is destroyed all of the GSources registered with
+ *   the GMainContext/Loop must be canceled and freed (see dispose function).
+ */
+typedef struct {
+    CommandSource *self;
+    GCancellable  *cancellable;
+    GSource       *source;
+} source_data_t;
+
 
 G_END_DECLS
 #endif /* COMMAND_SOURCE_H */

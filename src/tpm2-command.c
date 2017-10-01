@@ -478,6 +478,7 @@ tpm2_command_get_flush_handle (Tpm2Command *command,
         return RM_RC (TPM_RC_TYPE);
     }
     if (command->buffer_size < TPM_HEADER_SIZE + sizeof (TPM_HANDLE)) {
+        g_warning ("%s: command buffer_size insufficient", __func__);
         *handle = 0;
         return RM_RC (TPM_RC_INSUFFICIENT);
     }

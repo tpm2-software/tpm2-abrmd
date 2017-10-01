@@ -25,7 +25,6 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <errno.h>
-#include <fcntl.h>
 #include <glib.h>
 #include <inttypes.h>
 #include <stdlib.h>
@@ -41,7 +40,7 @@ G_DEFINE_TYPE (Connection, connection, G_TYPE_OBJECT);
 enum {
     PROP_0,
     PROP_ID,
-    PROP_FD,
+    PROP_IO_STREAM,
     PROP_TRANSIENT_HANDLE_MAP,
     N_PROPERTIES
 };
@@ -62,10 +61,10 @@ connection_set_property (GObject       *object,
         g_debug ("Connection 0x%" PRIxPTR " set id to 0x%" PRIx64,
                  (uintptr_t)self, self->id);
         break;
-    case PROP_FD:
-        self->fd = g_value_get_int (value);
-        g_debug ("Connection 0x%" PRIxPTR " set fd to %d",
-                 (uintptr_t)self, self->fd);
+    case PROP_IO_STREAM:
+        self->iostream = G_IO_STREAM (g_value_dup_object (value));
+        g_debug ("Connection 0x%" PRIxPTR " set socket to %" PRIxPTR,
+                 (uintptr_t)self, (uintptr_t)self->iostream);
         break;
     case PROP_TRANSIENT_HANDLE_MAP:
         self->transient_handle_map = g_value_get_object (value);
@@ -92,8 +91,8 @@ connection_get_property (GObject     *object,
     case PROP_ID:
         g_value_set_uint64 (value, self->id);
         break;
-    case PROP_FD:
-        g_value_set_int (value, self->fd);
+    case PROP_IO_STREAM:
+        g_value_set_object (value, self->iostream);
         break;
     case PROP_TRANSIENT_HANDLE_MAP:
         g_value_set_object (value, self->transient_handle_map);
@@ -119,7 +118,7 @@ connection_finalize (GObject *obj)
     g_debug ("connection_finalize: 0x%" PRIxPTR, (uintptr_t)connection);
     if (connection == NULL)
         return;
-    close (connection->fd);
+    g_clear_object (&connection->iostream);
     g_object_unref (connection->transient_handle_map);
     if (connection_parent_class)
         G_OBJECT_CLASS (connection_parent_class)->finalize (obj);
@@ -146,14 +145,12 @@ connection_class_init (ConnectionClass *klass)
                              UINT64_MAX,
                              0,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties [PROP_FD] =
-        g_param_spec_int ("file-descriptor",
-                          "File Descriptor",
-                          "File descriptor for sending and receiving data",
-                          0,
-                          INT_MAX,
-                          0,
-                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_IO_STREAM] =
+        g_param_spec_object ("iostream",
+                             "GIOStream",
+                             "Reference to GIOStream for exchanging data with client",
+                             G_TYPE_IO_STREAM,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_TRANSIENT_HANDLE_MAP] =
         g_param_spec_object ("transient-handle-map",
                              "HandleMap",
@@ -164,91 +161,39 @@ connection_class_init (ConnectionClass *klass)
                                        N_PROPERTIES,
                                        obj_properties);
 }
-/* Create a pipe and return the recv and send fds. */
-int
-create_fd_pair (int *client_fd,
-                int *server_fd,
-                int  flags)
-{
-    int ret, fds[2] = { 0, };
-
-    ret = socketpair (PF_LOCAL, SOCK_STREAM, 0, fds);
-    if (ret == -1)
-        return ret;
-    *client_fd = fds[0];
-    *server_fd = fds[1];
-    fcntl (*client_fd, flags);
-    fcntl (*server_fd, flags);
-    return 0;
-}
 /* CreateConnection builds two pipes for communicating with client
  * applications. It's provided with an array of two integers by the caller
  * and it returns this array populated with the receiving and sending pipe fds
  * respectively.
  */
 Connection*
-connection_new (gint       *client_fd,
+connection_new (GIOStream  *iostream,
                 guint64     id,
                 HandleMap  *transient_handle_map)
 {
-
-    g_info ("CreateConnection");
-    int ret, server_fd;
-
-    g_debug ("connection_new creating pipe pairs");
-    ret = create_fd_pair (client_fd, &server_fd, O_CLOEXEC);
-    if (ret == -1)
-        g_error ("CreateConnection failed to make fd pair %s", strerror (errno));
-    /* Make the fds used by the server non-blocking, the client will have to
-     * set its own flags.
-     */
-    ret = set_flags (server_fd, O_NONBLOCK);
-    if (ret == -1)
-        g_error ("Failed to set O_NONBLOCK for server receive fd %d: %s",
-                 server_fd, strerror (errno));
-
     return CONNECTION (g_object_new (TYPE_CONNECTION,
                                      "id", id,
-                                     "file-descriptor", server_fd,
+                                     "iostream", iostream,
                                      "transient-handle-map", transient_handle_map,
                                      NULL));
 }
 
 gpointer
-connection_key_fd (Connection *connection)
+connection_key_istream (Connection *connection)
 {
-    return &connection->fd;
+    return g_io_stream_get_input_stream (connection->iostream);
+}
+
+GIOStream*
+connection_get_iostream (Connection *connection)
+{
+    return connection->iostream;
 }
 
 gpointer
 connection_key_id (Connection *connection)
 {
     return &connection->id;
-}
-
-gboolean
-connection_equal_fd (gconstpointer a,
-                       gconstpointer b)
-{
-    return g_int_equal (a, b);
-}
-
-gboolean
-connection_equal_id (gconstpointer a,
-                       gconstpointer b)
-{
-    return g_int_equal (a, b);
-}
-gint
-connection_fd (Connection *connection)
-{
-    GValue value = G_VALUE_INIT;
-
-    g_value_init (&value, G_TYPE_INT);
-    g_object_get_property (G_OBJECT (connection),
-                           "file-descriptor",
-                           &value);
-    return g_value_get_int (&value);
 }
 /*
  * Return a reference to the HandleMap for transient handles to the caller.

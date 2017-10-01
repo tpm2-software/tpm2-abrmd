@@ -48,6 +48,7 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
 {
     ssize_t write_ret;
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
+    GOutputStream *ostream;
 
     g_debug ("tss2_tcti_tabrmd_transmit");
     if (context == NULL || command == NULL) {
@@ -64,10 +65,10 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
         return TSS2_TCTI_RC_BAD_SEQUENCE;
     }
     g_debug_bytes (command, size, 16, 4);
-    g_debug ("blocking on FD_TRANSMIT: %d", TSS2_TCTI_TABRMD_FD (context));
-    write_ret = write_all (TSS2_TCTI_TABRMD_FD (context),
-                           command,
-                           size);
+    ostream = g_io_stream_get_output_stream (TSS2_TCTI_TABRMD_IOSTREAM (context));
+    g_debug ("blocking write on iostream: 0x%" PRIxPTR,
+             (uintptr_t)ostream);
+    write_ret = write_all (ostream, command, size);
     /* should switch on possible errors to translate to TSS2 error codes */
     switch (write_ret) {
     case -1:
@@ -101,14 +102,40 @@ errno_to_tcti_rc (int error_number)
         return TSS2_TCTI_RC_NO_CONNECTION;
     case 0:
         return TSS2_RC_SUCCESS;
-    case EPROTO:
-        return TSS2_TCTI_RC_GENERAL_FAILURE;
     case EAGAIN:
 #if EAGAIN != EWOULDBLOCK
     case EWOULDBLOCK:
 #endif
         return TSS2_TCTI_RC_TRY_AGAIN;
     case EIO:
+        return TSS2_TCTI_RC_IO_ERROR;
+    default:
+        g_debug ("mapping errno %d with message \"%s\" to "
+                 "TSS2_TCTI_RC_GENERAL_FAILURE",
+                 error_number, strerror (error_number));
+        return TSS2_TCTI_RC_GENERAL_FAILURE;
+    }
+}
+/*
+ * This function maps GError code values to TCTI RCs.
+ */
+static TSS2_RC
+gerror_code_to_tcti_rc (int error_number)
+{
+    switch (error_number) {
+    case -1:
+        return TSS2_TCTI_RC_NO_CONNECTION;
+    case G_IO_ERROR_WOULD_BLOCK:
+        return TSS2_TCTI_RC_TRY_AGAIN;
+    case G_IO_ERROR_FAILED:
+    case G_IO_ERROR_HOST_UNREACHABLE:
+    case G_IO_ERROR_NETWORK_UNREACHABLE:
+#if G_IO_ERROR_BROKEN_PIPE != G_IO_ERROR_CONNECTION_CLOSED
+    case G_IO_ERROR_CONNECTION_CLOSED:
+#endif
+#if GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION >= 44
+    case G_IO_ERROR_NOT_CONNECTED:
+#endif
         return TSS2_TCTI_RC_IO_ERROR;
     default:
         g_debug ("mapping errno %d with message \"%s\" to "
@@ -212,12 +239,12 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     }
     /* make sure we've got the response header */
     if (tabrmd_ctx->index < TPM_HEADER_SIZE) {
-        ret = read_data (TSS2_TCTI_TABRMD_FD (tabrmd_ctx),
+        ret = read_data (TSS2_TCTI_TABRMD_ISTREAM (context),
                          &tabrmd_ctx->index,
                          tabrmd_ctx->header_buf,
                          TPM_HEADER_SIZE - tabrmd_ctx->index);
         if (ret != 0) {
-            return errno_to_tcti_rc (ret);
+            return gerror_code_to_tcti_rc (ret);
         }
         if (tabrmd_ctx->index == TPM_HEADER_SIZE) {
             tabrmd_ctx->header.tag  = get_response_tag  (tabrmd_ctx->header_buf);
@@ -245,7 +272,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     if (*size < tabrmd_ctx->header.size) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
-    ret = read_data (TSS2_TCTI_TABRMD_FD (tabrmd_ctx),
+    ret = read_data (TSS2_TCTI_TABRMD_ISTREAM (context),
                      &tabrmd_ctx->index,
                      response,
                      tabrmd_ctx->header.size - tabrmd_ctx->index);
@@ -261,21 +288,13 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
 static void
 tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *context)
 {
-    int ret = 0;
-
     g_debug ("tss2_tcti_tabrmd_finalize");
     if (context == NULL) {
         g_warning ("Invalid parameter");
         return;
     }
-    if (TSS2_TCTI_TABRMD_FD (context) != 0) {
-        ret = close (TSS2_TCTI_TABRMD_FD (context));
-        TSS2_TCTI_TABRMD_FD (context) = 0;
-    }
-    if (ret != 0 && ret != EBADF) {
-        g_warning ("Failed to close receive pipe: %s", strerror (errno));
-    }
     TSS2_TCTI_TABRMD_STATE (context) = TABRMD_STATE_FINAL;
+    g_clear_pointer (&TSS2_TCTI_TABRMD_SOCK_CONNECT (context), g_object_unref);
     g_object_unref (TSS2_TCTI_TABRMD_PROXY (context));
 }
 
@@ -417,11 +436,11 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
 {
     GBusType g_bus_type;
     GError *error = NULL;
+    GSocket *sock;
     GVariant *fds_variant;
     guint64 id;
     GUnixFDList *fd_list;
     gboolean call_ret;
-    int ret;
 
     if (context == NULL && size == NULL) {
         return TSS2_TCTI_RC_BAD_VALUE;
@@ -482,14 +501,18 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
         g_error ("unable to get receive handle from GUnixFDList: %s",
                  error->message);
     }
-    ret = set_flags (fd, O_NONBLOCK);
-    if (ret == -1) {
-        g_error ("failed to set O_NONBLOCK for client fd: %d", fd);
+    if (fcntl (fd, O_NONBLOCK) == -1) {
+        g_warning ("Failed to set fd %d to NONBLOCK: %s",
+                   fd, strerror (errno));
     }
-    TSS2_TCTI_TABRMD_FD (context) = fd;
+    sock = g_socket_new_from_fd (fd, NULL);
+    TSS2_TCTI_TABRMD_SOCK_CONNECT (context) = \
+        g_socket_connection_factory_create_connection (sock);
+    g_object_unref (sock);
     TSS2_TCTI_TABRMD_ID (context) = id;
     g_debug ("initialized tabrmd TCTI context with id: 0x%" PRIx64,
              TSS2_TCTI_TABRMD_ID (context));
+    g_object_unref (fd_list);
 
     return TSS2_RC_SUCCESS;
 }

@@ -7,11 +7,15 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 ### Added
 - Check SAPI library is < 2.0.0 (API change upstream).
 ### Changed
+- Set valgrind leak-check flag to 'full'.
 - Client / server communication uses PF_LOCAL sockets instead of pipes.
 - bootstrap script now creates VERSION file from 'git describe'. Autoconf gets
 version string from it, automake distributes it in 'distcheck'.
 - Test harness upgraded to simulator version 974.
 - Unit tests upgraded to the 1.x cmocka API.
+### Fixed
+- Unref the GUnixFDList returned by GIO / dbus in the TCTI init function.
+This fixes a memory leak in the TCTI library.
 
 ## 1.1.1 - 2017-08-25
 ### Added
