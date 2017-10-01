@@ -116,7 +116,9 @@ ipc_frontend_dbus_get_property (GObject    *object,
 }
 static void
 ipc_frontend_dbus_init (IpcFrontendDbus *self)
-{ /* n00p */ }
+{
+    self->dbus_name_acquired = FALSE;
+}
 /*
  * Dispose method where where we free up references to other objects.
  */
@@ -608,6 +610,7 @@ on_name_acquired (GDBusConnection *connection,
         &error);
     if (ret == FALSE)
         g_warning ("failed to export interface: %s", error->message);
+    self->dbus_name_acquired = TRUE;
 }
 /*
  * This is a signal handler of type GBusNameLostCallback. It is
@@ -620,8 +623,17 @@ on_name_lost (GDBusConnection *connection,
               const gchar     *name,
               gpointer         user_data)
 {
-    g_info ("on_name_lost: %s", name);
+    g_debug ("%s: %s", __func__, name);
     IpcFrontend *ipc_frontend = IPC_FRONTEND (user_data);
+    IpcFrontendDbus *self = IPC_FRONTEND_DBUS (user_data);
+
+    if (self->dbus_name_acquired == FALSE) {
+        g_critical ("Failed to acquire DBus name %s. UID %d must be "
+                    "allowed to \"own\" this name. Check DBus config.",
+                    name, getuid ());
+    } else {
+        self->dbus_name_acquired = FALSE;
+    }
 
     ipc_frontend_disconnected_invoke (ipc_frontend);
 }

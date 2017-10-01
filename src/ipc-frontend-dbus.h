@@ -51,6 +51,7 @@ typedef struct _IpcFrontendDbus
     gchar             *bus_name;
     GBusType           bus_type;
     /* private data */
+    gboolean           dbus_name_acquired;
     guint              dbus_name_owner_id;
     guint              max_transient_objects;
     ConnectionManager *connection_manager;
