@@ -72,6 +72,7 @@ ipc_frontend_dbus_set_property (GObject      *object,
     case PROP_CONNECTION_MANAGER:
         self->connection_manager = g_value_get_object (value);
         g_object_ref (self->connection_manager);
+        break;
     case PROP_MAX_TRANS:
         self->max_transient_objects = g_value_get_uint (value);
         break;
