@@ -291,13 +291,11 @@ create_connection_iostream (int *client_fd)
     GSocket *sock;
     int server_fd, ret;
 
-    ret = create_socket_pair (client_fd, &server_fd, SOCK_CLOEXEC);
-    if (ret == -1)
+    ret = create_socket_pair (client_fd,
+                              &server_fd,
+                              SOCK_CLOEXEC | SOCK_NONBLOCK);
+    if (ret == -1) {
         g_error ("CreateConnection failed to make fd pair %s", strerror (errno));
-    /* Make the fds used by the server non-blocking. */
-    if (fcntl (server_fd, O_NONBLOCK) == -1) {
-        g_warning ("%s: fcntl failed to make server FD O_NONBLOCK: %s",
-                   __func__, strerror (errno));
     }
     sock = g_socket_new_from_fd (server_fd, NULL);
     iostream = G_IO_STREAM (g_socket_connection_factory_create_connection (sock));
