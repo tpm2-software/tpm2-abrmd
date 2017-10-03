@@ -215,11 +215,6 @@ response_sink_process_response (Tpm2Response *response)
     g_debug ("  writing 0x%x bytes", size);
     g_debug_bytes (buffer, size, 16, 4);
     written = write_all (ostream, buffer, size);
-    if (written <= 0)
-        g_warning ("write failed (%zu) on ostream 0x%" PRIxPTR " for connection"
-                   "  0x%" PRIxPTR ": %s",
-                   written, (uintptr_t)ostream, (uintptr_t)connection,
-                   strerror (errno));
     g_object_unref (connection);
 
     return written;
