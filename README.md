@@ -33,6 +33,45 @@ tabrmd on the system bus as this is the most common configuration.
 
 Check out the man page TCTI-TABRMD(7) and TSS2_TCTI_TABRMD_INIT(3).
 
+## tpm2-abrmd vs in-kernel RM
+The current implementations are mostly equivalent with a few differences.
+Both provide isolation between objects & sessions created by different
+connections which is the core functionality required by applications. The
+reason we have both is that the in-kernel RM was only added very recently
+(4.12) and we have TPM2 users in environments with kernels going back to the
+3.x series. So the user space RM will be around at least till everyone is
+using the kernel RM.
+
+For the short term we're recommending that developers stick to using the
+tabrmd as the default to get the most stable / widest possible support.
+If you structure your code properly you'll be able to switch in / out TCTI
+modules with relative ease and migrating to the in-kernel RM should be pretty
+painless. Eventually, all of the required features will end up in the kernel
+RM and it will become the default.
+
+How we get to the ideal future of a single RM in the kernel: our current plan
+is to prototype various features in user space as a way to get them tested /
+validated. There's a lot of stuff in the related TCG spec that we haven't yet
+implemented and we all agree that it's generally a bad ideal to to put
+features into the kernel before we:
+1. understand how they work
+2. how they're going to be used by applications
+3. agree we want the feature at all
+
+A good example of this are the asynchronous portions of the SAPI. Right now
+with the kernel RM you can use the async API but it won't really be
+asynchronous: Calls to functions that should be async will block since the
+kernel doesn't supply user space with an async / polling I/O interface. For
+the short term, if you want to use the SAPI in an event driven I/O framework
+you will only get async I/O from the user space resource manager. In the long
+run though, if this feature is important to our users, we can work to upstream
+support to the in-kernel RM. The plan is to treat future features in the same
+way.
+
+This was the subject of a talk that was given @ the Linux Plumbers Conference
+2017:
+http://linuxplumbersconf.com/2017/ocw//system/presentations/4818/original/TPM2-kernel-evnet-app_tricca-sakkinen.pdf
+
 # Related Specifications
 * [TPM2 Software Stack Access Broker and Resource Manager](http://www.trustedcomputinggroup.org/wp-content/uploads/TSS-TAB-and-Resource-Manager-00-91-PublicReview.pdf)
 * [TPM2 Software Stack System API and TPM2 Command Transmission Interface](http://www.trustedcomputinggroup.org/wp-content/uploads/TSS-system-API-01.pdf)
