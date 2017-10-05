@@ -61,7 +61,7 @@ typedef struct gmain_data {
     GMainLoop              *loop;
     AccessBroker           *access_broker;
     ResourceManager        *resource_manager;
-    CommandSource         *command_source;
+    CommandSource          *command_source;
     Random                 *random;
     ResponseSink           *response_sink;
     GMutex                  init_mutex;
