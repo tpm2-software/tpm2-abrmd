@@ -1,0 +1,2 @@
+/usr/sbin/tpm2-abrmd	--	gen_context(system_u:object_r:tabrmd_exec_t,s0)
+/usr/local/sbin/tpm2-abrmd	--	gen_context(system_u:object_r:tabrmd_exec_t,s0)
