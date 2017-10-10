@@ -501,10 +501,6 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
         g_error ("unable to get receive handle from GUnixFDList: %s",
                  error->message);
     }
-    if (fcntl (fd, O_NONBLOCK) == -1) {
-        g_warning ("Failed to set fd %d to NONBLOCK: %s",
-                   fd, strerror (errno));
-    }
     sock = g_socket_new_from_fd (fd, NULL);
     TSS2_TCTI_TABRMD_SOCK_CONNECT (context) = \
         g_socket_connection_factory_create_connection (sock);

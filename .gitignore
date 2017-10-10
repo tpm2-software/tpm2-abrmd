@@ -1,10 +1,12 @@
 .deps/
 .dirstamp
 .libs/
+tmp/
 *.la
 *.lo
 *.log
 *.o
+*.pp
 *.swp
 *.trs
 Makefile

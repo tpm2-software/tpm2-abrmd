@@ -661,7 +661,7 @@ tpm2_command_foreach_auth (Tpm2Command *command,
     }
 
     if (AUTH_AREA_FIRST_OFFSET (command) > command->buffer_size) {
-        g_warning ("floop");
+        g_warning ("%s: auth area begins after end of buffer", __func__);
         return FALSE;
     }
 
