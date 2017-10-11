@@ -74,15 +74,7 @@ message_queue_class_init (MessageQueueClass *klass)
 MessageQueue*
 message_queue_new ()
 {
-    MessageQueue *message_queue;
-
-    message_queue = g_object_new (TYPE_MESSAGE_QUEUE, NULL);
-    if (message_queue == NULL) {
-        g_error ("failed to allocate memory for blob_queue_t: %s", strerror (errno));
-        return NULL;
-    }
-
-    return message_queue;
+    return MESSAGE_QUEUE (g_object_new (TYPE_MESSAGE_QUEUE, NULL));
 }
 /**
  * Enqueue a blob in the blob_queue_t.
