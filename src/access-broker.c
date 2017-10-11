@@ -100,24 +100,22 @@ access_broker_get_property (GObject     *object,
         break;
     }
 }
-/**
- * Bring down the ACCESS_BROKER gracefully.
+/*
+ * Dispose function: relese references to gobjects. We also free the SAPI
+ * context here as well. Typically freeing this data would be done in the
+ * finalize function but it can't be used w/o the underlying TCTI.
  */
 static void
-access_broker_finalize (GObject *obj)
+access_broker_dispose (GObject *obj)
 {
-    AccessBroker *access_broker = ACCESS_BROKER (obj);
+    AccessBroker *self = ACCESS_BROKER (obj);
 
-    g_debug ("access_broker_finalize: 0x%" PRIxPTR, (uintptr_t)access_broker);
-    if (access_broker == NULL)
-        g_error ("access_broker_free passed NULL AccessBroker pointer");
-    if (access_broker->sapi_context != NULL)
-        free (access_broker->sapi_context);
-    if (access_broker->tcti != NULL)
-        g_object_unref (access_broker->tcti);
-    g_debug ("call to parent finalize");
-    if (access_broker_parent_class)
-        G_OBJECT_CLASS (access_broker_parent_class)->finalize (obj);
+    if (self->sapi_context != NULL) {
+        Tss2_Sys_Finalize (self->sapi_context);
+    }
+    g_clear_pointer (&self->sapi_context, g_free);
+    g_clear_object (&self->tcti);
+    G_OBJECT_CLASS (access_broker_parent_class)->dispose (obj);
 }
 /*
  * G_DEFINE_TYPE requires an instance init even though we don't use it.
@@ -128,7 +126,7 @@ access_broker_init (AccessBroker *broker)
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.
- * - Set finalize, property get/set.
+ * - Set dispose, property get/set.
  * - Install properties.
  */
 static void
@@ -138,7 +136,7 @@ access_broker_class_init (AccessBrokerClass *klass)
 
     if (access_broker_parent_class == NULL)
         access_broker_parent_class = g_type_class_peek_parent (klass);
-    object_class->finalize     = access_broker_finalize;
+    object_class->dispose      = access_broker_dispose;
     object_class->get_property = access_broker_get_property;
     object_class->set_property = access_broker_set_property;
 
