@@ -130,9 +130,7 @@ ipc_frontend_dbus_dispose (GObject *obj)
     g_clear_object (&self->connection_manager);
     g_clear_object (&self->random);
     g_clear_object (&self->skeleton);
-    if (ipc_frontend_dbus_parent_class != NULL) {
-        G_OBJECT_CLASS (ipc_frontend_dbus_parent_class)->dispose (obj);
-    }
+    G_OBJECT_CLASS (ipc_frontend_dbus_parent_class)->dispose (obj);
 }
 /*
  * Finalize method where we free resources.
@@ -142,12 +140,8 @@ ipc_frontend_dbus_finalize (GObject *obj)
 {
     IpcFrontendDbus *self = IPC_FRONTEND_DBUS (obj);
 
-    if (self->bus_name != NULL) {
-        g_free (self->bus_name);
-    }
-    if (ipc_frontend_dbus_parent_class != NULL) {
-        G_OBJECT_CLASS (ipc_frontend_dbus_parent_class)->finalize (obj);
-    }
+    g_clear_pointer (&self->bus_name, g_free);
+    G_OBJECT_CLASS (ipc_frontend_dbus_parent_class)->finalize (obj);
 }
 
 static void
