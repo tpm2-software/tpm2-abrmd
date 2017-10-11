@@ -44,26 +44,26 @@ message_queue_init (MessageQueue *self)
     self->queue = g_async_queue_new_full (g_object_unref);
 }
 /*
- * To finalize the MessageQueue we need only to free the internal
+ * To finalize the MessageQueue we need only to unref the internal
  * GAsyncQueue object.
  */
 static void
-message_queue_finalize (GObject *obj)
+message_queue_dispose (GObject *obj)
 {
     MessageQueue *message_queue = MESSAGE_QUEUE (obj);
 
     g_clear_pointer (&message_queue->queue, g_async_queue_unref);
-    G_OBJECT_CLASS (message_queue_parent_class)->finalize (obj);
+    G_OBJECT_CLASS (message_queue_parent_class)->dispose (obj);
 }
 /**
- * Boilerplate GObject class init with custom finalize function.
+ * Boilerplate GObject class init with custom dispose function.
  */
 static void
 message_queue_class_init (MessageQueueClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    object_class->finalize = message_queue_finalize;
+    object_class->dispose = message_queue_dispose;
 }
 /**
  * Allocate a new message_queue_t object.
