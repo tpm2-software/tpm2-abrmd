@@ -117,20 +117,18 @@ response_sink_get_property (GObject     *object,
  * Bring down the ResponseSink as gracefully as we can.
  */
 static void
-response_sink_finalize (GObject *obj)
+response_sink_dispose (GObject *obj)
 {
     ResponseSink *sink = RESPONSE_SINK (obj);
     Thread *thread = THREAD (obj);
 
-    g_debug ("response_sink_finalize");
+    g_debug ("%s: 0x%" PRIxPTR, __func__, (uintptr_t)obj);
     if (sink == NULL)
-        g_error ("  response_sink_free passed NULL pointer");
+        g_error ("%s: passed NULL pointer", __func__);
     if (thread->thread_id != 0)
-        g_error ("  response_sink finalized with running thread, cancel first");
-    if (sink->in_queue)
-        g_object_unref (sink->in_queue);
-    if (response_sink_parent_class)
-        G_OBJECT_CLASS (response_sink_parent_class)->finalize (obj);
+        g_error ("%s: thread running, cancel first", __func__);
+    g_clear_object (&sink->in_queue);
+    G_OBJECT_CLASS (response_sink_parent_class)->dispose (obj);
 }
 void* response_sink_thread (void *data);
 static void
@@ -153,7 +151,7 @@ response_sink_unblock (Thread *self)
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.
- * - Set finalize, property get/set.
+ * - Set dispose, property get/set.
  * - Install properties.
  */
 static void
@@ -164,7 +162,7 @@ response_sink_class_init (ResponseSinkClass *klass)
 
     if (response_sink_parent_class == NULL)
         response_sink_parent_class = g_type_class_peek_parent (klass);
-    object_class->finalize     = response_sink_finalize;
+    object_class->dispose = response_sink_dispose;
     object_class->get_property = response_sink_get_property;
     object_class->set_property = response_sink_set_property;
     thread_class->thread_run     = response_sink_thread;
