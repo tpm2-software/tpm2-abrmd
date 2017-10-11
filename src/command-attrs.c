@@ -46,8 +46,7 @@ command_attrs_finalize (GObject *obj)
     CommandAttrs *attrs = COMMAND_ATTRS (obj);
 
     g_debug ("command_attrs_finalize: 0x%" PRIxPTR, (uintptr_t)attrs);
-    if (attrs->command_attrs)
-        free (attrs->command_attrs);
+    g_clear_pointer (&attrs->command_attrs, g_free);
     G_OBJECT_CLASS (command_attrs_parent_class)->finalize (obj);
 }
 
