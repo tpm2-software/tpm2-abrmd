@@ -124,6 +124,15 @@ tpm2_response_get_property (GObject     *object,
         break;
     }
 }
+static void
+tpm2_response_dispose (GObject *obj)
+{
+    Tpm2Response *self = TPM2_RESPONSE (obj);
+
+    g_debug ("%s: Tpm2Response: 0x%" PRIxPTR, __func__, (uintptr_t)self);
+    g_clear_object (&self->connection);
+    G_OBJECT_CLASS (tpm2_response_parent_class)->dispose (obj);
+}
 /**
  * override the parent finalize method so we can free the data associated with
  * the DataMessage instance.
@@ -134,10 +143,7 @@ tpm2_response_finalize (GObject *obj)
     Tpm2Response *self = TPM2_RESPONSE (obj);
 
     g_debug ("tpm2_response_finalize");
-    if (self->buffer)
-        g_free (self->buffer);
-    if (self->connection)
-        g_object_unref (self->connection);
+    g_clear_pointer (&self->buffer, g_free);
     G_OBJECT_CLASS (tpm2_response_parent_class)->finalize (obj);
 }
 static void
@@ -154,6 +160,7 @@ tpm2_response_class_init (Tpm2ResponseClass *klass)
 
     if (tpm2_response_parent_class == NULL)
         tpm2_response_parent_class = g_type_class_peek_parent (klass);
+    object_class->dispose      = tpm2_response_dispose;
     object_class->finalize     = tpm2_response_finalize;
     object_class->get_property = tpm2_response_get_property;
     object_class->set_property = tpm2_response_set_property;

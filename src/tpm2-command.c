@@ -196,6 +196,15 @@ tpm2_command_get_property (GObject     *object,
         break;
     }
 }
+static void
+tpm2_command_dispose (GObject *obj)
+{
+    Tpm2Command *cmd = TPM2_COMMAND (obj);
+
+    g_debug ("%s: Tpm2Command 0x%" PRIxPTR, __func__, (uintptr_t)cmd);
+    g_clear_object (&cmd->connection);
+    G_OBJECT_CLASS (tpm2_command_parent_class)->dispose (obj);
+}
 /**
  * override the parent finalize method so we can free the data associated with
  * the DataMessage instance.
@@ -206,10 +215,7 @@ tpm2_command_finalize (GObject *obj)
     Tpm2Command *cmd = TPM2_COMMAND (obj);
 
     g_debug ("tpm2_command_finalize");
-    if (cmd->buffer)
-        g_free (cmd->buffer);
-    if (cmd->connection)
-        g_object_unref (cmd->connection);
+    g_clear_pointer (&cmd->buffer, g_free);
     G_OBJECT_CLASS (tpm2_command_parent_class)->finalize (obj);
 }
 static void
@@ -226,6 +232,7 @@ tpm2_command_class_init (Tpm2CommandClass *klass)
 
     if (tpm2_command_parent_class == NULL)
         tpm2_command_parent_class = g_type_class_peek_parent (klass);
+    object_class->dispose      = tpm2_command_dispose;
     object_class->finalize     = tpm2_command_finalize;
     object_class->get_property = tpm2_command_get_property;
     object_class->set_property = tpm2_command_set_property;
