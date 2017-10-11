@@ -111,17 +111,14 @@ connection_init (Connection *connection)
 { /* noop */ }
 
 static void
-connection_finalize (GObject *obj)
+connection_dispose (GObject *obj)
 {
     Connection *connection = CONNECTION (obj);
 
-    g_debug ("connection_finalize: 0x%" PRIxPTR, (uintptr_t)connection);
-    if (connection == NULL)
-        return;
     g_clear_object (&connection->iostream);
     g_object_unref (connection->transient_handle_map);
-    if (connection_parent_class)
-        G_OBJECT_CLASS (connection_parent_class)->finalize (obj);
+
+    G_OBJECT_CLASS (connection_parent_class)->dispose (obj);
 }
 
 static void
@@ -133,7 +130,7 @@ connection_class_init (ConnectionClass *klass)
     if (connection_parent_class == NULL)
         connection_parent_class = g_type_class_peek_parent (klass);
 
-    object_class->finalize     = connection_finalize;
+    object_class->dispose      = connection_dispose;
     object_class->get_property = connection_get_property;
     object_class->set_property = connection_set_property;
 
