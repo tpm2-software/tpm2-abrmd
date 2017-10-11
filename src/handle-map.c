@@ -108,11 +108,20 @@ handle_map_init (HandleMap     *map)
     map->handle_count = 0xff;
 }
 /*
- * Deallocate all associated resources. The mutex may be held by another
- * thread. If we attempt to lock / unlock it we may hang a thread in the
- * guts of the GObject system. Better to just destroy it and free all
- * other resources. The call to destroy may fail and if so we just carry
- * on.
+ * GObject dispose function: release all references to GObjects. Currently
+ * this is only the GHashTable mapping vhandles to HandleMapEntry objects.
+ */
+static void
+handle_map_dispose (GObject *object)
+{
+    HandleMap *self = HANDLE_MAP (object);
+
+    g_clear_pointer (&self->vhandle_to_entry_table, g_hash_table_unref);
+    G_OBJECT_CLASS (handle_map_parent_class)->dispose (object);
+}
+/*
+ * GObject finalize function: release all non-GObject resources. Currently
+ * this is the mutex used to lock the GHashTable.
  */
 static void
 handle_map_finalize (GObject *object)
@@ -121,7 +130,6 @@ handle_map_finalize (GObject *object)
 
     g_debug ("handle_map_finalize");
     pthread_mutex_destroy (&self->mutex);
-    g_hash_table_unref (self->vhandle_to_entry_table);
     G_OBJECT_CLASS (handle_map_parent_class)->finalize (object);
 }
 /*
@@ -135,6 +143,7 @@ handle_map_class_init (HandleMapClass *klass)
 
     if (handle_map_parent_class == NULL)
         handle_map_parent_class = g_type_class_peek_parent (klass);
+    object_class->dispose      = handle_map_dispose;
     object_class->finalize     = handle_map_finalize;
     object_class->get_property = handle_map_get_property;
     object_class->set_property = handle_map_set_property;
