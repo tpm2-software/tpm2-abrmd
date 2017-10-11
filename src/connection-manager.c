@@ -102,11 +102,16 @@ connection_manager_get_property (GObject     *object,
 ConnectionManager*
 connection_manager_new (guint max_connections)
 {
-    ConnectionManager *mgr;
-
-    mgr = CONNECTION_MANAGER (g_object_new (TYPE_CONNECTION_MANAGER,
-                                            "max-connections", max_connections,
-                                            NULL));
+    return CONNECTION_MANAGER (g_object_new (TYPE_CONNECTION_MANAGER,
+                                             "max-connections", max_connections,
+                                             NULL));
+}
+/*
+ * Initialization function: instantiate all internal data / objects.
+ */
+static void
+connection_manager_init (ConnectionManager *mgr)
+{
     if (pthread_mutex_init (&mgr->mutex, NULL) != 0)
         g_error ("Failed to initialize connection _manager mutex: %s",
                  strerror (errno));
@@ -126,14 +131,7 @@ connection_manager_new (guint max_connections)
                                g_int64_equal,
                                NULL,
                                (GDestroyNotify)g_object_unref);
-    return mgr;
 }
-/*
- * G_DEFINE_TYPE requires an instance init even though we don't need it.
- */
-static void
-connection_manager_init (ConnectionManager *obj)
-{ /* noop */ }
 
 static void
 connection_manager_dispose (GObject *obj)
