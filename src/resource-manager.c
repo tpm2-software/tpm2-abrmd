@@ -1204,32 +1204,21 @@ resource_manager_get_property (GObject     *object,
  * Bring down the ResourceManager as gracefully as we can.
  */
 static void
-resource_manager_finalize (GObject *obj)
+resource_manager_dispose (GObject *obj)
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (obj);
     Thread *thread = THREAD (obj);
 
-    g_debug ("resource_manager_finalize: 0x%" PRIxPTR, (uintptr_t)resmgr);
+    g_debug ("%s: 0x%" PRIxPTR, __func__, (uintptr_t)resmgr);
     if (resmgr == NULL)
-        g_error ("resource_manager_finalize passed NULL ResourceManager pointer");
+        g_error ("%s: passed NULL parameter", __func__);
     if (thread->thread_id != 0)
-        g_error ("resource_manager_finalize called with thread running, "
-                 "cancel thread first");
-    g_object_unref (resmgr->in_queue);
-    if (resmgr->sink) {
-        g_object_unref (resmgr->sink);
-        resmgr->sink = NULL;
-    }
-    if (resmgr->access_broker) {
-        g_object_unref (resmgr->access_broker);
-        resmgr->access_broker = NULL;
-    }
-    if (resmgr->session_list) {
-        g_object_unref (resmgr->session_list);
-        resmgr->session_list = NULL;
-    }
-    if (resource_manager_parent_class)
-        G_OBJECT_CLASS (resource_manager_parent_class)->finalize (obj);
+        g_error ("%s: thread running, cancel thread first", __func__);
+    g_clear_object (&resmgr->in_queue);
+    g_clear_object (&resmgr->sink);
+    g_clear_object (&resmgr->access_broker);
+    g_clear_object (&resmgr->session_list);
+    G_OBJECT_CLASS (resource_manager_parent_class)->dispose (obj);
 }
 static void
 resource_manager_init (ResourceManager *manager)
@@ -1240,7 +1229,7 @@ resource_manager_init (ResourceManager *manager)
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.
- * - Set finalize, property get/set.
+ * - Set dispose, property get/set.
  * - Install properties.
  */
 static void
@@ -1251,7 +1240,7 @@ resource_manager_class_init (ResourceManagerClass *klass)
 
     if (resource_manager_parent_class == NULL)
         resource_manager_parent_class = g_type_class_peek_parent (klass);
-    object_class->finalize     = resource_manager_finalize;
+    object_class->dispose = resource_manager_dispose;
     object_class->get_property = resource_manager_get_property;
     object_class->set_property = resource_manager_set_property;
     thread_class->thread_run     = resource_manager_thread;
