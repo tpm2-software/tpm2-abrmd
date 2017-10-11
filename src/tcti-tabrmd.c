@@ -294,8 +294,8 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *context)
         return;
     }
     TSS2_TCTI_TABRMD_STATE (context) = TABRMD_STATE_FINAL;
-    g_clear_pointer (&TSS2_TCTI_TABRMD_SOCK_CONNECT (context), g_object_unref);
-    g_object_unref (TSS2_TCTI_TABRMD_PROXY (context));
+    g_clear_object (&TSS2_TCTI_TABRMD_SOCK_CONNECT (context));
+    g_clear_object (&TSS2_TCTI_TABRMD_PROXY (context));
 }
 
 static TSS2_RC
