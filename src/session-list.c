@@ -96,6 +96,23 @@ session_list_init (SessionList     *list)
     list->session_entry_slist = NULL;
 }
 /*
+ * GObject dispose function: unref all SessionEntry objects in the internal
+ * GSList and unref the list itself. NULL the pointer to the internal list
+ * as well.
+ */
+static void
+session_list_dispose (GObject *object)
+{
+    SessionList *self = SESSION_LIST (object);
+
+    g_debug ("%s: SessionList: 0x%" PRIxPTR " with %" PRIu32 " entries",
+             __func__, (uintptr_t)self,
+             g_slist_length (self->session_entry_slist));
+    g_slist_free_full (self->session_entry_slist, g_object_unref);
+    self->session_entry_slist = NULL;
+    G_OBJECT_CLASS (session_list_parent_class)->dispose (object);
+}
+/*
  * Deallocate all associated resources. The mutex may be held by another
  * thread. If we attempt to lock / unlock it we may hang a thread in the
  * guts of the GObject system. Better to just destroy it and free all
@@ -107,11 +124,8 @@ session_list_finalize (GObject *object)
 {
     SessionList *self = SESSION_LIST (object);
 
-    g_debug ("session_list_finalize: SessionList: 0x%" PRIxPTR " with %"
-             PRIu32 " entries", (uintptr_t)self,
-             g_slist_length (self->session_entry_slist));
+    g_debug ("%s: SessionList: 0x%" PRIxPTR, __func__, (uintptr_t)self);
     pthread_mutex_destroy (&self->mutex);
-    g_slist_free_full (self->session_entry_slist, g_object_unref);
     G_OBJECT_CLASS (session_list_parent_class)->finalize (object);
 }
 /*
@@ -125,6 +139,7 @@ session_list_class_init (SessionListClass *klass)
 
     if (session_list_parent_class == NULL)
         session_list_parent_class = g_type_class_peek_parent (klass);
+    object_class->dispose      = session_list_dispose;
     object_class->finalize     = session_list_finalize;
     object_class->get_property = session_list_get_property;
     object_class->set_property = session_list_set_property;
