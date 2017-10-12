@@ -107,13 +107,13 @@ session_entry_init (SessionEntry *entry)
  * up to the parent like a good GObject.
  */
 static void
-session_entry_finalize (GObject *object)
+session_entry_dispose (GObject *object)
 {
     SessionEntry *entry = SESSION_ENTRY (object);
 
-    g_debug ("session_entry_finalize: 0x%" PRIxPTR, (uintptr_t)entry);
-    g_object_unref (entry->connection);
-    G_OBJECT_CLASS (session_entry_parent_class)->finalize (object);
+    g_debug ("%s: 0x%" PRIxPTR, __func__, (uintptr_t)entry);
+    g_clear_object (&entry->connection);
+    G_OBJECT_CLASS (session_entry_parent_class)->dispose (object);
 }
 /*
  * Class initialization function. Register function pointers and properties.
@@ -125,7 +125,7 @@ session_entry_class_init (SessionEntryClass *klass)
 
     if (session_entry_parent_class == NULL)
         session_entry_parent_class = g_type_class_peek_parent (klass);
-    object_class->finalize     = session_entry_finalize;
+    object_class->dispose = session_entry_dispose;
     object_class->get_property = session_entry_get_property;
     object_class->set_property = session_entry_set_property;
 

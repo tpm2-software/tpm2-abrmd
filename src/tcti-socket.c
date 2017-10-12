@@ -93,11 +93,10 @@ tcti_socket_finalize (GObject *obj)
 
     if (tcti->tcti_context) {
         tss2_tcti_finalize (tcti->tcti_context);
-        g_free (tcti->tcti_context);
     }
-    g_free (tcti_socket->address);
-    if (tcti_socket_parent_class)
-        G_OBJECT_CLASS (tcti_socket_parent_class)->finalize (obj);
+    g_clear_pointer (&tcti->tcti_context, g_free);
+    g_clear_pointer (&tcti_socket->address, g_free);
+    G_OBJECT_CLASS (tcti_socket_parent_class)->finalize (obj);
 }
 static void
 tcti_socket_init (TctiSocket *socket)
@@ -146,13 +145,10 @@ TctiSocket*
 tcti_socket_new (const gchar *address,
                  guint        port)
 {
-    TctiSocket *tcti;
-
-    tcti = TCTI_SOCKET (g_object_new (TYPE_TCTI_SOCKET,
+    return TCTI_SOCKET (g_object_new (TYPE_TCTI_SOCKET,
                                       "address", address,
                                       "port", port,
                                       NULL));
-    return tcti;
 }
 /**
  * Initialize an instance of a TSS2_TCTI_CONTEXT for the socket Tcti.

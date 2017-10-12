@@ -84,11 +84,10 @@ tcti_device_finalize (GObject *obj)
 
     if (tcti->tcti_context) {
         tss2_tcti_finalize (tcti->tcti_context);
-        g_free (tcti->tcti_context);
     }
-    g_free (tcti_device->filename);
-    if (tcti_device_parent_class)
-        G_OBJECT_CLASS (tcti_device_parent_class)->finalize (obj);
+    g_clear_pointer (&tcti->tcti_context, g_free);
+    g_clear_pointer (&tcti_device->filename, g_free);
+    G_OBJECT_CLASS (tcti_device_parent_class)->finalize (obj);
 }
 static void
 tcti_device_init (TctiDevice *tcti)
@@ -127,12 +126,9 @@ tcti_device_class_init (TctiDeviceClass *klass)
 TctiDevice*
 tcti_device_new (const gchar *filename)
 {
-    TctiDevice    *tcti;
-
-    tcti = TCTI_DEVICE (g_object_new (TYPE_TCTI_DEVICE,
+    return TCTI_DEVICE (g_object_new (TYPE_TCTI_DEVICE,
                                       "filename", filename,
                                       NULL));
-    return tcti;
 }
 /**
  * Initialize an instance of a TSS2_TCTI_CONTEXT for the device TCTI.

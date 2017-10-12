@@ -102,11 +102,16 @@ connection_manager_get_property (GObject     *object,
 ConnectionManager*
 connection_manager_new (guint max_connections)
 {
-    ConnectionManager *mgr;
-
-    mgr = CONNECTION_MANAGER (g_object_new (TYPE_CONNECTION_MANAGER,
-                                            "max-connections", max_connections,
-                                            NULL));
+    return CONNECTION_MANAGER (g_object_new (TYPE_CONNECTION_MANAGER,
+                                             "max-connections", max_connections,
+                                             NULL));
+}
+/*
+ * Initialization function: instantiate all internal data / objects.
+ */
+static void
+connection_manager_init (ConnectionManager *mgr)
+{
     if (pthread_mutex_init (&mgr->mutex, NULL) != 0)
         g_error ("Failed to initialize connection _manager mutex: %s",
                  strerror (errno));
@@ -126,34 +131,36 @@ connection_manager_new (guint max_connections)
                                g_int64_equal,
                                NULL,
                                (GDestroyNotify)g_object_unref);
-    return mgr;
 }
-/*
- * G_DEFINE_TYPE requires an instance init even though we don't need it.
- */
-static void
-connection_manager_init (ConnectionManager *obj)
-{ /* noop */ }
-static void
-connection_manager_finalize (GObject *obj)
-{
-    gint ret;
-    ConnectionManager *manager = CONNECTION_MANAGER (obj);
 
-    ret = pthread_mutex_lock (&manager->mutex);
+static void
+connection_manager_dispose (GObject *obj)
+{
+    ConnectionManager *self = CONNECTION_MANAGER (obj);
+    gint ret;
+
+    ret = pthread_mutex_lock (&self->mutex);
     if (ret != 0)
-        g_error ("Error locking connection_manager mutex: %s",
-                 strerror (errno));
-    g_hash_table_unref (manager->connection_from_istream_table);
-    g_hash_table_unref (manager->connection_from_id_table);
-    ret = pthread_mutex_unlock (&manager->mutex);
+        g_warning ("Error locking connection_manager mutex: %s",
+                   strerror (errno));
+    g_hash_table_unref (self->connection_from_istream_table);
+    g_hash_table_unref (self->connection_from_id_table);
+    ret = pthread_mutex_unlock (&self->mutex);
     if (ret != 0)
         g_error ("Error unlocking connection_manager mutex: %s",
                  strerror (errno));
-    ret = pthread_mutex_destroy (&manager->mutex);
-    if (ret != 0)
+    G_OBJECT_CLASS (connection_manager_parent_class)->dispose (obj);
+}
+
+static void
+connection_manager_finalize (GObject *obj)
+{
+    ConnectionManager *manager = CONNECTION_MANAGER (obj);
+
+    if (pthread_mutex_destroy (&manager->mutex) != 0)
         g_error ("Error destroying connection_manager mutex: %s",
                  strerror (errno));
+    G_OBJECT_CLASS (connection_manager_parent_class)->finalize (obj);
 }
 /**
  * Boilerplate GObject class init function. The only interesting thing that
@@ -170,6 +177,7 @@ connection_manager_class_init (ConnectionManagerClass *klass)
 
     if (connection_manager_parent_class == NULL)
         connection_manager_parent_class = g_type_class_peek_parent (klass);
+    object_class->dispose = connection_manager_dispose;
     object_class->finalize = connection_manager_finalize;
     object_class->get_property = connection_manager_get_property;
     object_class->set_property = connection_manager_set_property;

@@ -136,10 +136,9 @@ tcti_options_finalize (GObject *obj)
 {
     TctiOptions *options = TCTI_OPTIONS (obj);
 
-    g_free (options->device_name);
-    g_free (options->socket_address);
-    if (tcti_options_parent_class)
-        G_OBJECT_CLASS (tcti_options_parent_class)->finalize (obj);
+    g_clear_pointer (&options->device_name, g_free);
+    g_clear_pointer (&options->socket_address, g_free);
+    G_OBJECT_CLASS (tcti_options_parent_class)->finalize (obj);
 }
 static void
 tcti_options_init (TctiOptions *options)
