@@ -63,6 +63,7 @@ typedef struct tabrmd_options {
     GBusType        bus;
     TctiOptions    *tcti_options;
     gboolean        fail_on_loaded_trans;
+    gboolean        flush_all;
     guint           max_connections;
     guint           max_transient_objects;
     guint           max_sessions;
