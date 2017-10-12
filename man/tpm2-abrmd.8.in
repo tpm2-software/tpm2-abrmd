@@ -6,7 +6,7 @@
 tpm2-abrmd \- TPM2 access broker and resource management daemon
 .SH SYNOPSIS
 .B tpm2-abrmd 
-.RB [\-c][\-i][\-l\ logger-name][\-r][\-s][\-g\ /dev/urandom][\-t\ tcti-name]
+.RB [\-c][\-i][\-o][\-l\ logger-name][\-r][\-s][\-g\ /dev/urandom][\-t\ tcti-name]
 [tcti-specific-options]
 .SH DESCRIPTION
 .B tpm2-abrmd
@@ -17,6 +17,9 @@ described by the Trusted Computing Group (TGC) in the
 This daemon uses the DBus system bus and some pipes to communicate with
 clients.
 .SH OPTIONS
+\fB\-o,\ \-\-allow-root\fR
+Allow daemon to run as root. If this option is not provided the daemon will
+refused to run as the root user. Use of this option is \fBnot\fR recommended.
 .TP
 \fB\-c,\ \-\-max-connections\fR
 Set an upper bound on the number of concurrent client connections allowed.
