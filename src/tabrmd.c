@@ -195,6 +195,9 @@ init_thread_func (gpointer user_data)
         tabrmd_critical ("TPM reports 0x%" PRIx32 " loaded transient objects, "
                          "aborting", loaded_trans_objs);
     }
+    if (data->options.flush_all) {
+        access_broker_flush_all_context (data->access_broker);
+    }
     /**
      * Instantiate and the objects that make up the TPM command processing
      * pipeline.
@@ -305,6 +308,9 @@ parse_opts (gint            argc,
         { "fail-on-loaded-trans", 'i', 0, G_OPTION_ARG_NONE,
           &options->fail_on_loaded_trans,
           "Fail initialization if the TPM reports loaded transient objects" },
+        { "flush-all", 'f', G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE,
+          &options->flush_all,
+          "Flush all objects and sessions from TPM on startup." },
         { "max-connections", 'c', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_connections, "Maximum number of client connections." },
         { "max-transient-objects", 'r', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
