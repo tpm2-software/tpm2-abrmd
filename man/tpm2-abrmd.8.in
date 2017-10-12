@@ -6,7 +6,7 @@
 tpm2-abrmd \- TPM2 access broker and resource management daemon
 .SH SYNOPSIS
 .B tpm2-abrmd 
-.RB [\-c][\-o][\-l\ logger-name][\-r][\-s][\-p\ /dev/urandom][\-t\ tcti-name]
+.RB [\-c][\-i][\-l\ logger-name][\-r][\-s][\-g\ /dev/urandom][\-t\ tcti-name]
 [tcti-specific-options]
 .SH DESCRIPTION
 .B tpm2-abrmd
@@ -23,7 +23,7 @@ Set an upper bound on the number of concurrent client connections allowed.
 Once this number of client connections is reached new connections will be
 rejected with an error.
 .TP
-\fB\-o,\ \-\-fail-on-loaded-trans\fR
+\fB\-i,\ \-\-fail-on-loaded-trans\fR
 Cause the daemon to fail on startup when the TPM is found to already have
 transient objects loaded. This is intended as a safe-guard to keep the
 daemon from stomping on the TPM state setup by another process.
@@ -42,7 +42,7 @@ to load new transient objects will produce an error.
 Claim the given name on dbus. This option overrides the default of
 com.intel.tss2.Tabrmd.
 .TP
-\fB\-p,\ \-\-prng-seed-file\fR
+\fB\-g,\ \-\-prng-seed-file\fR
 Read seed for pseudo-random number generator from the provided file.
 .TP
 \fB\-s,\ \-\-session\fR
