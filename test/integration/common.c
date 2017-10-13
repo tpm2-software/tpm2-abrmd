@@ -365,7 +365,7 @@ start_auth_session (TSS2_SYS_CONTEXT      *sapi_context,
                                     0                /* rspAuthsArray */
                                     );
     if (rc != TSS2_RC_SUCCESS)
-        g_error ("Tss2_Sys_StartAuthSession failed: 0x%" PRIx32, rc);
+        g_warning ("Tss2_Sys_StartAuthSession failed: 0x%" PRIx32, rc);
 
     return rc;
 }
