@@ -6,7 +6,7 @@
 tpm2-abrmd \- TPM2 access broker and resource management daemon
 .SH SYNOPSIS
 .B tpm2-abrmd 
-.RB [\-c][\-i][\-l\ logger-name][\-r][\-s][\-g\ /dev/urandom][\-t\ tcti-name]
+.RB [\-c][\-e][\-i][\-l\ logger-name][\-r][\-s][\-g\ /dev/urandom][\-t\ tcti-name]
 [tcti-specific-options]
 .SH DESCRIPTION
 .B tpm2-abrmd
@@ -32,6 +32,10 @@ daemon from stomping on the TPM state setup by another process.
 Direct logging output to named logging target. Supported targets are
 \fBstdout\fR and \fBsyslog\fR. If the logger option is not specified the
 default is \fBstdout\fR.
+.TP
+\fB\-e,\ \-\-max-sessions\fR
+Set and upper bound on the number of sessions that each client connection
+is allowed to create (loaded or active) at any one time.
 .TP
 \fB\-r,\ \-\-max-transient-objects\fR
 Set an upper bound on the number of transient objects that each client
