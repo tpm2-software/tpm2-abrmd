@@ -510,17 +510,20 @@ resource_manager_flush_context (ResourceManager *resmgr,
 out:
     return response;
 }
+#define SESSION_COUNT_MAX 4
 /*
- * Determine whether the command may return a transient handle. If so
- * be sure we have room in the handle map for it.
+ * Ensure that executing the provided command will not exceed any of the
+ * per-connection quotas enforced by the RM. This is currently limited to
+ * transient objects and sessions.
  */
-gboolean
-resource_manager_is_over_object_quota (ResourceManager *resmgr,
-                                       Tpm2Command     *command)
+TSS2_RC
+resource_manager_quota_check (ResourceManager *resmgr,
+                              Tpm2Command     *command)
 {
-    HandleMap   *handle_map;
-    Connection *connection;
-    gboolean     ret = FALSE;
+    HandleMap   *handle_map = NULL;
+    Connection  *connection = NULL;
+    TSS2_RC      rc = TSS2_RC_SUCCESS;
+    size_t session_count;
 
     switch (tpm2_command_get_code (command)) {
     /* These commands load transient objects. */
@@ -530,13 +533,27 @@ resource_manager_is_over_object_quota (ResourceManager *resmgr,
         connection = tpm2_command_get_connection (command);
         handle_map = connection_get_trans_map (connection);
         if (handle_map_is_full (handle_map)) {
-            ret = TRUE;
+            g_info ("Connection 0x%" PRIxPTR " has exceeded transient object "
+                    "limit", (uintptr_t)connection);
+            rc = TSS2_RESMGR_RC_OBJECT_MEMORY;
         }
-        g_object_unref (connection);
-        g_object_unref (handle_map);
+        break;
+    /* These commands create sessions. */
+    case TPM_CC_StartAuthSession:
+        connection = tpm2_command_get_connection (command);
+        session_count = session_list_connection_count (resmgr->session_list,
+                                                       connection);
+        if (session_count >= SESSION_COUNT_MAX) {
+            g_info ("Connection 0x%" PRIxPTR " has exceeded session limit",
+                    (uintptr_t)connection);
+            rc = TSS2_RESMGR_RC_SESSION_MEMORY;
+        }
+        break;
     }
+    g_clear_object (&connection);
+    g_clear_object (&handle_map);
 
-    return ret;
+    return rc;
 }
 /*
  * This is a callback function invoked by the GSList foreach function. It is
@@ -1003,10 +1020,10 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
     dump_command (command);
     connection = tpm2_command_get_connection (command);
-    /* If connection has reached quota limit, send error response */
-    if (resource_manager_is_over_object_quota (resmgr, command)) {
-        response = tpm2_response_new_rc (connection,
-                                         TSS2_RESMGR_RC_OBJECT_MEMORY);
+    /* If executing the command would exceed a per connection quota */
+    rc = resource_manager_quota_check (resmgr, command);
+    if (rc != TSS2_RC_SUCCESS) {
+        response = tpm2_response_new_rc (connection, rc);
         goto send_response;
     }
     /* Load transient object contexts, switch virtual to physical handles */
