@@ -68,7 +68,6 @@ TESTS_INTEGRATION = \
 endif
 
 XFAIL_TESTS = \
-    test/integration/auth-session-max.int \
     test/integration/start-auth-session.int \
     test/integration/tcti-sessions-max.int
 
