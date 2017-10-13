@@ -60,6 +60,7 @@ enum {
     PROP_QUEUE_IN,
     PROP_SINK,
     PROP_ACCESS_BROKER,
+    PROP_SESSION_LIST,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -1183,6 +1184,9 @@ resource_manager_set_property (GObject        *object,
         g_object_ref (resmgr->access_broker);
         g_debug ("  access_broker: 0x%" PRIxPTR, (uintptr_t)resmgr->access_broker);
         break;
+    case PROP_SESSION_LIST:
+        resmgr->session_list = SESSION_LIST (g_value_dup_object (value));
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -1209,6 +1213,9 @@ resource_manager_get_property (GObject     *object,
         break;
     case PROP_ACCESS_BROKER:
         g_value_set_object (value, resmgr->access_broker);
+        break;
+    case PROP_SESSION_LIST:
+        g_value_set_object (value, resmgr->session_list);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -1279,6 +1286,12 @@ resource_manager_class_init (ResourceManagerClass *klass)
                              "TPM Access Broker for communication with TPM",
                              TYPE_ACCESS_BROKER,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_SESSION_LIST] =
+        g_param_spec_object ("session-list",
+                             "SessionList object",
+                             "Data structure to hold session tracking data",
+                             TYPE_SESSION_LIST,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
@@ -1346,7 +1359,8 @@ resource_manager_on_connection_removed (ConnectionManager *connection_manager,
  * Create new ResourceManager object.
  */
 ResourceManager*
-resource_manager_new (AccessBroker    *broker)
+resource_manager_new (AccessBroker    *broker,
+                      SessionList     *session_list)
 {
     if (broker == NULL)
         g_error ("resource_manager_new passed NULL AccessBroker");
@@ -1354,5 +1368,6 @@ resource_manager_new (AccessBroker    *broker)
     return RESOURCE_MANAGER (g_object_new (TYPE_RESOURCE_MANAGER,
                                            "queue-in",        queue,
                                            "access-broker",   broker,
+                                           "session-list",    session_list,
                                            NULL));
 }
