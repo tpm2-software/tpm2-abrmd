@@ -416,6 +416,44 @@ session_list_size (SessionList *list)
     return ret;
 }
 /*
+ * Structure used to hold data needed to count SessionEntry objects associated
+ * with a given connection.
+ */
+typedef struct {
+    Connection *connection;
+    size_t      count;
+} connection_count_data_t;
+/*
+ * Callback function used to count the number of SessionEntry objects in the
+ * list associated with a given connection.
+ */
+static void
+session_list_connection_counter (gpointer data,
+                                 gpointer user_data)
+{
+    SessionEntry *entry = SESSION_ENTRY (data);
+    connection_count_data_t *count_data = (connection_count_data_t*)user_data;
+
+    if (count_data->connection == session_entry_get_connection (entry)) {
+        ++count_data->count;
+    }
+}
+/*
+ * Returns the number of entries associated with the provided connection.
+ */
+size_t
+session_list_connection_count (SessionList *list,
+                               Connection  *connection)
+{
+    connection_count_data_t count_data = {
+        .connection = connection,
+        .count = 0,
+    };
+
+    session_list_foreach (list, session_list_connection_counter, &count_data);
+    return count_data.count;
+}
+/*
  * Return false if the number of entries in the list is greater than or equal
  * to max_entries.
  */

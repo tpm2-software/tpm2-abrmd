@@ -80,6 +80,8 @@ void           session_list_prettyprint       (SessionList      *list);
 void           session_list_foreach           (SessionList      *list,
                                                GFunc             func,
                                                gpointer          user_data);
+size_t         session_list_connection_count  (SessionList      *list,
+                                               Connection       *connection);
 
 G_END_DECLS
 #endif /* SESSION_LIST_H */
