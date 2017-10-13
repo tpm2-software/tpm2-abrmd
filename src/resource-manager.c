@@ -510,7 +510,6 @@ resource_manager_flush_context (ResourceManager *resmgr,
 out:
     return response;
 }
-#define SESSION_COUNT_MAX 4
 /*
  * Ensure that executing the provided command will not exceed any of the
  * per-connection quotas enforced by the RM. This is currently limited to
@@ -523,7 +522,6 @@ resource_manager_quota_check (ResourceManager *resmgr,
     HandleMap   *handle_map = NULL;
     Connection  *connection = NULL;
     TSS2_RC      rc = TSS2_RC_SUCCESS;
-    size_t session_count;
 
     switch (tpm2_command_get_code (command)) {
     /* These commands load transient objects. */
@@ -541,9 +539,7 @@ resource_manager_quota_check (ResourceManager *resmgr,
     /* These commands create sessions. */
     case TPM_CC_StartAuthSession:
         connection = tpm2_command_get_connection (command);
-        session_count = session_list_connection_count (resmgr->session_list,
-                                                       connection);
-        if (session_count >= SESSION_COUNT_MAX) {
+        if (session_list_is_full (resmgr->session_list, connection)) {
             g_info ("Connection 0x%" PRIxPTR " has exceeded session limit",
                     (uintptr_t)connection);
             rc = TSS2_RESMGR_RC_SESSION_MEMORY;
@@ -1013,9 +1009,11 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     Tpm2Response   *response;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     GSList         *entry_slist = NULL;
-    SessionList    *session_list_tmp = session_list_new (100);
-    TPMA_CC         command_attrs = tpm2_command_get_attributes (command);
+    SessionList    *session_list_tmp;
+    TPMA_CC         command_attrs;
 
+    session_list_tmp = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
+    command_attrs = tpm2_command_get_attributes (command);
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%" PRIxPTR
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
     dump_command (command);
@@ -1240,8 +1238,8 @@ resource_manager_dispose (GObject *obj)
 static void
 resource_manager_init (ResourceManager *manager)
 {
-    /* SessionList with arbitrary limit */
-    manager->session_list = session_list_new (100);
+    manager->session_list =
+        session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
 }
 /**
  * GObject class initialization function. This function boils down to:
