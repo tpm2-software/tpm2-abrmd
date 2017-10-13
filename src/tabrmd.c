@@ -211,7 +211,7 @@ init_thread_func (gpointer user_data)
         command_source_new (connection_manager, command_attrs);
     g_debug ("created command source: 0x%" PRIxPTR,
              (uintptr_t)data->command_source);
-    session_list = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
+    session_list = session_list_new (data->options.max_sessions);
     data->resource_manager = resource_manager_new (data->access_broker,
                                                    session_list);
     g_clear_object (&session_list);
@@ -294,6 +294,7 @@ parse_opts (gint            argc,
     gboolean session_bus = FALSE;
 
     options->max_connections = MAX_CONNECTIONS_DEFAULT;
+    options->max_sessions = MAX_SESSIONS_DEFAULT;
     options->max_transient_objects = MAX_TRANSIENT_OBJECTS_DEFAULT;
     options->dbus_name = TABRMD_DBUS_NAME_DEFAULT;
     options->prng_seed_file = RANDOM_ENTROPY_FILE_DEFAULT;
@@ -311,6 +312,9 @@ parse_opts (gint            argc,
           "Fail initialization if the TPM reports loaded transient objects" },
         { "max-connections", 'c', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_connections, "Maximum number of client connections." },
+        { "max-sessions", 'e', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
+          &options->max_sessions,
+          "Maximum number of sessions per connection." },
         { "max-transient-objects", 'r', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_transient_objects,
           "Maximum number of loaded transient objects per client." },
@@ -338,6 +342,12 @@ parse_opts (gint            argc,
     {
         tabrmd_critical ("MAX_CONNECTIONS must be between 1 and %d",
                          MAX_CONNECTIONS);
+    }
+    if (options->max_sessions < 1 ||
+        options->max_sessions > MAX_SESSIONS)
+    {
+        tabrmd_critical ("max-sessions must be between 1 and %d",
+                         MAX_SESSIONS);
     }
     if (options->max_transient_objects < 1 ||
         options->max_transient_objects > MAX_TRANSIENT_OBJECTS)

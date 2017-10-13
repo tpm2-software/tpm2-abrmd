@@ -41,6 +41,8 @@
 #define TABRMD_DBUS_METHOD_CANCEL            "Cancel"
 #define TABRMD_ERROR tabrmd_error_quark ()
 
+#define MAX_SESSIONS 64
+#define MAX_SESSIONS_DEFAULT 4
 #define MAX_TRANSIENT_OBJECTS 100
 #define MAX_TRANSIENT_OBJECTS_DEFAULT 27
 #define TABD_INIT_THREAD_NAME "tss2-tabrmd_init-thread"
@@ -63,6 +65,7 @@ typedef struct tabrmd_options {
     gboolean        fail_on_loaded_trans;
     guint           max_connections;
     guint           max_transient_objects;
+    guint           max_sessions;
     gchar          *dbus_name;
     const gchar    *prng_seed_file;
 } tabrmd_options_t;
