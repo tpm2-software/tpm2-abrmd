@@ -61,7 +61,8 @@ typedef struct _ResourceManager {
 #define RESOURCE_MANAGER_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_RESOURCE_MANAGER, ResourceManagerClass))
 
 GType                 resource_manager_get_type       (void);
-ResourceManager*      resource_manager_new            (AccessBroker *broker);
+ResourceManager*      resource_manager_new            (AccessBroker *broker,
+                                                       SessionList  *session_list);
 void                  resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                                              Tpm2Command       *command);
 void                  resource_manager_flushsave_context (gpointer              entry,

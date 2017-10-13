@@ -122,6 +122,7 @@ resource_manager_setup (void **state)
     test_data_t *data;
     GIOStream   *iostream;
     HandleMap   *handle_map;
+    SessionList *session_list;
     TSS2_RC rc;
 
     data = calloc (1, sizeof (test_data_t));
@@ -131,7 +132,10 @@ resource_manager_setup (void **state)
         g_debug ("tcti_echo_initialize FAILED");
     handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->access_broker = access_broker_new (TCTI (data->tcti_echo));
-    data->resource_manager = resource_manager_new (data->access_broker);
+    session_list = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
+    data->resource_manager = resource_manager_new (data->access_broker,
+                                                   session_list);
+    g_clear_object (&session_list);
     iostream = create_connection_iostream (&data->client_fd);
     data->connection = connection_new (iostream, 10, handle_map);
     g_object_unref (handle_map);

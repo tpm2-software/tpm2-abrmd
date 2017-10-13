@@ -129,6 +129,7 @@ init_thread_func (gpointer user_data)
     TSS2_RC rc;
     CommandAttrs *command_attrs;
     ConnectionManager *connection_manager = NULL;
+    SessionList *session_list;
 
     g_info ("init_thread_func start");
     g_mutex_lock (&data->init_mutex);
@@ -210,7 +211,10 @@ init_thread_func (gpointer user_data)
         command_source_new (connection_manager, command_attrs);
     g_debug ("created command source: 0x%" PRIxPTR,
              (uintptr_t)data->command_source);
-    data->resource_manager = resource_manager_new (data->access_broker);
+    session_list = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
+    data->resource_manager = resource_manager_new (data->access_broker,
+                                                   session_list);
+    g_clear_object (&session_list);
     g_debug ("created ResourceManager: 0x%" PRIxPTR,
              (uintptr_t)data->resource_manager);
     data->response_sink = response_sink_new ();
