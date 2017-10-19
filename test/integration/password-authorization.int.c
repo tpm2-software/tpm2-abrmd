@@ -96,13 +96,12 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
     // Now set the attributes.
     publicInfo.t.nvPublic.attributes.TPMA_NV_AUTHREAD = 1;
     publicInfo.t.nvPublic.attributes.TPMA_NV_AUTHWRITE = 1;
-    publicInfo.t.nvPublic.attributes.TPMA_NV_PLATFORMCREATE = 1;
     publicInfo.t.nvPublic.attributes.TPMA_NV_ORDERLY = 1;
     publicInfo.t.nvPublic.authPolicy.t.size = 0;
     publicInfo.t.nvPublic.dataSize = 32;
 
     rval = Tss2_Sys_NV_DefineSpace (sapi_context,
-                                    TPM_RH_PLATFORM,
+                                    TPM_RH_OWNER,
                                     &sessionsData,
                                     &nvAuth,
                                     &publicInfo,
@@ -220,7 +219,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 
     // Now undefine the index.
     rval = Tss2_Sys_NV_UndefineSpace (sapi_context,
-                                      TPM_RH_PLATFORM,
+                                      TPM_RH_OWNER,
                                       TPM20_INDEX_PASSWORD_TEST,
                                       &sessionsData,
                                       0);
