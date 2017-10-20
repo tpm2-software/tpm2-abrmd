@@ -66,5 +66,13 @@ main (int   argc,
         g_error ("TPM Startup FAILED! Response Code : 0x%x", rc);
     ret = test_invoke (sapi_context);
     sapi_teardown_full (sapi_context);
+    /*
+     * Certain testcase, e.g, tcti-cancel, may corrupt the state of tcti
+     * context, and thus causes 0xa0007 error code if directly cleaning up
+     * the contexts under the current sapi context. Therefore, we intend to
+     * launch a new sapi and tcti contexts to do the cleanup in order to
+     * avoid the violation caused by the previous mess.
+     */
+    sapi_fini_from_opts (&opts);
     return ret;
 }
