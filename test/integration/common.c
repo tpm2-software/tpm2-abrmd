@@ -55,7 +55,7 @@ tcti_context_init (TSS2_TCTI_CONTEXT **tcti_context)
     g_debug ("context structure allocated successfully");
     rc = tss2_tcti_tabrmd_init (tmp_tcti_context, NULL);
     if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize tcti context. RC: 0x%" PRIx32, rc);
+        g_error ("failed to initialize tcti context. TSS2_RC: 0x%" PRIx32, rc);
 
     *tcti_context = tmp_tcti_context;
     return rc;
@@ -279,6 +279,44 @@ load_key (TSS2_SYS_CONTEXT *sapi_context,
     return rc;
 }
 TSS2_RC
+undefine_nv_index (TSS2_SYS_CONTEXT *sapi_context,
+                   TPM_HANDLE        index)
+{
+    TSS2_RC rc;
+    TPMS_AUTH_COMMAND sessionData;
+    TPMS_AUTH_COMMAND *sessionDataArray[1];
+    TSS2_SYS_CMD_AUTHS sessionsData;
+
+    sessionData.sessionHandle = TPM_RS_PW;
+    sessionData.nonce.t.size = 0;
+    sessionData.hmac.t.size = 0;
+    *((UINT8 *)((void *)&sessionData.sessionAttributes)) = 0;
+
+    sessionDataArray[0] = &sessionData;
+
+    sessionsData.cmdAuths = &sessionDataArray[0];
+    sessionsData.cmdAuthsCount = 1;
+    sessionsData.cmdAuths[0] = &sessionData;
+
+    g_debug ("undefine_nv_index: sapi_context: 0x%" PRIxPTR " index: 0x%"
+             PRIx32, (uintptr_t)sapi_context, index);
+    if (sapi_context == NULL) {
+        g_error ("undefine_nv_index passed NULL reference");
+    }
+
+    rc = Tss2_Sys_NV_UndefineSpace (sapi_context,
+                                    TPM_RH_OWNER,
+                                    (TPMI_RH_NV_INDEX)index,
+                                    &sessionsData,
+                                    0);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("Tss2_Sys_Nv_UndefineSpace: failed to undefine nv index for "
+                   "index: 0x%" PRIx32 " TSS2_RC: 0x%" PRIx32, index, rc);
+    }
+
+    return rc;
+}
+TSS2_RC
 save_context (TSS2_SYS_CONTEXT *sapi_context,
               TPM_HANDLE        handle,
               TPMS_CONTEXT     *context)
@@ -319,6 +357,109 @@ flush_context (TSS2_SYS_CONTEXT *sapi_context,
     }
 
     return rc;
+}
+TSS2_RC
+evict_persistent_objs (TSS2_SYS_CONTEXT *sapi_context,
+                       TPM_HANDLE        handle)
+{
+    TSS2_RC rc;
+    TPMS_AUTH_COMMAND sessionData;
+    TPMS_AUTH_COMMAND *sessionDataArray[1];
+    TSS2_SYS_CMD_AUTHS sessionsData;
+
+    sessionData.sessionHandle = TPM_RS_PW;
+    sessionData.nonce.t.size = 0;
+    sessionData.hmac.t.size = 0;
+    *((UINT8 *)((void *)&sessionData.sessionAttributes)) = 0;
+
+    sessionDataArray[0] = &sessionData;
+
+    sessionsData.cmdAuths = &sessionDataArray[0];
+    sessionsData.cmdAuthsCount = 1;
+    sessionsData.cmdAuths[0] = &sessionData;
+
+    g_debug ("evict_persistent_objs: sapi_context: 0x%" PRIxPTR
+             " handle: 0x%" PRIx32, (uintptr_t)sapi_context, handle);
+    if (sapi_context == NULL) {
+        g_error ("evict_persistent_objs passed NULL reference");
+    }
+
+    rc = Tss2_Sys_EvictControl (sapi_context, TPM_RH_OWNER,
+                                (TPMI_DH_OBJECT)handle, &sessionsData,
+                                (TPMI_DH_PERSISTENT)handle, NULL);
+    if (rc != TPM_RC_SUCCESS) {
+        g_warning ("Tss2_Sys_EvictControl: failed to evict control for "
+                   "handle: 0x%" PRIx32 " TSS2_RC: 0x%" PRIx32, handle, rc);
+    }
+
+    return rc;
+}
+void
+clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
+{
+    TSS2_RC rc;
+    int i, j;
+    TPMI_YES_NO more_data;
+    TPMS_CAPABILITY_DATA capability_data;
+    TPML_HANDLE *handles = &capability_data.data.handles;
+    struct property_info {
+        UINT32 property;
+        UINT32 count;
+    } properties[] = {
+        {
+            (UINT32)PERSISTENT_FIRST,
+            MAX_CAP_HANDLES,
+        },
+        {
+            (UINT32)TRANSIENT_FIRST,
+            MAX_CAP_HANDLES,
+        },
+        {
+            (UINT32)NV_INDEX_FIRST,
+            MAX_CAP_HANDLES,
+        },
+        {
+            (UINT32)POLICY_SESSION_FIRST,
+            MAX_CAP_HANDLES,
+        },
+    };
+
+    for (i = 0; i < sizeof(properties) / sizeof(struct property_info); ++i) {
+        rc = Tss2_Sys_GetCapability (sapi_context,
+                                     NULL,
+                                     TPM_CAP_HANDLES,
+                                     properties[i].property,
+                                     properties[i].count,
+                                     &more_data,
+                                     &capability_data,
+                                     NULL);
+        if (rc != TSS2_RC_SUCCESS) {
+             g_warning ("Tss2_Sys_GetCapability: failed to get capability for "
+                        "handles propery: 0x%" PRIx32 " count: 0x%" PRIx32
+                        " TSS2_RC: 0x%" PRIx32, properties[i].property,
+                        properties[i].count, rc);
+             continue;
+        }
+
+        for (j = 0; j < handles->count; ++j) {
+            if (properties[i].property == (UINT32)NV_INDEX_FIRST) {
+                undefine_nv_index (sapi_context, handles->handle[j]);
+                continue;
+            }
+
+            /*
+             * TPM2_FlushContext command may not be used to remove a persistent
+             * objects from the TPM. So we always handle persistent handles
+             * prior to transient handles to allow evicting them on next round.
+             */
+            if (properties[i].property == (UINT32)PERSISTENT_FIRST) {
+                evict_persistent_objs (sapi_context, handles->handle[j]);
+                continue;
+            }
+
+            flush_context (sapi_context, handles->handle[j]);
+        }
+    }
 }
 /*
  * This fucntion is a very simple wrapper around the TPM2_StartAuthSession
