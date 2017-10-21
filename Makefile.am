@@ -55,6 +55,7 @@ TESTS_INTEGRATION = \
     test/integration/create-keys.int \
     test/integration/get-capability-handles-transient.int \
     test/integration/manage-transient-keys.int \
+    test/integration/session-load-from-open-connection.int \
     test/integration/start-auth-session.int \
     test/integration/tcti-cancel.int \
     test/integration/tcti-connect-multiple.int \
@@ -454,6 +455,11 @@ test_integration_get_capability_handles_transient_int_LDADD   = $(libtest) \
     $(libtcti_tabrmd) $(GLIB_LIBS) $(SAPI_LIBS)
 test_integration_get_capability_handles_transient_int_SOURCES = \
     test/integration/main.c test/integration/get-capability-handles-transient.int.c
+
+test_integration_session_load_from_open_connection_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
+    $(GLIB_LIBS)
+test_integration_session_load_from_open_connection_int_SOURCES = \
+    test/integration/session-load-from-open-connection.int.c
 
 test_integration_start_auth_session_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS)
 test_integration_start_auth_session_int_SOURCES = test/integration/main.c test/integration/start-auth-session.int.c
