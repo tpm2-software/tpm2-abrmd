@@ -135,9 +135,14 @@ tabrmd_start ()
     local tabrmd_name=$3
     local tabrmd_log_file=$4
     local tabrmd_pid_file=$5
-
     local tabrmd_env="G_MESSAGES_DEBUG=all"
-    local tabrmd_opts="--tcti=socket --tcti-socket-port=${tabrmd_port} --session --dbus-name=${tabrmd_name} --fail-on-loaded-trans"
+    local tabrmd_opts="--dbus-name=${tabrmd_name} --fail-on-loaded-trans"
+
+    if [ "$tabrmd_port" != "0" ]; then
+        tabrmd_opts="--tcti=socket --tcti-socket-port=${tabrmd_port} --session $tabrmd_opts"
+    else
+        tabrmd_opts="--tcti=device --allow-root $tabrmd_opts"
+    fi
 
     daemon_start "${tabrmd_bin}" "${tabrmd_opts}" "${tabrmd_log_file}" \
         "${tabrmd_pid_file}" "${tabrmd_env}" "${VALGRIND}" "${LOG_FLAGS}"
@@ -179,8 +184,17 @@ TEST_DIR=$(dirname "$1")
 TEST_NAME=$(basename "${TEST_BIN}")
 
 # sanity tests
-if [ ! -x "${SIM_BIN}" ]; then
-    echo "no simulator binary provided or not executable"
+if [ -n "${SIM_BIN}" ]; then
+    if [ ! -x "${SIM_BIN}" ]; then
+        echo "no simulator binary provided or not executable"
+        exit 1
+    fi
+
+    SIM_BIN=""
+fi
+
+if [ `id -u` != "0" ]; then
+    echo "need the root privilege to launch tabrmd for the integration test"
     exit 1
 fi
 if [ ! -x "${TABRMD_BIN}" ]; then
@@ -192,27 +206,39 @@ if [ ! -x "${TEST_BIN}" ]; then
     exit 1
 fi
 
-# start an instance of the simulator for the test, have it use a random port
-SIM_LOG_FILE=${TEST_BIN}_simulator.log
-SIM_PID_FILE=${TEST_BIN}_simulator.pid
-SIM_TMP_DIR=$(mktemp --directory --tmpdir=/tmp tpm_server_XXXXXX)
-for i in $(seq 5); do
-    SIM_PORT=$(od -A n -N 2 -t u2 /dev/urandom | awk -v min=1024 -v max=65535 '{print ($1 % (max - min)) + min}')
-    simulator_start ${SIM_BIN} ${SIM_PORT} ${SIM_LOG_FILE} ${SIM_PID_FILE} ${SIM_TMP_DIR}
-    if [ $? -eq 0 ]; then
-        break;
-    else
-        echo "Failed to start simulator on port ${SIM_PORT}, retrying"
-    fi
-done
-# start an instance of the tpm2-abrmd daemon for the test, use port from above
+if [ -n "${SIM_BIN}" ]; then
+    # start an instance of the simulator for the test, have it use a random port
+    SIM_LOG_FILE=${TEST_BIN}_simulator.log
+    SIM_PID_FILE=${TEST_BIN}_simulator.pid
+    SIM_TMP_DIR=$(mktemp --directory --tmpdir=/tmp tpm_server_XXXXXX)
+    for i in $(seq 5); do
+        SIM_PORT=$(od -A n -N 2 -t u2 /dev/urandom | awk -v min=1024 -v max=65535 '{print ($1 % (max - min)) + min}')
+        simulator_start ${SIM_BIN} ${SIM_PORT} ${SIM_LOG_FILE} ${SIM_PID_FILE} ${SIM_TMP_DIR}
+        if [ $? -eq 0 ]; then
+            break;
+        else
+            echo "Failed to start simulator on port ${SIM_PORT}, retrying"
+        fi
+    done
+else
+    SIM_PORT=0
+fi
+
 TABRMD_LOG_FILE=${TEST_BIN}_tabrmd.log
 TABRMD_PID_FILE=${TEST_BIN}_tabrmd.pid
-TABRMD_NAME=com.intel.tss2.Tabrmd${SIM_PORT}
+if [ -n "${SIM_BIN}" ]; then
+    TABRMD_NAME=com.intel.tss2.Tabrmd${SIM_PORT}
+else
+    TABRMD_NAME=com.intel.tss2.Tabrmd
+fi
 tabrmd_start ${TABRMD_BIN} ${SIM_PORT} ${TABRMD_NAME} ${TABRMD_LOG_FILE} ${TABRMD_PID_FILE}
 
 # execute the test script and capture exit code
-env G_MESSAGES_DEBUG=all TABRMD_TEST_BUS_TYPE=session TABRMD_TEST_BUS_NAME="${TABRMD_NAME}" TABRMD_TEST_TCTI_RETRIES=10 $@
+if [ -n "${SIM_BIN}" ]; then
+    env G_MESSAGES_DEBUG=all TABRMD_TEST_BUS_TYPE=session TABRMD_TEST_BUS_NAME="${TABRMD_NAME}" TABRMD_TEST_TCTI_RETRIES=10 $@
+else
+    env G_MESSAGES_DEBUG=all TABRMD_TEST_BUS_NAME="${TABRMD_NAME}" TABRMD_TEST_TCTI_RETRIES=10 $@
+fi
 ret_test=$?
 
 # This sleep is sadly necessary: If we kill the tabrmd w/o sleeping for a
@@ -225,9 +251,11 @@ daemon_stop ${TABRMD_PID_FILE}
 ret_tabrmd=$?
 rm -rf ${TABRMD_PID_FILE}
 
-# teardown simulator, ignore exit code (it's 143?)
-daemon_stop ${SIM_PID_FILE}
-rm -rf ${SIM_TMP_DIR} ${SIM_PID_FILE}
+if [ -n "${SIM_BIN}" ]; then
+    # teardown simulator, ignore exit code (it's 143?)
+    daemon_stop ${SIM_PID_FILE}
+    rm -rf ${SIM_TMP_DIR} ${SIM_PID_FILE}
+fi
 
 # handle exit codes
 if [ $ret_test -ne 0 ]; then
