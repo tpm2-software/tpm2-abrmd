@@ -55,6 +55,7 @@ TESTS_INTEGRATION = \
     test/integration/create-keys.int \
     test/integration/get-capability-handles-transient.int \
     test/integration/manage-transient-keys.int \
+    test/integration/session-load-from-closed-connection.int \
     test/integration/session-load-from-open-connection.int \
     test/integration/start-auth-session.int \
     test/integration/tcti-cancel.int \
@@ -69,6 +70,7 @@ TESTS_INTEGRATION = \
 endif
 
 XFAIL_TESTS = \
+    test/integration/session-load-from-closed-connection.int \
     test/integration/start-auth-session.int \
     test/integration/tcti-sessions-max.int
 
@@ -460,6 +462,11 @@ test_integration_session_load_from_open_connection_int_LDADD   = $(libtest) $(li
     $(GLIB_LIBS)
 test_integration_session_load_from_open_connection_int_SOURCES = \
     test/integration/session-load-from-open-connection.int.c
+
+test_integration_session_load_from_closed_connection_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
+    $(GLIB_LIBS)
+test_integration_session_load_from_closed_connection_int_SOURCES = \
+    test/integration/session-load-from-closed-connection.int.c
 
 test_integration_start_auth_session_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS)
 test_integration_start_auth_session_int_SOURCES = test/integration/main.c test/integration/start-auth-session.int.c
