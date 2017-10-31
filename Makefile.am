@@ -2,10 +2,13 @@
 VPATH = $(srcdir) $(builddir)
 ACLOCAL_AMFLAGS = -I m4
 
-.PHONY: unit-count
+.PHONY: unit-count prompt-user$(EXEEXT)
 
 unit-count: check
 	sh scripts/unit-count.sh
+
+prompt-user$(EXEEXT):
+	sh scripts/prompt-user.sh
 
 AM_CFLAGS = $(EXTRA_CFLAGS) \
     -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
@@ -46,7 +49,6 @@ if TCTI_SOCKET
 endif
 endif #UNIT
 
-if SIMULATOR_BIN
 TESTS_INTEGRATION = \
     test/integration/auth-session-start-flush.int \
     test/integration/auth-session-start-save.int \
@@ -64,7 +66,6 @@ TESTS_INTEGRATION = \
     test/integration/password-authorization.int \
     test/integration/tpm2-command-flush-no-handle.int \
     test/integration/util-buf-max-upper-bound.int
-endif
 
 XFAIL_TESTS = \
     test/integration/start-auth-session.int \
@@ -73,10 +74,18 @@ XFAIL_TESTS = \
 TESTS = $(TESTS_UNIT) $(TESTS_INTEGRATION)
 TEST_EXTENSIONS = .int
 INT_LOG_COMPILER = $(srcdir)/scripts/int-log-compiler.sh
+if SIMULATOR_BIN
 INT_LOG_FLAGS = --simulator-bin=$(SIMULATOR_BIN) --tabrmd-bin=$(sbin_PROGRAMS)
+else
+INT_LOG_FLAGS = --tabrmd-bin=$(sbin_PROGRAMS)
+endif #SIMULATOR_BIN
 
 sbin_PROGRAMS   = src/tpm2-abrmd
 check_PROGRAMS  = $(sbin_PROGRAMS) $(TESTS)
+if SIMULATOR_BIN
+else
+check_PROGRAMS += prompt-user$(EXEEXT)
+endif
 
 # libraries
 libtcti_tabrmd = src/libtcti-tabrmd.la
