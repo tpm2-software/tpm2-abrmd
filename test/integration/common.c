@@ -283,20 +283,12 @@ undefine_nv_index (TSS2_SYS_CONTEXT *sapi_context,
                    TPM_HANDLE        index)
 {
     TSS2_RC rc;
-    TPMS_AUTH_COMMAND sessionData;
-    TPMS_AUTH_COMMAND *sessionDataArray[1];
-    TSS2_SYS_CMD_AUTHS sessionsData;
-
-    sessionData.sessionHandle = TPM_RS_PW;
-    sessionData.nonce.t.size = 0;
-    sessionData.hmac.t.size = 0;
-    *((UINT8 *)((void *)&sessionData.sessionAttributes)) = 0;
-
-    sessionDataArray[0] = &sessionData;
-
-    sessionsData.cmdAuths = &sessionDataArray[0];
-    sessionsData.cmdAuthsCount = 1;
-    sessionsData.cmdAuths[0] = &sessionData;
+    TPMS_AUTH_COMMAND  auth_command          = { .sessionHandle = TPM_RS_PW, };
+    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
+    TSS2_SYS_CMD_AUTHS cmd_auths             = {
+        .cmdAuthsCount = 1,
+        .cmdAuths      = auth_command_array,
+    };
 
     g_debug ("undefine_nv_index: sapi_context: 0x%" PRIxPTR " index: 0x%"
              PRIx32, (uintptr_t)sapi_context, index);
@@ -307,7 +299,7 @@ undefine_nv_index (TSS2_SYS_CONTEXT *sapi_context,
     rc = Tss2_Sys_NV_UndefineSpace (sapi_context,
                                     TPM_RH_OWNER,
                                     (TPMI_RH_NV_INDEX)index,
-                                    &sessionsData,
+                                    &cmd_auths,
                                     0);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("Tss2_Sys_Nv_UndefineSpace: failed to undefine nv index for "
@@ -363,20 +355,12 @@ evict_persistent_objs (TSS2_SYS_CONTEXT *sapi_context,
                        TPM_HANDLE        handle)
 {
     TSS2_RC rc;
-    TPMS_AUTH_COMMAND sessionData;
-    TPMS_AUTH_COMMAND *sessionDataArray[1];
-    TSS2_SYS_CMD_AUTHS sessionsData;
-
-    sessionData.sessionHandle = TPM_RS_PW;
-    sessionData.nonce.t.size = 0;
-    sessionData.hmac.t.size = 0;
-    *((UINT8 *)((void *)&sessionData.sessionAttributes)) = 0;
-
-    sessionDataArray[0] = &sessionData;
-
-    sessionsData.cmdAuths = &sessionDataArray[0];
-    sessionsData.cmdAuthsCount = 1;
-    sessionsData.cmdAuths[0] = &sessionData;
+    TPMS_AUTH_COMMAND  auth_command          = { .sessionHandle = TPM_RS_PW, };
+    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
+    TSS2_SYS_CMD_AUTHS cmd_auths             = {
+        .cmdAuthsCount = 1,
+        .cmdAuths      = auth_command_array,
+    };
 
     g_debug ("evict_persistent_objs: sapi_context: 0x%" PRIxPTR
              " handle: 0x%" PRIx32, (uintptr_t)sapi_context, handle);
@@ -385,7 +369,7 @@ evict_persistent_objs (TSS2_SYS_CONTEXT *sapi_context,
     }
 
     rc = Tss2_Sys_EvictControl (sapi_context, TPM_RH_OWNER,
-                                (TPMI_DH_OBJECT)handle, &sessionsData,
+                                (TPMI_DH_OBJECT)handle, &cmd_auths,
                                 (TPMI_DH_PERSISTENT)handle, NULL);
     if (rc != TPM_RC_SUCCESS) {
         g_warning ("Tss2_Sys_EvictControl: failed to evict control for "
