@@ -27,6 +27,7 @@
 #include <glib.h>
 #include <stdbool.h>
 
+#include "common.h"
 #include "tcti-tabrmd.h"
 #include "test.h"
 #include "test-options.h"
@@ -67,12 +68,14 @@ main (int   argc,
     ret = test_invoke (sapi_context);
     sapi_teardown_full (sapi_context);
     /*
-     * Certain testcase, e.g, tcti-cancel, may corrupt the state of tcti
-     * context, and thus causes 0xa0007 error code if directly cleaning up
-     * the contexts under the current sapi context. Therefore, we intend to
-     * launch a new sapi and tcti contexts to do the cleanup in order to
-     * avoid the violation caused by the previous mess.
+     * Use new SAPI & TCTI to clean out TPM after test. Test code may have
+     * left either in an unusable state.
      */
-    sapi_fini_from_opts (&opts);
+    sapi_context = sapi_init_from_opts (&opts);
+    if (sapi_context == NULL) {
+        exit (1);
+    }
+    clean_up_all (sapi_context);
+    sapi_teardown_full (sapi_context);
     return ret;
 }

@@ -36,8 +36,6 @@
 
 #include "context-util.h"
 
-#include "common.h"
-
 /*
  * Initialize a TSS2_TCTI_CONTEXT for the device TCTI.
  */
@@ -212,20 +210,6 @@ sapi_init_from_opts (test_opts_t *options)
     if (sapi_ctx == NULL)
         return NULL;
     return sapi_ctx;
-}
-/*
- * Initialize a SAPI context used to clean up all unused contexts.
- */
-void
-sapi_fini_from_opts (test_opts_t *options)
-{
-    TSS2_SYS_CONTEXT *sapi_ctx;
-
-    sapi_ctx = sapi_init_from_opts (options);
-    if (sapi_ctx == NULL)
-        exit (1);
-    clean_up_all (sapi_ctx);
-    sapi_teardown_full (sapi_ctx);
 }
 /*
  * Initialize a TSS2_TCTI_CONTEXT using whatever TCTI data is in the options
