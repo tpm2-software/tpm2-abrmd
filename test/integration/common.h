@@ -101,3 +101,8 @@ void
 prettyprint_context (
     TPMS_CONTEXT *context
     );
+
+void
+clean_up_all (
+    TSS2_SYS_CONTEXT *sapi_context
+    );
