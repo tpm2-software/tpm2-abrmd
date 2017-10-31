@@ -298,7 +298,7 @@ undefine_nv_index (TSS2_SYS_CONTEXT *sapi_context,
 
     rc = Tss2_Sys_NV_UndefineSpace (sapi_context,
                                     TPM_RH_OWNER,
-                                    (TPMI_RH_NV_INDEX)index,
+                                    index,
                                     &cmd_auths,
                                     0);
     if (rc != TSS2_RC_SUCCESS) {
@@ -369,8 +369,8 @@ evict_persistent_objs (TSS2_SYS_CONTEXT *sapi_context,
     }
 
     rc = Tss2_Sys_EvictControl (sapi_context, TPM_RH_OWNER,
-                                (TPMI_DH_OBJECT)handle, &cmd_auths,
-                                (TPMI_DH_PERSISTENT)handle, NULL);
+                                handle, &cmd_auths,
+                                handle, NULL);
     if (rc != TPM_RC_SUCCESS) {
         g_warning ("Tss2_Sys_EvictControl: failed to evict control for "
                    "handle: 0x%" PRIx32 " TSS2_RC: 0x%" PRIx32, handle, rc);
@@ -391,20 +391,20 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
         UINT32 count;
     } properties[] = {
         {
-            (UINT32)PERSISTENT_FIRST,
-            MAX_CAP_HANDLES,
+            .property = PERSISTENT_FIRST,
+            .count = MAX_CAP_HANDLES,
         },
         {
-            (UINT32)TRANSIENT_FIRST,
-            MAX_CAP_HANDLES,
+            .property = TRANSIENT_FIRST,
+            .count = MAX_CAP_HANDLES,
         },
         {
-            (UINT32)NV_INDEX_FIRST,
-            MAX_CAP_HANDLES,
+            .property = NV_INDEX_FIRST,
+            .count = MAX_CAP_HANDLES,
         },
         {
-            (UINT32)POLICY_SESSION_FIRST,
-            MAX_CAP_HANDLES,
+            .property = POLICY_SESSION_FIRST,
+            .count = MAX_CAP_HANDLES,
         },
     };
 
@@ -426,7 +426,7 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
         }
 
         for (j = 0; j < handles->count; ++j) {
-            if (properties[i].property == (UINT32)NV_INDEX_FIRST) {
+            if (properties[i].property == NV_INDEX_FIRST) {
                 undefine_nv_index (sapi_context, handles->handle[j]);
                 continue;
             }
@@ -436,7 +436,7 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
              * objects from the TPM. So we always handle persistent handles
              * prior to transient handles to allow evicting them on next round.
              */
-            if (properties[i].property == (UINT32)PERSISTENT_FIRST) {
+            if (properties[i].property == PERSISTENT_FIRST) {
                 evict_persistent_objs (sapi_context, handles->handle[j]);
                 continue;
             }
