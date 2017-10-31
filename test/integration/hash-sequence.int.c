@@ -125,35 +125,33 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     int i;
 
     TSS2_RC rval;
-    TPM2B_AUTH auth;
+    TPM2B_AUTH auth = {
+        .t = {
+            .size = 2,
+            .buffer = { 0x00, 0xff },
+        }
+    };
+
     TPMI_DH_OBJECT  sequenceHandle[MAX_TEST_SEQUENCES];
-
-    TPMS_AUTH_COMMAND  sessionData,    sessionData1;
-    TPMS_AUTH_RESPONSE sessionDataOut, sessionDataOut1;
-
-    TSS2_SYS_CMD_AUTHS sessionsData;
-    TSS2_SYS_RSP_AUTHS sessionsDataOut;
-
-    TPMS_AUTH_COMMAND  *sessionDataArray[2];
-    TPMS_AUTH_RESPONSE *sessionDataOutArray[2];
-
     TPM2B_MAX_BUFFER dataToHash;
-
     TPM2B_DIGEST result;
     TPMT_TK_HASHCHECK validation;
 
-    sessionDataArray[0]    = &sessionData;
-    sessionDataOutArray[0] = &sessionDataOut;
-    sessionDataArray[1]    = &sessionData1;
-    sessionDataOutArray[1] = &sessionDataOut1;
-
-    sessionsData.cmdAuths = &sessionDataArray[0];
-    sessionsDataOut.rspAuthsCount = 1;
-    sessionsDataOut.rspAuths = &sessionDataOutArray[0];
-
-    auth.t.size = 2;
-    auth.t.buffer[0] = 0;
-    auth.t.buffer[1] = 0xff;
+    TPMS_AUTH_COMMAND auth_command = {
+        .sessionHandle = TPM_RS_PW,
+        .hmac = auth,
+    };
+    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
+    TSS2_SYS_CMD_AUTHS cmd_auths = {
+        .cmdAuthsCount = 1,
+        .cmdAuths      = auth_command_array,
+    };
+    TPMS_AUTH_RESPONSE  auth_response = { 0 };
+    TPMS_AUTH_RESPONSE *auth_response_array[1] = { &auth_response };
+    TSS2_SYS_RSP_AUTHS  rsp_auths = {
+        .rspAuths      = auth_response_array,
+        .rspAuthsCount = 1
+    };
 
     rval = Tss2_Sys_HashSequenceStart (sapi_context,
                                        0,
@@ -165,29 +163,14 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         g_error ("Failed to initialize hash sequence. RC = 0x%x", rval);
     }
 
-    // Init authHandle
-    sessionData.sessionHandle = TPM_RS_PW;
-
-    // Init nonce.
-    sessionData.nonce.t.size = 0;
-
-    // init hmac
-    sessionData.hmac = auth;
-
-    // Init session attributes
-    *( (UINT8 *)((void *)&sessionData.sessionAttributes ) ) = 0;
-
-    sessionsData.cmdAuthsCount = 1;
-    sessionsData.cmdAuths[0] = &sessionData;
-
     dataToHash.t.size = MAX_DIGEST_BUFFER;
     memcpy (&dataToHash.t.buffer[0], &memoryToHash[0], dataToHash.t.size);
 
     rval = Tss2_Sys_SequenceUpdate (sapi_context,
                                     sequenceHandle[0],
-                                    &sessionsData,
+                                    &cmd_auths,
                                     &dataToHash,
-                                    &sessionsDataOut);
+                                    &rsp_auths);
     if (rval != TSS2_RC_SUCCESS) {
         g_error ("Hash sequence update failed. RC = 0x%x", rval);
     }
@@ -216,12 +199,12 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         INIT_SIMPLE_TPM2B_SIZE (result);
         rval = Tss2_Sys_SequenceComplete (sapi_context,
                                           sequenceHandle[i],
-                                          &sessionsData,
+                                          &cmd_auths,
                                           &dataToHash,
                                           TPM_RH_PLATFORM,
                                           &result,
                                           &validation,
-                                          &sessionsDataOut);
+                                          &rsp_auths);
         if (rval != TSS2_RC_SUCCESS) {
             g_error ("Interrupting hash sequence %d failed. RC = 0x%x",
                      i, rval);
@@ -231,9 +214,9 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     /* Now try to finish the interrupted sequence. */
     rval = Tss2_Sys_SequenceUpdate (sapi_context,
                                     sequenceHandle[0],
-                                    &sessionsData,
+                                    &cmd_auths,
                                     &dataToHash,
-                                    &sessionsDataOut);
+                                    &rsp_auths);
     if (rval != TSS2_RC_SUCCESS) {
         g_error ("Failed to update original hash sequence. RC = 0x%x", rval);
     }
@@ -245,12 +228,12 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     INIT_SIMPLE_TPM2B_SIZE (result);
     rval = Tss2_Sys_SequenceComplete (sapi_context,
                                       sequenceHandle[0],
-                                      &sessionsData,
+                                      &cmd_auths,
                                       &dataToHash,
                                       TPM_RH_PLATFORM,
                                       &result,
                                       &validation,
-                                      &sessionsDataOut);
+                                      &rsp_auths);
     if (rval != TSS2_RC_SUCCESS) {
         g_error ("Original hash sequence failed. RC = 0x%x", rval);
     }
@@ -285,12 +268,12 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         INIT_SIMPLE_TPM2B_SIZE( result );
         rval = Tss2_Sys_SequenceComplete (sapi_context,
                                           sequenceHandle[i],
-                                          &sessionsData,
+                                          &cmd_auths,
                                           &dataToHash,
                                           TPM_RH_PLATFORM,
                                           &result,
                                           &validation,
-                                          &sessionsDataOut);
+                                          &rsp_auths);
         if (rval != TSS2_RC_SUCCESS) {
             g_error ("Hash sequence %d during stress test failed to close. "
                      "RC = 0x%x", i, rval);

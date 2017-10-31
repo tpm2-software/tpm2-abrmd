@@ -48,37 +48,23 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
 {
     TSS2_RC rval;
     int i;
-    TPMS_AUTH_COMMAND sessionData;
-    TPMS_AUTH_RESPONSE sessionDataOut;
-    TSS2_SYS_CMD_AUTHS sessionsData;
-    TSS2_SYS_RSP_AUTHS sessionsDataOut;
     TPM2B_NV_PUBLIC publicInfo;
     TPM2B_AUTH  nvAuth;
 
-    TPMS_AUTH_COMMAND *sessionDataArray[1];
-    TPMS_AUTH_RESPONSE *sessionDataOutArray[1];
-
-    sessionDataArray[0] = &sessionData;
-    sessionDataOutArray[0] = &sessionDataOut;
-
-    sessionsDataOut.rspAuths = &sessionDataOutArray[0];
-    sessionsData.cmdAuths = &sessionDataArray[0];
-
-    sessionData.sessionHandle = TPM_RS_PW;
-
-    // Init nonce.
-    sessionData.nonce.t.size = 0;
-
-    // init hmac
-    sessionData.hmac.t.size = 0;
-
-    // Init session attributes
-    *( (UINT8 *)((void *)&sessionData.sessionAttributes ) ) = 0;
-
-    sessionsDataOut.rspAuthsCount = 1;
-
-    sessionsData.cmdAuthsCount = 1;
-    sessionsData.cmdAuths[0] = &sessionData;
+    TPMS_AUTH_COMMAND auth_command = {
+        .sessionHandle = TPM_RS_PW,
+    };
+    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
+    TSS2_SYS_CMD_AUTHS cmd_auths = {
+        .cmdAuthsCount = 1,
+        .cmdAuths      = auth_command_array,
+    };
+    TPMS_AUTH_RESPONSE  auth_response = { 0 };
+    TPMS_AUTH_RESPONSE *auth_response_array[1] = { &auth_response };
+    TSS2_SYS_RSP_AUTHS  rsp_auths = {
+        .rspAuths      = auth_response_array,
+        .rspAuthsCount = 1
+    };
 
     nvAuth.t.size = strlen (password);
     for (i = 0; i < nvAuth.t.size; i++) {
@@ -102,10 +88,10 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
 
     rval = Tss2_Sys_NV_DefineSpace (sapi_context,
                                     TPM_RH_OWNER,
-                                    &sessionsData,
+                                    &cmd_auths,
                                     &nvAuth,
                                     &publicInfo,
-                                    &sessionsDataOut);
+                                    &rsp_auths);
     if (rval != TSS2_RC_SUCCESS) {
         g_warning("Failed to define NV space with password authorization. RC = 0x%x", rval);
         return 0;
@@ -121,28 +107,24 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     TSS2_RC rval;
     int i, ret;
 
-    // Authorization structure for command.
-    TPMS_AUTH_COMMAND sessionData;
-
-    // Authorization structure for response.
-    TPMS_AUTH_RESPONSE sessionDataOut;
-
-    // Create and init authorization area for command:
-    // only 1 authorization area.
-    TPMS_AUTH_COMMAND *sessionDataArray[1] = { &sessionData };
-
-    // Create authorization area for response:
-    // only 1 authorization area.
-    TPMS_AUTH_RESPONSE *sessionDataOutArray[1] = { &sessionDataOut };
-
-    // Authorization array for command (only has one auth structure).
-    TSS2_SYS_CMD_AUTHS sessionsData = { 1, &sessionDataArray[0] };
-
-    // Authorization array for response (only has one auth structure).
-    TSS2_SYS_RSP_AUTHS sessionsDataOut = { 1, &sessionDataOutArray[0] };
     TPM2B_MAX_NV_BUFFER nvWriteData;
 
     char password[] = "test password";
+
+    TPMS_AUTH_COMMAND auth_command = {
+        .sessionHandle = TPM_RS_PW,
+    };
+    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
+    TSS2_SYS_CMD_AUTHS cmd_auths = {
+        .cmdAuthsCount = 1,
+        .cmdAuths      = auth_command_array,
+    };
+    TPMS_AUTH_RESPONSE  auth_response = { 0 };
+    TPMS_AUTH_RESPONSE *auth_response_array[1] = { &auth_response };
+    TSS2_SYS_RSP_AUTHS  rsp_auths = {
+        .rspAuths      = auth_response_array,
+        .rspAuthsCount = 1
+    };
 
     /*
      * Create an NV index that will use password
@@ -157,23 +139,9 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         return 1;
     }
 
-    // Initialize the command authorization area.
-
-    // Init sessionHandle, nonce, session attributes, and hmac (password).
-    sessionData.sessionHandle = TPM_RS_PW;
-    // Set zero sized nonce.
-    sessionData.nonce.t.size = 0;
-    /*
-     * sessionAttributes is a bit field.  To initialize
-     * it to 0, cast to a pointer to UINT8 and
-     * write 0 to that pointer.
-     */
-    *( (UINT8 *)&sessionData.sessionAttributes ) = 0;
-
     // Init password (HMAC field in authorization structure).
-    sessionData.hmac.t.size = strlen( password );
-    memcpy( &( sessionData.hmac.t.buffer[0] ),
-            &( password[0] ), sessionData.hmac.t.size );
+    auth_command.hmac.t.size = strlen (password);
+    memcpy (auth_command.hmac.t.buffer, password, strlen (password));
 
     // Initialize write data.
     nvWriteData.t.size = 4;
@@ -185,10 +153,10 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     rval = TSS2_RETRY_EXP (Tss2_Sys_NV_Write (sapi_context,
                               TPM20_INDEX_PASSWORD_TEST,
                               TPM20_INDEX_PASSWORD_TEST,
-                              &sessionsData,
+                              &cmd_auths,
                               &nvWriteData,
                               0,
-                              &sessionsDataOut));
+                              &rsp_auths));
     // Check that the function passed as expected.  Otherwise, exit.
     if (rval != TSS2_RC_SUCCESS) {
 	g_warning("Failed to write in NV with correct password. RC = 0x%x", rval);
@@ -196,14 +164,14 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     // Alter the password so it's incorrect.
-    sessionData.hmac.t.buffer[4] = 0xff;
+    auth_command.hmac.t.buffer[4] = 0xff;
     rval = Tss2_Sys_NV_Write (sapi_context,
                               TPM20_INDEX_PASSWORD_TEST,
                               TPM20_INDEX_PASSWORD_TEST,
-                              &sessionsData,
+                              &cmd_auths,
                               &nvWriteData,
                               0,
-                              &sessionsDataOut);
+                              &rsp_auths);
     /*
      * Check that the function failed as expected,
      * since password was incorrect.  If wrong
@@ -215,13 +183,13 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     // Change hmac to null one, since null auth is used to undefine the index.
-    sessionData.hmac.t.size = 0;
+    auth_command.hmac.t.size = 0;
 
     // Now undefine the index.
     rval = Tss2_Sys_NV_UndefineSpace (sapi_context,
                                       TPM_RH_OWNER,
                                       TPM20_INDEX_PASSWORD_TEST,
-                                      &sessionsData,
+                                      &cmd_auths,
                                       0);
     if (rval != TSS2_RC_SUCCESS) {
 	g_warning("Failed to undefine NV index. RC = 0x%x", rval);
