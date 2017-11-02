@@ -21,6 +21,12 @@ consider this the window for comments.
 * All tests must pass on Travis CI for the merge to occur.
 * All changes must not introduce superfluous changes or whitespace errors.
 * All changes should adhere to the coding standard.
+* All commits should adhere to the git commit message guidlines described
+here: https://chris.beams.io/posts/git-commit/ with the following exceptions.
+ * We allow commit subject lines up to 80 characters.
+ * Commit subject lines should be prefixed with a string identifying the
+effected subsystem / object. If the change is spread over a number of
+subsystems them the prefix may be omitted.
 
 ## Guideline for merging changes
 Changes must be merged with the "rebase" option on github to avoid merge commits.
