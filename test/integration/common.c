@@ -403,9 +403,13 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
             .count = MAX_CAP_HANDLES,
         },
         {
-            .property = POLICY_SESSION_FIRST,
+            .property = LOADED_SESSION_FIRST,
             .count = MAX_CAP_HANDLES,
         },
+        {
+            .property = ACTIVE_SESSION_FIRST,
+            .count = MAX_CAP_HANDLES,
+        }
     };
 
     for (i = 0; i < sizeof(properties) / sizeof(struct property_info); ++i) {
