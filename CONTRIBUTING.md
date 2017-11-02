@@ -28,6 +28,13 @@ here: https://chris.beams.io/posts/git-commit/ with the following exceptions.
 effected subsystem / object. If the change is spread over a number of
 subsystems them the prefix may be omitted.
 
+## Picking a Branch
+All bug fixes and changes that are backward compatible should be committed to
+the `1.x` release branch. This branch will be merged back into the `master`
+branch periodically. If the change you're working on is not backward
+compatible (e.g. removes a command line option) then it should not go into
+the release branch but instead should go into master directly.
+
 ## Guideline for merging changes
 Changes must be merged with the "rebase" option on github to avoid merge commits.
 This provides for a clear linear history.
