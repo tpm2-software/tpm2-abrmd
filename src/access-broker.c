@@ -654,3 +654,63 @@ out:
     access_broker_unlock (broker);
     return rc;
 }
+static void
+access_broker_flush_all_unlocked (AccessBroker     *broker,
+                                  TSS2_SYS_CONTEXT *sapi_context,
+                                  TPM_RH            first,
+                                  TPM_RH            last)
+{
+    TSS2_RC rc = TSS2_RC_SUCCESS;
+    TPMI_YES_NO more_data;
+    TPMS_CAPABILITY_DATA capability_data = { 0, };
+    TPM_HANDLE handle;
+    size_t i;
+
+    g_debug ("%s: AccessBroker: 0x%" PRIxPTR ", first: 0x%08" PRIx32 ", last: "
+             "0x%08" PRIx32, __func__, (uintptr_t)broker, first, last);
+    rc = Tss2_Sys_GetCapability (sapi_context,
+                                 NULL,
+                                 TPM_CAP_HANDLES,
+                                 first,
+                                 last - first,
+                                 &more_data,
+                                 &capability_data,
+                                 NULL);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("Failed to get capability TPM_CAP_HANDLES");
+        return;
+    }
+    g_debug ("%s: got %u handles", __func__, capability_data.data.handles.count);
+    for (i = 0; i < capability_data.data.handles.count; ++i) {
+        handle = capability_data.data.handles.handle [i];
+        g_debug ("%s: flushing context with handle: 0x%08" PRIx32, __func__,
+                 handle);
+        rc = Tss2_Sys_FlushContext (sapi_context, handle);
+        if (rc != TSS2_RC_SUCCESS) {
+            g_warning ("Failed to flush context for handle 0x%08" PRIx32
+                       " RC: 0x%" PRIx32, handle, rc);
+        }
+    }
+}
+void
+access_broker_flush_all_context (AccessBroker *broker)
+{
+    TSS2_SYS_CONTEXT *sapi_context;
+
+    g_debug ("%s: AccessBroker: 0x%" PRIxPTR, __func__, (uintptr_t)broker);
+    g_assert_nonnull (broker);
+    sapi_context = access_broker_lock_sapi (broker);
+    access_broker_flush_all_unlocked (broker,
+                                      sapi_context,
+                                      ACTIVE_SESSION_FIRST,
+                                      ACTIVE_SESSION_LAST);
+    access_broker_flush_all_unlocked (broker,
+                                      sapi_context,
+                                      LOADED_SESSION_FIRST,
+                                      LOADED_SESSION_LAST);
+    access_broker_flush_all_unlocked (broker,
+                                      sapi_context,
+                                      TRANSIENT_FIRST,
+                                      TRANSIENT_LAST);
+    access_broker_unlock (broker);
+}

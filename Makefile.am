@@ -48,6 +48,7 @@ endif #UNIT
 
 if SIMULATOR_BIN
 TESTS_INTEGRATION = \
+    test/integration/auth-session-max.int \
     test/integration/auth-session-start-flush.int \
     test/integration/auth-session-start-save.int \
     test/integration/auth-session-start-save-load.int \
@@ -423,6 +424,11 @@ test_tss2_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(libtcti_echo)
 test_tss2_tcti_echo_unit_SOURCES = test/tss2-tcti-echo_unit.c
 endif
+
+test_integration_auth_session_max_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
+    $(GLIB_LIBS)
+test_integration_auth_session_max_int_SOURCES = test/integration/main.c \
+    test/integration/auth-session-max.int.c
 
 test_integration_auth_session_start_flush_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
     $(GLIB_LIBS)

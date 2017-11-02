@@ -60,6 +60,7 @@ enum {
     PROP_QUEUE_IN,
     PROP_SINK,
     PROP_ACCESS_BROKER,
+    PROP_SESSION_LIST,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -511,16 +512,17 @@ out:
     return response;
 }
 /*
- * Determine whether the command may return a transient handle. If so
- * be sure we have room in the handle map for it.
+ * Ensure that executing the provided command will not exceed any of the
+ * per-connection quotas enforced by the RM. This is currently limited to
+ * transient objects and sessions.
  */
-gboolean
-resource_manager_is_over_object_quota (ResourceManager *resmgr,
-                                       Tpm2Command     *command)
+TSS2_RC
+resource_manager_quota_check (ResourceManager *resmgr,
+                              Tpm2Command     *command)
 {
-    HandleMap   *handle_map;
-    Connection *connection;
-    gboolean     ret = FALSE;
+    HandleMap   *handle_map = NULL;
+    Connection  *connection = NULL;
+    TSS2_RC      rc = TSS2_RC_SUCCESS;
 
     switch (tpm2_command_get_code (command)) {
     /* These commands load transient objects. */
@@ -530,13 +532,25 @@ resource_manager_is_over_object_quota (ResourceManager *resmgr,
         connection = tpm2_command_get_connection (command);
         handle_map = connection_get_trans_map (connection);
         if (handle_map_is_full (handle_map)) {
-            ret = TRUE;
+            g_info ("Connection 0x%" PRIxPTR " has exceeded transient object "
+                    "limit", (uintptr_t)connection);
+            rc = TSS2_RESMGR_RC_OBJECT_MEMORY;
         }
-        g_object_unref (connection);
-        g_object_unref (handle_map);
+        break;
+    /* These commands create sessions. */
+    case TPM_CC_StartAuthSession:
+        connection = tpm2_command_get_connection (command);
+        if (session_list_is_full (resmgr->session_list, connection)) {
+            g_info ("Connection 0x%" PRIxPTR " has exceeded session limit",
+                    (uintptr_t)connection);
+            rc = TSS2_RESMGR_RC_SESSION_MEMORY;
+        }
+        break;
     }
+    g_clear_object (&connection);
+    g_clear_object (&handle_map);
 
-    return ret;
+    return rc;
 }
 /*
  * This is a callback function invoked by the GSList foreach function. It is
@@ -996,17 +1010,19 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     Tpm2Response   *response;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     GSList         *entry_slist = NULL;
-    SessionList    *session_list_tmp = session_list_new (100);
-    TPMA_CC         command_attrs = tpm2_command_get_attributes (command);
+    SessionList    *session_list_tmp;
+    TPMA_CC         command_attrs;
 
+    session_list_tmp = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
+    command_attrs = tpm2_command_get_attributes (command);
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%" PRIxPTR
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
     dump_command (command);
     connection = tpm2_command_get_connection (command);
-    /* If connection has reached quota limit, send error response */
-    if (resource_manager_is_over_object_quota (resmgr, command)) {
-        response = tpm2_response_new_rc (connection,
-                                         TSS2_RESMGR_RC_OBJECT_MEMORY);
+    /* If executing the command would exceed a per connection quota */
+    rc = resource_manager_quota_check (resmgr, command);
+    if (rc != TSS2_RC_SUCCESS) {
+        response = tpm2_response_new_rc (connection, rc);
         goto send_response;
     }
     /* Load transient object contexts, switch virtual to physical handles */
@@ -1168,6 +1184,9 @@ resource_manager_set_property (GObject        *object,
         g_object_ref (resmgr->access_broker);
         g_debug ("  access_broker: 0x%" PRIxPTR, (uintptr_t)resmgr->access_broker);
         break;
+    case PROP_SESSION_LIST:
+        resmgr->session_list = SESSION_LIST (g_value_dup_object (value));
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -1194,6 +1213,9 @@ resource_manager_get_property (GObject     *object,
         break;
     case PROP_ACCESS_BROKER:
         g_value_set_object (value, resmgr->access_broker);
+        break;
+    case PROP_SESSION_LIST:
+        g_value_set_object (value, resmgr->session_list);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -1223,8 +1245,8 @@ resource_manager_dispose (GObject *obj)
 static void
 resource_manager_init (ResourceManager *manager)
 {
-    /* SessionList with arbitrary limit */
-    manager->session_list = session_list_new (100);
+    manager->session_list =
+        session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
 }
 /**
  * GObject class initialization function. This function boils down to:
@@ -1263,6 +1285,12 @@ resource_manager_class_init (ResourceManagerClass *klass)
                              "AccessBroker object",
                              "TPM Access Broker for communication with TPM",
                              TYPE_ACCESS_BROKER,
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_SESSION_LIST] =
+        g_param_spec_object ("session-list",
+                             "SessionList object",
+                             "Data structure to hold session tracking data",
+                             TYPE_SESSION_LIST,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
@@ -1331,7 +1359,8 @@ resource_manager_on_connection_removed (ConnectionManager *connection_manager,
  * Create new ResourceManager object.
  */
 ResourceManager*
-resource_manager_new (AccessBroker    *broker)
+resource_manager_new (AccessBroker    *broker,
+                      SessionList     *session_list)
 {
     if (broker == NULL)
         g_error ("resource_manager_new passed NULL AccessBroker");
@@ -1339,5 +1368,6 @@ resource_manager_new (AccessBroker    *broker)
     return RESOURCE_MANAGER (g_object_new (TYPE_RESOURCE_MANAGER,
                                            "queue-in",        queue,
                                            "access-broker",   broker,
+                                           "session-list",    session_list,
                                            NULL));
 }

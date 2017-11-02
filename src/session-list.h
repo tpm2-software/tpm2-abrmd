@@ -37,8 +37,8 @@
 
 G_BEGIN_DECLS
 
-#define SESSION_LIST_MAX_ENTRIES_DEFAULT 27
-#define SESSION_LIST_MAX_ENTRIES_MAX     100
+#define SESSION_LIST_MAX_ENTRIES_DEFAULT 4
+#define SESSION_LIST_MAX_ENTRIES_MAX     64
 
 typedef struct _SessionListClass {
     GObjectClass      parent;
@@ -47,7 +47,7 @@ typedef struct _SessionListClass {
 typedef struct _SessionList {
     GObject             parent_instance;
     pthread_mutex_t     mutex;
-    guint               max_entries;
+    guint               max_per_connection;
     GSList             *session_entry_slist;
 } SessionList;
 
@@ -59,7 +59,7 @@ typedef struct _SessionList {
 #define SESSION_LIST_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_SESSION_LIST, SessionListClass))
 
 GType          session_list_get_type          (void);
-SessionList*   session_list_new               (guint             max_entries);
+SessionList*   session_list_new               (guint             max_per_conn);
 gboolean       session_list_insert            (SessionList      *list,
                                                SessionEntry     *entry);
 gint           session_list_lock              (SessionList      *list);
@@ -75,11 +75,16 @@ gint           session_list_remove_connection (SessionList      *list,
 void           session_list_remove            (SessionList      *list,
                                                SessionEntry     *entry);
 guint          session_list_size              (SessionList      *list);
-gboolean       session_list_is_full           (SessionList      *list);
+gboolean       session_list_is_full           (SessionList      *list,
+                                               Connection       *connection);
+gboolean       session_list_is_full_unlocked  (SessionList      *session_list,
+                                               Connection       *connection);
 void           session_list_prettyprint       (SessionList      *list);
 void           session_list_foreach           (SessionList      *list,
                                                GFunc             func,
                                                gpointer          user_data);
+size_t         session_list_connection_count  (SessionList      *list,
+                                               Connection       *connection);
 
 G_END_DECLS
 #endif /* SESSION_LIST_H */

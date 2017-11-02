@@ -27,6 +27,7 @@
 #include <glib.h>
 #include <stdbool.h>
 
+#include "common.h"
 #include "tcti-tabrmd.h"
 #include "test.h"
 #include "test-options.h"
@@ -65,6 +66,16 @@ main (int   argc,
     if (rc != TSS2_RC_SUCCESS && rc != TPM_RC_INITIALIZE)
         g_error ("TPM Startup FAILED! Response Code : 0x%x", rc);
     ret = test_invoke (sapi_context);
+    sapi_teardown_full (sapi_context);
+    /*
+     * Use new SAPI & TCTI to clean out TPM after test. Test code may have
+     * left either in an unusable state.
+     */
+    sapi_context = sapi_init_from_opts (&opts);
+    if (sapi_context == NULL) {
+        exit (1);
+    }
+    clean_up_all (sapi_context);
     sapi_teardown_full (sapi_context);
     return ret;
 }

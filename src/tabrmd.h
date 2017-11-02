@@ -41,6 +41,8 @@
 #define TABRMD_DBUS_METHOD_CANCEL            "Cancel"
 #define TABRMD_ERROR tabrmd_error_quark ()
 
+#define MAX_SESSIONS 64
+#define MAX_SESSIONS_DEFAULT 4
 #define MAX_TRANSIENT_OBJECTS 100
 #define MAX_TRANSIENT_OBJECTS_DEFAULT 27
 #define TABD_INIT_THREAD_NAME "tss2-tabrmd_init-thread"
@@ -55,13 +57,16 @@
 #define TSS2_RESMGR_RC_NOT_IMPLEMENTED (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | TSS2_BASE_RC_NOT_IMPLEMENTED)
 #define TSS2_RESMGR_RC_GENERAL_FAILURE (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | TSS2_BASE_RC_GENERAL_FAILURE)
 #define TSS2_RESMGR_RC_OBJECT_MEMORY   (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | TPM_RC_OBJECT_MEMORY)
+#define TSS2_RESMGR_RC_SESSION_MEMORY  (TSS2_RC)(TSS2_RESMGR_ERROR_LEVEL | TPM_RC_SESSION_MEMORY)
 
 typedef struct tabrmd_options {
     GBusType        bus;
     TctiOptions    *tcti_options;
     gboolean        fail_on_loaded_trans;
+    gboolean        flush_all;
     guint           max_connections;
     guint           max_transient_objects;
+    guint           max_sessions;
     gchar          *dbus_name;
     const gchar    *prng_seed_file;
     gboolean        allow_root;

@@ -34,7 +34,7 @@ G_DEFINE_TYPE (SessionList, session_list, G_TYPE_OBJECT);
 
 enum {
     PROP_0,
-    PROP_MAX_ENTRIES,
+    PROP_MAX_PER_CONNECTION,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
@@ -50,8 +50,8 @@ session_list_get_property (GObject    *object,
     SessionList *list = SESSION_LIST (object);
 
     switch (property_id) {
-    case PROP_MAX_ENTRIES:
-        g_value_set_uint (value, list->max_entries);
+    case PROP_MAX_PER_CONNECTION:
+        g_value_set_uint (value, list->max_per_connection);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -70,9 +70,11 @@ session_list_set_property (GObject        *object,
     SessionList *list = SESSION_LIST (object);
 
     switch (property_id) {
-    case PROP_MAX_ENTRIES:
-        list->max_entries = g_value_get_uint (value);
-        g_debug ("session_list_set_property: 0x%" PRIxPTR " max-entries: %u", (intptr_t)list, list->max_entries);
+    case PROP_MAX_PER_CONNECTION:
+        list->max_per_connection = g_value_get_uint (value);
+        g_debug ("session_list_set_property: 0x%" PRIxPTR
+                 " max-per-connection: %u", (intptr_t)list,
+                 list->max_per_connection);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -144,10 +146,10 @@ session_list_class_init (SessionListClass *klass)
     object_class->get_property = session_list_get_property;
     object_class->set_property = session_list_set_property;
 
-    obj_properties [PROP_MAX_ENTRIES] =
-        g_param_spec_uint ("max-entries",
-                           "max number of entries",
-                           "maximum number of entries permitted",
+    obj_properties [PROP_MAX_PER_CONNECTION] =
+        g_param_spec_uint ("max-per-connection",
+                           "max entries per connection",
+                           "maximum number of entries permitted for each connection",
                            0,
                            MAX_ENTRIES_MAX,
                            MAX_ENTRIES_DEFAULT,
@@ -161,11 +163,11 @@ session_list_class_init (SessionListClass *klass)
  * and create the instance.
  */
 SessionList*
-session_list_new (guint  max_entries)
+session_list_new (guint  max_per_conn)
 {
-    g_debug ("session_list_new with max_entries: 0x%x", max_entries);
+    g_debug ("session_list_new with max-per-connection: 0x%x", max_per_conn);
     return SESSION_LIST (g_object_new (TYPE_SESSION_LIST,
-                                       "max-entries", max_entries,
+                                       "max-per-connection", max_per_conn,
                                        NULL));
 }
 /*
@@ -199,9 +201,9 @@ session_list_insert (SessionList      *list,
         g_error ("session_list_insert passed NULL parameter");
     }
     session_list_lock (list);
-    if (session_list_is_full (list)) {
-        g_warning ("SessionList: 0x%" PRIxPTR " max_entries of %u exceeded",
-                   (uintptr_t)list, list->max_entries);
+    if (session_list_is_full_unlocked (list, entry->connection)) {
+        g_warning ("SessionList: 0x%" PRIxPTR " max_per_connection of %u "
+                   "exceeded", (uintptr_t)list, list->max_per_connection);
         session_list_unlock (list);
         return FALSE;
     }
@@ -416,20 +418,75 @@ session_list_size (SessionList *list)
     return ret;
 }
 /*
+ * Structure used to hold data needed to count SessionEntry objects associated
+ * with a given connection.
+ */
+typedef struct {
+    Connection *connection;
+    size_t      count;
+} connection_count_data_t;
+/*
+ * Callback function used to count the number of SessionEntry objects in the
+ * list associated with a given connection.
+ */
+static void
+session_list_connection_counter (gpointer data,
+                                 gpointer user_data)
+{
+    SessionEntry *entry = SESSION_ENTRY (data);
+    connection_count_data_t *count_data = (connection_count_data_t*)user_data;
+
+    if (count_data->connection == session_entry_get_connection (entry)) {
+        ++count_data->count;
+    }
+}
+/*
+ * Returns the number of entries associated with the provided connection.
+ */
+size_t
+session_list_connection_count (SessionList *list,
+                               Connection  *connection)
+{
+    connection_count_data_t count_data = {
+        .connection = connection,
+        .count = 0,
+    };
+
+    session_list_foreach (list, session_list_connection_counter, &count_data);
+    return count_data.count;
+}
+/*
  * Return false if the number of entries in the list is greater than or equal
- * to max_entries.
+ * to max_per_connection.
  */
 gboolean
-session_list_is_full (SessionList *list)
+session_list_is_full_unlocked (SessionList *session_list,
+                               Connection  *connection)
 {
-    guint table_size;
+    size_t session_count;
+    gboolean ret;
 
-    table_size = g_slist_length (list->session_entry_slist);
-    if (table_size < list->max_entries) {
-        return FALSE;
+    session_count = session_list_connection_count (session_list,
+                                                   connection);
+    if (session_count >= session_list->max_per_connection) {
+        g_info ("Connection 0x%" PRIxPTR " has exceeded session limit",
+                (uintptr_t)connection);
+        ret = TRUE;
     } else {
-        return TRUE;
+        ret= FALSE;
     }
+    return ret;
+}
+gboolean
+session_list_is_full (SessionList *session_list,
+                      Connection  *connection)
+{
+    gboolean ret;
+
+    session_list_lock (session_list);
+    ret = session_list_is_full_unlocked (session_list, connection);
+    session_list_unlock (session_list);
+    return ret;
 }
 /*
  */
