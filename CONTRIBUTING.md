@@ -27,6 +27,10 @@ here: https://chris.beams.io/posts/git-commit/ with the following exceptions.
  * Commit subject lines should be prefixed with a string identifying the
 effected subsystem / object. If the change is spread over a number of
 subsystems them the prefix may be omitted.
+* All contributions must adhere to the Developers Certificate of Origin. The
+full text of the DCO is here: https://developercertificate.org/. Contributors
+must add a 'Signed-off-by' line to their commits. This indicates the
+submitters acceptance of the DCO.
 
 ## Picking a Branch
 All bug fixes and changes that are backward compatible should be committed to
