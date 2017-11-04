@@ -48,7 +48,7 @@ typedef struct _SessionList {
     GObject             parent_instance;
     pthread_mutex_t     mutex;
     guint               max_per_connection;
-    GSList             *session_entry_slist;
+    GList              *session_entry_list;
 } SessionList;
 
 #define TYPE_SESSION_LIST              (session_list_get_type   ())
