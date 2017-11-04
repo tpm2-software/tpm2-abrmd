@@ -95,7 +95,7 @@ session_list_init (SessionList     *list)
 {
     g_debug ("session_list_init");
     pthread_mutex_init (&list->mutex, NULL);
-    list->session_entry_slist = NULL;
+    list->session_entry_list = NULL;
 }
 /*
  * GObject dispose function: unref all SessionEntry objects in the internal
@@ -109,9 +109,9 @@ session_list_dispose (GObject *object)
 
     g_debug ("%s: SessionList: 0x%" PRIxPTR " with %" PRIu32 " entries",
              __func__, (uintptr_t)self,
-             g_slist_length (self->session_entry_slist));
-    g_slist_free_full (self->session_entry_slist, g_object_unref);
-    self->session_entry_slist = NULL;
+             g_list_length (self->session_entry_list));
+    g_list_free_full (self->session_entry_list, g_object_unref);
+    self->session_entry_list = NULL;
     G_OBJECT_CLASS (session_list_parent_class)->dispose (object);
 }
 /*
@@ -126,8 +126,11 @@ session_list_finalize (GObject *object)
 {
     SessionList *self = SESSION_LIST (object);
 
-    g_debug ("%s: SessionList: 0x%" PRIxPTR, __func__, (uintptr_t)self);
+    g_debug ("session_list_finalize: SessionList: 0x%" PRIxPTR " with %"
+             PRIu32 " entries", (uintptr_t)self,
+             g_list_length (self->session_entry_list));
     pthread_mutex_destroy (&self->mutex);
+    g_list_free_full (self->session_entry_list, g_object_unref);
     G_OBJECT_CLASS (session_list_parent_class)->finalize (object);
 }
 /*
@@ -208,14 +211,14 @@ session_list_insert (SessionList      *list,
         return FALSE;
     }
     g_object_ref (entry);
-    list->session_entry_slist = g_slist_prepend (list->session_entry_slist,
+    list->session_entry_list = g_list_append (list->session_entry_list,
                                                  entry);
     session_list_unlock (list);
 
     return TRUE;
 }
 /*
- * This function is used with the g_slist_find_custom function to find
+ * This function is used with the g_list_find_custom function to find
  * session_entry_t's in the list with a given handle. The first parameter
  * is a reference to an entry in the list. The second is a reference to the
  * handle we're looking for.
@@ -239,7 +242,7 @@ session_entry_compare (gconstpointer a,
     }
 }
 /*
- * This function is used with the g_slist_find_custom function to find
+ * This function is used with the g_list_find_custom function to find
  * session_entry_t's in the list with a given handle. The first parameter
  * is a reference to an entry in the list. The second is a reference to the
  * handle we're looking for.
@@ -295,17 +298,17 @@ session_list_remove_custom (SessionList  *list,
                             gconstpointer data,
                             GCompareFunc  func)
 {
-    GSList       *list_entry;
+    GList       *list_entry;
     SessionEntry *entry_data;
 
     session_list_lock (list);
-    list_entry = g_slist_find_custom (list->session_entry_slist, data, func);
+    list_entry = g_list_find_custom (list->session_entry_list, data, func);
     if (list_entry == NULL) {
         session_list_unlock (list);
         return FALSE;
     }
     entry_data = SESSION_ENTRY (list_entry->data);
-    list->session_entry_slist = g_slist_remove_link (list->session_entry_slist,
+    list->session_entry_list = g_list_remove_link (list->session_entry_list,
                                                      list_entry);
     g_object_unref (entry_data);
     session_list_unlock (list);
@@ -314,7 +317,7 @@ session_list_remove_custom (SessionList  *list,
 }
                           
 /*
- * Remove the entry from the GSList. The SessionList assumes that since the
+ * Remove the entry from the GList. The SessionList assumes that since the
  * entry is in the container it must hold a reference to the object and so
  * upon successful removal 
  * Returns TRUE on success, FALSE on failure.
@@ -339,7 +342,7 @@ session_list_remove_connection (SessionList      *list,
                                        session_entry_compare_on_connection);
 }
 /*
- * This function is a thin wrapper around the g_slist_remove function. Pass it
+ * This function is a thin wrapper around the g_list_remove function. Pass it
  * a SessionEntry. It will find it in the list and remove the associated entry
  * and then unref it (to account for the SessionList no longer holding a
  * reference). This function does not lock the SessionList during this
@@ -351,8 +354,30 @@ session_list_remove (SessionList   *list,
 {
     g_debug ("session_list_remove: SessionList: 0x%" PRIxPTR " SessionEntry: "
              "0x%" PRIxPTR, (uintptr_t)list, (uintptr_t)entry);
-    list->session_entry_slist = g_slist_remove (list->session_entry_slist, entry);
+    list->session_entry_list = g_list_remove (list->session_entry_list, entry);
     g_object_unref (entry);
+}
+/*
+ * Get last entry in list and remove it from the list.
+ */
+SessionEntry*
+session_list_remove_last (SessionList *list)
+{
+    GList       *list_entry;
+    SessionEntry *entry_data;
+
+    session_list_lock (list);
+    list_entry = g_list_last (list->session_entry_list);
+    if (list_entry == NULL) {
+        session_list_unlock (list);
+        return NULL;
+    }
+    entry_data = SESSION_ENTRY (list_entry->data);
+    list->session_entry_list = g_list_remove_link (list->session_entry_list,
+                                                     list_entry);
+    session_list_unlock (list);
+
+    return entry_data;
 }
 /*
  * This is a lookup function to find an entry in the SessionList given
@@ -366,9 +391,9 @@ SessionEntry*
 session_list_lookup_connection (SessionList   *list,
                                 Connection    *connection)
 {
-    GSList *list_entry;
+    GList *list_entry;
 
-    list_entry = g_slist_find_custom (list->session_entry_slist,
+    list_entry = g_list_find_custom (list->session_entry_list,
                                       connection,
                                       session_entry_compare_on_connection);
     if (list_entry != NULL) {
@@ -390,9 +415,9 @@ SessionEntry*
 session_list_lookup_handle (SessionList   *list,
                             TPM_HANDLE     handle)
 {
-    GSList *list_entry;
+    GList *list_entry;
 
-    list_entry = g_slist_find_custom (list->session_entry_slist,
+    list_entry = g_list_find_custom (list->session_entry_list,
                                       &handle,
                                       session_entry_compare_on_handle);
     if (list_entry != NULL) {
@@ -412,7 +437,7 @@ session_list_size (SessionList *list)
     guint ret;
 
     session_list_lock (list);
-    ret = g_slist_length (list->session_entry_slist);
+    ret = g_list_length (list->session_entry_list);
     session_list_unlock (list);
 
     return ret;
@@ -505,7 +530,7 @@ session_list_prettyprint (SessionList *list)
 {
     g_debug ("SessionList: 0x%" PRIxPTR, (uintptr_t)list);
     session_list_lock (list);
-    g_slist_foreach (list->session_entry_slist,
+    g_list_foreach (list->session_entry_list,
                      session_list_dump_entry,
                      NULL);
     session_list_unlock (list);
@@ -517,7 +542,7 @@ session_list_foreach (SessionList *list,
                       GFunc        func,
                       gpointer     user_data)
 {
-    g_slist_foreach (list->session_entry_slist,
+    g_list_foreach (list->session_entry_list,
                      func,
                      user_data);
 }
