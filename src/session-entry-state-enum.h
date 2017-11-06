@@ -34,6 +34,7 @@ G_BEGIN_DECLS
 typedef enum SESSION_ENTRY_STATE {
     SESSION_ENTRY_SAVED_RM,
     SESSION_ENTRY_SAVED_CLIENT,
+    SESSION_ENTRY_SAVED_CLIENT_CLOSED,
 } SessionEntryStateEnum;
 
 #define TYPE_SESSION_ENTRY_STATE_ENUM   (session_entry_state_enum_get_type ())
