@@ -61,6 +61,8 @@ Connection*      session_entry_get_connection  (SessionEntry      *entry);
 TPM_HANDLE       session_entry_get_handle      (SessionEntry      *entry);
 TPMS_CONTEXT*    session_entry_get_context     (SessionEntry      *entry);
 SessionEntryStateEnum session_entry_get_state  (SessionEntry      *entry);
+void             session_entry_set_connection  (SessionEntry      *entry,
+                                                Connection        *connection);
 void             session_entry_set_state       (SessionEntry      *entry,
                                                 SessionEntryStateEnum state);
 void             session_entry_prettyprint     (SessionEntry      *entry);

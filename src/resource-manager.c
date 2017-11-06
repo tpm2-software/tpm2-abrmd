@@ -136,10 +136,12 @@ resource_manager_load_session (ResourceManager *resmgr,
                                TPM_HANDLE       handle,
                                gboolean         will_flush)
 {
+    Connection    *connection;
     SessionEntry  *session_entry;
     TSS2_RC        rc = TSS2_RC_SUCCESS;
     TPM_HANDLE     handle_tmp;
     TPMS_CONTEXT  *context;
+    SessionEntryStateEnum session_entry_state;
 
     session_list_lock (resmgr->session_list);
     session_entry = session_list_lookup_handle (resmgr->session_list,
@@ -150,10 +152,25 @@ resource_manager_load_session (ResourceManager *resmgr,
                  "ResourceManager.", handle);
         goto out;
     }
-    if (session_entry_get_state (session_entry) == SESSION_ENTRY_SAVED_CLIENT) {
-        g_debug ("SessionEntry for handle 0x%08" PRIx32 " has been "
-                 "saved.", handle);
+    session_entry_state = session_entry_get_state (session_entry);
+    g_debug ("Session with handle 0x%08" PRIx32 " is in state: %s", handle,
+             session_entry_state_to_str (session_entry_state));
+    switch (session_entry_state) {
+    case SESSION_ENTRY_SAVED_CLIENT:
+    case SESSION_ENTRY_SAVED_CLIENT_CLOSED:
+        connection = tpm2_command_get_connection (command);
+        session_entry_set_connection (session_entry, connection);
+        g_debug ("%s: Connection 0x%" PRIxPTR " is claiming SessionEntry "
+                 "0x%" PRIxPTR, __func__, (uintptr_t)connection,
+                 (uintptr_t)session_entry);
+        g_object_unref (connection);
+        session_entry_set_state (session_entry, SESSION_ENTRY_SAVED_RM);
+        session_entry_state = session_entry_get_state (session_entry);
+        g_debug ("Session with handle 0x%08" PRIx32 " is now in state: %s",
+                 handle, session_entry_state_to_str (session_entry_state));
         goto out_unref_entry;
+    default:
+        break;
     }
     g_debug ("mapped session handle 0x%08" PRIx32 " to "
              "SessionEntry: 0x%" PRIxPTR, handle,
@@ -1333,14 +1350,30 @@ resource_manager_on_connection_removed (ConnectionManager *connection_manager,
             "contexts associated with connection 0x%" PRIxPTR,
             (uintptr_t)connection);
     session_list_lock (resource_manager->session_list);
-    do {
-        session_entry =
-            session_list_lookup_connection (resource_manager->session_list,
-                                            connection);
-        if (session_entry != NULL) {
-            g_debug ("removing SessionEntry 0x%" PRIxPTR " from the "
-                     "session_list", (uintptr_t)session_entry);
-            handle = session_entry_get_handle (session_entry);
+    while ((session_entry =
+                session_list_lookup_connection (resource_manager->session_list,
+                                                connection)) != NULL) {
+        g_debug ("removing SessionEntry 0x%" PRIxPTR " from the "
+                 "session_list", (uintptr_t)session_entry);
+        handle = session_entry_get_handle (session_entry);
+        /* if session has been saved, don't flush, abandon the session */
+        switch (session_entry_get_state (session_entry)) {
+        case SESSION_ENTRY_SAVED_CLIENT:
+            g_debug ("%s: SessionEntry 0x%" PRIxPTR " last saved by "
+                     "client, transitioning to state: "
+                     "SESSION_ENTRY_SAVED_CLIENT_CLOSED",
+                     __func__, (uintptr_t)session_entry);
+            session_entry_set_state (session_entry,
+                                     SESSION_ENTRY_SAVED_CLIENT_CLOSED);
+            break;
+        case SESSION_ENTRY_SAVED_CLIENT_CLOSED:
+            /* This is a situation that should never happen */
+            g_error ("Connection closed with session in SAVED_CLIENT_CLOSED "
+                     "state.");
+            break;
+        default: /* SESSION_ENTRY_SAVED_RM */
+            g_debug ("%s: SessionEntry 0x%" PRIxPTR " was last saved by "
+                     "RM: flushing.", __func__, (uintptr_t)session_entry);
             rc = access_broker_context_flush (resource_manager->access_broker,
                                               handle);
             if (rc != TSS2_RC_SUCCESS) {
@@ -1349,9 +1382,10 @@ resource_manager_on_connection_removed (ConnectionManager *connection_manager,
             }
             session_list_remove (resource_manager->session_list,
                                  session_entry);
-            g_object_unref (session_entry);
+            break;
         }
-    } while (session_entry != NULL);
+        g_object_unref (session_entry);
+    }
     g_debug ("resource_manager_on_connection_removed done");
     session_list_unlock (resource_manager->session_list);
 }
