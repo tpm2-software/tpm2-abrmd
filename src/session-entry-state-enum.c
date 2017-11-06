@@ -32,6 +32,8 @@ session_entry_state_to_str (SessionEntryStateEnum state)
     switch (state) {
     case SESSION_ENTRY_SAVED_CLIENT:
         return "saved-client";
+    case SESSION_ENTRY_SAVED_CLIENT_CLOSED:
+        return "saved_client-closed";
     case SESSION_ENTRY_SAVED_RM:
         return "saved-rm";
     default:
@@ -55,6 +57,12 @@ session_entry_state_enum_get_type (void)
                 SESSION_ENTRY_SAVED_CLIENT,
                 "SessionEntry for context saved by the client",
                 "SavedClient"
+            },
+            {
+                SESSION_ENTRY_SAVED_CLIENT_CLOSED,
+                "SesssionEntry for context saved by client over a connection "
+                "that has been closed",
+                "SavedClientClosed",
             },
             { 0, NULL, NULL }
         };

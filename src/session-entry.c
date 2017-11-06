@@ -211,11 +211,31 @@ session_entry_get_state (SessionEntry *entry)
 {
     return entry->state;
 }
+/*
+ * This function allows the caller to set the state of the SessionEntry. It
+ * also ensures that if the SessionEntry is put into the 'SAVED_CLIENT_CLOSED'
+ * state that the connection field is clear / NULL.
+ */
 void
 session_entry_set_state (SessionEntry *entry,
                          SessionEntryStateEnum state)
 {
+    if (state == SESSION_ENTRY_SAVED_CLIENT_CLOSED) {
+        g_clear_object (&entry->connection);
+    }
     entry->state = state;
+}
+/*
+ * When the connection is set the previous connection, if there was one, must
+ * have its reference count decremented and the internal pointer NULLed.
+ */
+void
+session_entry_set_connection (SessionEntry *entry,
+                              Connection   *connection)
+{
+    g_object_ref (connection);
+    g_clear_object (&entry->connection);
+    entry->connection = connection;
 }
 void
 session_entry_prettyprint (SessionEntry *entry)
