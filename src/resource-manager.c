@@ -41,6 +41,8 @@
 #include "tpm2-response.h"
 #include "util.h"
 
+#define MAX_ABANDONED 4
+
 static void resource_manager_sink_interface_init   (gpointer g_iface);
 static void resource_manager_source_interface_init (gpointer g_iface);
 
@@ -1264,6 +1266,7 @@ resource_manager_init (ResourceManager *manager)
 {
     manager->session_list =
         session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
+    manager->abandoned_session_queue = g_queue_new ();
 }
 /**
  * GObject class initialization function. This function boils down to:
@@ -1332,6 +1335,44 @@ resource_manager_sink_interface_init (gpointer g_iface)
     sink->enqueue = resource_manager_enqueue;
 }
 /*
+ * This function prunes old sessions that have been abandoned by their creator.
+ * When the upper bound on the number of abandoned sessions is exceeded this
+ * function causes the older sessions to be removed from the internal queue
+ * and flushed from the TPM.
+ */
+void
+resource_manager_prune_abandoned (ResourceManager *resource_manager)
+{
+    SessionEntry *session_entry;
+    TPM_HANDLE session_handle;
+    TSS2_RC rc;
+    guint length;
+
+    length = g_queue_get_length (resource_manager->abandoned_session_queue);
+    if (length < MAX_ABANDONED) {
+        g_debug ("%s: queue size %u max %u, no abandoned sessions to purge",
+                 __func__, length, MAX_ABANDONED);
+        return;
+    }
+
+    /* GQueue owned SessionEntry reference, must unref when done */
+    session_entry =
+        g_queue_pop_tail (resource_manager->abandoned_session_queue);
+    session_handle = session_entry_get_handle (session_entry);
+    g_debug ("%s: flushing stale abandoned SessionEntry: 0x%" PRIxPTR " with "
+             "handle: 0x%08" PRIx32,
+             __func__, (uintptr_t)session_entry, session_handle);
+    rc = access_broker_context_flush (resource_manager->access_broker,
+                                      session_handle);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: failed to flush abandoned session context with "
+                   "handle 0x%" PRIx32 ": 0x%" PRIx32,
+                   __func__, session_handle, rc);
+    }
+    g_object_unref (session_entry);
+    return;
+}
+/*
  * This function is invoked when a connection is removed from the
  * ConnectionManager. This is if how we know a connection has been closed.
  * When a connection is removed, we need to remove all associated sessions
@@ -1363,8 +1404,14 @@ resource_manager_on_connection_removed (ConnectionManager *connection_manager,
                      "client, transitioning to state: "
                      "SESSION_ENTRY_SAVED_CLIENT_CLOSED",
                      __func__, (uintptr_t)session_entry);
+            session_list_remove (resource_manager->session_list,
+                                 session_entry);
             session_entry_set_state (session_entry,
                                      SESSION_ENTRY_SAVED_CLIENT_CLOSED);
+            /* reference for SessionEntry is now "held" by GQueue */
+            resource_manager_prune_abandoned (resource_manager);
+            g_queue_push_head (resource_manager->abandoned_session_queue,
+                               session_entry);
             break;
         case SESSION_ENTRY_SAVED_CLIENT_CLOSED:
             /* This is a situation that should never happen */
@@ -1382,9 +1429,9 @@ resource_manager_on_connection_removed (ConnectionManager *connection_manager,
             }
             session_list_remove (resource_manager->session_list,
                                  session_entry);
+            g_object_unref (session_entry);
             break;
         }
-        g_object_unref (session_entry);
     }
     g_debug ("resource_manager_on_connection_removed done");
     session_list_unlock (resource_manager->session_list);

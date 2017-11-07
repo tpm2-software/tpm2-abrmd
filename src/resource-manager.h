@@ -51,6 +51,7 @@ typedef struct _ResourceManager {
     MessageQueue     *in_queue;
     Sink             *sink;
     SessionList      *session_list;
+    GQueue           *abandoned_session_queue;
 } ResourceManager;
 
 #define TYPE_RESOURCE_MANAGER              (resource_manager_get_type ())
