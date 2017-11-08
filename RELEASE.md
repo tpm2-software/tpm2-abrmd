@@ -55,7 +55,17 @@ Additionally this tarball must be accompanied by a detached GPG signature.
 The Debian wiki has an excellent description of how to post a signed release to Github here: https://wiki.debian.org/Creating%20signed%20GitHub%20releases
 **NOTE** release candidates must be taken down after a release with the corresponding version number is available.
 
-# Signing Keys
+## Signing Release Tarballs
+Signatures must be generated using the `--detach-sign` and `--armor` options to the `gpg` command.
+
+## Verifying Signatures
+Verifying the signature on a release tarball requires the project maintainers public keys be installed in the GPG keyring of the verifier.
+With both the release tarball and signature file in the same directory the following command will verify the signature:
+```
+$ gpg --verify tpm2-abrmd-X.Y.Z.tar.gz.asc
+```
+
+## Signing Keys
 The GPG keys used to sign a release tag and the associated tarball must be the same.
 Additionally they must:
 * belong to a project maintainer
