@@ -37,8 +37,8 @@ __wrap_InitDeviceTcti (TSS2_TCTI_CONTEXT   *tcti_context,
                        size_t              *size,
                        TCTI_DEVICE_CONF    *config)
 {
-    *size = (size_t) mock ();
-    return (TSS2_RC) mock ();
+    *size = mock_type (size_t);
+    return mock_type (TSS2_RC);
 }
 
 static int

@@ -111,7 +111,7 @@ command_attrs_type_test (void **state)
 TSS2_SYS_CONTEXT*
 __wrap_access_broker_lock_sapi (AccessBroker *access_broker)
 {
-    return (TSS2_SYS_CONTEXT*)mock ();
+    return mock_ptr_type (TSS2_SYS_CONTEXT*);
 }
 /* */
 TSS2_RC
@@ -120,9 +120,9 @@ __wrap_access_broker_get_max_command (AccessBroker *access_broker,
 {
     TSS2_RC rc;
 
-    *value = (guint)mock ();
+    *value = mock_type (guint);
     g_debug ("value: 0x%" PRIx32, *value);
-    rc = (TSS2_RC)mock ();
+    rc = mock_type (TSS2_RC);
     g_debug ("rc: 0x%" PRIx32, rc);
 
     return rc;
@@ -142,11 +142,11 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
     gint i;
 
     capabilityData->data.command.count = propertyCount;
-    command_attrs = (TPMA_CC*)mock ();
+    command_attrs = mock_ptr_type (TPMA_CC*);
     for (i = 0; i < capabilityData->data.command.count; ++i)
         capabilityData->data.command.commandAttributes[i] = command_attrs[i];
 
-    return (TSS2_RC)mock ();
+    return mock_type (TSS2_RC);
 }
 /*
  * Test case that initializes the CommandAttrs object. All wrapped
