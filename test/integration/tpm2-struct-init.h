@@ -28,9 +28,7 @@
 #define TPM2_STRUCT_INIT
 
 #define TPM2B_STATIC_INIT(type) { \
-    .t = { \
-        .size = sizeof (type) - 2, \
-    }, \
+    .size = sizeof (type) - 2, \
 }
 #define TPM2B_DIGEST_STATIC_INIT  TPM2B_STATIC_INIT(TPM2B_DIGEST)
 #define TPM2B_NAME_STATIC_INIT    TPM2B_STATIC_INIT(TPM2B_NAME)

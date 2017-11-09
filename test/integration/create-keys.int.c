@@ -74,7 +74,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                        &out_public);
         if (rc != TSS2_RC_SUCCESS)
             g_error ("Failed to create_key: 0x%" PRIx32, rc);
-        out_public.t.size = 0;
+        out_public.size = 0;
     }
 
     return rc;

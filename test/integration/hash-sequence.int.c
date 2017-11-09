@@ -38,7 +38,7 @@
 #include "tcti-tabrmd.h"
 #include "common.h"
 
-#define INIT_SIMPLE_TPM2B_SIZE(type) (type).t.size = sizeof (type) - 2
+#define INIT_SIMPLE_TPM2B_SIZE(type) (type).size = sizeof (type) - 2
 #define MAX_TEST_SEQUENCES 10
 
 const uint8_t memoryToHash [] = {
@@ -126,10 +126,8 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 
     TSS2_RC rval;
     TPM2B_AUTH auth = {
-        .t = {
-            .size = 2,
-            .buffer = { 0x00, 0xff },
-        }
+        .size = 2,
+        .buffer = { 0x00, 0xff },
     };
 
     TPMI_DH_OBJECT  sequenceHandle[MAX_TEST_SEQUENCES];
@@ -163,8 +161,8 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         g_error ("Failed to initialize hash sequence. RC = 0x%x", rval);
     }
 
-    dataToHash.t.size = MAX_DIGEST_BUFFER;
-    memcpy (&dataToHash.t.buffer[0], &memoryToHash[0], dataToHash.t.size);
+    dataToHash.size = MAX_DIGEST_BUFFER;
+    memcpy (&dataToHash.buffer[0], &memoryToHash[0], dataToHash.size);
 
     rval = Tss2_Sys_SequenceUpdate (sapi_context,
                                     sequenceHandle[0],
@@ -194,7 +192,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     /* Now end the created sequences. */
-    dataToHash.t.size = 0;
+    dataToHash.size = 0;
     for (i = 1; i < 5; i++) {
         INIT_SIMPLE_TPM2B_SIZE (result);
         rval = Tss2_Sys_SequenceComplete (sapi_context,
@@ -221,10 +219,10 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         g_error ("Failed to update original hash sequence. RC = 0x%x", rval);
     }
 
-    dataToHash.t.size = sizeof (memoryToHash) - MAX_DIGEST_BUFFER;
-    memcpy (dataToHash.t.buffer,
+    dataToHash.size = sizeof (memoryToHash) - MAX_DIGEST_BUFFER;
+    memcpy (dataToHash.buffer,
             &memoryToHash[MAX_DIGEST_BUFFER],
-            dataToHash.t.size);
+            dataToHash.size);
     INIT_SIMPLE_TPM2B_SIZE (result);
     rval = Tss2_Sys_SequenceComplete (sapi_context,
                                       sequenceHandle[0],
@@ -239,7 +237,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     /* Test the resulting hash. */
-    int ret = memcmp (result.t.buffer, goodHashValue, result.t.size);
+    int ret = memcmp (result.buffer, goodHashValue, result.size);
     if (ret != 0) {
         g_error ("ERROR!! resulting hash is incorrect." );
     }
@@ -263,7 +261,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     /* Now end them all */
-    dataToHash.t.size = 0;
+    dataToHash.size = 0;
     for (i = (MAX_TEST_SEQUENCES - 1); i >= 0; i--) {
         INIT_SIMPLE_TPM2B_SIZE( result );
         rval = Tss2_Sys_SequenceComplete (sapi_context,
