@@ -38,8 +38,8 @@ __wrap_InitSocketTcti (TSS2_TCTI_CONTEXT *tcti_context,
                        TCTI_SOCKET_CONF *config,
                        uint8_t serverSockets)
 {
-    *size = (size_t) mock ();
-    return (TSS2_RC) mock ();
+    *size = mock_type (size_t);
+    return mock_type (TSS2_RC);
 }
 
 static int

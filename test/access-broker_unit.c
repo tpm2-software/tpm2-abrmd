@@ -57,7 +57,7 @@ __wrap_Tss2_Sys_Startup (TSS2_SYS_CONTEXT *sapi_context,
 {
     TSS2_RC rc;
 
-    rc = (TSS2_RC)mock ();
+    rc = mock_type (TSS2_RC);
     g_debug ("__wrap_Tss2_Sys_Startup returning: 0x%x", rc);
     return rc;
 }
@@ -81,12 +81,12 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
 
     capabilityData->capability = TPM_CAP_TPM_PROPERTIES;
     capabilityData->data.tpmProperties.tpmProperty[0].property = TPM_PT_MAX_COMMAND_SIZE;
-    capabilityData->data.tpmProperties.tpmProperty[0].value    = (guint32)mock ();
+    capabilityData->data.tpmProperties.tpmProperty[0].value    = mock_type (guint32);
     capabilityData->data.tpmProperties.tpmProperty[1].property = TPM_PT_MAX_RESPONSE_SIZE;
-    capabilityData->data.tpmProperties.tpmProperty[1].value    = (guint32)mock ();
+    capabilityData->data.tpmProperties.tpmProperty[1].value    = mock_type (guint32);
     capabilityData->data.tpmProperties.count = 2;
 
-    rc = (TSS2_RC)mock ();
+    rc = mock_type (TSS2_RC);
     g_debug ("__wrap_Tss2_Sys_GetCapability returning: 0x%x", rc);
     return rc;
 }
@@ -97,7 +97,7 @@ __wrap_tcti_echo_transmit (TSS2_TCTI_CONTEXT *tcti_context,
 {
     TSS2_RC rc;
 
-    rc = (TSS2_RC)mock ();
+    rc = mock_type (TSS2_RC);
     g_debug ("__wrap_tcti_echo_transmit returning: 0x%x", rc);
 
     return rc;
@@ -110,7 +110,7 @@ __wrap_tcti_echo_receive (TSS2_TCTI_CONTEXT *tcti_context,
 {
     TSS2_RC rc;
 
-    rc = (TSS2_RC)mock ();
+    rc = mock_type (TSS2_RC);
     g_debug ("__wrap_tcti_echo_receive returning: 0x%x", rc);
 
     return rc;
