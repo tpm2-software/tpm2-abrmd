@@ -121,28 +121,28 @@ create_primary (TSS2_SYS_CONTEXT *sapi_context,
     };
 
     /* prepare in_sensitive */
-    in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.t.size + 2;
+    in_sensitive.size = in_sensitive.sensitive.userAuth.size + 2;
     /* prepare in_public TPMT_PUBLIC */
     /* TPMI_ALG_PUBLIC / publicArea */
-    in_public.t.publicArea.type    = TPM_ALG_RSA;
+    in_public.publicArea.type    = TPM_ALG_RSA;
     /* TPMI_ALG_HASH / nameAlg */
-    in_public.t.publicArea.nameAlg = TPM_ALG_SHA256;
+    in_public.publicArea.nameAlg = TPM_ALG_SHA256;
     /* TPMA_OBJECT / objectAttributes */
-    in_public.t.publicArea.objectAttributes.val = \
+    in_public.publicArea.objectAttributes.val = \
         TPMA_OBJECT_FIXEDTPM            | TPMA_OBJECT_FIXEDPARENT  | \
         TPMA_OBJECT_SENSITIVEDATAORIGIN | TPMA_OBJECT_USERWITHAUTH | \
         TPMA_OBJECT_RESTRICTED          | TPMA_OBJECT_DECRYPT;
     /* TPM2B_DIGEST / authPolicy */
-    in_public.t.publicArea.authPolicy.t.size = 0;
+    in_public.publicArea.authPolicy.size = 0;
     /* TPMU_PUBLIC_PARAMS / parameters: key type is TPM_ALG_RSA, set parameters accordingly */
-    in_public.t.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_AES;
-    in_public.t.publicArea.parameters.rsaDetail.symmetric.keyBits.aes = 128;
-    in_public.t.publicArea.parameters.rsaDetail.symmetric.mode.aes = TPM_ALG_CFB;
-    in_public.t.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_NULL;
-    in_public.t.publicArea.parameters.rsaDetail.keyBits = 2048;
-    in_public.t.publicArea.parameters.rsaDetail.exponent = 0;
+    in_public.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_AES;
+    in_public.publicArea.parameters.rsaDetail.symmetric.keyBits.aes = 128;
+    in_public.publicArea.parameters.rsaDetail.symmetric.mode.aes = TPM_ALG_CFB;
+    in_public.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_NULL;
+    in_public.publicArea.parameters.rsaDetail.keyBits = 2048;
+    in_public.publicArea.parameters.rsaDetail.exponent = 0;
     /* TPMU_PUBLIC_ID / unique */
-    in_public.t.publicArea.unique.rsa.t.size = 0;
+    in_public.publicArea.unique.rsa.size = 0;
 
     rc = TSS2_RETRY_EXP (Tss2_Sys_CreatePrimary (
         sapi_context,
@@ -193,22 +193,22 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
     };
 
     g_debug ("create_key with parent_handle: 0x%" PRIx32, parent_handle);
-    in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.t.size + 2;
-    in_public.t.publicArea.type = TPM_ALG_RSA;
-    in_public.t.publicArea.nameAlg = TPM_ALG_SHA256;
-    in_public.t.publicArea.objectAttributes.val = \
+    in_sensitive.size = in_sensitive.sensitive.userAuth.size + 2;
+    in_public.publicArea.type = TPM_ALG_RSA;
+    in_public.publicArea.nameAlg = TPM_ALG_SHA256;
+    in_public.publicArea.objectAttributes.val = \
         TPMA_OBJECT_FIXEDTPM            | TPMA_OBJECT_FIXEDPARENT  | \
         TPMA_OBJECT_SENSITIVEDATAORIGIN | TPMA_OBJECT_USERWITHAUTH | \
         TPMA_OBJECT_DECRYPT             | TPMA_OBJECT_SIGN;
     /* TPM2B_DIGEST / authPolicy */
-    in_public.t.publicArea.authPolicy.t.size = 0;
+    in_public.publicArea.authPolicy.size = 0;
     /* TPMU_PUBLIC_PARAMS / parameters: key type is TPM_ALG_RSA, set parameters accordingly */
-    in_public.t.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_NULL;
-    in_public.t.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_NULL;
-    in_public.t.publicArea.parameters.rsaDetail.keyBits = 2048;
-    in_public.t.publicArea.parameters.rsaDetail.exponent = 0;
+    in_public.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_NULL;
+    in_public.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_NULL;
+    in_public.publicArea.parameters.rsaDetail.keyBits = 2048;
+    in_public.publicArea.parameters.rsaDetail.exponent = 0;
     /* TPMU_PUBLIC_ID / unique */
-    in_public.t.publicArea.unique.rsa.t.size = 0;
+    in_public.publicArea.unique.rsa.size = 0;
 
     g_print ("Tss2_Sys_Create with parent handle: 0x%" PRIx32 "\n",
              parent_handle);
@@ -460,21 +460,17 @@ start_auth_session (TSS2_SYS_CONTEXT      *sapi_context,
 {
     TSS2_RC rc;
     TPM2B_NONCE nonce_caller = {
-        .t = {
-            .size   = SHA256_DIGEST_SIZE,
-            .buffer = {
-                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
-                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
-                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
-                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef
-            }
+        .size   = SHA256_DIGEST_SIZE,
+        .buffer = {
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef
         }
     };
     TPM2B_NONCE nonce_tpm = {
-        .t = {
-            .size   = SHA256_DIGEST_SIZE,
-            .buffer = { 0 }
-        }
+        .size   = SHA256_DIGEST_SIZE,
+        .buffer = { 0 }
     };
     TPM2B_ENCRYPTED_SECRET encrypted_salt = { 0 };
     TPMT_SYM_DEF           symmetric      = { .algorithm = TPM_ALG_NULL };

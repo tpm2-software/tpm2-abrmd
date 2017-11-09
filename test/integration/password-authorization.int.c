@@ -66,25 +66,25 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
         .rspAuthsCount = 1
     };
 
-    nvAuth.t.size = strlen (password);
-    for (i = 0; i < nvAuth.t.size; i++) {
-        nvAuth.t.buffer[i] = password[i];
+    nvAuth.size = strlen (password);
+    for (i = 0; i < nvAuth.size; i++) {
+        nvAuth.buffer[i] = password[i];
     }
 
-    publicInfo.t.size = sizeof (TPMI_RH_NV_INDEX) + sizeof (TPMI_ALG_HASH) +
+    publicInfo.size = sizeof (TPMI_RH_NV_INDEX) + sizeof (TPMI_ALG_HASH) +
         sizeof (TPMA_NV) + sizeof (UINT16) + sizeof (UINT16);
-    publicInfo.t.nvPublic.nvIndex = nvIndex;
-    publicInfo.t.nvPublic.nameAlg = TPM_ALG_SHA1;
+    publicInfo.nvPublic.nvIndex = nvIndex;
+    publicInfo.nvPublic.nameAlg = TPM_ALG_SHA1;
 
     // First zero out attributes.
-    *(UINT32 *)&( publicInfo.t.nvPublic.attributes ) = 0;
+    *(UINT32 *)&( publicInfo.nvPublic.attributes ) = 0;
 
     // Now set the attributes.
-    publicInfo.t.nvPublic.attributes.TPMA_NV_AUTHREAD = 1;
-    publicInfo.t.nvPublic.attributes.TPMA_NV_AUTHWRITE = 1;
-    publicInfo.t.nvPublic.attributes.TPMA_NV_ORDERLY = 1;
-    publicInfo.t.nvPublic.authPolicy.t.size = 0;
-    publicInfo.t.nvPublic.dataSize = 32;
+    publicInfo.nvPublic.attributes.TPMA_NV_AUTHREAD = 1;
+    publicInfo.nvPublic.attributes.TPMA_NV_AUTHWRITE = 1;
+    publicInfo.nvPublic.attributes.TPMA_NV_ORDERLY = 1;
+    publicInfo.nvPublic.authPolicy.size = 0;
+    publicInfo.nvPublic.dataSize = 32;
 
     rval = Tss2_Sys_NV_DefineSpace (sapi_context,
                                     TPM_RH_OWNER,
@@ -140,13 +140,13 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     // Init password (HMAC field in authorization structure).
-    auth_command.hmac.t.size = strlen (password);
-    memcpy (auth_command.hmac.t.buffer, password, strlen (password));
+    auth_command.hmac.size = strlen (password);
+    memcpy (auth_command.hmac.buffer, password, strlen (password));
 
     // Initialize write data.
-    nvWriteData.t.size = 4;
-    for (i = 0; i < nvWriteData.t.size; i++) {
-        nvWriteData.t.buffer[i] = 0xff - i;
+    nvWriteData.size = 4;
+    for (i = 0; i < nvWriteData.size; i++) {
+        nvWriteData.buffer[i] = 0xff - i;
     }
 
     // Attempt write with the correct password. It should pass.
@@ -164,7 +164,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     // Alter the password so it's incorrect.
-    auth_command.hmac.t.buffer[4] = 0xff;
+    auth_command.hmac.buffer[4] = 0xff;
     rval = Tss2_Sys_NV_Write (sapi_context,
                               TPM20_INDEX_PASSWORD_TEST,
                               TPM20_INDEX_PASSWORD_TEST,
@@ -183,7 +183,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     // Change hmac to null one, since null auth is used to undefine the index.
-    auth_command.hmac.t.size = 0;
+    auth_command.hmac.size = 0;
 
     // Now undefine the index.
     rval = Tss2_Sys_NV_UndefineSpace (sapi_context,
