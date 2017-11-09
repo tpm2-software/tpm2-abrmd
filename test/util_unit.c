@@ -59,7 +59,7 @@ __wrap_g_output_stream_write (GOutputStream *ostream,
     if (error_tmp != NULL && error != NULL) {
         *error = error_tmp;
     }
-    return (ssize_t) mock ();
+    return mock_type (ssize_t);
 }
 
 void

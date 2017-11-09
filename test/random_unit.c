@@ -64,7 +64,7 @@ __wrap_open(const char *pathname,
             int         flags,
             mode_t      mode)
 {
-    return ((int)mock ());
+    return mock_type (int);
 }
 /* wrap function for the 'read' system call */
 ssize_t
@@ -72,13 +72,13 @@ __wrap_read (int     fd,
              void   *buf,
              size_t  count)
 {
-    return ((ssize_t)mock ());
+    return mock_type (ssize_t);
 }
 /* wrap function for the 'close' system call */
 int
 __wrap_close (int fd)
 {
-    return ((int)mock ());
+    return mock_type (int);
 }
 
 /* Simple test to test type checking macros. */

@@ -63,8 +63,8 @@ __wrap_access_broker_send_command (AccessBroker *access_broker,
 {
     Tpm2Response *response;
 
-    *rc      = (TSS2_RC)mock ();
-    response = TPM2_RESPONSE (mock ());
+    *rc      = mock_type (TSS2_RC);
+    response = TPM2_RESPONSE (mock_ptr_type (GObject*));
 
     return response;
 }
@@ -87,7 +87,7 @@ void
 __wrap_sink_enqueue (Sink      *self,
                      GObject   *obj)
 {
-    test_data_t *data = (test_data_t*)mock ();
+    test_data_t *data = mock_ptr_type (test_data_t*);
     data->response = TPM2_RESPONSE (obj);
 }
 TSS2_RC
@@ -95,7 +95,7 @@ __wrap_access_broker_context_saveflush (AccessBroker *broker,
                                         TPM_HANDLE    handle,
                                         TPMS_CONTEXT *contedt)
 {
-   return (TSS2_RC)mock ();
+   return mock_type (TSS2_RC);
 }
 /*
  * Wrap call to access_broker_context_load. Pops two parameters off the
@@ -108,8 +108,8 @@ __wrap_access_broker_context_load (AccessBroker *access_broker,
                                    TPMS_CONTEXT *context,
                                    TPM_HANDLE   *handle)
 {
-    TSS2_RC    rc      = (TSS2_RC)mock ();
-    TPM_HANDLE phandle = (TPM_HANDLE)mock ();
+    TSS2_RC    rc      = mock_type (TSS2_RC);
+    TPM_HANDLE phandle = mock_type (TPM_HANDLE);
 
     assert_non_null (handle);
     *handle = phandle;

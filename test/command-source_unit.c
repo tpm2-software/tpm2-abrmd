@@ -69,7 +69,7 @@ __wrap_connection_manager_lookup_istream (ConnectionManager *manager,
                                           GInputStream      *istream)
 {
     g_debug ("%s", __func__);
-    return CONNECTION (mock ());
+    return CONNECTION (mock_ptr_type (GObject*));
 }
 gint
 __wrap_connection_manager_remove      (ConnectionManager  *manager,
@@ -99,7 +99,7 @@ __wrap_sink_enqueue (Sink     *sink,
     Tpm2Command **command;
 
     g_debug ("%s", __func__);
-    command = (Tpm2Command**)mock ();
+    command = mock_ptr_type (Tpm2Command**);
 
     *command = TPM2_COMMAND (obj);
     g_object_ref (*command);

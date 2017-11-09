@@ -99,8 +99,8 @@ __wrap_g_dbus_proxy_call_with_unix_fd_list_sync (
     gint client_fd;
     guint64 id;
 
-    client_fd = (gint)mock ();
-    id = (guint64)mock ();
+    client_fd = mock_type (gint);
+    id = mock_type (guint64);
 
     *out_fd_list = g_unix_fd_list_new_from_array (&client_fd, 1);
     variant_array[0] = g_variant_new_fixed_array (G_VARIANT_TYPE ("h"),
@@ -125,8 +125,8 @@ __wrap_tcti_tabrmd_call_cancel_sync (
     GCancellable *cancellable,
     GError **error)
 {
-    *out_return_code = (guint)mock ();
-    return (gboolean)mock ();
+    *out_return_code = mock_type (guint);
+    return mock_type (gboolean);
 }
 /*
  * This is a mock function to control behavior of the
@@ -142,8 +142,8 @@ __wrap_tcti_tabrmd_call_set_locality_sync (
     GCancellable *cancellable,
     GError **error)
 {
-    *out_return_code = (guint)mock ();
-    return (gboolean)mock ();
+    *out_return_code = mock_type (guint);
+    return mock_type (gboolean);
 }
 /*
  * Structure to hold data relevant to tabrmd TCTI unit tests.
