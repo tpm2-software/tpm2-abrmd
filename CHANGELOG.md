@@ -6,6 +6,12 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 ## Unreleased
 ### Added
 - Check SAPI library is < 2.0.0 (API change upstream).
+- Abstract class for IPC frontend implementation. Port dbus code from main
+module to class inheriting from the IpcFrontend.
+- SELinux policy module to work around policy in Fedora.
+- Limit maximum number of active sessions per connection with '--max-sessions'.
+- Flush all transient objects and sessions on daemon start with '--flush-all'.
+- Allow passing of sessions across connections with ContextSave / Load.
 ### Changed
 - Set valgrind leak-check flag to 'full'.
 - Client / server communication uses PF_LOCAL sockets instead of pipes.
@@ -13,6 +19,11 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 version string from it, automake distributes it in 'distcheck'.
 - Test harness upgraded to simulator version 974.
 - Unit tests upgraded to the 1.x cmocka API.
+- Replace use of thread in CommandSource with GMainLoop.
+- Replace use of file descriptors with GIO streams.
+- Separate 'dispose' and 'finalize' functions in each object.
+- Move creation of FDs from connection_new to calling context (dependency
+inversion).
 ### Fixed
 - Unref the GUnixFDList returned by GIO / dbus in the TCTI init function.
 This fixes a memory leak in the TCTI library.
