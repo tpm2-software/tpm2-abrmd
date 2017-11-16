@@ -40,7 +40,7 @@
  */
 TSS2_RC
 create_keys (TSS2_SYS_CONTEXT *sapi_context,
-             TPM_HANDLE       *handles[],
+             TPM2_HANDLE       *handles[],
              size_t            count)
 {
     TPM2B_PRIVATE      out_private = TPM2B_PRIVATE_STATIC_INIT;
@@ -84,7 +84,7 @@ create_keys (TSS2_SYS_CONTEXT *sapi_context,
  */
 TSS2_RC
 get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
-                       TPM_HANDLE        handles[],
+                       TPM2_HANDLE        handles[],
                        size_t           *handle_count)
 {
     TSS2_RC              rc          = TSS2_RC_SUCCESS;
@@ -93,12 +93,12 @@ get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
     size_t               handles_left = *handle_count;
     size_t               handles_got = 0;
 
-    handles [handles_got] = TRANSIENT_FIRST;
+    handles [handles_got] = TPM2_TRANSIENT_FIRST;
     do {
         g_print ("requesting %zu handles from TPM\n", handles_left);
         rc = Tss2_Sys_GetCapability (sapi_context,
                                      NULL,
-                                     TPM_CAP_HANDLES,
+                                     TPM2_CAP_HANDLES,
                                      handles [handles_got],
                                      handles_left,
                                      &more_data,
@@ -107,7 +107,7 @@ get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
         if (rc != TSS2_RC_SUCCESS) {
             return rc;
         }
-        if (cap_data.capability != TPM_CAP_HANDLES) {
+        if (cap_data.capability != TPM2_CAP_HANDLES) {
             g_error ("got weird capability: 0x%" PRIx32,
                      cap_data.capability);
         }
@@ -143,13 +143,13 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
     TSS2_RC              rc          = TSS2_RC_SUCCESS;
     TPMI_YES_NO          more_data   = NO;
     TPMS_CAPABILITY_DATA cap_data    = { 0, };
-    TPM_HANDLE           last_handle = TRANSIENT_FIRST;
+    TPM2_HANDLE           last_handle = TPM2_TRANSIENT_FIRST;
 
     do {
         g_print ("requesting %zu handles from TPM\n", count);
         rc = Tss2_Sys_GetCapability (sapi_context,
                                      NULL,
-                                     TPM_CAP_HANDLES,
+                                     TPM2_CAP_HANDLES,
                                      last_handle,
                                      count,
                                      &more_data,
@@ -158,7 +158,7 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
         if (rc != TSS2_RC_SUCCESS) {
             return rc;
         }
-        if (cap_data.capability != TPM_CAP_HANDLES) {
+        if (cap_data.capability != TPM2_CAP_HANDLES) {
             g_error ("got weird capability: 0x%" PRIx32,
                      cap_data.capability);
         }
@@ -185,8 +185,8 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
 int
 test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
-    TPM_HANDLE          *handles_load;
-    TPM_HANDLE          *handles_query;
+    TPM2_HANDLE          *handles_load;
+    TPM2_HANDLE          *handles_query;
     size_t               handles_count;
     char                *env_str         = NULL, *end_ptr = NULL;
     uint8_t              loops           = NUM_KEYS;
@@ -198,8 +198,8 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 
     g_print ("%s: %d\n", ENV_NUM_KEYS, loops);
 
-    handles_load = calloc (loops, sizeof (TPM_HANDLE));
-    handles_query = calloc (loops, sizeof (TPM_HANDLE));
+    handles_load = calloc (loops, sizeof (TPM2_HANDLE));
+    handles_query = calloc (loops, sizeof (TPM2_HANDLE));
     handles_count = loops;
 
     rc = create_keys (sapi_context, &handles_load, handles_count);

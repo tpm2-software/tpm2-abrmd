@@ -52,7 +52,7 @@ session_entry_setup (void **state)
     GIOStream *iostream;
 
     data = calloc (1, sizeof (test_data_t));
-    data->handle_map = handle_map_new (TPM_HT_TRANSIENT, 100);
+    data->handle_map = handle_map_new (TPM2_HT_TRANSIENT, 100);
     iostream = create_connection_iostream (&data->client_fd);
     data->connection = connection_new (iostream,
                                        CLIENT_ID,
@@ -121,7 +121,7 @@ session_entry_get_handle_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
 
-    TPM_HANDLE handle;
+    TPM2_HANDLE handle;
     handle = session_entry_get_handle (data->session_entry);
     assert_int_equal (handle, TEST_HANDLE);
 }

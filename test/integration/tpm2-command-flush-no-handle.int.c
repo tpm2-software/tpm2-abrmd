@@ -46,7 +46,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     TSS2_RC rc = TSS2_RC_SUCCESS;
     TSS2_TCTI_CONTEXT *tcti_context = NULL;
     uint8_t cmd_buf [] = {
-        0x80, 0x01, /* TPM_ST_NO_SESSIONS */
+        0x80, 0x01, /* TPM2_ST_NO_SESSIONS */
         0x00, 0x00, 0x00, 0x0a, /* size: 10 bytes */
         0x00, 0x00, 0x01, 0x65, /* command code for ContextFlush */
     };
@@ -71,7 +71,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
     /* we're expecting a response buffer with just an RC */
     rc = 0x0000ffff & be32toh (cmd_buf [6]);
-    if (rc != TPM_RC_INSUFFICIENT) {
+    if (rc != TPM2_RC_INSUFFICIENT) {
         return rc;
     }
 

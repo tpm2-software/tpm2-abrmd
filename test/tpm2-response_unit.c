@@ -58,9 +58,9 @@ tpm2_response_setup_base (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold a TPM2 header and a handle */
-    data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE);
+    data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM2_HANDLE);
     data->buffer   = calloc (1, data->buffer_size);
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     data->connection  = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
@@ -101,7 +101,7 @@ tpm2_response_setup_with_handle (void **state)
 
     tpm2_response_setup_base (state);
     data = (test_data_t*)*state;
-    data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE);
+    data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM2_HANDLE);
     data->response = tpm2_response_new (data->connection,
                                         data->buffer,
                                         data->buffer_size,
@@ -171,9 +171,9 @@ tpm2_response_get_buffer_test (void **state)
 }
 /**
  * Here we retrieve the data buffer from the Tpm2Resposne and manually set
- * the tag part of the response buffer to TPM_ST_SESSIONS in network byte
+ * the tag part of the response buffer to TPM2_ST_SESSIONS in network byte
  * order (aka big endian). We then use the tpm2_response_get_tag function
- * to retrieve this data and we compare it to TPM_ST_SESSIONS to be sure we
+ * to retrieve this data and we compare it to TPM2_ST_SESSIONS to be sure we
  * got the value in host byte order.
  */
 static void
@@ -181,14 +181,14 @@ tpm2_response_get_tag_test (void **state)
 {
     test_data_t  *data   = (test_data_t*)*state;
     guint8       *buffer = tpm2_response_get_buffer (data->response);
-    TPM_ST        tag_ret;
+    TPM2_ST        tag_ret;
 
-    /* this is TPM_ST_SESSIONS in network byte order */
+    /* this is TPM2_ST_SESSIONS in network byte order */
     buffer[0] = 0x80;
     buffer[1] = 0x02;
 
     tag_ret = tpm2_response_get_tag (data->response);
-    assert_int_equal (tag_ret, TPM_ST_SESSIONS);
+    assert_int_equal (tag_ret, TPM2_ST_SESSIONS);
 }
 /**
  * Again we're getting the response buffer from the Tpm2Resposne object
@@ -204,7 +204,7 @@ tpm2_response_get_size_test (void **state)
     guint8      *buffer   = tpm2_response_get_buffer (data->response);
     guint32      size_ret = 0;
 
-    /* this is TPM_ST_SESSIONS in network byte order */
+    /* this is TPM2_ST_SESSIONS in network byte order */
     buffer[0] = 0x80;
     buffer[1] = 0x02;
     buffer[2] = 0x00;
@@ -227,10 +227,10 @@ tpm2_response_get_code_test (void **state)
 {
     test_data_t *data     = (test_data_t*)*state;
     guint8      *buffer   = tpm2_response_get_buffer (data->response);
-    TPM_CC       response_code;
+    TPM2_CC       response_code;
 
     /**
-     * This is TPM_ST_SESSIONS + a size of 0x0a + the response code for
+     * This is TPM2_ST_SESSIONS + a size of 0x0a + the response code for
      * GetCapability in network byte order
      */
     buffer[0] = 0x80;
@@ -245,7 +245,7 @@ tpm2_response_get_code_test (void **state)
     buffer[9] = 0x00;
 
     response_code = tpm2_response_get_code (data->response);
-    assert_int_equal (response_code, TPM_RC_INITIALIZE);
+    assert_int_equal (response_code, TPM2_RC_INITIALIZE);
 }
 /**
  * This is a setup function for testing the "short-cut" constructor for the
@@ -261,18 +261,18 @@ tpm2_response_new_rc_setup (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold a TPM2 header */
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     data->connection  = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
     g_object_unref (iostream);
-    data->response = tpm2_response_new_rc (data->connection, TPM_RC_BINDING);
+    data->response = tpm2_response_new_rc (data->connection, TPM2_RC_BINDING);
 
     *state = data;
     return 0;
 }
 /**
- * The tpm2_response_new_rc sets the TPM_ST_NO_SESSIONS tag for us since
+ * The tpm2_response_new_rc sets the TPM2_ST_NO_SESSIONS tag for us since
  * it's just returning an RC and cannot have connections. Here we check to be
  * sure we can retrieve this tag and that's it's returned in host byte order.
  */
@@ -280,10 +280,10 @@ static void
 tpm2_response_new_rc_tag_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_ST       tag  = 0;
+    TPM2_ST       tag  = 0;
 
     tag = tpm2_response_get_tag (data->response);
-    assert_int_equal (tag, TPM_ST_NO_SESSIONS);
+    assert_int_equal (tag, TPM2_ST_NO_SESSIONS);
 }
 /**
  * The tpm2_response_new_rc sets the size to the appropriate
@@ -302,7 +302,7 @@ tpm2_response_new_rc_size_test (void **state)
 }
 /**
  * The tpm2_response_new_rc sets the response code to whatever RC is passed
- * as a parameter. In the paried setup function we passed it TPM_RC_BINDING.
+ * as a parameter. In the paried setup function we passed it TPM2_RC_BINDING.
  * This function ensures that we get the same value back from the
  * tpm2_response_get_code function in the proper host byte order.
  */
@@ -310,10 +310,10 @@ static void
 tpm2_response_new_rc_code_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_RC       rc   = TPM_RC_SUCCESS;
+    TSS2_RC       rc   = TPM2_RC_SUCCESS;
 
     rc = tpm2_response_get_code (data->response);
-    assert_int_equal (rc, TPM_RC_BINDING);
+    assert_int_equal (rc, TPM2_RC_BINDING);
 }
 /**
  * The tpm2_resonse_new_rc takes a connection as a parameter. We save a
@@ -364,7 +364,7 @@ static void
 tpm2_response_get_handle_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE handle;
+    TPM2_HANDLE handle;
 
     handle = tpm2_response_get_handle (data->response);
     assert_int_equal (handle, HANDLE_TEST);
@@ -378,7 +378,7 @@ static void
 tpm2_response_get_handle_no_handle_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE handle;
+    TPM2_HANDLE handle;
 
     data->response->buffer_size = TPM_HEADER_SIZE;
     handle = tpm2_response_get_handle (data->response);
@@ -392,7 +392,7 @@ static void
 tpm2_response_get_handle_type_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HT handle_type;
+    TPM2_HT handle_type;
 
     handle_type = tpm2_response_get_handle_type (data->response);
     assert_int_equal (handle_type, HANDLE_TYPE);
@@ -407,7 +407,7 @@ static void
 tpm2_response_set_handle_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE handle_in = 0x80fffffe, handle_out = 0;
+    TPM2_HANDLE handle_in = 0x80fffffe, handle_out = 0;
 
     tpm2_response_set_handle (data->response, handle_in);
     handle_out = tpm2_response_get_handle (data->response);
@@ -423,7 +423,7 @@ static void
 tpm2_response_set_handle_no_handle_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE handle_in = 0x80fffffe, handle_out = 0;
+    TPM2_HANDLE handle_in = 0x80fffffe, handle_out = 0;
 
     data->response->buffer_size = TPM_HEADER_SIZE;
     tpm2_response_set_handle (data->response, handle_in);

@@ -78,14 +78,14 @@ TSS2_RC            access_broker_get_trans_object_count (AccessBroker *broker,
                                                          uint32_t     *count);
 TSS2_RC            access_broker_context_load           (AccessBroker *broker,
                                                          TPMS_CONTEXT *context,
-                                                         TPM_HANDLE   *handle);
+                                                         TPM2_HANDLE   *handle);
 TSS2_RC            access_broker_context_flush          (AccessBroker *broker,
-                                                         TPM_HANDLE    handle);
+                                                         TPM2_HANDLE    handle);
 TSS2_RC            access_broker_context_saveflush      (AccessBroker *broker,
-                                                         TPM_HANDLE    handle,
+                                                         TPM2_HANDLE    handle,
                                                          TPMS_CONTEXT *context);
 TSS2_RC            access_broker_context_save           (AccessBroker *broker,
-                                                         TPM_HANDLE    handle,
+                                                         TPM2_HANDLE    handle,
                                                          TPMS_CONTEXT *context);
 void               access_broker_flush_all_context      (AccessBroker *broker);
 

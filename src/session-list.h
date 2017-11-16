@@ -67,9 +67,9 @@ gint           session_list_unlock            (SessionList      *list);
 SessionEntry*  session_list_lookup_connection (SessionList      *list,
                                                Connection       *connection);
 SessionEntry*  session_list_lookup_handle     (SessionList      *list,
-                                              TPM_HANDLE        handle);
+                                              TPM2_HANDLE        handle);
 gint           session_list_remove_handle     (SessionList      *list,
-                                               TPM_HANDLE        handle);
+                                               TPM2_HANDLE        handle);
 gint           session_list_remove_connection (SessionList      *list,
                                                Connection       *connection);
 void           session_list_remove            (SessionList      *list,

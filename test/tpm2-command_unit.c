@@ -38,9 +38,9 @@
 #define HANDLE_SECOND 0x80000001
 
 uint8_t cmd_with_auths [] = {
-    0x80, 0x02, /* TPM_ST_SESSIONS */
+    0x80, 0x02, /* TPM2_ST_SESSIONS */
     0x00, 0x00, 0x00, 0x73, /* command buffer size */
-    0x00, 0x00, 0x01, 0x37, /* command code: 0x137 / TPM_CC_NV_Write */
+    0x00, 0x00, 0x01, 0x37, /* command code: 0x137 / TPM2_CC_NV_Write */
     0x01, 0x50, 0x00, 0x20, /* auth handle */
     0x01, 0x50, 0x00, 0x20, /* nv index handle */
     0x00, 0x00, 0x00, 0x92, /* size of auth area (2x73 byte auths) */
@@ -75,7 +75,7 @@ uint8_t cmd_with_auths [] = {
 };
 /* command buffer for ContextFlush command with no handle */
 uint8_t cmd_buf_context_flush_no_handle [] = {
-    0x80, 0x01, /* TPM_ST_NO_SESSIONS */
+    0x80, 0x01, /* TPM2_ST_NO_SESSIONS */
     0x00, 0x00, 0x00, 0x0a, /* size: 10 bytes */
     0x00, 0x00, 0x01, 0x65, /* command code for ContextFlush */
 };
@@ -102,9 +102,9 @@ tpm2_command_setup_base (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold a TPM2 header and 3 handles */
-    data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM_HANDLE) * 3;
+    data->buffer_size = TPM_RESPONSE_HEADER_SIZE + sizeof (TPM2_HANDLE) * 3;
     data->buffer = calloc (1, data->buffer_size);
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     data->connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
@@ -154,9 +154,9 @@ tpm2_command_setup_two_handles (void **state)
 }
 
 uint8_t two_handles_not_three [] = {
-    0x80, 0x02, /* TPM_ST_SESSIONS */
+    0x80, 0x02, /* TPM2_ST_SESSIONS */
     0x00, 0x00, 0x00, 0x12, /* command buffer size */
-    0x00, 0x00, 0x01, 0x49, /* command code: 0x149 / TPM_CC_PolicyNV */
+    0x00, 0x00, 0x01, 0x49, /* command code: 0x149 / TPM2_CC_PolicyNV */
     0x01, 0x02, 0x03, 0x04, /* first handle */
     0xf0, 0xe0, 0xd0, 0xc0  /* second handle */
 };
@@ -176,7 +176,7 @@ tpm2_command_setup_two_handles_not_three (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     *state = data;
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     data->connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
@@ -214,7 +214,7 @@ tpm2_command_setup_with_auths (void **state)
     data->buffer_size = sizeof (cmd_with_auths);
     data->buffer = calloc (1, data->buffer_size);
     memcpy (data->buffer, cmd_with_auths, sizeof (cmd_with_auths));
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     data->connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
@@ -245,7 +245,7 @@ tpm2_command_setup_flush_context_no_handle (void **state)
     memcpy (data->buffer,
             cmd_buf_context_flush_no_handle,
             data->buffer_size);
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     data->connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
@@ -312,12 +312,12 @@ tpm2_command_get_tag_test (void **state)
     guint8              *buffer = tpm2_command_get_buffer (data->command);
     TPMI_ST_COMMAND_TAG  tag_ret;
 
-    /* this is TPM_ST_SESSIONS in network byte order */
+    /* this is TPM2_ST_SESSIONS in network byte order */
     buffer[0] = 0x80;
     buffer[1] = 0x02;
 
     tag_ret = tpm2_command_get_tag (data->command);
-    assert_int_equal (tag_ret, TPM_ST_SESSIONS);
+    assert_int_equal (tag_ret, TPM2_ST_SESSIONS);
 }
 
 static void
@@ -344,10 +344,10 @@ tpm2_command_get_code_test (void **state)
 {
     test_data_t *data     = (test_data_t*)*state;
     guint8      *buffer   = tpm2_command_get_buffer (data->command);
-    TPM_CC       command_code;
+    TPM2_CC       command_code;
 
     /**
-     * This is TPM_ST_SESSIONS + a size of 0x0a + the command code for
+     * This is TPM2_ST_SESSIONS + a size of 0x0a + the command code for
      * GetCapability in network byte order
      */
     buffer[0] = 0x80;
@@ -362,7 +362,7 @@ tpm2_command_get_code_test (void **state)
     buffer[9] = 0x7a;
 
     command_code = tpm2_command_get_code (data->command);
-    assert_int_equal (command_code, TPM_CC_GetCapability);
+    assert_int_equal (command_code, TPM2_CC_GetCapability);
 }
 
 static void
@@ -379,7 +379,7 @@ static void
 tpm2_command_get_handles_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE handles [3] = { 0, };
+    TPM2_HANDLE handles [3] = { 0, };
     size_t count = 3;
     gboolean ret;
 
@@ -393,18 +393,18 @@ tpm2_command_set_handles_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
     gboolean ret;
-    TPM_HANDLE handles_in [2] = {
-        TPM_HT_TRANSIENT + 0x1,
-        TPM_HT_TRANSIENT + 0x2,
+    TPM2_HANDLE handles_in [2] = {
+        TPM2_HT_TRANSIENT + 0x1,
+        TPM2_HT_TRANSIENT + 0x2,
     };
-    TPM_HANDLE handles_out [2] = { 0, };
+    TPM2_HANDLE handles_out [2] = { 0, };
     size_t handle_count = 2;
 
     ret = tpm2_command_set_handles (data->command, handles_in, handle_count);
     assert_true (ret == TRUE);
     ret = tpm2_command_get_handles (data->command, handles_out, &handle_count);
     assert_true (ret == TRUE);
-    assert_memory_equal (handles_in, handles_out, 2 * sizeof (TPM_HANDLE));
+    assert_memory_equal (handles_in, handles_out, 2 * sizeof (TPM2_HANDLE));
 }
 /*
  * Get the handle at the first position in the handle area of the command.
@@ -413,7 +413,7 @@ static void
 tpm2_command_get_handle_first_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE   handle_out;
+    TPM2_HANDLE   handle_out;
 
     handle_out = tpm2_command_get_handle (data->command, 0);
     assert_int_equal (handle_out, HANDLE_FIRST);
@@ -425,7 +425,7 @@ static void
 tpm2_command_get_handle_second_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE   handle_out;
+    TPM2_HANDLE   handle_out;
 
     handle_out = tpm2_command_get_handle (data->command, 1);
     assert_int_equal (handle_out, HANDLE_SECOND);
@@ -438,7 +438,7 @@ static void
 tpm2_command_get_handle_fail_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE   handle_out;
+    TPM2_HANDLE   handle_out;
 
     handle_out = tpm2_command_get_handle (data->command, 2);
     assert_int_equal (handle_out, 0);
@@ -449,7 +449,7 @@ static void
 tpm2_command_set_handle_first_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE   handle_in = 0xdeadbeef, handle_out = 0;
+    TPM2_HANDLE   handle_in = 0xdeadbeef, handle_out = 0;
     gboolean     ret;
 
     ret = tpm2_command_set_handle (data->command, handle_in, 0);
@@ -461,7 +461,7 @@ static void
 tpm2_command_set_handle_second_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE   handle_in = 0xdeadbeef, handle_out = 0;
+    TPM2_HANDLE   handle_in = 0xdeadbeef, handle_out = 0;
     gboolean     ret;
 
     ret = tpm2_command_set_handle (data->command, handle_in, 1);
@@ -473,7 +473,7 @@ static void
 tpm2_command_set_handle_fail_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE   handle_in = 0xdeadbeef;
+    TPM2_HANDLE   handle_in = 0xdeadbeef;
     gboolean     ret;
 
     ret = tpm2_command_set_handle (data->command, handle_in, 2);
@@ -496,7 +496,7 @@ typedef struct {
     Tpm2Command *command;
     size_t counter;
     size_t handles_count;
-    TPM_HANDLE handles [3];
+    TPM2_HANDLE handles [3];
 } callback_auth_state_t;
 /*
  * The tpm2_command_foreach_auth function invokes this function for each
@@ -513,7 +513,7 @@ tpm2_command_foreach_auth_callback (gpointer authorization,
 {
     size_t auth_offset = *(size_t*)authorization;
     callback_auth_state_t *callback_state = (callback_auth_state_t*)user_data;
-    TPM_HANDLE handle;
+    TPM2_HANDLE handle;
 
     handle = tpm2_command_get_auth_handle (callback_state->command,
                                            auth_offset);
@@ -560,11 +560,11 @@ tpm2_command_flush_context_handle_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
-    TPM_HANDLE handle;
+    TPM2_HANDLE handle;
 
     rc = tpm2_command_get_flush_handle (data->command,
                                         &handle);
-    assert_int_equal (rc, RM_RC (TPM_RC_INSUFFICIENT));
+    assert_int_equal (rc, RM_RC (TPM2_RC_INSUFFICIENT));
 }
 /*
  * This test attempts to read 3 handles from a command. It's paired with
@@ -577,7 +577,7 @@ static void
 tpm2_command_two_handles_not_three (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE   handles [3] = { 0 };
+    TPM2_HANDLE   handles [3] = { 0 };
     size_t       handle_count = 3;
     gboolean     ret = TRUE;
 
@@ -588,9 +588,9 @@ tpm2_command_two_handles_not_three (void **state)
 }
 
 uint8_t get_cap_no_cap [] = {
-    0x80, 0x02, /* TPM_ST_SESSIONS */
+    0x80, 0x02, /* TPM2_ST_SESSIONS */
     0x00, 0x00, 0x00, 0x0a, /* command buffer size */
-    0x00, 0x00, 0x01, 0x7a, /* TPM_CC_GetCapability */
+    0x00, 0x00, 0x01, 0x7a, /* TPM2_CC_GetCapability */
 };
 /*
  * This setup function creates all of the components necessary to carry out
@@ -608,7 +608,7 @@ tpm2_command_setup_get_cap_no_cap (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     *state = data;
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     data->connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
@@ -629,7 +629,7 @@ static void
 tpm2_command_get_cap_no_cap (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_CAP cap;
+    TPM2_CAP cap;
 
     cap = tpm2_command_get_cap (data->command);
     assert_int_equal (cap, 0);

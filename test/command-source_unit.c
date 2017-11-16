@@ -60,7 +60,7 @@ typedef struct source_test_data {
 /* mock function to return TPM command attributes TPMA_CC */
 TPMA_CC
 __wrap_command_attrs_from_cc (CommandAttrs *attrs,
-                              TPM_CC        command_code)
+                              TPM2_CC        command_code)
 {
     return (TPMA_CC)mock_type (UINT32);
 }
@@ -235,7 +235,7 @@ command_source_connection_insert_test (void **state)
     gint ret, client_fd;
 
     g_debug ("%s", __func__);
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
@@ -286,7 +286,7 @@ command_source_on_io_ready_success_test (void **state)
                           0x0,  0x06, 0x0,  0x0,  0x01, 0x0,
                           0x0,  0x0,  0x0,  0x7f, 0x0a };
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
@@ -328,7 +328,7 @@ command_source_on_io_ready_eof_test (void **state)
     gint client_fd, hash_table_size;
     gboolean ret;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);

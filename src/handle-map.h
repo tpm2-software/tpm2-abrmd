@@ -46,8 +46,8 @@ typedef struct _HandleMapClass {
 typedef struct _HandleMap {
     GObject             parent_instance;
     pthread_mutex_t     mutex;
-    TPM_HT              handle_type;
-    TPM_HANDLE          handle_count;
+    TPM2_HT              handle_type;
+    TPM2_HANDLE          handle_count;
     GHashTable         *vhandle_to_entry_table;
     guint               max_entries;
 } HandleMap;
@@ -60,19 +60,19 @@ typedef struct _HandleMap {
 #define HANDLE_MAP_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_HANDLE_MAP, HandleMapClass))
 
 GType            handle_map_get_type    (void);
-HandleMap*       handle_map_new         (TPM_HT          handle_type,
+HandleMap*       handle_map_new         (TPM2_HT          handle_type,
                                          guint           max_entries);
 gboolean         handle_map_insert      (HandleMap      *map,
-                                         TPM_HANDLE      vhandle,
+                                         TPM2_HANDLE      vhandle,
                                          HandleMapEntry *entry);
 gint             handle_map_remove      (HandleMap     *map,
-                                         TPM_HANDLE     vremove);
+                                         TPM2_HANDLE     vremove);
 HandleMapEntry*  handle_map_plookup     (HandleMap     *map,
-                                         TPM_HANDLE     phandle);
+                                         TPM2_HANDLE     phandle);
 HandleMapEntry*  handle_map_vlookup     (HandleMap     *map,
-                                         TPM_HANDLE     vhandle);
+                                         TPM2_HANDLE     vhandle);
 guint            handle_map_size        (HandleMap     *map);
-TPM_HANDLE       handle_map_next_vhandle (HandleMap    *map);
+TPM2_HANDLE       handle_map_next_vhandle (HandleMap    *map);
 void             handle_map_foreach      (HandleMap    *map,
                                           GHFunc        callback,
                                           gpointer      user_data);

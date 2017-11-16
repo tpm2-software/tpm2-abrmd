@@ -136,7 +136,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     TPMT_TK_HASHCHECK validation;
 
     TPMS_AUTH_COMMAND auth_command = {
-        .sessionHandle = TPM_RS_PW,
+        .sessionHandle = TPM2_RS_PW,
         .hmac = auth,
     };
     TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
@@ -154,14 +154,14 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     rval = Tss2_Sys_HashSequenceStart (sapi_context,
                                        0,
                                        &auth,
-                                       TPM_ALG_SHA1,
+                                       TPM2_ALG_SHA1,
                                        &sequenceHandle[0],
                                        0);
     if (rval != TSS2_RC_SUCCESS) {
         g_error ("Failed to initialize hash sequence. RC = 0x%x", rval);
     }
 
-    dataToHash.size = MAX_DIGEST_BUFFER;
+    dataToHash.size = TPM2_MAX_DIGEST_BUFFER;
     memcpy (&dataToHash.buffer[0], &memoryToHash[0], dataToHash.size);
 
     rval = Tss2_Sys_SequenceUpdate (sapi_context,
@@ -182,7 +182,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         rval = Tss2_Sys_HashSequenceStart (sapi_context,
                                            0,
                                            &auth,
-                                           TPM_ALG_SHA1,
+                                           TPM2_ALG_SHA1,
                                            &sequenceHandle[i],
                                            0);
         if (rval != TSS2_RC_SUCCESS) {
@@ -199,7 +199,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                           sequenceHandle[i],
                                           &cmd_auths,
                                           &dataToHash,
-                                          TPM_RH_PLATFORM,
+                                          TPM2_RH_PLATFORM,
                                           &result,
                                           &validation,
                                           &rsp_auths);
@@ -219,16 +219,16 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         g_error ("Failed to update original hash sequence. RC = 0x%x", rval);
     }
 
-    dataToHash.size = sizeof (memoryToHash) - MAX_DIGEST_BUFFER;
+    dataToHash.size = sizeof (memoryToHash) - TPM2_MAX_DIGEST_BUFFER;
     memcpy (dataToHash.buffer,
-            &memoryToHash[MAX_DIGEST_BUFFER],
+            &memoryToHash[TPM2_MAX_DIGEST_BUFFER],
             dataToHash.size);
     INIT_SIMPLE_TPM2B_SIZE (result);
     rval = Tss2_Sys_SequenceComplete (sapi_context,
                                       sequenceHandle[0],
                                       &cmd_auths,
                                       &dataToHash,
-                                      TPM_RH_PLATFORM,
+                                      TPM2_RH_PLATFORM,
                                       &result,
                                       &validation,
                                       &rsp_auths);
@@ -251,7 +251,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         rval = Tss2_Sys_HashSequenceStart (sapi_context,
                                            0,
                                            &auth,
-                                           TPM_ALG_SHA1,
+                                           TPM2_ALG_SHA1,
                                            &sequenceHandle[i],
                                            0);
         if (rval != TSS2_RC_SUCCESS) {
@@ -268,7 +268,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                           sequenceHandle[i],
                                           &cmd_auths,
                                           &dataToHash,
-                                          TPM_RH_PLATFORM,
+                                          TPM2_RH_PLATFORM,
                                           &result,
                                           &validation,
                                           &rsp_auths);

@@ -60,7 +60,7 @@ CommandAttrs*    command_attrs_new         (void);
 gint             command_attrs_init_tpm    (CommandAttrs     *attrs,
                                             AccessBroker     *broker);
 TPMA_CC          command_attrs_from_cc     (CommandAttrs     *attrs,
-                                            TPM_CC            command_code);
+                                            TPM2_CC            command_code);
 
 G_END_DECLS
 #endif /* COMMAND_ATTRS_H */

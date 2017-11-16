@@ -56,9 +56,9 @@ typedef struct _SessionEntry {
 
 GType            session_entry_get_type        (void);
 SessionEntry*    session_entry_new             (Connection        *connection,
-                                                TPM_HANDLE         handle);
+                                                TPM2_HANDLE         handle);
 Connection*      session_entry_get_connection  (SessionEntry      *entry);
-TPM_HANDLE       session_entry_get_handle      (SessionEntry      *entry);
+TPM2_HANDLE       session_entry_get_handle      (SessionEntry      *entry);
 TPMS_CONTEXT*    session_entry_get_context     (SessionEntry      *entry);
 SessionEntryStateEnum session_entry_get_state  (SessionEntry      *entry);
 void             session_entry_set_connection  (SessionEntry      *entry,

@@ -76,10 +76,10 @@ handle_map_entry_set_property (GObject        *object,
 
     switch (property_id) {
     case PROP_PHANDLE:
-        self->phandle = (TPM_HANDLE)g_value_get_uint (value);
+        self->phandle = (TPM2_HANDLE)g_value_get_uint (value);
         break;
     case PROP_VHANDLE:
-        self->vhandle = (TPM_HANDLE)g_value_get_uint (value);
+        self->vhandle = (TPM2_HANDLE)g_value_get_uint (value);
         break;
     case PROP_CONTEXT:
         g_error ("Cannot set context property.");
@@ -147,8 +147,8 @@ handle_map_entry_class_init (HandleMapEntryClass *klass)
  * Instance constructor.
  */
 HandleMapEntry*
-handle_map_entry_new (TPM_HANDLE phandle,
-                      TPM_HANDLE vhandle)
+handle_map_entry_new (TPM2_HANDLE phandle,
+                      TPM2_HANDLE vhandle)
 {
     HandleMapEntry *entry;
 
@@ -175,7 +175,7 @@ handle_map_entry_get_context (HandleMapEntry *entry)
 /*
  * Accessor for the physical handle member.
  */
-TPM_HANDLE
+TPM2_HANDLE
 handle_map_entry_get_phandle (HandleMapEntry *entry)
 {
     return entry->phandle;
@@ -183,14 +183,14 @@ handle_map_entry_get_phandle (HandleMapEntry *entry)
 /*
  * Accessor for the virtual handle member.
  */
-TPM_HANDLE
+TPM2_HANDLE
 handle_map_entry_get_vhandle (HandleMapEntry *entry)
 {
     return entry->vhandle;
 }
 void
 handle_map_entry_set_phandle (HandleMapEntry *entry,
-                              TPM_HANDLE      phandle)
+                              TPM2_HANDLE      phandle)
 {
     entry->phandle = phandle;
 }

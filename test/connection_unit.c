@@ -80,7 +80,7 @@ connection_allocate_test (void **state)
     gint client_fd;
     GIOStream *iostream;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
@@ -101,7 +101,7 @@ connection_setup (void **state)
 
     data = calloc (1, sizeof (connection_test_data_t));
     assert_non_null (data);
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     data->connection = connection_new (iostream, 0, handle_map);
     g_object_unref (iostream);
