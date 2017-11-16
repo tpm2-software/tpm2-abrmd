@@ -119,7 +119,7 @@ EXTRA_DIST = \
     dist/tpm2-abrmd.conf \
     dist/tcti-tabrmd.pc.in \
     dist/tpm2-abrmd.preset \
-    dist/tpm2-abrmd.service \
+    dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
     scripts/int-log-compiler.sh \
     CHANGELOG.md \
