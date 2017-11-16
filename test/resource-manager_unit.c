@@ -47,7 +47,7 @@ typedef struct test_data {
     Tpm2Command     *command;
     Tpm2Response    *response;
     gint             client_fd;
-    TPM_HANDLE       vhandles [2];
+    TPM2_HANDLE       vhandles [2];
     TPMA_CC         command_attrs;
 } test_data_t;
 
@@ -92,7 +92,7 @@ __wrap_sink_enqueue (Sink      *self,
 }
 TSS2_RC
 __wrap_access_broker_context_saveflush (AccessBroker *broker,
-                                        TPM_HANDLE    handle,
+                                        TPM2_HANDLE    handle,
                                         TPMS_CONTEXT *contedt)
 {
    return mock_type (TSS2_RC);
@@ -106,10 +106,10 @@ __wrap_access_broker_context_saveflush (AccessBroker *broker,
 TSS2_RC
 __wrap_access_broker_context_load (AccessBroker *access_broker,
                                    TPMS_CONTEXT *context,
-                                   TPM_HANDLE   *handle)
+                                   TPM2_HANDLE   *handle)
 {
     TSS2_RC    rc      = mock_type (TSS2_RC);
-    TPM_HANDLE phandle = mock_type (TPM_HANDLE);
+    TPM2_HANDLE phandle = mock_type (TPM2_HANDLE);
 
     assert_non_null (handle);
     *handle = phandle;
@@ -130,7 +130,7 @@ resource_manager_setup (void **state)
     rc = tcti_echo_initialize (data->tcti_echo);
     if (rc != TSS2_RC_SUCCESS)
         g_debug ("tcti_echo_initialize FAILED");
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->access_broker = access_broker_new (TCTI (data->tcti_echo));
     session_list = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
     data->resource_manager = resource_manager_new (data->access_broker,
@@ -154,27 +154,27 @@ resource_manager_setup_two_transient_handles (void **state)
     resource_manager_setup (state);
     data = *state;
 
-    data->vhandles [0] = HR_TRANSIENT + 0x1;
-    data->vhandles [1] = HR_TRANSIENT + 0x2;
-    data->command_attrs.val = (2 << 25) + TPM_CC_StartAuthSession; /* 2 handles + TPM2_StartAuthSession */
+    data->vhandles [0] = TPM2_HR_TRANSIENT + 0x1;
+    data->vhandles [1] = TPM2_HR_TRANSIENT + 0x2;
+    data->command_attrs.val = (2 << 25) + TPM2_CC_StartAuthSession; /* 2 handles + TPM2_StartAuthSession */
 
     /* create Tpm2Command that we'll be transforming */
-    buffer_size = TPM_HEADER_SIZE + 2 * sizeof (TPM_HANDLE);
+    buffer_size = TPM_HEADER_SIZE + 2 * sizeof (TPM2_HANDLE);
     buffer = calloc (1, buffer_size);
-    *(TPM_ST*)buffer = htobe16 (TPM_ST_NO_SESSIONS);
+    *(TPM2_ST*)buffer = htobe16 (TPM2_ST_NO_SESSIONS);
     buffer [2]  = 0x00;
     buffer [3]  = 0x00;
     buffer [4]  = 0x00;
     buffer [5]  = buffer_size;
     buffer [6]  = 0x00;
     buffer [7]  = 0x00;
-    buffer [8]  = TPM_CC_StartAuthSession >> 8;
-    buffer [9]  = TPM_CC_StartAuthSession & 0xff;
-    buffer [10] = TPM_HT_TRANSIENT;
+    buffer [8]  = TPM2_CC_StartAuthSession >> 8;
+    buffer [9]  = TPM2_CC_StartAuthSession & 0xff;
+    buffer [10] = TPM2_HT_TRANSIENT;
     buffer [11] = 0x00;
     buffer [12] = 0x00;
     buffer [13] = data->vhandles [0] & 0xff; /* first virtual handle */
-    buffer [14] = TPM_HT_TRANSIENT;
+    buffer [14] = TPM2_HT_TRANSIENT;
     buffer [15] = 0x00;
     buffer [16] = 0x00;
     buffer [17] = data->vhandles [1] & 0xff; /* second virtual handle */
@@ -288,7 +288,7 @@ resource_manager_flushsave_context_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
     HandleMapEntry *entry;
-    TPM_HANDLE vhandle = HR_TRANSIENT + 0x1, phandle = HR_TRANSIENT + 0x2;
+    TPM2_HANDLE vhandle = TPM2_HR_TRANSIENT + 0x1, phandle = TPM2_HR_TRANSIENT + 0x2;
 
     entry = handle_map_entry_new (phandle, vhandle);
     will_return (__wrap_access_broker_context_saveflush, TSS2_RC_SUCCESS);
@@ -308,10 +308,10 @@ resource_manager_flushsave_context_fail_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
     HandleMapEntry *entry;
-    TPM_HANDLE vhandle = HR_TRANSIENT + 0x1, phandle = HR_TRANSIENT + 0x2;
+    TPM2_HANDLE vhandle = TPM2_HR_TRANSIENT + 0x1, phandle = TPM2_HR_TRANSIENT + 0x2;
 
     entry = handle_map_entry_new (phandle, vhandle);
-    will_return (__wrap_access_broker_context_saveflush, TPM_RC_INITIALIZE);
+    will_return (__wrap_access_broker_context_saveflush, TPM2_RC_INITIALIZE);
     resource_manager_flushsave_context (entry, data->resource_manager);
     assert_int_equal (handle_map_entry_get_phandle (entry), phandle);
 }
@@ -322,8 +322,8 @@ resource_manager_virt_to_phys_test (void **state)
 {
     test_data_t    *data = (test_data_t*)*state;
     HandleMapEntry *entry;
-    TPM_HANDLE      phandle = HR_TRANSIENT + 0x1, vhandle = 0;
-    TPM_HANDLE      handle_ret = 0;
+    TPM2_HANDLE      phandle = TPM2_HR_TRANSIENT + 0x1, vhandle = 0;
+    TPM2_HANDLE      handle_ret = 0;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
 
     will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
@@ -354,12 +354,12 @@ resource_manager_load_contexts_test (void **state)
     GSList         *entry_slist;
     HandleMap      *map;
     SessionList    *loaded_sessions;
-    TPM_HANDLE      phandles [2] = {
-        HR_TRANSIENT + 0xeb,
-        HR_TRANSIENT + 0xbe,
+    TPM2_HANDLE      phandles [2] = {
+        TPM2_HR_TRANSIENT + 0xeb,
+        TPM2_HR_TRANSIENT + 0xbe,
     };
-    TPM_HANDLE      vhandles [3] = { 0 };
-    TPM_HANDLE      handle_ret;
+    TPM2_HANDLE      vhandles [3] = { 0 };
+    TPM2_HANDLE      handle_ret;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     size_t          handle_count = 2, i;
 

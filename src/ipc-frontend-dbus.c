@@ -399,7 +399,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
             "Failed to allocate connection ID. Try again later.");
         return TRUE;
     }
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, self->max_transient_objects);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, self->max_transient_objects);
     if (handle_map == NULL)
         g_error ("Failed to allocate new HandleMap");
     iostream = create_connection_iostream (&client_fd);

@@ -301,7 +301,7 @@ tcti_tabrmd_set_locality_null_context_test (void **state)
  * This test makes a single call to the transmit function in the the
  * TSS2_TCTI_CONTEXT function pointer table. It sends a fixed 12 byte TPM
  * command buffer:
- * tag:     TPM_ST_NO_SESSIONS
+ * tag:     TPM2_ST_NO_SESSIONS
  * size:    12 bytes
  * command: 0x0
  * data:    0x01, 0x02

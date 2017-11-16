@@ -86,7 +86,7 @@ command_attrs_init_tpm (CommandAttrs *attrs,
 
     rc = access_broker_get_max_command (broker, &attrs->count);
     if (rc != TSS2_RC_SUCCESS || attrs->count == 0) {
-        g_warning ("failed to get TPM_PT_TOTAL_COMMANDS: 0x%" PRIx32
+        g_warning ("failed to get TPM2_PT_TOTAL_COMMANDS: 0x%" PRIx32
                    ", count: 0x%" PRIx32, rc, attrs->count);
         return -1;
     }
@@ -99,8 +99,8 @@ command_attrs_init_tpm (CommandAttrs *attrs,
     g_debug ("GetCapabilty for 0x%" PRIx32 " commands", attrs->count);
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
-                                 TPM_CAP_COMMANDS,
-                                 TPM_CC_FIRST,
+                                 TPM2_CAP_COMMANDS,
+                                 TPM2_CC_FIRST,
                                  attrs->count,
                                  &more,
                                  &capability_data,
@@ -125,16 +125,16 @@ command_attrs_init_tpm (CommandAttrs *attrs,
     return 0;
 }
 
-/* TPM_CC is in the lower 15 bits of the TPMA_CC */
-#define TPM_CC_FROM_TPMA_CC(attrs) (attrs.val & 0x7fff)
+/* TPM2_CC is in the lower 15 bits of the TPMA_CC */
+#define TPM2_CC_FROM_TPMA_CC(attrs) (attrs.val & 0x7fff)
 TPMA_CC
 command_attrs_from_cc (CommandAttrs *attrs,
-                       TPM_CC        command_code)
+                       TPM2_CC        command_code)
 {
     int i;
 
     for (i = 0; i < attrs->count; ++i)
-        if (TPM_CC_FROM_TPMA_CC (attrs->command_attrs[i]) == command_code)
+        if (TPM2_CC_FROM_TPMA_CC (attrs->command_attrs[i]) == command_code)
             return attrs->command_attrs[i];
 
     return (TPMA_CC) { 0 };}

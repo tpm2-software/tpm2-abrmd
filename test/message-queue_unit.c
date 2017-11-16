@@ -79,7 +79,7 @@ message_queue_enqueue_dequeue_test (void **state)
     gint          client_fd;
     GIOStream *iostream;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     obj_in = connection_new (iostream, 0, handle_map);
     message_queue_enqueue (queue, G_OBJECT (obj_in));
@@ -100,9 +100,9 @@ message_queue_dequeue_order_test (void **state)
     gint client_fd;
     GIOStream *iostream;
 
-    map_0 = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    map_1 = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    map_2 = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    map_0 = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    map_1 = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    map_2 = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
 
     iostream = create_connection_iostream (&client_fd);
     obj_0 = connection_new (iostream, 0, map_0);

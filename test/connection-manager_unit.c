@@ -82,7 +82,7 @@ connection_manager_insert_test (void **state)
     gint ret, client_fd;
     GIOStream *iostream;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
@@ -100,7 +100,7 @@ connection_manager_lookup_fd_test (void **state)
     gint ret, client_fd;
     GIOStream *iostream;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
@@ -122,7 +122,7 @@ connection_manager_lookup_id_test (void **state)
     GIOStream *iostream;
     gint ret, client_fd;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
@@ -143,7 +143,7 @@ connection_manager_remove_test (void **state)
     gint ret_int, client_fd;
     gboolean ret_bool;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);

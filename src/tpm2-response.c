@@ -35,14 +35,14 @@
 
 #define HANDLE_AREA_OFFSET TPM_HEADER_SIZE
 #define HANDLE_OFFSET (HANDLE_AREA_OFFSET)
-#define HANDLE_END_OFFSET (HANDLE_OFFSET + sizeof (TPM_HANDLE))
-#define HANDLE_GET(buffer) (*(TPM_HANDLE*)(&buffer [HANDLE_OFFSET]))
+#define HANDLE_END_OFFSET (HANDLE_OFFSET + sizeof (TPM2_HANDLE))
+#define HANDLE_GET(buffer) (*(TPM2_HANDLE*)(&buffer [HANDLE_OFFSET]))
 
-#define TPM_RESPONSE_TAG(buffer) (*(TPM_ST*)buffer)
+#define TPM_RESPONSE_TAG(buffer) (*(TPM2_ST*)buffer)
 #define TPM_RESPONSE_SIZE(buffer) (*(guint32*)(buffer + \
-                                               sizeof (TPM_ST)))
-#define TPM_RESPONSE_CODE(buffer) (*(TPM_RC*)(buffer + \
-                                              sizeof (TPM_ST) + \
+                                               sizeof (TPM2_ST)))
+#define TPM_RESPONSE_CODE(buffer) (*(TSS2_RC*)(buffer + \
+                                              sizeof (TPM2_ST) + \
                                               sizeof (UINT32)))
 
 G_DEFINE_TYPE (Tpm2Response, tpm2_response, G_TYPE_OBJECT);
@@ -218,7 +218,7 @@ tpm2_response_new (Connection     *connection,
  */
 Tpm2Response*
 tpm2_response_new_rc (Connection *connection,
-                      TPM_RC       rc)
+                      TSS2_RC       rc)
 {
     guint8 *buffer;
 
@@ -229,7 +229,7 @@ tpm2_response_new_rc (Connection *connection,
                    TPM_RESPONSE_HEADER_SIZE, errno, strerror (errno));
         return NULL;
     }
-    TPM_RESPONSE_TAG (buffer)  = htobe16 (TPM_ST_NO_SESSIONS);
+    TPM_RESPONSE_TAG (buffer)  = htobe16 (TPM2_ST_NO_SESSIONS);
     TPM_RESPONSE_SIZE (buffer) = htobe32 (TPM_RESPONSE_HEADER_SIZE);
     TPM_RESPONSE_CODE (buffer) = htobe32 (rc);
     return tpm2_response_new (connection, buffer, be32toh (TPM_RESPONSE_SIZE (buffer)), (TPMA_CC){ 0 });
@@ -249,7 +249,7 @@ tpm2_response_get_buffer (Tpm2Response *response)
 }
 /**
  */
-TPM_RC
+TSS2_RC
 tpm2_response_get_code (Tpm2Response *response)
 {
     return be32toh (TPM_RESPONSE_CODE (response->buffer));
@@ -263,7 +263,7 @@ tpm2_response_get_size (Tpm2Response *response)
 }
 /**
  */
-TPM_ST
+TPM2_ST
 tpm2_response_get_tag (Tpm2Response *response)
 {
     return be16toh (TPM_RESPONSE_TAG (response->buffer));
@@ -302,7 +302,7 @@ tpm2_response_has_handle (Tpm2Response  *response)
  * Tpm2Response has no handle in the handle area the return value from this
  * function will be indetermanent.
  */
-TPM_HANDLE
+TPM2_HANDLE
 tpm2_response_get_handle (Tpm2Response *response)
 {
     if (response == NULL) {
@@ -318,7 +318,7 @@ tpm2_response_get_handle (Tpm2Response *response)
  */
 void
 tpm2_response_set_handle (Tpm2Response *response,
-                          TPM_HANDLE    handle)
+                          TPM2_HANDLE    handle)
 {
     if (response == NULL) {
         g_error ("%s passed NULL parameter", __func__);
@@ -332,13 +332,13 @@ tpm2_response_set_handle (Tpm2Response *response,
 /*
  * Return the type of the handle from the Tpm2Response object.
  */
-TPM_HT
+TPM2_HT
 tpm2_response_get_handle_type (Tpm2Response *response)
 {
     /*
      * Explicit cast required to keep compiler type checking happy. The
      * shift operation preserves the 8bits we want to return but compiler
-     * must consider the result a TPM_HANDLE (32bits).
+     * must consider the result a TPM2_HANDLE (32bits).
      */
-    return (TPM_HT)(tpm2_response_get_handle (response) >> HR_SHIFT);
+    return (TPM2_HT)(tpm2_response_get_handle (response) >> TPM2_HR_SHIFT);
 }

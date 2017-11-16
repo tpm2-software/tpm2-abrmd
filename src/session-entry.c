@@ -87,7 +87,7 @@ session_entry_set_property (GObject        *object,
         g_error ("Cannot set context property.");
         break;
     case PROP_HANDLE:
-        self->context.savedHandle = (TPM_HANDLE)g_value_get_uint (value);
+        self->context.savedHandle = (TPM2_HANDLE)g_value_get_uint (value);
         break;
     case PROP_STATE:
         self->state = g_value_get_enum (value);
@@ -141,7 +141,7 @@ session_entry_class_init (SessionEntryClass *klass)
                               G_PARAM_READABLE);
     obj_properties [PROP_HANDLE] =
         g_param_spec_uint ("handle",
-                           "TPM_HANDLE",
+                           "TPM2_HANDLE",
                            "Handle from TPM.",
                            0,
                            UINT32_MAX,
@@ -163,7 +163,7 @@ session_entry_class_init (SessionEntryClass *klass)
  */
 SessionEntry*
 session_entry_new (Connection *connection,
-                   TPM_HANDLE  handle)
+                   TPM2_HANDLE  handle)
 {
     g_debug ("session_entry_new with connection: 0x%" PRIxPTR,
              (uintptr_t)connection);
@@ -198,7 +198,7 @@ session_entry_get_connection (SessionEntry *entry)
 /*
  * Accessor for the savedHandle member of the associated context.
  */
-TPM_HANDLE
+TPM2_HANDLE
 session_entry_get_handle (SessionEntry *entry)
 {
     return session_entry_get_context (entry)->savedHandle;

@@ -52,7 +52,7 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
     TPM2B_AUTH  nvAuth;
 
     TPMS_AUTH_COMMAND auth_command = {
-        .sessionHandle = TPM_RS_PW,
+        .sessionHandle = TPM2_RS_PW,
     };
     TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
     TSS2_SYS_CMD_AUTHS cmd_auths = {
@@ -74,7 +74,7 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
     publicInfo.size = sizeof (TPMI_RH_NV_INDEX) + sizeof (TPMI_ALG_HASH) +
         sizeof (TPMA_NV) + sizeof (UINT16) + sizeof (UINT16);
     publicInfo.nvPublic.nvIndex = nvIndex;
-    publicInfo.nvPublic.nameAlg = TPM_ALG_SHA1;
+    publicInfo.nvPublic.nameAlg = TPM2_ALG_SHA1;
 
     // First zero out attributes.
     *(UINT32 *)&( publicInfo.nvPublic.attributes ) = 0;
@@ -87,7 +87,7 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
     publicInfo.nvPublic.dataSize = 32;
 
     rval = Tss2_Sys_NV_DefineSpace (sapi_context,
-                                    TPM_RH_OWNER,
+                                    TPM2_RH_OWNER,
                                     &cmd_auths,
                                     &nvAuth,
                                     &publicInfo,
@@ -112,7 +112,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     char password[] = "test password";
 
     TPMS_AUTH_COMMAND auth_command = {
-        .sessionHandle = TPM_RS_PW,
+        .sessionHandle = TPM2_RS_PW,
     };
     TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
     TSS2_SYS_CMD_AUTHS cmd_auths = {
@@ -177,7 +177,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
      * since password was incorrect.  If wrong
      * response code received, exit.
      */
-    if (rval != (TPM_RC_S + TPM_RC_1 + TPM_RC_AUTH_FAIL)) {
+    if (rval != (TPM2_RC_S + TPM2_RC_1 + TPM2_RC_AUTH_FAIL)) {
 	g_warning("Unexpected error while writing NV with incorrect password. RC = 0x%x", rval);
 	return 1;
     }
@@ -187,7 +187,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 
     // Now undefine the index.
     rval = Tss2_Sys_NV_UndefineSpace (sapi_context,
-                                      TPM_RH_OWNER,
+                                      TPM2_RH_OWNER,
                                       TPM20_INDEX_PASSWORD_TEST,
                                       &cmd_auths,
                                       0);

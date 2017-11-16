@@ -41,13 +41,13 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     TSS2_RC rc = TSS2_RC_SUCCESS;
     TSS2_TCTI_CONTEXT *tcti_context = NULL;
     /*
-     * Command buffer for a call to TPM_CC_PolicyNV. It is however missing
+     * Command buffer for a call to TPM2_CC_PolicyNV. It is however missing
      * the third handle from the handle area.
      */
     uint8_t cmd_buf [] = {
-        0x80, 0x02, /* TPM_ST_SESSIONS */
+        0x80, 0x02, /* TPM2_ST_SESSIONS */
         0x00, 0x00, 0x00, 0x12, /* command buffer size */
-        0x00, 0x00, 0x01, 0x49, /* command code: 0x149 / TPM_CC_PolicyNV */
+        0x00, 0x00, 0x01, 0x49, /* command code: 0x149 / TPM2_CC_PolicyNV */
         0x01, 0x02, 0x03, 0x04, /* first handle */
         0xf0, 0xe0, 0xd0, 0xc0  /* second handle */
     };
