@@ -504,8 +504,7 @@ access_broker_init_tpm (AccessBroker *broker)
     pthread_mutex_init (&broker->sapi_mutex, NULL);
     rc = access_broker_send_tpm_startup (broker);
     if (rc != TSS2_RC_SUCCESS) {
-        g_error ("access_broker_sent_tpm_startup failed: 0x%x", rc);
-        goto out;
+        g_warning ("access_broker_sent_tpm_startup failed: 0x%x", rc);
     }
     rc = access_broker_get_tpm_properties_fixed (broker->sapi_context,
                                                  &broker->properties_fixed);
