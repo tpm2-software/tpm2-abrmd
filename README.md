@@ -73,5 +73,5 @@ This was the subject of a talk that was given @ the Linux Plumbers Conference
 http://linuxplumbersconf.com/2017/ocw//system/presentations/4818/original/TPM2-kernel-evnet-app_tricca-sakkinen.pdf
 
 # Related Specifications
-* [TPM2 Software Stack Access Broker and Resource Manager](https://trustedcomputinggroup.org/wp-content/uploads/TSS_TCTI_v1.0_r04_Public-Review.pdf)
+* [TPM2 Software Stack Access Broker and Resource Manager](https://trustedcomputinggroup.org/wp-content/uploads/TSS-TAB-and-Resource-Manager-ver1.0-rev16_Public_Review.pdf)
 * [TPM2 Software Stack System API and TPM2 Command Transmission Interface](http://www.trustedcomputinggroup.org/wp-content/uploads/TSS-system-API-01.pdf)
