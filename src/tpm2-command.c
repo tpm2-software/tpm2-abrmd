@@ -180,7 +180,7 @@ tpm2_command_get_property (GObject     *object,
     g_debug ("tpm2_command_get_property: 0x%" PRIxPTR, (uintptr_t)self);
     switch (property_id) {
     case PROP_ATTRIBUTES:
-        g_value_set_uint (value, self->attributes.val);
+        g_value_set_uint (value, self->attributes);
         break;
     case PROP_BUFFER:
         g_value_set_pointer (value, self->buffer);
@@ -342,7 +342,7 @@ tpm2_command_get_handle_count (Tpm2Command *command)
         g_warning ("tpm2_command_get_handle_count received NULL parameter");
         return 0;
     }
-    tmp = tpm2_command_get_attributes (command).val;
+    tmp = tpm2_command_get_attributes (command);
     return (guint8)((tmp & TPMA_CC_CHANDLES) >> 25);
 }
 /*

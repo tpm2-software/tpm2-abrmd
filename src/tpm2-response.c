@@ -108,7 +108,7 @@ tpm2_response_get_property (GObject     *object,
     g_debug ("tpm2_response_get_property: 0x%" PRIxPTR, (uintptr_t)self);
     switch (property_id) {
     case PROP_ATTRIBUTES:
-        g_value_set_uint (value, self->attributes.val);
+        g_value_set_uint (value, self->attributes);
         break;
     case PROP_BUFFER:
         g_value_set_pointer (value, self->buffer);
@@ -292,7 +292,7 @@ tpm2_response_has_handle (Tpm2Response  *response)
     if (tpm2_response_get_size (response) < TPM_HEADER_SIZE) {
         return FALSE;
     } else {
-        tmp = tpm2_response_get_attributes (response).val;
+        tmp = tpm2_response_get_attributes (response);
         return tmp & TPMA_CC_RHANDLE ? TRUE : FALSE;
     }
 }

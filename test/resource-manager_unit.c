@@ -156,7 +156,7 @@ resource_manager_setup_two_transient_handles (void **state)
 
     data->vhandles [0] = TPM2_HR_TRANSIENT + 0x1;
     data->vhandles [1] = TPM2_HR_TRANSIENT + 0x2;
-    data->command_attrs.val = (2 << 25) + TPM2_CC_StartAuthSession; /* 2 handles + TPM2_StartAuthSession */
+    data->command_attrs = (2 << 25) + TPM2_CC_StartAuthSession; /* 2 handles + TPM2_StartAuthSession */
 
     /* create Tpm2Command that we'll be transforming */
     buffer_size = TPM_HEADER_SIZE + 2 * sizeof (TPM2_HANDLE);

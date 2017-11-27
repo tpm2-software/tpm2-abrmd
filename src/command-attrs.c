@@ -126,7 +126,7 @@ command_attrs_init_tpm (CommandAttrs *attrs,
 }
 
 /* TPM2_CC is in the lower 15 bits of the TPMA_CC */
-#define TPM2_CC_FROM_TPMA_CC(attrs) (attrs.val & 0x7fff)
+#define TPM2_CC_FROM_TPMA_CC(attrs) (attrs & 0x7fff)
 TPMA_CC
 command_attrs_from_cc (CommandAttrs *attrs,
                        TPM2_CC        command_code)

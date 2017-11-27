@@ -95,9 +95,7 @@ static int
 tpm2_response_setup_with_handle (void **state)
 {
     test_data_t *data;
-    TPMA_CC attributes = {
-        .val = 1 << 28,
-    };
+    TPMA_CC attributes = 1 << 28;
 
     tpm2_response_setup_base (state);
     data = (test_data_t*)*state;

@@ -128,7 +128,7 @@ create_primary (TSS2_SYS_CONTEXT *sapi_context,
     /* TPMI_ALG_HASH / nameAlg */
     in_public.publicArea.nameAlg = TPM2_ALG_SHA256;
     /* TPMA_OBJECT / objectAttributes */
-    in_public.publicArea.objectAttributes.val = \
+    in_public.publicArea.objectAttributes = \
         TPMA_OBJECT_FIXEDTPM            | TPMA_OBJECT_FIXEDPARENT  | \
         TPMA_OBJECT_SENSITIVEDATAORIGIN | TPMA_OBJECT_USERWITHAUTH | \
         TPMA_OBJECT_RESTRICTED          | TPMA_OBJECT_DECRYPT;
@@ -196,7 +196,7 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
     in_sensitive.size = in_sensitive.sensitive.userAuth.size + 2;
     in_public.publicArea.type = TPM2_ALG_RSA;
     in_public.publicArea.nameAlg = TPM2_ALG_SHA256;
-    in_public.publicArea.objectAttributes.val = \
+    in_public.publicArea.objectAttributes = \
         TPMA_OBJECT_FIXEDTPM            | TPMA_OBJECT_FIXEDPARENT  | \
         TPMA_OBJECT_SENSITIVEDATAORIGIN | TPMA_OBJECT_USERWITHAUTH | \
         TPMA_OBJECT_DECRYPT             | TPMA_OBJECT_SIGN;
