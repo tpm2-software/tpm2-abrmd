@@ -116,9 +116,7 @@ static int
 tpm2_command_setup (void **state)
 {
     test_data_t *data   = NULL;
-    TPMA_CC  attributes = {
-        .val = 0x0,
-    };
+    TPMA_CC  attributes = 0x0;
 
     tpm2_command_setup_base (state);
     data = (test_data_t*)*state;
@@ -133,9 +131,7 @@ static int
 tpm2_command_setup_two_handles (void **state)
 {
     test_data_t *data = NULL;
-    TPMA_CC  attributes = {
-       .val = 2 << 25,
-    };
+    TPMA_CC  attributes = 2 << 25;
 
     tpm2_command_setup_base (state);
     data = (test_data_t*)*state;
@@ -205,9 +201,7 @@ tpm2_command_setup_with_auths (void **state)
     gint         client_fd;
     GIOStream   *iostream;
     HandleMap   *handle_map;
-    TPMA_CC attributes = {
-        .val = 2 << 25,
-    };
+    TPMA_CC attributes = 2 << 25;
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold the cmd_with_auths buffer */
@@ -234,9 +228,7 @@ tpm2_command_setup_flush_context_no_handle (void **state)
     gint         client_fd;
     GIOStream   *iostream;
     HandleMap   *handle_map;
-    TPMA_CC attributes = {
-        .val = 2 << 25,
-    };
+    TPMA_CC attributes = 2 << 25;
 
     data = calloc (1, sizeof (test_data_t));
     /* allocate a buffer large enough to hold the cmd_with_auths buffer */

@@ -65,16 +65,9 @@ command_attrs_init_tpm_setup (void **state)
 {
     test_data_t *data;
     gint         ret;
-    TPMA_CC      hierarchy_attrs  = { .val = TPM2_CC_HierarchyControl + 0xff0000 };
-    TPMA_CC      change_pps_attrs = { .val = TPM2_CC_ChangePPS + 0xff0000 };
-    TPMA_CC      command_attributes [2] = {
-        {
-            .val = hierarchy_attrs.val,
-        },
-        {
-            .val = change_pps_attrs.val,
-        },
-    };
+    TPMA_CC      hierarchy_attrs  = TPM2_CC_HierarchyControl + 0xff0000;
+    TPMA_CC      change_pps_attrs = TPM2_CC_ChangePPS + 0xff0000;
+    TPMA_CC      command_attributes [2] = { hierarchy_attrs, change_pps_attrs };
 
     command_attrs_setup (state);
     data = *state;
@@ -157,14 +150,7 @@ command_attrs_init_tpm_success_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
-    TPMA_CC      command_attributes [2] = {
-        {
-            .val = 0xdeadbeef,
-        },
-        {
-            .val = 0xfeebdaed,
-        },
-    };
+    TPMA_CC      command_attributes [2] = { 0xdeadbeef, 0xfeebdaed };
 
     will_return (__wrap_access_broker_lock_sapi, 1);
     will_return (__wrap_access_broker_get_max_command, 2);
@@ -237,14 +223,7 @@ command_attrs_init_tpm_fail_get_capability_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
-    TPMA_CC      command_attributes [2] = {
-        {
-            .val = 0xdeadbeef,
-        },
-        {
-            .val = 0xfeebdaed,
-        },
-    };
+    TPMA_CC      command_attributes [2] = { 0xdeadbeef, 0xfeebdaed };
 
     will_return (__wrap_access_broker_lock_sapi, 1);
     will_return (__wrap_access_broker_get_max_command, 2);
@@ -272,7 +251,7 @@ command_attrs_from_cc_success_test (void **state)
      */
     ret_attrs = command_attrs_from_cc (data->command_attrs,
                                        TPM2_CC_HierarchyControl);
-    assert_int_equal (ret_attrs.val & 0x7fff, TPM2_CC_HierarchyControl);
+    assert_int_equal (ret_attrs & 0x7fff, TPM2_CC_HierarchyControl);
 }
 /*
  * Test a failed call to the command_attrs_from_cc function. This relies
@@ -292,7 +271,7 @@ command_attrs_from_cc_fail_test (void **state)
      */
     ret_attrs = command_attrs_from_cc (data->command_attrs,
                                        TPM2_CC_EvictControl);
-    assert_int_equal (ret_attrs.val, 0);
+    assert_int_equal (ret_attrs, 0);
 }
 gint
 main (gint    argc,

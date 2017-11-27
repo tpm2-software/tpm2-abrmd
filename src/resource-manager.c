@@ -221,7 +221,7 @@ resource_manager_load_auth_callback (gpointer auth_offset_ptr,
     handle = tpm2_command_get_auth_handle (data->command, auth_offset);
     session_attrs = tpm2_command_get_auth_attrs (data->command,
                                                  auth_offset);
-    will_flush = session_attrs.val & TPMA_SESSION_CONTINUESESSION ? FALSE : TRUE;
+    will_flush = session_attrs & TPMA_SESSION_CONTINUESESSION ? FALSE : TRUE;
     switch (handle >> TPM2_HR_SHIFT) {
     case TPM2_HT_HMAC_SESSION:
     case TPM2_HT_POLICY_SESSION:
@@ -612,7 +612,7 @@ post_process_entry_list (ResourceManager  *resmgr,
                          TPMA_CC           command_attrs)
 {
     /* if flushed bit is clear we need to flush & save contexts */
-    if (!command_attrs.flushed) {
+    if (!(command_attrs & TPMA_CC_FLUSHED)) {
         g_debug ("flushsave_context for %" PRIu32 " entries",
                  g_slist_length (*entry_slist));
         g_slist_foreach (*entry_slist,

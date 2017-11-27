@@ -327,14 +327,14 @@ create_socket_pair (int *fd_a,
 void
 g_debug_tpma_cc (TPMA_CC tpma_cc)
 {
-    g_debug ("TPMA_CC: 0x%08" PRIx32, tpma_cc.val);
-    g_debug ("  commandIndex: 0x%" PRIx16, tpma_cc.val & TPMA_CC_COMMANDINDEX);
-    g_debug ("  reserved1:    0x%" PRIx8, (tpma_cc.val & TPMA_CC_RESERVED1) >> 16);
-    g_debug ("  nv:           %s", prop_str (tpma_cc.val & TPMA_CC_NV));
-    g_debug ("  extensive:    %s", prop_str (tpma_cc.val & TPMA_CC_EXTENSIVE));
-    g_debug ("  flushed:      %s", prop_str (tpma_cc.val & TPMA_CC_FLUSHED));
-    g_debug ("  cHandles:     0x%" PRIx8, (tpma_cc.val & TPMA_CC_CHANDLES) >> 25);
-    g_debug ("  rHandle:      %s", prop_str (tpma_cc.val & TPMA_CC_RHANDLE));
-    g_debug ("  V:            %s", prop_str (tpma_cc.val & TPMA_CC_V));
-    g_debug ("  Res:          0x%" PRIx8, (tpma_cc.val & TPMA_CC_RES) >> 30);
+    g_debug ("TPMA_CC: 0x%08" PRIx32, tpma_cc);
+    g_debug ("  commandIndex: 0x%" PRIx16, tpma_cc & TPMA_CC_COMMANDINDEX);
+    g_debug ("  reserved1:    0x%" PRIx8, (tpma_cc & TPMA_CC_RESERVED1) >> 16);
+    g_debug ("  nv:           %s", prop_str (tpma_cc & TPMA_CC_NV));
+    g_debug ("  extensive:    %s", prop_str (tpma_cc & TPMA_CC_EXTENSIVE));
+    g_debug ("  flushed:      %s", prop_str (tpma_cc & TPMA_CC_FLUSHED));
+    g_debug ("  cHandles:     0x%" PRIx8, (tpma_cc & TPMA_CC_CHANDLES) >> 25);
+    g_debug ("  rHandle:      %s", prop_str (tpma_cc & TPMA_CC_RHANDLE));
+    g_debug ("  V:            %s", prop_str (tpma_cc & TPMA_CC_V));
+    g_debug ("  Res:          0x%" PRIx8, (tpma_cc & TPMA_CC_RES) >> 30);
 }
