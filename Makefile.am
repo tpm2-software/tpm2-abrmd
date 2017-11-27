@@ -104,6 +104,10 @@ if WITH_UDEVRULESPREFIX
 	mv $(DESTDIR)$(udevrulesdir)/tpm-udev.rules $(DESTDIR)$(udevrulesdir)/$(udevrulesprefix)tpm-udev.rules
 endif
 
+uninstall-local:
+	-rm $(DESTDIR)$(mandir)/man3/tss2_tcti_tabrmd_init_full.3
+	-rm $(DESTDIR)$(udevrulesdir)/$(udevrulesprefix)tpm-udev.rules
+
 libtcti_tabrmddir      = $(includedir)/tcti
 libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
 
