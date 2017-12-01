@@ -261,48 +261,48 @@ src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
 
 man/man3/%.3 : man/%.3.in
-	$(call man_tcti_prefix,$@,$^)
+	$(AM_V_GEN)$(call man_tcti_prefix,$@,$^)
 
 man/man7/%.7 : man/%.7.in
-	$(call man_tcti_prefix,$@,$^)
+	$(AM_V_GEN)$(call man_tcti_prefix,$@,$^)
 
 man/man8/%.8 : man/%.8.in
-	$(call man_tcti_prefix,$@,$^)
+	$(AM_V_GEN)$(call man_tcti_prefix,$@,$^)
 
 # this function is used to generate man pages from templates found in
 # $(srcdir)/man/*.in
 define man_tcti_prefix
 	$(call make_parent_dir,$@)
-	-rm -f $@
+	-$(AM_V_at)rm -f $@
 if TCTI_DEVICE
-	echo ".nr HAVE_DEVICE_TCTI 1" >> $1
+	$(AM_V_at)echo ".nr HAVE_DEVICE_TCTI 1" >> $1
 else
-	echo ".nr HAVE_DEVICE_TCTI 0" >> $1
+	$(AM_V_at)echo ".nr HAVE_DEVICE_TCTI 0" >> $1
 endif
 if TCTI_SOCKET
-	echo ".nr HAVE_SOCKET_TCTI 1" >> $1
+	$(AM_V_at)echo ".nr HAVE_SOCKET_TCTI 1" >> $1
 else
-	echo ".nr HAVE_SOCKET_TCTI 0" >> $1
+	$(AM_V_at)echo ".nr HAVE_SOCKET_TCTI 0" >> $1
 endif
-	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g;" $2 $(srcdir)/man/colophon.in >> $1
+	$(AM_V_GEN)sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g;" $2 $(srcdir)/man/colophon.in >> $1
 endef # man_tcti_prefix
 
 %-generated.c %-generated.h : src/tabrmd.xml
-	$(call make_parent_dir,$@)
+	$(AM_V_GEN)$(call make_parent_dir,$@) && \
 	$(GDBUS_CODEGEN) --interface-prefix=com.intel.tss2. \
 	    --generate-c-code=src/tabrmd-generated $^
 
 %.preset : %.preset.in
-	$(call make_parent_dir,$@)
+	$(AM_V_GEN)$(call make_parent_dir,$@) && \
 	sed -e "s,[@]SYSTEMD_PRESET_DEFAULT[@],$(SYSTEMD_PRESET_DEFAULT),g;" $^ > $@
 
 %.service : %.service.in
-	$(call make_parent_dir,$@)
+	$(AM_V_GEN)$(call make_parent_dir,$@) && \
 	sed -e "s,[@]SBINDIR[@],$(sbindir),g; \
 	        s,[@]sysconfdir[@],$(sysconfdir),g;" $^ > $@
 
 %.pc : %.pc.in
-	$(call make_parent_dir,$@)
+	$(AM_V_GEN)$(call make_parent_dir,$@) && \
 	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g; \
                 s,[@]includedir[@],$(includedir),g;" $^ > $@
 
