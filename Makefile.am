@@ -273,7 +273,7 @@ man/man8/%.8 : man/%.8.in
 # $(srcdir)/man/*.in
 define man_tcti_prefix
 	$(call make_parent_dir,$@)
-	-rm $@
+	-rm -f $@
 if TCTI_DEVICE
 	echo ".nr HAVE_DEVICE_TCTI 1" >> $1
 else
