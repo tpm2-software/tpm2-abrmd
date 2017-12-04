@@ -113,11 +113,11 @@ create_primary (TSS2_SYS_CONTEXT *sapi_context,
     TPMT_TK_CREATION       creation_ticket = { 0 };
     TPM2B_NAME             name            = TPM2B_NAME_STATIC_INIT;
     /* command auth stuff */
-    TPMS_AUTH_COMMAND auth_command = { .sessionHandle = TPM2_RS_PW, };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
 
     /* prepare in_sensitive */
@@ -185,11 +185,11 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
     TPM2B_CREATION_DATA	    creation_data    = { 0 };
     TPM2B_DIGEST	    creation_hash    = TPM2B_DIGEST_STATIC_INIT;
     TPMT_TK_CREATION	    creation_ticket  = { 0 };
-    TPMS_AUTH_COMMAND auth_command           = { .sessionHandle = TPM2_RS_PW, };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
 
     g_debug ("create_key with parent_handle: 0x%" PRIx32, parent_handle);
@@ -249,11 +249,11 @@ load_key (TSS2_SYS_CONTEXT *sapi_context,
 {
     TSS2_RC            rc;
     TPM2B_NAME         name                  = TPM2B_NAME_STATIC_INIT;
-    TPMS_AUTH_COMMAND  auth_command          = { .sessionHandle = TPM2_RS_PW, };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths             = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
 
     g_print ("Tss2_Sys_Load with parent handle: 0x%" PRIx32 "\n  in_private: "
@@ -283,11 +283,11 @@ undefine_nv_index (TSS2_SYS_CONTEXT *sapi_context,
                    TPM2_HANDLE        index)
 {
     TSS2_RC rc;
-    TPMS_AUTH_COMMAND  auth_command          = { .sessionHandle = TPM2_RS_PW, };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths             = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
 
     g_debug ("undefine_nv_index: sapi_context: 0x%" PRIxPTR " index: 0x%"
@@ -355,11 +355,11 @@ evict_persistent_objs (TSS2_SYS_CONTEXT *sapi_context,
                        TPM2_HANDLE        handle)
 {
     TSS2_RC rc;
-    TPMS_AUTH_COMMAND  auth_command          = { .sessionHandle = TPM2_RS_PW, };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths             = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
 
     g_debug ("evict_persistent_objs: sapi_context: 0x%" PRIxPTR

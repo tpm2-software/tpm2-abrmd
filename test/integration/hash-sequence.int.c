@@ -123,33 +123,24 @@ int
 test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
     int i;
-
     TSS2_RC rval;
+    TPMI_DH_OBJECT  sequenceHandle[MAX_TEST_SEQUENCES];
+    TPM2B_MAX_BUFFER dataToHash;
+    TPM2B_DIGEST result;
+    TPMT_TK_HASHCHECK validation;
     TPM2B_AUTH auth = {
         .size = 2,
         .buffer = { 0x00, 0xff },
     };
 
-    TPMI_DH_OBJECT  sequenceHandle[MAX_TEST_SEQUENCES];
-    TPM2B_MAX_BUFFER dataToHash;
-    TPM2B_DIGEST result;
-    TPMT_TK_HASHCHECK validation;
-
-    TPMS_AUTH_COMMAND auth_command = {
-        .sessionHandle = TPM2_RS_PW,
-        .hmac = auth,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+            .hmac = auth,
+        }}
     };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
-    };
-    TPMS_AUTH_RESPONSE  auth_response = { 0 };
-    TPMS_AUTH_RESPONSE *auth_response_array[1] = { &auth_response };
-    TSS2_SYS_RSP_AUTHS  rsp_auths = {
-        .rspAuths      = auth_response_array,
-        .rspAuthsCount = 1
-    };
+    TSS2L_SYS_AUTH_RESPONSE rsp_auths;
 
     rval = Tss2_Sys_HashSequenceStart (sapi_context,
                                        0,
