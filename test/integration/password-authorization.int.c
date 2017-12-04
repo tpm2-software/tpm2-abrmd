@@ -50,21 +50,13 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
     int i;
     TPM2B_NV_PUBLIC publicInfo;
     TPM2B_AUTH  nvAuth;
-
-    TPMS_AUTH_COMMAND auth_command = {
-        .sessionHandle = TPM2_RS_PW,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
-    };
-    TPMS_AUTH_RESPONSE  auth_response = { 0 };
-    TPMS_AUTH_RESPONSE *auth_response_array[1] = { &auth_response };
-    TSS2_SYS_RSP_AUTHS  rsp_auths = {
-        .rspAuths      = auth_response_array,
-        .rspAuthsCount = 1
-    };
+    TSS2L_SYS_AUTH_RESPONSE rsp_auths;
 
     nvAuth.size = strlen (password);
     for (i = 0; i < nvAuth.size; i++) {
@@ -106,25 +98,18 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 
     TSS2_RC rval;
     int i, ret;
-
     TPM2B_MAX_NV_BUFFER nvWriteData;
+#define PASSWORD "test password"
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+            .hmac.buffer = {PASSWORD},
+            .hmac.size = strlen(PASSWORD),
+        }}
+    };
 
-    char password[] = "test password";
-
-    TPMS_AUTH_COMMAND auth_command = {
-        .sessionHandle = TPM2_RS_PW,
-    };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
-    };
-    TPMS_AUTH_RESPONSE  auth_response = { 0 };
-    TPMS_AUTH_RESPONSE *auth_response_array[1] = { &auth_response };
-    TSS2_SYS_RSP_AUTHS  rsp_auths = {
-        .rspAuths      = auth_response_array,
-        .rspAuthsCount = 1
-    };
+    TSS2L_SYS_AUTH_RESPONSE rsp_auths;
 
     /*
      * Create an NV index that will use password
@@ -133,15 +118,11 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
      */
     ret = CreatePasswordTestNV (sapi_context,
                                 TPM20_INDEX_PASSWORD_TEST,
-                                password);
+                                PASSWORD);
     if (ret != 1) {
 	// Error message already printed in CreatePasswordTestNV()
         return 1;
     }
-
-    // Init password (HMAC field in authorization structure).
-    auth_command.hmac.size = strlen (password);
-    memcpy (auth_command.hmac.buffer, password, strlen (password));
 
     // Initialize write data.
     nvWriteData.size = 4;
@@ -164,7 +145,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     // Alter the password so it's incorrect.
-    auth_command.hmac.buffer[4] = 0xff;
+    cmd_auths.auths[0].hmac.buffer[4] = 0xff;
     rval = Tss2_Sys_NV_Write (sapi_context,
                               TPM20_INDEX_PASSWORD_TEST,
                               TPM20_INDEX_PASSWORD_TEST,
@@ -183,7 +164,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     // Change hmac to null one, since null auth is used to undefine the index.
-    auth_command.hmac.size = 0;
+    cmd_auths.auths[0].hmac.size = 0;
 
     // Now undefine the index.
     rval = Tss2_Sys_NV_UndefineSpace (sapi_context,

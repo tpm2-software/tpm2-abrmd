@@ -68,13 +68,13 @@ __wrap_Tss2_Sys_Startup (TSS2_SYS_CONTEXT *sapi_context,
  */
 TSS2_RC
 __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
-                               TSS2_SYS_CMD_AUTHS const *cmdAuthsArray,
+                               TSS2L_SYS_AUTH_COMMAND const *cmdAuthsArray,
                                TPM2_CAP                  capability,
                                UINT32                    property,
                                UINT32                    propertyCount,
                                TPMI_YES_NO              *moreData,
                                TPMS_CAPABILITY_DATA     *capabilityData,
-                               TSS2_SYS_RSP_AUTHS       *rspAuthsArray)
+                               TSS2L_SYS_AUTH_RESPONSE  *rspAuthsArray)
 
 {
     TSS2_RC rc;
