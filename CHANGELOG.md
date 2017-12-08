@@ -3,7 +3,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-## Unreleased
+## 1.2.0 - 2017-12-08
 ### Added
 - Check SAPI library is < 2.0.0 (API change upstream).
 - Abstract class for IPC frontend implementation. Port dbus code from main
