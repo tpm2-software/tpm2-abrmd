@@ -126,6 +126,7 @@ EXTRA_DIST = \
     dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
     scripts/int-log-compiler.sh \
+    AUTHORS \
     CHANGELOG.md \
     CONTRIBUTING.md \
     INSTALL.md \
@@ -259,6 +260,10 @@ src_libtcti_echo_la_SOURCES = \
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(libutil) $(libtcti_echo)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
+
+AUTHORS :
+	git log --format='%aN <%aE>' | grep -v 'users.noreply.github.com' | sort | \
+	    uniq -c | sort -nr | sed 's/^\s*//' | cut -d" " -f2- > $@
 
 man/man3/%.3 : man/%.3.in
 	$(call man_tcti_prefix,$@,$^)
