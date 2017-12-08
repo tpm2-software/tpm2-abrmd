@@ -9,6 +9,7 @@ tmp/
 *.pp
 *.swp
 *.trs
+AUTHORS
 Makefile
 Makefile.in
 aclocal.m4
