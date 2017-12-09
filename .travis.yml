@@ -14,6 +14,7 @@ addons:
       - dbus
       - dbus-x11
       - cmake
+      - lcov
       - libglib2.0-dev
       - libdbus-1-dev
       - realpath
@@ -36,6 +37,7 @@ env:
     - coverity_scan_run_condition='"$CC" = gcc'
     - PREFIX=/usr
     - DESTDIR="${TRAVIS_BUILD_DIR}/destdir"
+    - ACLOCAL_PATH="${DESTDIR}${PREFIX}/share/aclocal:${ACLOCAL_PATH}"
     - PKG_CONFIG_PATH="${DESTDIR}${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
     - LD_LIBRARY_PATH="${DESTDIR}${PREFIX}/lib:${LD_LIBRARY_PATH}"
     - CFLAGS="-I${DESTDIR}${PREFIX}/include"
@@ -43,6 +45,12 @@ env:
 
 install:
   - mkdir ${DESTDIR}
+  - wget http://ftpmirror.gnu.org/autoconf-archive/autoconf-archive-2017.09.28.tar.xz
+  - sha256sum autoconf-archive-2017.09.28.tar.xz | grep -q 5c9fb5845b38b28982a3ef12836f76b35f46799ef4a2e46b48e2bd3c6182fa01
+  - tar xJf autoconf-archive-2017.09.28.tar.xz
+  - pushd autoconf-archive-2017.09.28
+  - ./configure --prefix=${PREFIX} && make && make install
+  - popd
   - wget https://cmocka.org/files/1.1/cmocka-1.1.1.tar.xz
   - tar -Jxvf cmocka-1.1.1.tar.xz
   - mkdir cmocka-1.1.1/build && pushd cmocka-1.1.1/build
@@ -66,11 +74,19 @@ before_script:
 
 script :
   - echo 'Configuring source code...' && echo -en 'travis_fold:start:tabrmd-configure\\r'
-  - ./configure --enable-unit --enable-valgrind --with-simulatorbin=$(pwd)/ibmtpm/src/tpm_server
+  - |
+    CONFIGURE_OPTIONS="--enable-unit --enable-valgrind --with-simulatorbin=$(pwd)/ibmtpm/src/tpm_server"
+    if [ "$CC" = "gcc" ]; then
+        CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-code-coverage"
+    fi
+    ./configure ${CONFIGURE_OPTIONS}
   - echo -en 'travis_fold:end:tabrmd-configure\\r'
   - echo "Running make 'distcheck' target..." && echo -en 'travis_fold:start:tabrmd-distcheck\\r'
   - dbus-launch make -j$(nproc) distcheck
   - echo -en 'travis_fold:end:tabrmd-distcheck\\r'
+  - echo "Running make 'check-code-coverage' target..." && echo -en 'travis_fold:start:tabrmd-check-code-coverage\\r'
+  - dbus-launch make -j$(nproc) check-code-coverage
+  - echo -en 'travis_fold:end:tabrmd-check-code-coverage\\r'
   - echo "Running make 'check-valgrind' target..." && echo -en 'travis_fold:start:tabrmd-check-valgrind\\r'
   - dbus-launch make -j$(nproc) check-valgrind
   - echo -en 'travis_fold:end:tabrmd-check-valgrind\\r'
