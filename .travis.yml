@@ -14,6 +14,7 @@ addons:
       - dbus
       - dbus-x11
       - cmake
+      - lcov
       - libglib2.0-dev
       - libdbus-1-dev
       - realpath
@@ -35,6 +36,7 @@ env:
     # run coverity scan on gcc build to keep from DOSing coverity
     - coverity_scan_run_condition='"$CC" = gcc'
     - PREFIX=/usr
+    - DEPS="${TRAVIS_BUILD_DIR}/deps"
     - DESTDIR="${TRAVIS_BUILD_DIR}/destdir"
     - ACLOCAL_PATH="${DESTDIR}${PREFIX}/share/aclocal:${ACLOCAL_PATH}"
     - PKG_CONFIG_PATH="${DESTDIR}${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
@@ -43,41 +45,55 @@ env:
     - CMOCKA_LIBS="-L${DESTDIR}${PREFIX}/lib -lcmocka"
 
 install:
-  - mkdir ${DESTDIR}
+  - pip install --user cpp-coveralls
+  - mkdir ${DESTDIR} ${DEPS} && pushd ${DEPS}
   - wget http://ftpmirror.gnu.org/autoconf-archive/autoconf-archive-2017.09.28.tar.xz
   - sha256sum autoconf-archive-2017.09.28.tar.xz | grep -q 5c9fb5845b38b28982a3ef12836f76b35f46799ef4a2e46b48e2bd3c6182fa01
-  - tar xJf autoconf-archive-2017.09.28.tar.xz
-  - pushd autoconf-archive-2017.09.28
+  - tar xJf autoconf-archive-2017.09.28.tar.xz && pushd autoconf-archive-2017.09.28
   - ./configure --prefix=${PREFIX} && make && make install
-  - popd
+  - popd # autoconf-archive
   - wget https://cmocka.org/files/1.1/cmocka-1.1.1.tar.xz
   - tar -Jxvf cmocka-1.1.1.tar.xz
   - mkdir cmocka-1.1.1/build && pushd cmocka-1.1.1/build
   - cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release
   - make -j$(nproc) install
-  - popd
+  - popd # cmocka
   - git clone -b 1.x --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
   - ./bootstrap
   - ./configure --prefix=${PREFIX}
   - make -j$(nproc) install
-  - popd
+  - popd # tpm2-tss
   - wget https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm974.tar.gz
   - sha256sum ibmtpm974.tar.gz | grep -q ^8e45d86129a0adb95fee4cee51f4b1e5b2d81ed3e55af875df53f98f39eb7ad7
   - mkdir ibmtpm
   - tar axf ibmtpm974.tar.gz -C ibmtpm
   - make -C ibmtpm/src -j$(nproc)
+  - popd # ${DEPS}
 
 before_script:
   - ./bootstrap
 
 script :
   - echo 'Configuring source code...' && echo -en 'travis_fold:start:tabrmd-configure\\r'
-  - ./configure --enable-unit --enable-valgrind --with-simulatorbin=$(pwd)/ibmtpm/src/tpm_server
+  - |
+    CONFIGURE_OPTIONS="--enable-unit --enable-valgrind --with-simulatorbin=${DEPS}/ibmtpm/src/tpm_server"
+    if [ "$CC" = "gcc" ]; then
+        CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-code-coverage"
+    fi
+    ./configure ${CONFIGURE_OPTIONS}
   - echo -en 'travis_fold:end:tabrmd-configure\\r'
   - echo "Running make 'distcheck' target..." && echo -en 'travis_fold:start:tabrmd-distcheck\\r'
   - dbus-launch make -j$(nproc) distcheck
   - echo -en 'travis_fold:end:tabrmd-distcheck\\r'
+  - echo "Running make 'check-code-coverage' target..." && echo -en 'travis_fold:start:tabrmd-check-code-coverage\\r'
+  - dbus-launch make -j$(nproc) check-code-coverage
+  - |
+    if [ \( "$CC" = "gcc" \) -a \( ! -z "$COVERALLS_REPO_TOKEN" \) ]; then
+        echo "Uploading test coverage metrics to coveralls."
+        coveralls --build-root=./ --exclude=${DEPS} --exclude=${DESTDIR} --exclude=./test --gcov-options '\-lp'
+    fi
+  - echo -en 'travis_fold:end:tabrmd-check-code-coverage\\r'
   - echo "Running make 'check-valgrind' target..." && echo -en 'travis_fold:start:tabrmd-check-valgrind\\r'
   - dbus-launch make -j$(nproc) check-valgrind
   - echo -en 'travis_fold:end:tabrmd-check-valgrind\\r'
