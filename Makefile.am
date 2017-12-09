@@ -10,8 +10,9 @@ unit-count: check
 AM_CFLAGS = $(EXTRA_CFLAGS) \
     -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
     $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
-    $(SAPI_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS)
-AM_LDFLAGS = $(EXTRA_LDFLAGS)
+    $(SAPI_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS) \
+    $(CODE_COVERAGE_CFLAGS)
+AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
 UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 
 if UNIT
@@ -156,6 +157,7 @@ systemdsystemunit_DATA = dist/tpm2-abrmd.service
 endif # HAVE_SYSTEMD
 systemdpreset_DATA = dist/tpm2-abrmd.preset
 
+@CODE_COVERAGE_RULES@
 @VALGRIND_CHECK_RULES@
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
 VALGRIND_memcheck_FLAGS = --leak-check=full --show-leak-kinds=definite,indirect --track-origins=yes --error-exitcode=1 --suppressions=dist/tabrmd.sup
