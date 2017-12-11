@@ -196,20 +196,46 @@ fi
 SIM_LOG_FILE=${TEST_BIN}_simulator.log
 SIM_PID_FILE=${TEST_BIN}_simulator.pid
 SIM_TMP_DIR=$(mktemp --directory --tmpdir=/tmp tpm_server_XXXXXX)
-for i in $(seq 5); do
-    SIM_PORT=$(od -A n -N 2 -t u2 /dev/urandom | awk -v min=1024 -v max=65535 '{print ($1 % (max - min)) + min}')
-    simulator_start ${SIM_BIN} ${SIM_PORT} ${SIM_LOG_FILE} ${SIM_PID_FILE} ${SIM_TMP_DIR}
-    if [ $? -eq 0 ]; then
-        break;
-    else
-        echo "Failed to start simulator on port ${SIM_PORT}, retrying"
+PORT_MIN=1024
+PORT_MAX=65534
+BACKOFF_FACTOR=2
+BACKOFF=1
+for i in $(seq 10); do
+    SIM_PORT_DATA=$(od -A n -N 2 -t u2 /dev/urandom | awk -v min=${PORT_MIN} -v max=${PORT_MAX} '{print ($1 % (max - min)) + min}')
+    SIM_PORT_CMD=$((${SIM_PORT_DATA}+1))
+    echo "Starting simulator on port ${SIM_PORT_DATA}"
+    simulator_start ${SIM_BIN} ${SIM_PORT_DATA} ${SIM_LOG_FILE} ${SIM_PID_FILE} ${SIM_TMP_DIR}
+    sleep 1 # give daemon time to bind to ports
+    PID=$(cat ${SIM_PID_FILE})
+    echo "simulator PID: ${PID}";
+    netstat -ltpn 2> /dev/null | grep "${PID}" | grep -q "${SIM_PORT_DATA}"
+    ret_data=$?
+    netstat -ltpn 2> /dev/null | grep "${PID}" | grep -q "${SIM_PORT_CMD}"
+    ret_cmd=$?
+    if [ \( $ret_data -eq 0 \) -a \( $ret_cmd -eq 0 \) ]; then
+        echo "Simulator with PID ${PID} bound to port ${SIM_PORT_DATA} and " \
+             "${SIM_PORT_CMD} successfully.";
+        break
+    fi
+    echo "Port conflict? Cleaning up PID: ${PID}"
+    kill "${PID}"
+    BACKOFF=$((${BACKOFF}*${BACKOFF_FACTOR}))
+    echo "Failed to start simulator: port ${SIM_PORT_DATA} or " \
+         "${SIM_PORT_CMD} probably in use. Retrying in ${BACKOFF}."
+    sleep ${BACKOFF}
+    if [ $i -eq 10 ]; then
+        echo "Failed to start simulator after $i tries. Giving up.";
+        exit 1
     fi
 done
 # start an instance of the tpm2-abrmd daemon for the test, use port from above
 TABRMD_LOG_FILE=${TEST_BIN}_tabrmd.log
 TABRMD_PID_FILE=${TEST_BIN}_tabrmd.pid
-TABRMD_NAME=com.intel.tss2.Tabrmd${SIM_PORT}
-tabrmd_start ${TABRMD_BIN} ${SIM_PORT} ${TABRMD_NAME} ${TABRMD_LOG_FILE} ${TABRMD_PID_FILE}
+TABRMD_NAME=com.intel.tss2.Tabrmd${SIM_PORT_DATA}
+tabrmd_start ${TABRMD_BIN} ${SIM_PORT_DATA} ${TABRMD_NAME} ${TABRMD_LOG_FILE} ${TABRMD_PID_FILE}
+if [ $? -ne 0 ]; then
+    echo "failed to start tabrmd with name ${TABRMD_NAME}"
+fi
 
 # execute the test script and capture exit code
 env G_MESSAGES_DEBUG=all TABRMD_TEST_BUS_TYPE=session TABRMD_TEST_BUS_NAME="${TABRMD_NAME}" TABRMD_TEST_TCTI_RETRIES=10 $@
