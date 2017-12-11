@@ -294,7 +294,6 @@ main (gint    argc,
         cmocka_unit_test_setup_teardown (random_get_uint32_range_success_test,
                                          random_get_bytes_setup,
                                          random_teardown),
-        NULL,
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
 }
