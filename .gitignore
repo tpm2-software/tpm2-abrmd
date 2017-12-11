@@ -2,6 +2,8 @@
 .dirstamp
 .libs/
 tmp/
+*.gcda
+*.gcno
 *.la
 *.lo
 *.log
@@ -45,4 +47,6 @@ test/integration/*
 !test/integration/*.h
 dist/*.preset
 dist/*.service
+tpm2-abrmd--coverage.info
+tpm2-abrmd--coverage/*
 VERSION
