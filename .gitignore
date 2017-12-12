@@ -4,6 +4,7 @@
 tmp/
 *.gcda
 *.gcno
+*.gcov
 *.la
 *.lo
 *.log
