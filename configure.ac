@@ -135,9 +135,22 @@ AC_ARG_WITH([simulatorbin],
                    [AC_MSG_RESULT([no])
                     AC_MSG_ERROR([Simulator binary provided does not exist or not executable. Check path: $with_simulatorbin])])],
             [AC_MSG_RESULT([no])
-             AC_MSG_WARN([No simulator binary provided. Integration tests disabled.])
              with_simulatorbin_set=no])
 AM_CONDITIONAL([SIMULATOR_BIN],[test "x$with_simulatorbin_set" = "xyes"])
+#
+# Real TPM hardware
+#
+AC_ARG_ENABLE([test-hwtpm],
+              [AS_HELP_STRING([--enable-test-hwtpm],
+                  [enable the integration test on a real tpm hardware (default is no)])],
+              [enable_hwtpm=$enableval],
+              [enable_hwtpm=no])
+AS_IF([test \( "x$with_simulatorbin_set" = "xyes" \) -a \( "x$enable_hwtpm" = "xyes" \) ],
+      AC_MSG_ERROR([Simulator binary and real tpm hardware cannot be both enabled.]))
+AM_CONDITIONAL([HWTPM], [test "x$enable_hwtpm" != xno])
+
+AS_IF([test \( "x$with_simulatorbin_set" = "xno" \) -a \( "x$enable_hwtpm" = "xno" \) ],
+      AC_MSG_WARN([No simulator binary or tpm hardware provided. Integration tests disabled.]))
 
 # preprocessor / compiler / linker flags
 #   these macros are defined in m4/flags.m4
