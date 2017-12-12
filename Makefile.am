@@ -29,7 +29,6 @@ TESTS_UNIT = \
     test/handle-map_unit \
     test/ipc-frontend_unit \
     test/ipc-frontend-dbus_unit \
-    test/random_unit \
     test/session-entry_unit \
     test/test-skeleton_unit \
     test/tcti-echo_unit \
@@ -45,6 +44,9 @@ endif
 if TCTI_SOCKET
     TESTS_UNIT += test/tcti-socket_unit
 endif
+if !CODE_COVERAGE
+    TESTS_UNIT += test/random_unit
+endif # GCOV
 endif #UNIT
 
 if SIMULATOR_BIN
