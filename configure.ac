@@ -37,6 +37,7 @@ if test -z "$GDBUS_CODEGEN"; then
 fi
 
 AX_CODE_COVERAGE
+AM_CONDITIONAL([CODE_COVERAGE],[test "x$enable_code_coverage" != "x"])
 # disable helgrind and drd, they hate GAsyncQueue
 AX_VALGRIND_DFLT([sgcheck], [off])
 AX_VALGRIND_DFLT([helgrind], [off])
