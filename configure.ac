@@ -37,6 +37,9 @@ AC_PATH_PROG([GDBUS_CODEGEN], [`$PKG_CONFIG --variable=gdbus_codegen gio-2.0`])
 if test -z "$GDBUS_CODEGEN"; then
     AC_MSG_ERROR([*** gdbus-codegen is required to build tpm2-abrmd])
 fi
+
+AX_CODE_COVERAGE
+AM_CONDITIONAL([CODE_COVERAGE],[test "x$enable_code_coverage" != "x"])
 # disable helgrind and drd, they hate GAsyncQueue
 AX_VALGRIND_DFLT([sgcheck], [off])
 AX_VALGRIND_DFLT([helgrind], [off])

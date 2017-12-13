@@ -2,6 +2,9 @@
 .dirstamp
 .libs/
 tmp/
+*.gcda
+*.gcno
+*.gcov
 *.la
 *.lo
 *.log
@@ -9,6 +12,7 @@ tmp/
 *.pp
 *.swp
 *.trs
+AUTHORS
 Makefile
 Makefile.in
 aclocal.m4
@@ -44,4 +48,6 @@ test/integration/*
 !test/integration/*.h
 dist/*.preset
 dist/*.service
+tpm2-abrmd-*-coverage.info
+tpm2-abrmd-*-coverage/*
 VERSION

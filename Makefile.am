@@ -10,8 +10,9 @@ unit-count: check
 AM_CFLAGS = $(EXTRA_CFLAGS) \
     -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
     $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
-    $(SAPI_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS)
-AM_LDFLAGS = $(EXTRA_LDFLAGS)
+    $(SAPI_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS) \
+    $(CODE_COVERAGE_CFLAGS)
+AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
 UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 
 if UNIT
@@ -28,7 +29,6 @@ TESTS_UNIT = \
     test/handle-map_unit \
     test/ipc-frontend_unit \
     test/ipc-frontend-dbus_unit \
-    test/random_unit \
     test/session-entry_unit \
     test/test-skeleton_unit \
     test/tcti-echo_unit \
@@ -44,6 +44,9 @@ endif
 if TCTI_SOCKET
     TESTS_UNIT += test/tcti-socket_unit
 endif
+if !CODE_COVERAGE
+    TESTS_UNIT += test/random_unit
+endif # GCOV
 endif #UNIT
 
 if SIMULATOR_BIN
@@ -126,6 +129,7 @@ EXTRA_DIST = \
     dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
     scripts/int-log-compiler.sh \
+    AUTHORS \
     CHANGELOG.md \
     CONTRIBUTING.md \
     INSTALL.md \
@@ -155,6 +159,7 @@ systemdsystemunit_DATA = dist/tpm2-abrmd.service
 endif # HAVE_SYSTEMD
 systemdpreset_DATA = dist/tpm2-abrmd.preset
 
+@CODE_COVERAGE_RULES@
 @VALGRIND_CHECK_RULES@
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
 VALGRIND_memcheck_FLAGS = --leak-check=full --show-leak-kinds=definite,indirect --track-origins=yes --error-exitcode=1 --suppressions=dist/tabrmd.sup
@@ -259,6 +264,10 @@ src_libtcti_echo_la_SOURCES = \
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(SAPI_LIBS) $(libutil) $(libtcti_echo)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
+
+AUTHORS :
+	git log --format='%aN <%aE>' | grep -v 'users.noreply.github.com' | sort | \
+	    uniq -c | sort -nr | sed 's/^\s*//' | cut -d" " -f2- > $@
 
 man/man3/%.3 : man/%.3.in
 	$(AM_V_GEN)$(call man_tcti_prefix,$@,$^)
