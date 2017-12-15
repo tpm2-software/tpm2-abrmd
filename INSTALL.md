@@ -23,6 +23,8 @@ and executed.
 * cmocka unit test framework
 * Microsoft / IBM Software TPM2 simulator version 532 as packaged by IBM:
 https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm532.tar
+* Alternately, run the test suite on a real TPM hardware, with a safety
+attention described below.
 
 # System User & Group
 As is common security practice we encourage *everyone* to run the `tpm2-abrmd`
@@ -184,6 +186,20 @@ $ ./configure --with-simulatorbin=/path/to/tpm_server
 If the configure script is able to find the executable you provide through this
 option then executing `make check` will cause the integration tests to be built
 and executed.
+
+Once you have a TPM hardware, configure the `./configure` script through the
+`--test-hwtpm` option:
+```
+$ ./configure --test-hwtpm
+```
+
+The integration tests are executed on a real TPM hardware through running
+`make check`. Note that it requires the root privilege to launch tpm2-abrmd
+to access /dev/tpm0.
+***** ATTENTION *****
+If this test suite is executed against a TPM it may cause damage to the TPM (NV
+storage and private key wear out etc).
+You have been warned.
 
 # Compilation
 Compiling the code requires running `make`. You may provide `make` whatever
