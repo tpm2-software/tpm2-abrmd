@@ -142,6 +142,7 @@ EXTRA_DIST = \
     dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
     scripts/int-log-compiler.sh \
+    scripts/run-hwtpm-test.sh \
     AUTHORS \
     CHANGELOG.md \
     CONTRIBUTING.md \
