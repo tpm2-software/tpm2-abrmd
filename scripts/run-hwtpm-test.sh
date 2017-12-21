@@ -28,6 +28,16 @@
 set -u
 set +o nounset
 
+# default int-test-funcs script, overriden in TEST_FUNCTIONS env variable
+TEST_FUNC_LIB=${TEST_FUNC_LIB:-scripts/int-test-funcs.sh}
+if [ -e ${TEST_FUNC_LIB} ]; then
+    . ${TEST_FUNC_LIB}
+else
+    echo "Error: Unable to locate support test function library: " \
+         "${TEST_FUNC_LIB}"
+    exit 1
+fi
+
 usage_error ()
 {
     echo "$0: $*" >&2
@@ -55,120 +65,6 @@ while test $# -gt 0; do
     esac
     shift
 done
-
-# This function takes a PID as a parameter and determines whether or not the
-# process is currently running. If the daemon is running 0 is returned. Any
-# other value indicates that the daemon isn't running.
-daemon_status ()
-{
-    local pid=$1
-
-    if [ $(kill -0 "${pid}" 2> /dev/null) ]; then
-        echo "failed to detect running daemon with PID: ${pid}";
-        return 1
-    fi
-    return 0
-}
-
-# This is a generic function to start a daemon, setup the environment
-# variables, redirect output to a log file, store the PID of the daemon
-# in a file and disconnect the daemon from the parent shell.
-daemon_start ()
-{
-    local daemon_bin="$1"
-    local daemon_opts="$2"
-    local daemon_log_file="$3"
-    local daemon_pid_file="$4"
-    local daemon_env="$5"
-    local valgrind_bin="$6"
-    local valgrind_flags="$7"
-
-    env ${daemon_env} ${valgrind_bin} ${valgrind_flags} ${daemon_bin} ${daemon_opts} > ${daemon_log_file} 2>&1 &
-    local ret=$?
-    local pid=$!
-    if [ ${ret} -ne 0 ]; then
-        echo "failed to start daemon: \"${daemon_bin}\" with env: \"${daemon_env}\""
-        exit ${ret}
-    fi
-    sleep 1
-    daemon_status "${pid}"
-    if [ $? -ne 0 ]; then
-        echo "daemon died after successfully starting in background, check " \
-             "log file: ${daemon_log_file}"
-        return 1
-    fi
-    echo ${pid} > ${daemon_pid_file}
-    echo "successfully started daemon: ${daemon_bin} with PID: ${pid}"
-    return 0
-}
-# function to start the dbus-daemon
-# This dbus-daemon creates a session message bus used by the
-# communication between tpm2-abrmd and testcase. The dbus info
-# is told to testcase through DBUS_SESSION_BUS_ADDRESS and
-# DBUS_SESSION_BUS_PID.
-dbus_daemon_start ()
-{
-    local dbus_log_file="$1"
-    local dbus_pid_file="$2"
-    local dbus_opts="--session --print-address 3 --nofork --nopidfile"
-    local dbus_addr_file=`mktemp`
-    local dbus_env="DBUS_VERBOSE=1" 
-
-    exec 3<>$dbus_addr_file
-    daemon_start dbus-daemon "${dbus_opts}" "${dbus_log_file}" "${dbus_pid_file}" \
-        "${dbus_env}"
-    local ret=$?
-    if [ $ret -eq 0 ]; then
-        export DBUS_SESSION_BUS_ADDRESS=`cat "${dbus_addr_file}"`
-        export DBUS_SESSION_BUS_PID=`cat "${dbus_pid_file}"`
-    fi
-    rm -f $dbus_addr_file
-    return $ret
-}
-# function to start the tabrmd
-# This is little more than a call to the daemon_start function with special
-# command line options and an environment string.
-tabrmd_start ()
-{
-    local tabrmd_bin=$1
-    local tabrmd_name=$2
-    local tabrmd_log_file=$3
-    local tabrmd_pid_file=$4
-    local tabrmd_env="G_MESSAGES_DEBUG=all"
-    local tabrmd_opts="--tcti=device --session --dbus-name=${tabrmd_name} --fail-on-loaded-trans"
-    
-    daemon_start "${tabrmd_bin}" "${tabrmd_opts}" "${tabrmd_log_file}" \
-        "${tabrmd_pid_file}" "${tabrmd_env}" "${VALGRIND}" "${LOG_FLAGS}"
-}
-# function to stop a running daemon
-# This function takes a single parameter: a file containing the PID of the
-# process to be killed. The PID is extracted and the daemon killed.
-daemon_stop ()
-{
-    local pid_file=$1
-    local pid=0
-    local ret=0
-
-    if [ ! -f ${pid_file} ]; then
-        echo "failed to stop daemon, no pid file: ${pid_file}"
-        return 1
-    fi
-    pid=$(cat ${pid_file})
-    daemon_status "${pid}"
-    if [ $? -ne 0 ]; then
-        echo "failed to detect running daemon with PID: ${pid}";
-        return ${ret}
-    fi
-    kill ${pid}
-    ret=$?
-    if [ ${ret} -eq 0 ]; then
-        wait ${pid}
-        ret=$?
-    else
-        echo "failed to kill daemon process with PID: ${pid}"
-    fi
-    return ${ret}
-}
 
 # Once option processing is done, $@ should be the name of the test executable
 # followed by all of the options passed to the test executable.

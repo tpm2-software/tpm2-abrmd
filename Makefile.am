@@ -85,6 +85,7 @@ XFAIL_TESTS = \
 
 TESTS = $(TESTS_UNIT) $(TESTS_INTEGRATION)
 TEST_EXTENSIONS = .int
+AM_TESTS_ENVIRONMENT = TEST_FUNC_LIB=$(srcdir)/scripts/int-test-funcs.sh
 if HWTPM
 INT_LOG_COMPILER = $(srcdir)/scripts/run-hwtpm-test.sh
 else
@@ -143,6 +144,7 @@ EXTRA_DIST = \
     dist/tpm-udev.rules \
     scripts/int-log-compiler.sh \
     scripts/run-hwtpm-test.sh \
+    scripts/int-test-funcs.sh \
     AUTHORS \
     CHANGELOG.md \
     CONTRIBUTING.md \
