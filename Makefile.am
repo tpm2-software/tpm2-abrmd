@@ -49,8 +49,7 @@ if !CODE_COVERAGE
 endif # GCOV
 endif #UNIT
 
-if SIMULATOR_BIN
-TESTS_INTEGRATION = \
+tests_integration = \
     test/integration/auth-session-max.int \
     test/integration/auth-session-start-flush.int \
     test/integration/auth-session-start-save.int \
@@ -71,6 +70,13 @@ TESTS_INTEGRATION = \
     test/integration/password-authorization.int \
     test/integration/tpm2-command-flush-no-handle.int \
     test/integration/util-buf-max-upper-bound.int
+
+if SIMULATOR_BIN
+TESTS_INTEGRATION = $(tests_integration)
+endif
+
+if HWTPM
+TESTS_INTEGRATION = $(tests_integration)
 endif
 
 XFAIL_TESTS = \
@@ -79,8 +85,16 @@ XFAIL_TESTS = \
 
 TESTS = $(TESTS_UNIT) $(TESTS_INTEGRATION)
 TEST_EXTENSIONS = .int
-INT_LOG_COMPILER = $(srcdir)/scripts/int-log-compiler.sh
-INT_LOG_FLAGS = --simulator-bin=$(SIMULATOR_BIN) --tabrmd-bin=$(sbin_PROGRAMS)
+AM_TESTS_ENVIRONMENT = TEST_FUNC_LIB=$(srcdir)/scripts/int-test-funcs.sh
+if HWTPM
+INT_LOG_COMPILER = $(srcdir)/scripts/int-hardware-setup.sh
+else
+INT_LOG_COMPILER = $(srcdir)/scripts/int-simulator-setup.sh
+endif
+INT_LOG_FLAGS = --tabrmd-bin=$(sbin_PROGRAMS)
+if SIMULATOR_BIN
+INT_LOG_FLAGS += --simulator-bin=$(SIMULATOR_BIN)
+endif
 
 sbin_PROGRAMS   = src/tpm2-abrmd
 check_PROGRAMS  = $(sbin_PROGRAMS) $(TESTS)
@@ -128,7 +142,9 @@ EXTRA_DIST = \
     dist/tpm2-abrmd.preset \
     dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
-    scripts/int-log-compiler.sh \
+    scripts/int-simulator-setup.sh \
+    scripts/int-hardware-setup.sh \
+    scripts/int-test-funcs.sh \
     AUTHORS \
     CHANGELOG.md \
     CONTRIBUTING.md \

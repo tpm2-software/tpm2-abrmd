@@ -23,6 +23,8 @@ and executed.
 * cmocka unit test framework
 * Microsoft / IBM Software TPM2 simulator version 532 as packaged by IBM:
 https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm532.tar
+* Alternately, run the test suite on a real TPM hardware, with a safety
+attention described below.
 
 # System User & Group
 As is common security practice we encourage *everyone* to run the `tpm2-abrmd`
@@ -168,11 +170,29 @@ $ ./configure --enable-unit
 If the `./configure` script finds the cmocka framework then executing `make
 check` will cause the unit tests to be built and executed.
 
-### Enable Integration Tests: `--with-simulatorbin`
-In order for the integration tests to be run the test harness must have access
-to the TPM2 simulator software (see list of dependencies above). To execute
-the integration tests you must download and compile the software simulator
-as documented on their sourceforge site and their source packages.
+### Integration Tests:
+In addition to unit tests we provide a collection of integration tests.
+Integration tests differ from unit tests in that they require a running
+instance of the `tpm2-abrmd` daemon. Integration tests exercise a specific
+behavior of the `tpm2-abrmd` and ensure that the daemon behaves as expected.
+
+In order for the `tpm2-abrmd` daemon to run it must have a TPM2 device to
+talk to. This can be done in two ways:
+1) Using an implementation of the TPM2 in software the TPM2 device can be
+simulated. This is the most flexible, fast and safest way to test the
+`tpm2-abrmd`.
+2) Using the TPM2 device on your computer (if it has one). This method is
+*NOT* recommended and may cause damage / wear-out of the TPM and its
+resources. This option is provided for developers and integrators who know
+what they're doing and who understand the associated risks: You have been
+warned.
+
+The next two subsections describe these two configurations:
+
+### Run Integration Tests with TPM2 simulator: `--with-simulatorbin`
+This is the recommended integration test configuration. It requires that you
+first download and compile the TPM2 software simulator as documented by the
+simulators maintainers.
 
 Once you have the `tpm_server` built you can inform the tpm2-abrmd build of
 its location by passing an absolute path to the `./configure` script through
@@ -183,7 +203,23 @@ $ ./configure --with-simulatorbin=/path/to/tpm_server
 
 If the configure script is able to find the executable you provide through this
 option then executing `make check` will cause the integration tests to be built
-and executed.
+and executed. The test harness in the build system will run a `tpm_server` and
+`tpm2-abrmd` for each test executable. This allows the test harness to execute
+integration tests in parallel.
+
+### Run Integration Tests with hardware TPM2: `--test-hwtpm`
+Once you have a TPM hardware, configure the `./configure` script through the
+`--test-hwtpm` option:
+```
+$ ./configure --test-hwtpm
+```
+
+The integration tests are executed on a real TPM2 hardware through running
+`make check`. Note that it requires the elevated privilege (possibly root
+access depending on your platforms configuration) to launch tpm2-abrmd
+and to access /dev/tpm0.
+*WARNING*: If this test suite is executed against a TPM2 it may result in the
+TPM2 device being damaged or destroyed. You have been warned ... again.
 
 # Compilation
 Compiling the code requires running `make`. You may provide `make` whatever
