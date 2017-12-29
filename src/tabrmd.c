@@ -125,7 +125,6 @@ init_thread_func (gpointer user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     gint ret;
-    uint32_t loaded_trans_objs;
     TSS2_RC rc;
     CommandAttrs *command_attrs;
     ConnectionManager *connection_manager = NULL;
@@ -181,21 +180,6 @@ init_thread_func (gpointer user_data)
     rc = access_broker_init_tpm (data->access_broker);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize AccessBroker: 0x%" PRIx32, rc);
-    /*
-     * Ensure the TPM is in a state in which we can use it w/o stepping all
-     * over someone else.
-     */
-    rc = access_broker_get_trans_object_count (data->access_broker,
-                                               &loaded_trans_objs);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to get number of loaded transient objects from "
-                 "access broker 0x%" PRIxPTR " RC: 0x%" PRIx32,
-                 (uintptr_t)data->access_broker,
-                 rc);
-    if ((loaded_trans_objs > 0) && data->options.fail_on_loaded_trans) {
-        tabrmd_critical ("TPM reports 0x%" PRIx32 " loaded transient objects, "
-                         "aborting", loaded_trans_objs);
-    }
     if (data->options.flush_all) {
         access_broker_flush_all_context (data->access_broker);
     }
@@ -310,9 +294,6 @@ parse_opts (gint            argc,
           "The name of desired logger, stdout is default.", "[stdout|syslog]"},
         { "session", 's', 0, G_OPTION_ARG_NONE, &session_bus,
           "Connect to the session bus (system bus is default)." },
-        { "fail-on-loaded-trans", 'i', 0, G_OPTION_ARG_NONE,
-          &options->fail_on_loaded_trans,
-          "Fail initialization if the TPM reports loaded transient objects" },
         { "flush-all", 'f', G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE,
           &options->flush_all,
           "Flush all objects and sessions from TPM on startup." },

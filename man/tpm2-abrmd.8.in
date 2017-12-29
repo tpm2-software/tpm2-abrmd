@@ -26,11 +26,6 @@ Set an upper bound on the number of concurrent client connections allowed.
 Once this number of client connections is reached new connections will be
 rejected with an error.
 .TP
-\fB\-i,\ \-\-fail-on-loaded-trans\fR
-Cause the daemon to fail on startup when the TPM is found to already have
-transient objects loaded. This is intended as a safe-guard to keep the
-daemon from stomping on the TPM state setup by another process.
-.TP
 \fB\-f,\ \-\-flush-all\fR
 Flush all objects and sessions when daemon is started.
 .TP
