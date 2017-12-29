@@ -7,6 +7,8 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 ### Added
 - Integration test script and build support to execute integration tests
 against a physical TPM2 device on the build platform.
+### Removed
+- Command line option --fail-on-loaded-trans.
 
 ## 1.2.0 - 2017-12-08
 ### Added
