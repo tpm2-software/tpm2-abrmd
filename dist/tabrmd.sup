@@ -1,6 +1,0 @@
-{
-   ignore_libglib_stuff
-   Memcheck:Leak
-   ...
-   obj:*/libglib-2.0.so.*
-}
