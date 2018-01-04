@@ -142,8 +142,6 @@ tcti_device_initialize (TctiDevice *self)
 
     TCTI_DEVICE_CONF config = {
         .device_path = self->filename,
-        .logCallback = NULL,
-        .logData     = NULL,
     };
 
     if (tcti->tcti_context != NULL)
