@@ -163,9 +163,6 @@ tcti_socket_initialize (TctiSocket *self)
     TCTI_SOCKET_CONF config = {
         .hostname          = self->address,
         .port              = (guint16)self->port,
-        .logCallback       = NULL,
-        .logBufferCallback = NULL,
-        .logData           = NULL,
     };
 
     if (tcti->tcti_context != NULL)
