@@ -84,7 +84,7 @@ create_connection_and_save_sessions (test_opts_t *opts,
         }
         g_info ("Got SAPI context: 0x%" PRIxPTR, (uintptr_t)sapi_context);
         /* create an auth session */
-        g_info ("Starting unbound, unsaulted auth session");
+        g_info ("Starting unbound, unsalted auth session");
         rc = start_auth_session (sapi_context, &data [i].handle);
         if (rc != TSS2_RC_SUCCESS) {
             g_error ("Tss2_Sys_StartAuthSession failed: 0x%" PRIxHANDLE, rc);
