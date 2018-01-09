@@ -188,7 +188,10 @@ tcti_tabrmd_setup (void **state)
     data->id = id;
     will_return (__wrap_g_dbus_proxy_call_with_unix_fd_list_sync, id);
     g_debug ("about to call real tss2_tcti_tabrmd_init function");
-    ret = tss2_tcti_tabrmd_init (data->context, 0);
+    ret = tss2_tcti_tabrmd_init_full (data->context,
+                                      0,
+                                      TCTI_TABRMD_DBUS_TYPE_SESSION,
+                                      TCTI_TABRMD_DBUS_NAME_DEFAULT);
     assert_int_equal (ret, TSS2_RC_SUCCESS);
 
     *state = data;
