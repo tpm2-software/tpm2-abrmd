@@ -17,6 +17,7 @@ addons:
       - lcov
       - libglib2.0-dev
       - libdbus-1-dev
+      - liburiparser-dev
       - realpath
   coverity_scan:
     project:
