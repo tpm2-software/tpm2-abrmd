@@ -145,6 +145,10 @@ EXTRA_DIST = \
     scripts/int-simulator-setup.sh \
     scripts/int-hardware-setup.sh \
     scripts/int-test-funcs.sh \
+    selinux/Makefile \
+    selinux/tabrmd.fc \
+    selinux/tabrmd.if \
+    selinux/tabrmd.te \
     AUTHORS \
     CHANGELOG.md \
     CONTRIBUTING.md \
