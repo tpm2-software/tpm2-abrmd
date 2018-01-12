@@ -28,6 +28,7 @@
 #include <stdlib.h>
 
 #include <setjmp.h>
+#include <string.h>
 #include <cmocka.h>
 
 #include "random.h"
@@ -59,11 +60,19 @@ random_teardown (void **state)
     return 0;
 }
 /* wrap function for the 'open' system call */
+int __real_open (const char *path, int flags, int mode);
 int
 __wrap_open(const char *pathname,
             int         flags,
             mode_t      mode)
 {
+    /*
+     * Mock calls to 'open' only for operations on the default entropy
+     * source used by the Random object (RANDOM_ENTROPY_FILE_DEFAULT).
+     */
+    if (strcmp (pathname, RANDOM_ENTROPY_FILE_DEFAULT)) {
+        return __real_open (pathname, flags, mode);
+    }
     return mock_type (int);
 }
 /* wrap function for the 'read' system call */
