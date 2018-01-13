@@ -21,6 +21,7 @@ TESTS_UNIT = \
     test/command-attrs_unit \
     test/connection_unit \
     test/connection-manager_unit \
+    test/logging_unit \
     test/message-queue_unit \
     test/resource-manager_unit \
     test/response-sink_unit \
@@ -386,6 +387,11 @@ test_ipc_frontend_unit_SOURCES = test/ipc-frontend_unit.c
 test_ipc_frontend_dbus_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_ipc_frontend_dbus_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_ipc_frontend_dbus_unit_SOURCES = test/ipc-frontend-dbus_unit.c
+
+test_logging_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_logging_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_logging_unit_LDFLAGS = -Wl,--wrap=getenv,--wrap=syslog
+test_logging_unit_SOURCES = test/logging_unit.c
 
 if TCTI_DEVICE
 test_tcti_device_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
