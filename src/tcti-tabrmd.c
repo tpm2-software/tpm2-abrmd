@@ -522,3 +522,26 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
                                        TCTI_TABRMD_DBUS_TYPE_DEFAULT,
                                        TCTI_TABRMD_DBUS_NAME_DEFAULT);
 }
+
+static TSS2_RC
+tss2_tcti_tabrmd_init_config (TSS2_TCTI_CONTEXT *context,
+                              size_t            *size,
+                              const char        *conf)
+{
+	(void)conf;
+	return tss2_tcti_tabrmd_init(context, size);
+}
+
+/* public info structure */
+const static TSS2_TCTI_INFO tss2_tcti_info = {
+    .name = "tcti-abrmd",
+    .description = "TCTI module for communication with tabrmd.",
+    .config_help = "This module takes NO arguments.",
+    .init = tss2_tcti_tabrmd_init_config,
+};
+
+const TSS2_TCTI_INFO*
+Tss2_Tcti_Info (void)
+{
+    return &tss2_tcti_info;
+}
