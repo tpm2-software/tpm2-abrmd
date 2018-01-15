@@ -3,6 +3,7 @@
         tss2_tcti_tabrmd_init;
         tss2_tcti_tabrmd_init_full;
         tss2_tcti_tabrmd_dump_trans_state;
+        Tss2_Tcti_Info;
     local:
         *;
 };
