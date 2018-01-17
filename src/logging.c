@@ -28,15 +28,11 @@
 #include <syslog.h>
 #include "logging.h"
 
-#define LOG_LEVEL_DEFAULT (G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | \
-                           G_LOG_LEVEL_WARNING)
-#define LOG_LEVEL_ALL     (LOG_LEVEL_DEFAULT | G_LOG_LEVEL_MESSAGE | \
-                           G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG)
 /**
  * This function that implements the GLogFunc prototype. It is intended
  * for use as a log handler function for glib logging.
  */
-static void
+void
 syslog_log_handler (const char     *log_domain,
                     GLogLevelFlags  log_level,
                     const char     *message,
@@ -75,7 +71,7 @@ syslog_log_handler (const char     *log_domain,
  * but for now we simply look for the special value of "all" and enable info
  * and debug messages if it's set.
  */
-static int
+int
 get_enabled_log_levels (void)
 {
     gchar *g_log_domains = NULL;

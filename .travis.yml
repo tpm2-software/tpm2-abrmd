@@ -92,7 +92,7 @@ script :
   - |
     if [ \( "$CC" = "gcc" \) -a \( ! -z "$COVERALLS_REPO_TOKEN" \) ]; then
         echo "Uploading test coverage metrics to coveralls."
-        coveralls --build-root=./ --exclude=${DEPS} --exclude=${DESTDIR} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --gcov-options '\-lp'
+        coveralls --build-root=./ --exclude=${DEPS} --exclude=${DESTDIR} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
     fi
   - echo -en 'travis_fold:end:tabrmd-check-code-coverage\\r'
   - echo 'Dumping unit test logs...' && echo -en 'travis_fold:start:tabrmd-unit-logs\\r'
