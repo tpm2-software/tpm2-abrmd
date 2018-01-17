@@ -528,8 +528,8 @@ tss2_tcti_tabrmd_init_config (TSS2_TCTI_CONTEXT *context,
                               size_t            *size,
                               const char        *conf)
 {
-	(void)conf;
-	return tss2_tcti_tabrmd_init(context, size);
+    (void)conf;
+    return tss2_tcti_tabrmd_init(context, size);
 }
 
 /* public info structure */
