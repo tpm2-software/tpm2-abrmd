@@ -528,7 +528,11 @@ tss2_tcti_tabrmd_init_config (TSS2_TCTI_CONTEXT *context,
                               size_t            *size,
                               const char        *conf)
 {
-    (void)conf;
+    if (conf != NULL) {
+        g_warning ("%s: received non-NULL conf string though we don't support "
+                   "configuration strings yet.", __func__);
+        return TSS2_TCTI_RC_BAD_VALUE;
+    }
     return tss2_tcti_tabrmd_init(context, size);
 }
 
