@@ -620,9 +620,9 @@ tabrmd_conf_parse (char *conf_str,
  */
 #define CONF_STRING_MAX 280
 static TSS2_RC
-tss2_tcti_tabrmd_init_config (TSS2_TCTI_CONTEXT *context,
-                              size_t            *size,
-                              const char        *conf)
+Tss2_Tcti_Tabrmd_Init (TSS2_TCTI_CONTEXT *context,
+                       size_t            *size,
+                       const char        *conf)
 {
     TSS2_RC ret;
     size_t conf_len;
@@ -656,7 +656,7 @@ const static TSS2_TCTI_INFO tss2_tcti_info = {
     .name = "tcti-abrmd",
     .description = "TCTI module for communication with tabrmd.",
     .config_help = "This module takes NO arguments.",
-    .init = tss2_tcti_tabrmd_init_config,
+    .init = Tss2_Tcti_Tabrmd_Init,
 };
 
 const TSS2_TCTI_INFO*
