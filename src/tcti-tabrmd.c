@@ -632,6 +632,9 @@ tss2_tcti_tabrmd_init_config (TSS2_TCTI_CONTEXT *context,
         TCTI_TABRMD_DBUS_NAME_DEFAULT,
     };
 
+    if (conf == NULL) {
+        return TSS2_TCTI_RC_BAD_VALUE;
+    }
     conf_len = strlen (conf);
     if (conf_len > CONF_STRING_MAX) {
         return TSS2_TCTI_RC_BAD_VALUE;
