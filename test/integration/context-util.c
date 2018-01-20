@@ -43,14 +43,11 @@
 TSS2_TCTI_CONTEXT*
 tcti_device_init (char const *device_path)
 {
-    TCTI_DEVICE_CONF conf = {
-        .device_path =device_path,
-    };
     size_t size;
     TSS2_RC rc;
     TSS2_TCTI_CONTEXT *tcti_ctx;
 
-    rc = InitDeviceTcti (NULL, &size, 0);
+    rc = Tss2_Tcti_Device_Init (NULL, &size, NULL);
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr,
                  "Failed to get allocation size for device tcti context: "
@@ -64,7 +61,7 @@ tcti_device_init (char const *device_path)
                  strerror (errno));
         return NULL;
     }
-    rc = InitDeviceTcti (tcti_ctx, &size, &conf);
+    rc = Tss2_Tcti_Socket_Init (tcti_ctx, &size, device_path);
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr,
                  "Failed to initialize device TCTI context: 0x%x\n",
@@ -87,15 +84,12 @@ TSS2_TCTI_CONTEXT*
 tcti_socket_init (char const *address,
                   uint16_t    port)
 {
-    TCTI_SOCKET_CONF conf = {
-        .hostname          = address,
-        .port              = port,
-    };
     size_t size;
     TSS2_RC rc;
     TSS2_TCTI_CONTEXT *tcti_ctx;
+    char conf[256] = { 0 } ;
 
-    rc = InitSocketTcti (NULL, &size, &conf, 0);
+    rc = Tss2_Tcti_Socket_Init (NULL, &size, NULL);
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr, "Faled to get allocation size for tcti context: "
                  "0x%x\n", rc);
@@ -107,7 +101,8 @@ tcti_socket_init (char const *address,
                  strerror (errno));
         return NULL;
     }
-    rc = InitSocketTcti (tcti_ctx, &size, &conf, 0);
+    snprintf (conf, 256, "tcp://%s:%" PRIu16, address, port);
+    rc = Tss2_Tcti_Socket_Init (tcti_ctx, &size, conf);
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr, "Failed to initialize tcti context: 0x%x\n", rc);
         return NULL;

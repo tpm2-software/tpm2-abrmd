@@ -24,6 +24,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <inttypes.h>
+#include <stdio.h>
+
 #include "tcti-socket.h"
 
 G_DEFINE_TYPE (TctiSocket, tcti_socket, TYPE_TCTI);
@@ -159,15 +162,11 @@ tcti_socket_initialize (TctiSocket *self)
     Tcti          *tcti  = TCTI (self);
     TSS2_RC        rc    = TSS2_RC_SUCCESS;
     size_t ctx_size;
-
-    TCTI_SOCKET_CONF config = {
-        .hostname          = self->address,
-        .port              = (guint16)self->port,
-    };
+    char conf[256] = { 0 };
 
     if (tcti->tcti_context != NULL)
         goto out;
-    rc = InitSocketTcti (NULL, &ctx_size, NULL, 0);
+    rc = Tss2_Tcti_Socket_Init (NULL, &ctx_size, NULL);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("failed to get size for socket TCTI context structure: "
                    "0x%x", rc);
@@ -178,7 +177,8 @@ tcti_socket_initialize (TctiSocket *self)
         g_warning ("Failed to allocate memory");
         goto out;
     }
-    rc = InitSocketTcti (tcti->tcti_context, &ctx_size, &config, 0);
+    snprintf (conf, 256, "tcp://%s:%" PRIu16, self->address, self->port);
+    rc = Tss2_Tcti_Socket_Init (tcti->tcti_context, &ctx_size, conf);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("failed to initialize socket TCTI context: 0x%x", rc);
         g_free (tcti->tcti_context);

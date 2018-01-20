@@ -401,14 +401,14 @@ test_logging_unit_SOURCES = test/logging_unit.c
 if TCTI_DEVICE
 test_tcti_device_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
 test_tcti_device_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_tcti_device_unit_LDFLAGS  = -Wl,--wrap=InitDeviceTcti
+test_tcti_device_unit_LDFLAGS  = -Wl,--wrap=Tss2_Tcti_Device_Init
 test_tcti_device_unit_SOURCES  = test/tcti-device_unit.c
 endif
 
 if TCTI_SOCKET
 test_tcti_socket_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
 test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TCTI_SOCKET_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_tcti_socket_unit_LDFLAGS  = -Wl,--wrap=InitSocketTcti
+test_tcti_socket_unit_LDFLAGS  = -Wl,--wrap=Tss2_Tcti_Socket_Init
 test_tcti_socket_unit_SOURCES  = test/tcti-socket_unit.c
 endif
 
