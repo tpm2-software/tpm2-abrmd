@@ -33,9 +33,9 @@
 #include "tcti-device.h"
 
 TSS2_RC
-__wrap_InitDeviceTcti (TSS2_TCTI_CONTEXT   *tcti_context,
-                       size_t              *size,
-                       TCTI_DEVICE_CONF    *config)
+__wrap_Tss2_Tcti_Device_Init (TSS2_TCTI_CONTEXT   *tcti_context,
+                              size_t              *size,
+                              const char          *conf)
 {
     *size = mock_type (size_t);
     return mock_type (TSS2_RC);
@@ -69,7 +69,7 @@ tcti_device_new_unref_test (void **state)
 }
 
 /**
- * Calling the initialize function causes two calls to InitDeviceTcti. The
+ * Calling the initialize function causes two calls to Tss2_Tcti_Device_Init. The
  * first gets the size of the context structure to allocate, the second
  * does the initialization. Inbetween the function allocates the context.
  */
@@ -79,11 +79,11 @@ tcti_device_initialize_success_unit (void **state)
     TctiDevice *tcti_device = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 
-    will_return (__wrap_InitDeviceTcti, 512);
-    will_return (__wrap_InitDeviceTcti, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Tcti_Device_Init, 512);
+    will_return (__wrap_Tss2_Tcti_Device_Init, TSS2_RC_SUCCESS);
 
-    will_return (__wrap_InitDeviceTcti, 512);
-    will_return (__wrap_InitDeviceTcti, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Tcti_Device_Init, 512);
+    will_return (__wrap_Tss2_Tcti_Device_Init, TSS2_RC_SUCCESS);
 
     rc = tcti_device_initialize (tcti_device);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
@@ -97,17 +97,17 @@ tcti_device_initialize_success_interface_unit (void **state)
     Tcti       *tcti      = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 
-    will_return (__wrap_InitDeviceTcti, 512);
-    will_return (__wrap_InitDeviceTcti, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Tcti_Device_Init, 512);
+    will_return (__wrap_Tss2_Tcti_Device_Init, TSS2_RC_SUCCESS);
 
-    will_return (__wrap_InitDeviceTcti, 512);
-    will_return (__wrap_InitDeviceTcti, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Tcti_Device_Init, 512);
+    will_return (__wrap_Tss2_Tcti_Device_Init, TSS2_RC_SUCCESS);
 
     rc = tcti_initialize (tcti);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
 }
 /**
- * Cause first call to InitDeviceTcti in tcti_device_initialize to fail.
+ * Cause first call to Tss2_Tcti_Device_Init in tcti_device_initialize to fail.
  * We should get the RC that we provide in the second will_return sent
  * back to us.
  */
@@ -117,14 +117,14 @@ tcti_device_initialize_fail_on_first_init_unit (void **state)
     TctiDevice *tcti_device = *state;
     TSS2_RC     rc          = TSS2_RC_SUCCESS;
 
-    will_return (__wrap_InitDeviceTcti, 0);
-    will_return (__wrap_InitDeviceTcti, TSS2_TCTI_RC_GENERAL_FAILURE);
+    will_return (__wrap_Tss2_Tcti_Device_Init, 0);
+    will_return (__wrap_Tss2_Tcti_Device_Init, TSS2_TCTI_RC_GENERAL_FAILURE);
 
     rc = tcti_device_initialize (tcti_device);
     assert_int_equal (rc, TSS2_TCTI_RC_GENERAL_FAILURE);
 }
 /**
- * Cause the second call to InitDeviceTcti in the tcti_device_initialize to
+ * Cause the second call to Tss2_Tcti_Device_Init in the tcti_device_initialize to
  * fail. We should get the RC taht we provide in the 4th will_return sent
  * back to us.
  */
@@ -134,11 +134,11 @@ tcti_device_initialize_fail_on_second_init_unit (void **state)
     TctiDevice *tcti_device = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 
-    will_return (__wrap_InitDeviceTcti, 512);
-    will_return (__wrap_InitDeviceTcti, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Tcti_Device_Init, 512);
+    will_return (__wrap_Tss2_Tcti_Device_Init, TSS2_RC_SUCCESS);
 
-    will_return (__wrap_InitDeviceTcti, 0);
-    will_return (__wrap_InitDeviceTcti, TSS2_TCTI_RC_GENERAL_FAILURE);
+    will_return (__wrap_Tss2_Tcti_Device_Init, 0);
+    will_return (__wrap_Tss2_Tcti_Device_Init, TSS2_TCTI_RC_GENERAL_FAILURE);
 
     rc = tcti_device_initialize (tcti_device);
     assert_int_equal (rc, TSS2_TCTI_RC_GENERAL_FAILURE);

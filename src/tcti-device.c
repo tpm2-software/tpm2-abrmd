@@ -140,13 +140,9 @@ tcti_device_initialize (TctiDevice *self)
     TSS2_RC        rc       = TSS2_RC_SUCCESS;
     size_t         ctx_size;
 
-    TCTI_DEVICE_CONF config = {
-        .device_path = self->filename,
-    };
-
     if (tcti->tcti_context != NULL)
         goto out;
-    rc = InitDeviceTcti (NULL, &ctx_size, NULL);
+    rc = Tss2_Tcti_Device_Init (NULL, &ctx_size, NULL);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("failed to get size for device TCTI contexxt structure: "
                    "0x%x", rc);
@@ -157,7 +153,7 @@ tcti_device_initialize (TctiDevice *self)
         g_warning ("failed to allocate memory");
         goto out;
     }
-    rc = InitDeviceTcti (tcti->tcti_context, &ctx_size, &config);
+    rc = Tss2_Tcti_Device_Init (tcti->tcti_context, &ctx_size, self->filename);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("failed to initialize device TCTI context: 0x%x", rc);
         g_free (tcti->tcti_context);

@@ -33,7 +33,7 @@
 #include "tcti-socket.h"
 
 TSS2_RC
-__wrap_InitSocketTcti (TSS2_TCTI_CONTEXT *tcti_context,
+__wrap_Tss2_Tcti_Socket_Init (TSS2_TCTI_CONTEXT *tcti_context,
                        size_t *size,
                        TCTI_SOCKET_CONF *config,
                        uint8_t serverSockets)
@@ -70,7 +70,7 @@ tcti_socket_new_unref_test (void **state)
 }
 
 /**
- * Calling the initialize function causes two calls to InitSocketTcti. The
+ * Calling the initialize function causes two calls to Tss2_Tcti_Socket_Init. The
  * first gets the size of the context structure to allocate, the second
  * does the initialization. Inbetween the function allocates the context.
  */
@@ -80,11 +80,11 @@ tcti_socket_initialize_success_unit (void **state)
     TctiSocket *tcti_sock = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 
-    will_return (__wrap_InitSocketTcti, 512);
-    will_return (__wrap_InitSocketTcti, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, 512);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, TSS2_RC_SUCCESS);
 
-    will_return (__wrap_InitSocketTcti, 512);
-    will_return (__wrap_InitSocketTcti, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, 512);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, TSS2_RC_SUCCESS);
 
     rc = tcti_socket_initialize (tcti_sock);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
@@ -98,17 +98,17 @@ tcti_socket_initialize_success_interface_unit (void **state)
     Tcti       *tcti      = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 
-    will_return (__wrap_InitSocketTcti, 512);
-    will_return (__wrap_InitSocketTcti, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, 512);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, TSS2_RC_SUCCESS);
 
-    will_return (__wrap_InitSocketTcti, 512);
-    will_return (__wrap_InitSocketTcti, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, 512);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, TSS2_RC_SUCCESS);
 
     rc = tcti_initialize (tcti);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
 }
 /**
- * Cause first call to InitSocketTcti in tcti_socket_initialize to fail.
+ * Cause first call to Tss2_Tcti_Socket_Init in tcti_socket_initialize to fail.
  * We should get the RC that we provide in the second will_return sent
  * back to us.
  */
@@ -118,14 +118,14 @@ tcti_socket_initialize_fail_on_first_init_unit (void **state)
     TctiSocket *tcti_sock = *state;
     TSS2_RC     rc        = TSS2_RC_SUCCESS;
 
-    will_return (__wrap_InitSocketTcti, 0);
-    will_return (__wrap_InitSocketTcti, TSS2_TCTI_RC_GENERAL_FAILURE);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, 0);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, TSS2_TCTI_RC_GENERAL_FAILURE);
 
     rc = tcti_socket_initialize (tcti_sock);
     assert_int_equal (rc, TSS2_TCTI_RC_GENERAL_FAILURE);
 }
 /**
- * Cause the second call to InitSocketTcti in the tcti_socket_initialize to
+ * Cause the second call to Tss2_Tcti_Socket_Init in the tcti_socket_initialize to
  * fail. We should get the RC taht we provide in the 4th will_return sent
  * back to us.
  */
@@ -135,11 +135,11 @@ tcti_socket_initialize_fail_on_second_init_unit (void **state)
     TctiSocket *tcti_sock = *state;
     TSS2_RC     rc = TSS2_RC_SUCCESS;
 
-    will_return (__wrap_InitSocketTcti, 512);
-    will_return (__wrap_InitSocketTcti, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, 512);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, TSS2_RC_SUCCESS);
 
-    will_return (__wrap_InitSocketTcti, 0);
-    will_return (__wrap_InitSocketTcti, TSS2_TCTI_RC_GENERAL_FAILURE);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, 0);
+    will_return (__wrap_Tss2_Tcti_Socket_Init, TSS2_TCTI_RC_GENERAL_FAILURE);
 
     rc = tcti_socket_initialize (tcti_sock);
     assert_int_equal (rc, TSS2_TCTI_RC_GENERAL_FAILURE);
