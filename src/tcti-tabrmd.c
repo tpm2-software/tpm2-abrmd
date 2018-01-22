@@ -632,22 +632,21 @@ Tss2_Tcti_Tabrmd_Init (TSS2_TCTI_CONTEXT *context,
         TCTI_TABRMD_DBUS_NAME_DEFAULT,
     };
 
-    if (conf == NULL) {
-        return TSS2_TCTI_RC_BAD_VALUE;
-    }
-    conf_len = strlen (conf);
-    if (conf_len > CONF_STRING_MAX) {
-        return TSS2_TCTI_RC_BAD_VALUE;
-    }
-    conf_copy = strdup (conf);
-    if (conf_copy == NULL) {
-        g_critical ("Failed to duplicate config string: %s", strerror (errno));
-        return TSS2_TCTI_RC_GENERAL_FAILURE;
-    }
+    if (conf != NULL) {
+        conf_len = strlen (conf);
+        if (conf_len > CONF_STRING_MAX) {
+            return TSS2_TCTI_RC_BAD_VALUE;
+        }
+        conf_copy = strdup (conf);
+        if (conf_copy == NULL) {
+            g_critical ("Failed to duplicate config string: %s", strerror (errno));
+            return TSS2_TCTI_RC_GENERAL_FAILURE;
+        }
 
-    ret = tabrmd_conf_parse (conf_copy, &tabrmd_conf);
-    if (ret != TSS2_RC_SUCCESS)
-        return ret;
+        ret = tabrmd_conf_parse (conf_copy, &tabrmd_conf);
+        if (ret != TSS2_RC_SUCCESS)
+            return ret;
+    }
     return tss2_tcti_tabrmd_init_full (context,
                                        size,
                                        tabrmd_conf.bus_type,
