@@ -15,12 +15,8 @@ dev_rw_tpm(tabrmd_t)
 logging_send_syslog_msg(tabrmd_t)
 
 optional_policy(`
+    dbus_stub()
     dbus_system_domain(tabrmd_t, tabrmd_exec_t)
+    allow system_dbusd_t tabrmd_t:unix_stream_socket rw_stream_socket_perms;
 ')
 
-# This next bit doesn't belong here. It should be exposed through an
-# interface likely from the dbus policy module.
-gen_require(`
-    type system_dbusd_t;
-')
-allow system_dbusd_t tabrmd_t:unix_stream_socket { read write };
