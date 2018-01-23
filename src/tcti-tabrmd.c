@@ -543,7 +543,7 @@ TCTI_TABRMD_DBUS_TYPE
 tabrmd_bus_type_from_str (const char* const bus_type)
 {
     size_t i;
-    g_debug ("BUS_NAME_TYPE_MAP_LENGTH: %lu", BUS_NAME_TYPE_MAP_LENGTH);
+    g_debug ("BUS_NAME_TYPE_MAP_LENGTH: %zu", BUS_NAME_TYPE_MAP_LENGTH);
     g_debug ("looking up type for bus_type string: %s", bus_type);
     for (i = 0; i < BUS_NAME_TYPE_MAP_LENGTH; ++i) {
         if (strcmp (bus_name_type_map [i].name, bus_type) == 0) {
