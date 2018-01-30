@@ -1264,8 +1264,6 @@ resource_manager_dispose (GObject *obj)
 static void
 resource_manager_init (ResourceManager *manager)
 {
-    manager->session_list =
-        session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
     manager->abandoned_session_queue = g_queue_new ();
 }
 /**
