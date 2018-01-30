@@ -79,7 +79,7 @@ TESTS_INTEGRATION = $(tests_integration)
 endif
 
 XFAIL_TESTS = \
-    test/integration/session-load-from-closed-connection.int \
+    test/integration/auth-session-max.int \
     test/integration/start-auth-session.int \
     test/integration/tcti-sessions-max.int
 
