@@ -59,9 +59,10 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                 "0x%08" PRIx32, session_handle [i]);
     }
     g_debug ("i == %zu", i);
-    if (i == SESSIONS_MAX) {
+    if (i + 1 == SESSIONS_MAX) {
         return 0;
     } else {
+        g_critical ("expected to create %d sessions, created %zd instead", SESSIONS_MAX, i + 1);
         return 1;
     }
 }
