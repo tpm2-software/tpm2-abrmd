@@ -921,6 +921,32 @@ create_context_mapping_transient (ResourceManager  *resmgr,
                                                    handle_entry);
 }
 /*
+ * GCompareFunc used to compare SessionEntry objects on their handle members.
+ * This was taken directly from the SessionEntry code. My abstractions are
+ * leaking and this is a sign that the objects involved in session handling
+ * need to be refactored.
+ */
+static gint
+session_entry_compare_on_handle (gconstpointer a,
+                                 gconstpointer b)
+{
+    if (a == NULL || b == NULL) {
+        g_error ("session_entry_compare_on_handle received NULL parameter");
+    }
+    SessionEntry *entry_a = SESSION_ENTRY (a);
+    TPM_HANDLE handle_a = session_entry_get_handle (entry_a);
+    TPM_HANDLE handle_b = *(TPM_HANDLE*)b;
+
+    if (handle_a < handle_b) {
+        return -1;
+    } else if (handle_a > handle_b) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+/*
  * This function is invoked after the session has been created so it
  * is loaded in the TPM. If this is a new session (one that hasn't
  * been previously loaded) then the entry we create must be added to
@@ -935,27 +961,48 @@ create_context_mapping_session (ResourceManager *resmgr,
                                 Tpm2Response    *response,
                                 SessionList     *loaded_session_list)
 {
-    SessionEntry *entry;
+    GList *abandoned_link;
+    SessionEntry *session_entry = NULL, *abandoned_entry = NULL;
     TPM_HANDLE    handle;
     Connection   *connection;
 
     handle = tpm2_response_get_handle (response);
-    entry = session_list_lookup_handle (resmgr->session_list, handle);
-    if (entry == NULL) {
-        connection = tpm2_response_get_connection (response);
+    session_entry = session_list_lookup_handle (resmgr->session_list, handle);
+    abandoned_link = g_queue_find_custom (resmgr->abandoned_session_queue,
+                                          &handle,
+                                          session_entry_compare_on_handle);
+    if (abandoned_link != NULL) {
+        abandoned_entry = SESSION_ENTRY (abandoned_link->data);
+    }
+    connection = tpm2_response_get_connection (response);
+    if (session_entry == NULL && abandoned_entry == NULL) {
         g_debug ("handle is a session, creating entry for SessionList and "
                  "adding to ResourceManager session list");
-        entry = session_entry_new (connection, handle);
-        g_object_unref (connection);
-        session_list_insert (resmgr->session_list, entry);
+        session_entry = session_entry_new (connection, handle);
+        session_list_insert (resmgr->session_list, session_entry);
         g_debug ("dumping resmgr->session_list:");
         session_list_prettyprint (resmgr->session_list);
-    } else {
-        g_debug ("session is being reloaded, not adding to ResourceManager"
-                 " session list");
+    } else if (session_entry != NULL) {
+        g_debug ("%s: session_entry 0x%08" PRIxPTR " for handle 0x%08" PRIx32
+                 " exists. Adding to list of loaded sessions",
+                 __func__, (uintptr_t)session_entry, handle);
+        session_entry_set_connection (session_entry, connection);
+        session_entry_set_state (session_entry, SESSION_ENTRY_SAVED_RM);
+        session_list_insert (loaded_session_list, session_entry);
+    } else if (abandoned_entry != NULL) {
+        g_debug ("%s: session_entry 0x%08" PRIxPTR " for handle 0x%08" PRIx32
+                 " exists and was abandoned. Removing from abandoned list, "
+                 "adding to list of sessions & loaded ones.",
+                 __func__, (uintptr_t)abandoned_entry, handle);
+        session_entry_set_connection (abandoned_entry, connection);
+        session_entry_set_state (abandoned_entry, SESSION_ENTRY_SAVED_RM);
+        session_list_insert (loaded_session_list, abandoned_entry);
+        session_list_insert (resmgr->session_list, abandoned_entry);
+        g_queue_remove (resmgr->abandoned_session_queue, abandoned_entry);
     }
-    session_list_insert (loaded_session_list, entry);
-    g_object_unref (entry);
+    g_clear_object (&connection);
+    g_clear_object (&session_entry);
+    g_clear_object (&abandoned_entry);
     g_debug ("dumping loaded_session_list:");
     session_list_prettyprint (loaded_session_list);
 }
@@ -1259,6 +1306,7 @@ resource_manager_dispose (GObject *obj)
     g_clear_object (&resmgr->sink);
     g_clear_object (&resmgr->access_broker);
     g_clear_object (&resmgr->session_list);
+    g_clear_object (&resmgr->abandoned_session_queue);
     G_OBJECT_CLASS (resource_manager_parent_class)->dispose (obj);
 }
 static void
