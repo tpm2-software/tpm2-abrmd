@@ -107,7 +107,13 @@ tabrmd_start ()
     local tabrmd_pid_file=$5
 
     local tabrmd_env="G_MESSAGES_DEBUG=all"
-    local tabrmd_opts="--tcti=socket --tcti-socket-port=${tabrmd_port} --session --dbus-name=${tabrmd_name} --fail-on-loaded-trans"
+    local tabrmd_opts="--session --dbus-name=${tabrmd_name} --fail-on-loaded-trans"
+
+    if [ $tabrmd_port -ne 0 ]; then
+        tabrmd_opts="$tabrmd_opts --tcti=socket --tcti-socket-port=${tabrmd_port}"
+    else
+        tabrmd_opts="$tabrmd_opts --tcti=device"
+    fi
 
     daemon_start "${tabrmd_bin}" "${tabrmd_opts}" "${tabrmd_log_file}" \
         "${tabrmd_pid_file}" "${tabrmd_env}" "${VALGRIND}" "${LOG_FLAGS}"
@@ -140,4 +146,28 @@ daemon_stop ()
         echo "failed to kill daemon process with PID: ${pid}"
     fi
     return ${ret}
+}
+# function to start the dbus-daemon
+# This dbus-daemon creates a session message bus used by the
+# communication between tpm2-abrmd and testcase. The dbus info
+# is told to testcase through DBUS_SESSION_BUS_ADDRESS and
+# DBUS_SESSION_BUS_PID.
+dbus_daemon_start ()
+{
+    local dbus_log_file="$1"
+    local dbus_pid_file="$2"
+    local dbus_opts="--session --print-address 3 --nofork --nopidfile"
+    local dbus_addr_file=`mktemp`
+    local dbus_env="DBUS_VERBOSE=1"
+
+    exec 3<>$dbus_addr_file
+    daemon_start dbus-daemon "${dbus_opts}" "${dbus_log_file}" "${dbus_pid_file}" \
+        "${dbus_env}"
+    local ret=$?
+    if [ $ret -eq 0 ]; then
+        export DBUS_SESSION_BUS_ADDRESS=`cat "${dbus_addr_file}"`
+        export DBUS_SESSION_BUS_PID=`cat "${dbus_pid_file}"`
+    fi
+    rm -f $dbus_addr_file
+    return $ret
 }
