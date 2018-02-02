@@ -182,6 +182,7 @@ sapi_context_init (Tcti *tcti)
     }
     rc = Tss2_Sys_Initialize (sapi_context, size, tcti_context, &abi_version);
     if (rc != TSS2_RC_SUCCESS) {
+        g_free (sapi_context);
         g_error ("Failed to initialize SAPI context: 0x%x", rc);
         return NULL;
     }
