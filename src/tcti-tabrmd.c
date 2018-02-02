@@ -474,7 +474,8 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
             NULL,                          /* GCancellable* */
             &error);
     if (TSS2_TCTI_TABRMD_PROXY (context) == NULL) {
-        g_error ("failed to allocate dbus proxy object: %s", error->message);
+        g_critical ("failed to allocate dbus proxy object: %s", error->message);
+        return TSS2_TCTI_RC_NO_CONNECTION;
     }
     call_ret = tcti_tabrmd_call_create_connection_sync_fdlist (
         TSS2_TCTI_TABRMD_PROXY (context),
