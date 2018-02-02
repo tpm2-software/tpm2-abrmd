@@ -96,7 +96,7 @@ echo "dbus-daemon PID: ${PID}"
 TABRMD_LOG_FILE=${TEST_BIN}_tabrmd.log
 TABRMD_PID_FILE=${TEST_BIN}_tabrmd.pid
 TABRMD_NAME=com.intel.tss2.Tabrmd${PID}
-tabrmd_start ${TABRMD_BIN} ${TABRMD_NAME} ${TABRMD_LOG_FILE} ${TABRMD_PID_FILE}
+tabrmd_start ${TABRMD_BIN} 0 ${TABRMD_NAME} ${TABRMD_LOG_FILE} ${TABRMD_PID_FILE}
 if [ $? -ne 0 ]; then
     echo "failed to start tabrmd with name ${TABRMD_NAME}"
 fi

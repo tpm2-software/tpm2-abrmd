@@ -25,7 +25,8 @@ AS_IF([test "x$enable_unit" != xno],
       [PKG_CHECK_MODULES([CMOCKA],
                          [cmocka >= 1.0],
                          [AC_DEFINE([HAVE_CMOCKA],
-                                    [1])])])
+                                    [1],
+                                    [cmocka is available])])])
 AM_CONDITIONAL([UNIT], [test "x$enable_unit" != xno])
 PKG_CHECK_MODULES([DBUS], [dbus-1])
 PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
@@ -60,14 +61,16 @@ AS_IF([test "x$use_tcti_device" != xno],
       [PKG_CHECK_MODULES([TCTI_DEVICE],
                          [tcti-device],
                          [AC_DEFINE([HAVE_TCTI_DEVICE],
-                                    [1])])])
+                                    [1],
+                                    [device TCTI is available])])])
 AM_CONDITIONAL([TCTI_DEVICE], [test "x$use_tcti_device" != xno])
 MY_ARG_WITH([tcti_socket], [yes])
 AS_IF([test "x$use_tcti_socket" != xno],
       [PKG_CHECK_MODULES([TCTI_SOCKET],
                          [tcti-socket],
                          [AC_DEFINE([HAVE_TCTI_SOCKET],
-                                    [1])])])
+                                    [1],
+                                    [socket TCTI is available])])])
 AM_CONDITIONAL([TCTI_SOCKET], [test "x$use_tcti_socket" != xno])
 AS_IF([test "x$use_tcti_device" == xno -a \
             "x$use_tcti_socket" == xno],
