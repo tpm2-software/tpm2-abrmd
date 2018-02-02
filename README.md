@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/intel/tpm2-abrmd.svg?branch=master)](https://travis-ci.org/intel/tpm2-abrmd)
+[![Build Status](https://travis-ci.org/tpm2-software/tpm2-abrmd.svg?branch=1.x)](https://travis-ci.org/tpm2-software/tpm2-abrmd)
 [![Coverity Scan](https://img.shields.io/coverity/scan/3997.svg)](https://scan.coverity.com/projects/01org-tpm2-abrmd)
 [![Coverage Status](https://img.shields.io/coveralls/github/intel/tpm2-abrmd/1.x.svg)](https://coveralls.io/github/intel/tpm2-abrmd)
 
