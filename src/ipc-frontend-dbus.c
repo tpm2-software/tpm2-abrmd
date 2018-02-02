@@ -266,9 +266,8 @@ get_pid_from_dbus_invocation (GDBusProxy            *proxy,
                                      NULL,
                                      &error);
     if (error) {
-        g_error ("Unable to get PID for %s: %s", name, error->message);
+        g_warning ("Unable to get PID for %s: %s", name, error->message);
         g_error_free (error);
-        error = NULL;
         return FALSE;
     } else {
         g_variant_get (result, "(u)", pid);
