@@ -49,7 +49,6 @@
 #include "resource-manager.h"
 #include "response-sink.h"
 #include "source-interface.h"
-#include "tcti-options.h"
 #include "util.h"
 
 /* Structure to hold data that we pass to the gmain loop as 'user_data'.
@@ -334,7 +333,7 @@ parse_opts (gint            argc,
 
     ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabrmd)");
     g_option_context_add_main_entries (ctx, entries, NULL);
-    g_option_context_add_group (ctx, tcti_options_get_group (options->tcti_options));
+    g_option_context_add_group (ctx, tcti_factory_get_group (options->tcti_factory));
     if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
         tabrmd_critical ("Failed to parse options: %s", err->message);
     }
@@ -393,9 +392,9 @@ main (int argc, char *argv[])
 
     g_info ("tabrmd startup");
     /* instantiate a TctiOptions object for the parse_opts function to use */
-    gmain_data.options.tcti_options = tcti_options_new ();
+    gmain_data.options.tcti_factory = tcti_factory_new ();
     parse_opts (argc, argv, &gmain_data.options);
-    gmain_data.tcti = tcti_options_get_tcti (gmain_data.options.tcti_options);
+    gmain_data.tcti = tcti_factory_get_tcti (gmain_data.options.tcti_factory);
 
     g_mutex_init (&gmain_data.init_mutex);
     gmain_data.loop = g_main_loop_new (NULL, FALSE);
@@ -419,7 +418,7 @@ main (int argc, char *argv[])
     thread_cleanup (THREAD (gmain_data.resource_manager));
     thread_cleanup (THREAD (gmain_data.response_sink));
     /* clean up what remains */
-    g_object_unref (gmain_data.options.tcti_options);
+    g_object_unref (gmain_data.options.tcti_factory);
     g_object_unref (gmain_data.random);
     g_object_unref (gmain_data.tcti);
     return 0;
