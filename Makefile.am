@@ -34,6 +34,7 @@ TESTS_UNIT = \
     test/session-entry_unit \
     test/test-skeleton_unit \
     test/tcti-echo_unit \
+    test/tcti-factory_unit \
     test/thread_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
@@ -446,6 +447,10 @@ test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
 test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
 test_resource_manager_unit_SOURCES = test/resource-manager_unit.c
+
+test_tcti_factory_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_tcti_factory_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_tcti_factory_unit_SOURCES = test/tcti-factory_unit.c
 
 test_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
