@@ -33,6 +33,7 @@ TESTS_UNIT = \
     test/random_unit \
     test/session-entry_unit \
     test/test-skeleton_unit \
+    test/tcti-dynamic_unit \
     test/tcti-echo_unit \
     test/tcti-factory_unit \
     test/thread_unit \
@@ -238,6 +239,8 @@ src_libutil_la_SOURCES = \
     src/tabrmd.h \
     src/tcti.c \
     src/tcti.h \
+    src/tcti-dynamic.c \
+    src/tcti-dynamic.h \
     src/tcti-factory.c \
     src/tcti-factory.h \
     src/tcti-type-enum.c \
@@ -451,6 +454,11 @@ test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
 test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
 test_resource_manager_unit_SOURCES = test/resource-manager_unit.c
+
+test_tcti_dynamic_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
+test_tcti_dynamic_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_tcti_dynamic_unit_LDFLAGS  = -Wl,--wrap=dlopen,--wrap=dlsym,--wrap=dlclose
+test_tcti_dynamic_unit_SOURCES  = test/tcti-dynamic_unit.c
 
 test_tcti_factory_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tcti_factory_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)

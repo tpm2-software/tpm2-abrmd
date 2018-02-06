@@ -59,6 +59,8 @@ typedef struct _TctiFactory
     gchar           *device_name;
     gchar           *socket_address;
     guint            socket_port;
+    gchar           *file_name;
+    gchar           *conf_str;
 } TctiFactory;
 
 #define TYPE_TCTI_FACTORY             (tcti_factory_get_type       ())
