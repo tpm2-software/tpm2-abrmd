@@ -40,6 +40,7 @@ tcti_type_enum_get_type (void)
 #ifdef HAVE_TCTI_SOCKET
             { TCTI_TYPE_SOCKET, "TCTI for tcp socket", "socket" },
 #endif
+            { TCTI_TYPE_DYNAMIC, "Dynamic TCTI loading.", "dynamic" },
             { 0, NULL, NULL }
         };
 

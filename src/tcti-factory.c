@@ -24,6 +24,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <inttypes.h>
 #include <stdio.h>
 
 #include "logging.h"
@@ -35,6 +36,7 @@
 #ifdef HAVE_TCTI_SOCKET
 #include "tcti-socket.h"
 #endif
+#include "tcti-dynamic.h"
 #include "tcti-type-enum.h"
 
 G_DEFINE_TYPE (TctiFactory, tcti_factory, G_TYPE_OBJECT);
@@ -51,6 +53,8 @@ enum
     PROP_SOCKET_ADDRESS,
     PROP_SOCKET_PORT,
 #endif
+    PROP_FILE_NAME,
+    PROP_CONF_STR,
     N_PROPERTIES
 };
 
@@ -64,7 +68,7 @@ tcti_factory_set_property (GObject      *object,
 {
     TctiFactory *self = TCTI_FACTORY (object);
 
-    g_debug ("tcti_factory_set_property");
+    g_debug ("%s: for TctiFactory 0x%" PRIxPTR, __func__, (uintptr_t)self);
     switch (property_id) {
     case PROP_TCTI_TYPE:
         g_debug ("  PROP_TCTI_TYPE");
@@ -88,6 +92,14 @@ tcti_factory_set_property (GObject      *object,
         g_debug ("TctiFactory set socket_port: %d", self->socket_port);
         break;
 #endif
+    case PROP_FILE_NAME:
+        self->file_name = g_value_dup_string (value);
+        g_debug ("%s: PROP_FILE_NAME set to %s", __func__, self->file_name);
+        break;
+    case PROP_CONF_STR:
+        self->conf_str = g_value_dup_string (value);
+        g_debug ("%s: PROP_CONF_STR set to %s", __func__, self->conf_str);
+        break;
     default:
         /* We don't have any other property... */
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -121,6 +133,14 @@ tcti_factory_get_property (GObject    *object,
         g_value_set_uint (value, self->socket_port);
         break;
 #endif
+    case PROP_FILE_NAME:
+        g_debug ("%s: PROP_FILE_NAME set to %s", __func__, self->file_name);
+        g_value_set_string (value, self->file_name);
+        break;
+    case PROP_CONF_STR:
+        g_debug ("%s: PROP_CONF_STR set to %s", __func__, self->conf_str);
+        g_value_set_string (value, self->conf_str);
+        break;
     default:
         /* We don't have any other property... */
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -138,6 +158,8 @@ tcti_factory_finalize (GObject *obj)
 
     g_clear_pointer (&self->device_name, g_free);
     g_clear_pointer (&self->socket_address, g_free);
+    g_clear_pointer (&self->file_name, g_free);
+    g_clear_pointer (&self->conf_str, g_free);
     G_OBJECT_CLASS (tcti_factory_parent_class)->finalize (obj);
 }
 static void
@@ -188,6 +210,18 @@ tcti_factory_class_init (TctiFactoryClass *klass)
                            TCTI_SOCKET_DEFAULT_PORT,
                            G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
 #endif
+    obj_properties[PROP_FILE_NAME] =
+        g_param_spec_string ("tcti-file-name",
+                             "Name of TCTI library file.",
+                             "Name used to find TCTI library, See dlopen(3) for search rules.",
+                             TCTI_DYNAMIC_DEFAULT_FILE_NAME,
+                             G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
+    obj_properties[PROP_CONF_STR] =
+        g_param_spec_string ("tcti-conf-str",
+                             "TCTI configuration string.",
+                             "Configuration string passed to TCTI at time of initialization.",
+                             TCTI_DYNAMIC_DEFAULT_CONF_STR,
+                             G_PARAM_CONSTRUCT | G_PARAM_READWRITE);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
@@ -220,7 +254,10 @@ tcti_map_entry_t tcti_map[] = {
         .tcti_type = TCTI_TYPE_SOCKET
     },
 #endif
-
+    {
+        .name = "dynamic",
+        .tcti_type = TCTI_TYPE_DYNAMIC
+    },
 };
 #define ARRAY_LENGTH(array, type) (sizeof (array) / sizeof (type))
 
@@ -281,7 +318,7 @@ tcti_factory_get_group (TctiFactory *self)
             .arg             = G_OPTION_ARG_CALLBACK,
             .arg_data        = tcti_parse_opt_callback,
             .description     = "Downstream TCTI",
-            .arg_description = "[ none"
+            .arg_description = "[ dynamic"
 #ifdef HAVE_TCTI_DEVICE
             " | device"
 #endif
@@ -321,6 +358,24 @@ tcti_factory_get_group (TctiFactory *self)
             .arg_description = "0-65535",
         },
 #endif
+        {
+            .long_name       = "tcti-file-name",
+            .short_name      = 'i',
+            .flags           = G_OPTION_FLAG_NONE,
+            .arg             = G_OPTION_ARG_STRING,
+            .arg_data        = &self->file_name,
+            .description     = "Name of TCTI. See dlopen(3) for search rules.",
+            .arg_description = "file-name",
+        },
+        {
+            .long_name       = "tcti-conf-str",
+            .short_name      = 'j',
+            .flags           = G_OPTION_FLAG_NONE,
+            .arg             = G_OPTION_ARG_STRING,
+            .arg_data        = &self->conf_str,
+            .description     = "Configuration string passed to TCTI at time of initialization.",
+            .arg_description = "tcti-conf-str",
+        },
         { NULL }
     };
 
@@ -351,6 +406,9 @@ tcti_factory_get_tcti (TctiFactory *self)
         g_assert (self->socket_address);
         return TCTI (tcti_socket_new (self->socket_address, self->socket_port));
 #endif
+    case TCTI_TYPE_DYNAMIC:
+        g_assert (self->file_name != NULL);
+        return TCTI (tcti_dynamic_new (self->file_name, self->conf_str));
     default:
         tabrmd_critical ("unsupported TCTI type");
         break;

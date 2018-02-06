@@ -52,6 +52,7 @@ typedef enum TCTI_TYPE {
 #ifdef HAVE_TCTI_SOCKET
     TCTI_TYPE_SOCKET,
 #endif
+    TCTI_TYPE_DYNAMIC,
 } TctiTypeEnum;
 
 #define TYPE_TCTI_TYPE_ENUM      (tcti_type_enum_get_type ())

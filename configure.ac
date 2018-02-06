@@ -28,6 +28,11 @@ AS_IF([test "x$enable_unit" != xno],
                                     [1],
                                     [cmocka is available])])])
 AM_CONDITIONAL([UNIT], [test "x$enable_unit" != xno])
+
+# -dl or -dld
+AC_SEARCH_LIBS([dlopen], [dl dld], [], [
+  AC_MSG_ERROR([unable to find the dlopen() function])
+])
 PKG_CHECK_MODULES([DBUS], [dbus-1])
 PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
