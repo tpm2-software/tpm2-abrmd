@@ -1,7 +1,7 @@
 .\" Process this file with
 .\" groff -man -Tascii foo.1
 .\"
-.TH TPM2-ABRMD 8 "APRIL 2017" Intel "TPM2 Software Stack"
+.TH TPM2-ABRMD 8 "February 2018" Intel "TPM2 Software Stack"
 .SH NAME
 tpm2-abrmd \- TPM2 access broker and resource management daemon
 .SH SYNOPSIS
@@ -53,11 +53,12 @@ Read seed for pseudo-random number generator from the provided file.
 \fB\-s,\ \-\-session\fR
 Connect daemon to the session dbus. This option overrides the default
 behavior.
+.SH TCTI Specific Options
 .TP
 \fB\-t,\ \-\-tcti\fR
 Select the TCTI used by tabd for communication with the next component down
 the TSS stack. In most configurations this will be the TPM but it could be
-a simulator or proxy. Supported TCTIs are \fB\*(lqnone\*(rq\fR
+a simulator or proxy. Supported TCTIs are \fB\*(lqdynamic\*(rq\fR
 .if (\n[HAVE_DEVICE_TCTI]) or \fB\*(lqdevice\*(rq\fR
 .if (\n[HAVE_SOCKET_TCTI]) or \fB\*(lqsocket\*(rq\fR
 \[char46]
@@ -76,6 +77,15 @@ is 127.0.0.1.
 \fB\-p,\ \-\-tcti-socket-port\fR
 Specify the port number used by the socket TCTI. The default is 2321.
 \}
+.TP
+\fB\-i,\ \-\-tcti-file-name\fR
+Pass the name of the TCTI library to load using the 'dynamic' TCTI loading
+mechanism. Values for this parameter will depend on the TCTI. Libraries are
+found using the same algorithm as dlopen (3).
+.TP
+\fB\-j,\ \-\-tcti-conf-str\fR
+Specify the configureation string passed to the TCTI during the 'dynamic'
+loading and initialization. The format for this string is TCTI specific.
 .TP
 \fB\-v,\ \-\-version\fR
 Disply version string.
