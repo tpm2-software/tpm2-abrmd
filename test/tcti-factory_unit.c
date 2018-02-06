@@ -36,24 +36,24 @@
 #ifdef HAVE_TCTI_SOCKET
 #include "tcti-socket.h"
 #endif
-#include "tcti-options.h"
+#include "tcti-factory.h"
 
 /**
- * Very simple setup / teardown functions to instantiate a TctiOptions
+ * Very simple setup / teardown functions to instantiate a TctiFactory
  * object and unref it.
  */
 static int
-tcti_options_setup (void **state)
+tcti_factory_setup (void **state)
 {
-    *state = tcti_options_new ();
+    *state = tcti_factory_new ();
     return 0;
 }
 static int
-tcti_options_teardown (void **state)
+tcti_factory_teardown (void **state)
 {
-    TctiOptions *tcti_options = TCTI_OPTIONS (*state);
+    TctiFactory *tcti_factory = TCTI_FACTORY (*state);
 
-    g_object_unref (tcti_options);
+    g_object_unref (tcti_factory);
     return 0;
 }
 /**
@@ -62,9 +62,9 @@ tcti_options_teardown (void **state)
  * valgrind.
  */
 static void
-tcti_options_new_unref_test (void **state)
+tcti_factory_new_unref_test (void **state)
 {
-    TctiOptions *tcti_opts = TCTI_OPTIONS (*state);
+    TctiFactory *tcti_opts = TCTI_FACTORY (*state);
 
     assert_non_null (tcti_opts);
 }
@@ -75,28 +75,28 @@ tcti_options_new_unref_test (void **state)
  */
 #ifdef HAVE_TCTI_DEVICE
 static void
-tcti_options_defaults_device_test (void **state)
+tcti_factory_defaults_device_test (void **state)
 {
-    TctiOptions *tcti_options = TCTI_OPTIONS (*state);
+    TctiFactory *tcti_factory = TCTI_FACTORY (*state);
 
-    assert_string_equal (tcti_options->device_name, TCTI_DEVICE_DEFAULT_FILE);
+    assert_string_equal (tcti_factory->device_name, TCTI_DEVICE_DEFAULT_FILE);
 }
 #endif
 #ifdef HAVE_TCTI_SOCKET
 static void
-tcti_options_defaults_socket_address_test (void **state)
+tcti_factory_defaults_socket_address_test (void **state)
 {
-    TctiOptions *tcti_options = TCTI_OPTIONS (*state);
+    TctiFactory *tcti_factory = TCTI_FACTORY (*state);
 
-    assert_string_equal (tcti_options->socket_address,
+    assert_string_equal (tcti_factory->socket_address,
                          TCTI_SOCKET_DEFAULT_HOST);
 }
 static void
-tcti_options_defaults_socket_port_test (void **state)
+tcti_factory_defaults_socket_port_test (void **state)
 {
-    TctiOptions *tcti_options = TCTI_OPTIONS (*state);
+    TctiFactory *tcti_factory = TCTI_FACTORY (*state);
 
-    assert_int_equal (tcti_options->socket_port,
+    assert_int_equal (tcti_factory->socket_port,
                       TCTI_SOCKET_DEFAULT_PORT);
 }
 #endif
@@ -106,21 +106,21 @@ main (gint     argc,
       gchar   *argv[])
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup_teardown (tcti_options_new_unref_test,
-                                         tcti_options_setup,
-                                         tcti_options_teardown),
+        cmocka_unit_test_setup_teardown (tcti_factory_new_unref_test,
+                                         tcti_factory_setup,
+                                         tcti_factory_teardown),
 #ifdef HAVE_TCTI_DEVICE
-        cmocka_unit_test_setup_teardown (tcti_options_defaults_device_test,
-                                         tcti_options_setup,
-                                         tcti_options_teardown),
+        cmocka_unit_test_setup_teardown (tcti_factory_defaults_device_test,
+                                         tcti_factory_setup,
+                                         tcti_factory_teardown),
 #endif
 #ifdef HAVE_TCTI_SOCKET
-        cmocka_unit_test_setup_teardown (tcti_options_defaults_socket_address_test,
-                                         tcti_options_setup,
-                                         tcti_options_teardown),
-        cmocka_unit_test_setup_teardown (tcti_options_defaults_socket_port_test,
-                                         tcti_options_setup,
-                                         tcti_options_teardown),
+        cmocka_unit_test_setup_teardown (tcti_factory_defaults_socket_address_test,
+                                         tcti_factory_setup,
+                                         tcti_factory_teardown),
+        cmocka_unit_test_setup_teardown (tcti_factory_defaults_socket_port_test,
+                                         tcti_factory_setup,
+                                         tcti_factory_teardown),
 #endif
     };
     return cmocka_run_group_tests (tests, NULL, NULL);

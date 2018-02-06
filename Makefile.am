@@ -233,8 +233,8 @@ src_libutil_la_SOURCES = \
     src/tabrmd.h \
     src/tcti.c \
     src/tcti.h \
-    src/tcti-options.c \
-    src/tcti-options.h \
+    src/tcti-factory.c \
+    src/tcti-factory.h \
     src/tcti-type-enum.c \
     src/tcti-type-enum.h \
     src/thread.c \
