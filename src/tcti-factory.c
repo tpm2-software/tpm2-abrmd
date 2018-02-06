@@ -38,7 +38,7 @@
 #include "tcti-type-enum.h"
 
 G_DEFINE_TYPE (TctiFactory, tcti_factory, G_TYPE_OBJECT);
-G_DEFINE_QUARK ("tabrmd-tcti-options-quark", tabrmd_tcti_factory)
+G_DEFINE_QUARK ("tabrmd-tcti-factory-quark", tabrmd_tcti_factory)
 
 enum
 {
@@ -134,14 +134,14 @@ tcti_factory_get_property (GObject    *object,
 static void
 tcti_factory_finalize (GObject *obj)
 {
-    TctiFactory *options = TCTI_FACTORY (obj);
+    TctiFactory *self = TCTI_FACTORY (obj);
 
-    g_clear_pointer (&options->device_name, g_free);
-    g_clear_pointer (&options->socket_address, g_free);
+    g_clear_pointer (&self->device_name, g_free);
+    g_clear_pointer (&self->socket_address, g_free);
     G_OBJECT_CLASS (tcti_factory_parent_class)->finalize (obj);
 }
 static void
-tcti_factory_init (TctiFactory *options)
+tcti_factory_init (TctiFactory *self)
 { /* noop */ }
 /* When the class is initialized we set the pointer to our finalize function.
  */
@@ -243,7 +243,7 @@ tcti_parse_opt_callback (const gchar   *option_name,
     int i;
     gboolean ret = FALSE;
     GValue gvalue = { 0, };
-    TctiFactory *options = TCTI_FACTORY (data);
+    TctiFactory *self = TCTI_FACTORY (data);
     tcti_map_entry_t *tcti_map_entry;
 
     g_debug ("tcti_parse_opt_callback");
@@ -253,7 +253,7 @@ tcti_parse_opt_callback (const gchar   *option_name,
             g_debug ("tcti name matched: %s", tcti_map_entry->name);
             g_value_init (&gvalue, tcti_type_enum_get_type ());
             g_value_set_enum (&gvalue, tcti_map_entry->tcti_type);
-            g_object_set_property (G_OBJECT (options), "tcti", &gvalue);
+            g_object_set_property (G_OBJECT (self), "tcti", &gvalue);
             ret = TRUE;
         }
     }
@@ -269,7 +269,7 @@ tcti_parse_opt_callback (const gchar   *option_name,
 }
 
 GOptionGroup*
-tcti_factory_get_group (TctiFactory *options)
+tcti_factory_get_group (TctiFactory *self)
 {
     GOptionGroup *group;
 
@@ -296,7 +296,7 @@ tcti_factory_get_group (TctiFactory *options)
             .short_name      = 'd',
             .flags           = G_OPTION_FLAG_NONE,
             .arg             = G_OPTION_ARG_FILENAME,
-            .arg_data        = &options->device_name,
+            .arg_data        = &self->device_name,
             .description     = "TPM2 device node, default is /dev/tpm0",
             .arg_description = "/dev/tpm0"
         },
@@ -307,7 +307,7 @@ tcti_factory_get_group (TctiFactory *options)
             .short_name      = 'a',
             .flags           = G_OPTION_FLAG_NONE,
             .arg             = G_OPTION_ARG_STRING,
-            .arg_data        = &options->socket_address,
+            .arg_data        = &self->socket_address,
             .description     = "address for socket TCTI",
             .arg_description = "127.0.0.1"
         },
@@ -316,7 +316,7 @@ tcti_factory_get_group (TctiFactory *options)
             .short_name      = 'p',
             .flags           = G_OPTION_FLAG_NONE,
             .arg             = G_OPTION_ARG_INT,
-            .arg_data        = &options->socket_port,
+            .arg_data        = &self->socket_port,
             .description     = "port for socket TCTI",
             .arg_description = "0-65535",
         },
@@ -327,7 +327,7 @@ tcti_factory_get_group (TctiFactory *options)
     group = g_option_group_new ("tcti",
                                 "TCTI Options",
                                 "Show downstream TCTI options",
-                                options,
+                                self,
                                 NULL);
     if (group == NULL)
         return NULL;
