@@ -171,11 +171,15 @@ tcti_dynamic_discover_info (TctiDynamic *self)
     info_func = dlsym (tcti_dl_handle, TSS2_TCTI_INFO_SYMBOL);
     if (info_func == NULL) {
         g_warning ("Failed to get reference to symbol: %s", dlerror ());
+#if !defined (DISABLE_DLCLOSE)
         dlclose (tcti_dl_handle);
+#endif
         return TSS2_RESMGR_RC_BAD_VALUE;
     }
     self->tcti_info = info_func ();
+#if !defined (DISABLE_DLCLOSE)
     dlclose (tcti_dl_handle);
+#endif
     return TSS2_RC_SUCCESS;
 }
 /*

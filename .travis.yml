@@ -78,7 +78,7 @@ before_script:
 script :
   - echo 'Configuring source code...' && echo -en 'travis_fold:start:tabrmd-configure\\r'
   - |
-    CONFIGURE_OPTIONS="--enable-unit --with-simulatorbin=${DEPS}/ibmtpm/src/tpm_server"
+    CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --with-simulatorbin=${DEPS}/ibmtpm/src/tpm_server"
     if [ "$CC" = "gcc" ]; then
         CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-code-coverage"
     fi
