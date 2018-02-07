@@ -63,6 +63,7 @@ __wrap_dlsym (void *handle, const char *symbol)
     return mock_type (void*);
 }
 
+#if !defined (DISABLE_DLCLOSE)
 int __real_dlclose(void *handle);
 int
 __wrap_dlclose (void *handle)
@@ -72,6 +73,7 @@ __wrap_dlclose (void *handle)
     }
     return mock_type (int);
 }
+#endif
 
 static TSS2_TCTI_INFO*
 tcti_dynamic_get_info_null (void)
@@ -206,7 +208,9 @@ tcti_dynamic_discover_info_dlsym_fail_test (void **state)
 
     will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
     will_return (__wrap_dlsym, NULL);
+#if !defined (DISABLE_DLCLOSE)
     will_return (__wrap_dlclose, 0);
+#endif
     rc = tcti_dynamic_discover_info (tcti_dynamic);
     assert_int_equal (rc, TSS2_RESMGR_RC_BAD_VALUE);
 }
@@ -227,7 +231,9 @@ tcti_dynamic_discover_info_func_success_test (void **state)
 
     will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
     will_return (__wrap_dlsym, tcti_dynamic_get_info_empty);
+#if !defined (DISABLE_DLCLOSE)
     will_return (__wrap_dlclose, 0);
+#endif
     rc = tcti_dynamic_discover_info (tcti_dynamic);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_ptr_equal (tcti_dynamic->tcti_info, &tcti_info_empty);
@@ -246,7 +252,9 @@ tcti_dynamic_initialize_bad_info_test (void **state)
 
     will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
     will_return (__wrap_dlsym, tcti_dynamic_get_info_null);
+#if !defined (DISABLE_DLCLOSE)
     will_return (__wrap_dlclose, 0);
+#endif
     rc = tcti_dynamic_initialize (tcti_dynamic);
     assert_int_equal (rc, TSS2_RESMGR_RC_BAD_VALUE);
 }
@@ -262,7 +270,9 @@ tcti_dynamic_initialize_null_init_test (void **state)
 
     will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
     will_return (__wrap_dlsym, tcti_dynamic_get_info_empty);
+#if !defined (DISABLE_DLCLOSE)
     will_return (__wrap_dlclose, 0);
+#endif
     rc = tcti_dynamic_initialize (tcti_dynamic);
     assert_int_equal (rc, TSS2_RESMGR_RC_BAD_VALUE);
 }
@@ -278,7 +288,9 @@ tcti_dynamic_initialize_init_1_fail_test (void **state)
 
     will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
     will_return (__wrap_dlsym, tcti_dynamic_get_info_init_1_fail);
+#if !defined (DISABLE_DLCLOSE)
     will_return (__wrap_dlclose, 0);
+#endif
     rc = tcti_dynamic_initialize (tcti_dynamic);
     assert_int_equal (rc, TCTI_DYNAMIC_UNIT_INIT_1_FAIL_RC);
 }
@@ -293,7 +305,9 @@ tcti_dynamic_initialize_init_2_fail_test (void **state)
 
     will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
     will_return (__wrap_dlsym, tcti_dynamic_get_info_init_2_fail);
+#if !defined (DISABLE_DLCLOSE)
     will_return (__wrap_dlclose, 0);
+#endif
     rc = tcti_dynamic_initialize (tcti_dynamic);
     assert_int_equal (rc, TCTI_DYNAMIC_UNIT_INIT_2_FAIL_RC);
 }
