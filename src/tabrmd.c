@@ -49,7 +49,13 @@
 #include "resource-manager.h"
 #include "response-sink.h"
 #include "source-interface.h"
+#include "tcti-dynamic.h"
 #include "util.h"
+
+/* work around older glib versions missing this symbol */
+#ifndef G_OPTION_FLAG_NONE
+#define G_OPTION_FLAG_NONE 0
+#endif
 
 /* Structure to hold data that we pass to the gmain loop as 'user_data'.
  * This data will be available to events from gmain including events from
@@ -296,7 +302,7 @@ parse_opts (gint            argc,
         { "flush-all", 'f', G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE,
           &options->flush_all,
           "Flush all objects and sessions from TPM on startup." },
-        { "max-connections", 'c', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
+        { "max-connections", 'm', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_connections, "Maximum number of client connections." },
         { "max-sessions", 'e', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_sessions,
@@ -312,12 +318,29 @@ parse_opts (gint            argc,
         { "allow-root", 'o', 0, G_OPTION_ARG_NONE,
           &options->allow_root,
           "Allow the daemon to run as root, which is not recommended" },
+        {
+            .long_name       = "tcti",
+            .short_name      = 't',
+            .flags           = G_OPTION_FLAG_NONE,
+            .arg             = G_OPTION_ARG_STRING,
+            .arg_data        = &options->tcti_filename,
+            .description     = "Name of TCTI. See dlopen(3) for search rules.",
+            .arg_description = "filename",
+        },
+        {
+            .long_name       = "tcti-conf",
+            .short_name      = 'c',
+            .flags           = G_OPTION_FLAG_NONE,
+            .arg             = G_OPTION_ARG_STRING,
+            .arg_data        = &options->tcti_conf,
+            .description     = "Configuration string passed to TCTI at time of initialization.",
+            .arg_description = "conf-str",
+        },
         { NULL },
     };
 
     ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabrmd)");
     g_option_context_add_main_entries (ctx, entries, NULL);
-    g_option_context_add_group (ctx, tcti_factory_get_group (options->tcti_factory));
     if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
         tabrmd_critical ("Failed to parse options: %s", err->message);
     }
@@ -375,16 +398,14 @@ main (int argc, char *argv[])
     GThread *init_thread;
 
     g_info ("tabrmd startup");
-    /* instantiate a TctiOptions object for the parse_opts function to use */
-    gmain_data.options.tcti_factory = tcti_factory_new ();
     parse_opts (argc, argv, &gmain_data.options);
-    gmain_data.tcti = tcti_factory_get_tcti (gmain_data.options.tcti_factory);
-
     if (geteuid() == 0 && ! gmain_data.options.allow_root) {
         g_print ("refusing to run as root. pass --allow-root if you know what you're doing.");
         return 1;
     }
 
+    gmain_data.tcti = TCTI (tcti_dynamic_new (gmain_data.options.tcti_filename,
+                                              gmain_data.options.tcti_conf));
     g_mutex_init (&gmain_data.init_mutex);
     gmain_data.loop = g_main_loop_new (NULL, FALSE);
     /*
@@ -407,7 +428,6 @@ main (int argc, char *argv[])
     thread_cleanup (THREAD (gmain_data.resource_manager));
     thread_cleanup (THREAD (gmain_data.response_sink));
     /* clean up what remains */
-    g_object_unref (gmain_data.options.tcti_factory);
     g_object_unref (gmain_data.random);
     g_object_unref (gmain_data.tcti);
     return 0;
