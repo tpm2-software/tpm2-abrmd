@@ -6,8 +6,8 @@
 tpm2-abrmd \- TPM2 access broker and resource management daemon
 .SH SYNOPSIS
 .B tpm2-abrmd 
-.RB [\-c][\-e][\-i][\-o][\-l\ logger-name][\-r][\-s][\-g\ /dev/urandom][\-t\ tcti-name]
-[tcti-specific-options]
+.RB [\-m][\-e][\-i][\-o][\-l\ logger-name][\-r][\-s][\-g\ /dev/urandom][\-t\ tcti-filename]
+[\-c\ tcti-conf]
 .SH DESCRIPTION
 .B tpm2-abrmd
 is a daemon that implements the TPM access broker and resource manager as
@@ -17,11 +17,25 @@ described by the Trusted Computing Group (TGC) in the
 This daemon uses the DBus system bus and some pipes to communicate with
 clients.
 .SH OPTIONS
+.TP
+\fB\-t,\ \-\-tcti\fR
+Select the TCTI used by tabd for communication with the next component down
+the TSS stack. In most configurations this will be the TPM accessed through
+the 'device TCTI' but it could be a simulator or proxy. Only TCTIs that
+implement the common TCTI initialization mechanism are supported. Pass the
+Name of the TCTI library to load using this option. Values for this
+parameter will depend on the TCTI. Libraries are found using the same
+algorithm as dlopen (3).
+.TP
+\fB\-c,\ \-\-tcti-conf\fR
+Specify the configureation string passed to the TCTI during the 'dynamic'
+loading and initialization. The format for this string is TCTI specific.
+.TP
 \fB\-o,\ \-\-allow-root\fR
 Allow daemon to run as root. If this option is not provided the daemon will
 refused to run as the root user. Use of this option is \fBnot\fR recommended.
 .TP
-\fB\-c,\ \-\-max-connections\fR
+\fB\-m,\ \-\-max-connections\fR
 Set an upper bound on the number of concurrent client connections allowed.
 Once this number of client connections is reached new connections will be
 rejected with an error.
@@ -53,39 +67,6 @@ Read seed for pseudo-random number generator from the provided file.
 \fB\-s,\ \-\-session\fR
 Connect daemon to the session dbus. This option overrides the default
 behavior.
-.SH TCTI Specific Options
-.TP
-\fB\-t,\ \-\-tcti\fR
-Select the TCTI used by tabd for communication with the next component down
-the TSS stack. In most configurations this will be the TPM but it could be
-a simulator or proxy. Supported TCTIs are \fB\*(lqdynamic\*(rq\fR
-.if (\n[HAVE_DEVICE_TCTI]) or \fB\*(lqdevice\*(rq\fR
-.if (\n[HAVE_SOCKET_TCTI]) or \fB\*(lqsocket\*(rq\fR
-\[char46]
-.\" Conditional inclusion of the device TCTI options
-.if (\n[HAVE_DEVICE_TCTI]) \{ .TP
-\fB\-d,\ \-\-tcti-device\fR
-Specify the TPM device file for use by the device TCTI. The default is
-/dev/tpm0.
-\}
-.\" Conditional inclusion of the socket TCTI options
-.if (\n[HAVE_SOCKET_TCTI]) \{ .TP
-\fB\-a,\ \-\-tcti-socket-address\fR
-Specify the domain name or IP address used by the socket TCTI. The default
-is 127.0.0.1.
-.TP
-\fB\-p,\ \-\-tcti-socket-port\fR
-Specify the port number used by the socket TCTI. The default is 2321.
-\}
-.TP
-\fB\-i,\ \-\-tcti-file-name\fR
-Pass the name of the TCTI library to load using the 'dynamic' TCTI loading
-mechanism. Values for this parameter will depend on the TCTI. Libraries are
-found using the same algorithm as dlopen (3).
-.TP
-\fB\-j,\ \-\-tcti-conf-str\fR
-Specify the configureation string passed to the TCTI during the 'dynamic'
-loading and initialization. The format for this string is TCTI specific.
 .TP
 \fB\-v,\ \-\-version\fR
 Disply version string.

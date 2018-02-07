@@ -35,19 +35,12 @@ TESTS_UNIT = \
     test/test-skeleton_unit \
     test/tcti-dynamic_unit \
     test/tcti-echo_unit \
-    test/tcti-factory_unit \
     test/thread_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
     test/tss2-tcti-tabrmd_unit \
     test/tss2-tcti-echo_unit \
     test/util_unit
-if TCTI_DEVICE
-    TESTS_UNIT += test/tcti-device_unit
-endif
-if TCTI_SOCKET
-    TESTS_UNIT += test/tcti-socket_unit
-endif
 endif #UNIT
 
 tests_integration = \
@@ -241,10 +234,6 @@ src_libutil_la_SOURCES = \
     src/tcti.h \
     src/tcti-dynamic.c \
     src/tcti-dynamic.h \
-    src/tcti-factory.c \
-    src/tcti-factory.h \
-    src/tcti-type-enum.c \
-    src/tcti-type-enum.h \
     src/thread.c \
     src/thread.h \
     src/tpm2-command.c \
@@ -255,12 +244,6 @@ src_libutil_la_SOURCES = \
     src/tpm2-response.h \
     src/util.c \
     src/util.h
-if TCTI_DEVICE
-src_libutil_la_SOURCES += src/tcti-device.c src/tcti-device.h
-endif
-if TCTI_SOCKET
-src_libutil_la_SOURCES += src/tcti-socket.c src/tcti-socket.h
-endif
 
 test_integration_libtest_la_LIBADD  = $(SAPI_LIBS) $(TCTI_SOCKET_LIBS) $(TCTI_DEVICE_LIBS) $(GLIB_LIBS)
 test_integration_libtest_la_SOURCES = \
@@ -306,16 +289,6 @@ man/man8/%.8 : man/%.8.in
 define man_tcti_prefix
 	$(call make_parent_dir,$@)
 	-$(AM_V_at)rm -f $@
-if TCTI_DEVICE
-	$(AM_V_at)echo ".nr HAVE_DEVICE_TCTI 1" >> $1
-else
-	$(AM_V_at)echo ".nr HAVE_DEVICE_TCTI 0" >> $1
-endif
-if TCTI_SOCKET
-	$(AM_V_at)echo ".nr HAVE_SOCKET_TCTI 1" >> $1
-else
-	$(AM_V_at)echo ".nr HAVE_SOCKET_TCTI 0" >> $1
-endif
 	$(AM_V_GEN)sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g;" $2 $(srcdir)/man/colophon.in >> $1
 endef # man_tcti_prefix
 
@@ -401,20 +374,6 @@ test_logging_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libuti
 test_logging_unit_LDFLAGS = -Wl,--wrap=getenv,--wrap=syslog
 test_logging_unit_SOURCES = test/logging_unit.c
 
-if TCTI_DEVICE
-test_tcti_device_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_tcti_device_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_tcti_device_unit_LDFLAGS  = -Wl,--wrap=Tss2_Tcti_Device_Init
-test_tcti_device_unit_SOURCES  = test/tcti-device_unit.c
-endif
-
-if TCTI_SOCKET
-test_tcti_socket_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TCTI_SOCKET_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_tcti_socket_unit_LDFLAGS  = -Wl,--wrap=Tss2_Tcti_Socket_Init
-test_tcti_socket_unit_SOURCES  = test/tcti-socket_unit.c
-endif
-
 test_thread_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_thread_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
 test_thread_unit_SOURCES = test/thread_unit.c
@@ -459,10 +418,6 @@ test_tcti_dynamic_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
 test_tcti_dynamic_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_tcti_dynamic_unit_LDFLAGS  = -Wl,--wrap=dlopen,--wrap=dlsym,--wrap=dlclose
 test_tcti_dynamic_unit_SOURCES  = test/tcti-dynamic_unit.c
-
-test_tcti_factory_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tcti_factory_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_tcti_factory_unit_SOURCES = test/tcti-factory_unit.c
 
 test_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
