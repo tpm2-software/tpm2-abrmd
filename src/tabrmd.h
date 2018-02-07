@@ -30,7 +30,6 @@
 #include <gio/gio.h>
 #include <sapi/tpm20.h>
 
-#include "tcti-factory.h"
 #include "tcti-tabrmd.h"
 
 #define TABRMD_DBUS_INTERFACE_DEFAULT        TCTI_TABRMD_DBUS_INTERFACE_DEFAULT
@@ -61,7 +60,6 @@
 
 typedef struct tabrmd_options {
     GBusType        bus;
-    TctiFactory    *tcti_factory;
     gboolean        flush_all;
     guint           max_connections;
     guint           max_transient_objects;
@@ -69,6 +67,8 @@ typedef struct tabrmd_options {
     gchar          *dbus_name;
     const gchar    *prng_seed_file;
     gboolean        allow_root;
+    gchar          *tcti_filename;
+    gchar          *tcti_conf;
 } tabrmd_options_t;
 
 GQuark  tabrmd_error_quark (void);
