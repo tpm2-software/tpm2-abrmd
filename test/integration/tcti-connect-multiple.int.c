@@ -113,9 +113,6 @@ main (int   argc,
     if (sanity_check_test_opts (&opts) != 0) {
         g_error ("option sanity test failed");
     }
-    if (opts.tcti_type != TABRMD_TCTI) {
-        g_error ("TCTI type is not TABRMD, abroting test");
-    }
     size_t i;
     for (i = 0; i < CONNECTION_COUNT; ++i) {
         rc = tcti_tabrmd_init (&tcti_context [i],

@@ -56,7 +56,6 @@ tests_integration = \
     test/integration/session-load-from-open-connection.int \
     test/integration/start-auth-session.int \
     test/integration/tcti-cancel.int \
-    test/integration/tcti-connect-multiple.int \
     test/integration/tcti-sessions-max.int \
     test/integration/tcti-set-locality.int \
     test/integration/hash-sequence.int \
@@ -65,8 +64,10 @@ tests_integration = \
     test/integration/tpm2-command-flush-no-handle.int \
     test/integration/util-buf-max-upper-bound.int
 
+tests_integration_nohw = test/integration/tcti-connect-multiple.int
+
 if SIMULATOR_BIN
-TESTS_INTEGRATION = $(tests_integration)
+TESTS_INTEGRATION = $(tests_integration) $(tests_integration_nohw)
 endif
 
 if HWTPM
