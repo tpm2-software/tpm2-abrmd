@@ -25,11 +25,11 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <dlfcn.h>
 #include <inttypes.h>
 
 #include "tabrmd.h"
 #include "tcti-dynamic.h"
+#include "tcti-util.h"
 
 G_DEFINE_TYPE (TctiDynamic, tcti_dynamic, TYPE_TCTI);
 
@@ -159,28 +159,8 @@ tcti_dynamic_new (const gchar *file_name,
 TSS2_RC
 tcti_dynamic_discover_info (TctiDynamic *self)
 {
-    TSS2_TCTI_INFO_FUNC info_func;
-    void *tcti_dl_handle;
-
     g_debug ("%s: TctiDynamic 0x%" PRIxPTR, __func__, (uintptr_t)self);
-    tcti_dl_handle = dlopen (self->file_name, RTLD_LAZY);
-    if (tcti_dl_handle == NULL) {
-        g_warning ("failed to dlopen file %s: %s", self->file_name, dlerror ());
-        return TSS2_RESMGR_RC_BAD_VALUE;
-    }
-    info_func = dlsym (tcti_dl_handle, TSS2_TCTI_INFO_SYMBOL);
-    if (info_func == NULL) {
-        g_warning ("Failed to get reference to symbol: %s", dlerror ());
-#if !defined (DISABLE_DLCLOSE)
-        dlclose (tcti_dl_handle);
-#endif
-        return TSS2_RESMGR_RC_BAD_VALUE;
-    }
-    self->tcti_info = info_func ();
-#if !defined (DISABLE_DLCLOSE)
-    dlclose (tcti_dl_handle);
-#endif
-    return TSS2_RC_SUCCESS;
+    return tcti_util_discover_info (self->file_name, &self->tcti_info);
 }
 /*
  * Initialize an instance of a TSS2_TCTI_CONTEXT for the device TCTI.
@@ -190,39 +170,16 @@ tcti_dynamic_initialize (TctiDynamic *self)
 {
     Tcti          *tcti     = TCTI (self);
     TSS2_RC        rc       = TSS2_RC_SUCCESS;
-    size_t         ctx_size;
 
     /*
      * This should be done through the GInitable interface.
      */
-    rc = tcti_dynamic_discover_info (self);
+    g_debug ("%s: TctiDynamic 0x%" PRIxPTR, __func__, (uintptr_t)self);
+    rc = tcti_util_discover_info (self->file_name, &self->tcti_info);
     if (rc != TSS2_RC_SUCCESS) {
         return rc;
     }
-    g_debug ("%s: TctiDynamic 0x%" PRIxPTR, __func__, (uintptr_t)self);
-    if (self->tcti_info == NULL || self->tcti_info->init == NULL) {
-        g_warning ("%s: TCTI_INFO structure or init function pointer is NULL, "
-                   "cannot initialize context.", __func__);
-        return TSS2_RESMGR_RC_BAD_VALUE;
-    }
-    rc = self->tcti_info->init (NULL, &ctx_size, NULL);
-    if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("failed to get size for device TCTI contexxt structure: "
-                   "0x%x", rc);
-        goto out;
-    }
-    tcti->tcti_context = g_malloc0 (ctx_size);
-    if (tcti->tcti_context == NULL) {
-        g_warning ("failed to allocate memory");
-        rc = TSS2_RESMGR_RC_INTERNAL_ERROR;
-        goto out;
-    }
-    rc = self->tcti_info->init (tcti->tcti_context, &ctx_size, self->conf_str);
-    if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("failed to initialize device TCTI context: 0x%x", rc);
-        g_free (tcti->tcti_context);
-        tcti->tcti_context = NULL;
-    }
-out:
-    return rc;
+    return tcti_util_dynamic_init (self->tcti_info,
+                                   self->conf_str,
+                                   &tcti->tcti_context);
 }

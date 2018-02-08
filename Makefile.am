@@ -103,8 +103,8 @@ libutil        = src/libutil.la
 lib_LTLIBRARIES = src/libtcti-tabrmd.la
 noinst_LTLIBRARIES = \
     $(libtcti_echo) \
-    $(libutil) \
-    $(libtest)
+    $(libtest) \
+    $(libutil)
 man3_MANS = man/man3/tss2_tcti_tabrmd_init.3
 man7_MANS = man/man7/tcti-tabrmd.7
 man8_MANS = man/man8/tpm2-abrmd.8
@@ -235,6 +235,8 @@ src_libutil_la_SOURCES = \
     src/tcti.h \
     src/tcti-dynamic.c \
     src/tcti-dynamic.h \
+    src/tcti-util.c \
+    src/tcti-util.h \
     src/thread.c \
     src/thread.h \
     src/tpm2-command.c \
@@ -246,7 +248,8 @@ src_libutil_la_SOURCES = \
     src/util.c \
     src/util.h
 
-test_integration_libtest_la_LIBADD  = $(SAPI_LIBS) $(TCTI_SOCKET_LIBS) $(TCTI_DEVICE_LIBS) $(GLIB_LIBS)
+test_integration_libtest_la_LIBADD  = $(SAPI_LIBS) $(TCTI_SOCKET_LIBS) \
+    $(TCTI_DEVICE_LIBS) $(GLIB_LIBS)
 test_integration_libtest_la_SOURCES = \
     test/integration/common.c \
     test/integration/common.h \
