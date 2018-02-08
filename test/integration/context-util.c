@@ -29,87 +29,27 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <tcti/tcti_device.h>
-#include <tcti/tcti_socket.h>
-
-#include "tcti-tabrmd.h"
-
 #include "context-util.h"
+#include "tcti-util.h"
 
-/*
- * Initialize a TSS2_TCTI_CONTEXT for the device TCTI.
- */
-#ifdef HAVE_TCTI_DEVICE
 TSS2_TCTI_CONTEXT*
-tcti_device_init (char const *device_path)
+tcti_dynamic_init (const char *filename,
+                   const char *conf)
 {
-    size_t size;
+    TSS2_TCTI_CONTEXT *context;
+    const TSS2_TCTI_INFO *info;
     TSS2_RC rc;
-    TSS2_TCTI_CONTEXT *tcti_ctx;
 
-    rc = Tss2_Tcti_Device_Init (NULL, &size, NULL);
+    rc = tcti_util_discover_info (filename, &info);
     if (rc != TSS2_RC_SUCCESS) {
-        fprintf (stderr,
-                 "Failed to get allocation size for device tcti context: "
-                 "0x%x\n", rc);
         return NULL;
     }
-    tcti_ctx = (TSS2_TCTI_CONTEXT*)calloc (1, size);
-    if (tcti_ctx == NULL) {
-        fprintf (stderr,
-                 "Allocation for device TCTI context failed: %s\n",
-                 strerror (errno));
-        return NULL;
-    }
-    rc = Tss2_Tcti_Socket_Init (tcti_ctx, &size, device_path);
+    rc = tcti_util_dynamic_init (info, conf, &context);
     if (rc != TSS2_RC_SUCCESS) {
-        fprintf (stderr,
-                 "Failed to initialize device TCTI context: 0x%x\n",
-                 rc);
-        free (tcti_ctx);
         return NULL;
     }
-    return tcti_ctx;
+    return context;
 }
-#endif /* HAVE_TCTI_DEVICE */
-/*
- * Initialize a socket TCTI instance using the provided options structure.
- * The hostname and port are the only configuration options used. Callbacks
- * for logging are set to NULL.
- * The caller is returned a TCTI context structure that is allocated by this
- * function. This structure must be freed by the caller.
- */
-#ifdef HAVE_TCTI_SOCKET
-TSS2_TCTI_CONTEXT*
-tcti_socket_init (char const *address,
-                  uint16_t    port)
-{
-    size_t size;
-    TSS2_RC rc;
-    TSS2_TCTI_CONTEXT *tcti_ctx;
-    char conf[256] = { 0 } ;
-
-    rc = Tss2_Tcti_Socket_Init (NULL, &size, NULL);
-    if (rc != TSS2_RC_SUCCESS) {
-        fprintf (stderr, "Faled to get allocation size for tcti context: "
-                 "0x%x\n", rc);
-        return NULL;
-    }
-    tcti_ctx = (TSS2_TCTI_CONTEXT*)calloc (1, size);
-    if (tcti_ctx == NULL) {
-        fprintf (stderr, "Allocation for tcti context failed: %s\n",
-                 strerror (errno));
-        return NULL;
-    }
-    snprintf (conf, 256, "tcp://%s:%" PRIu16, address, port);
-    rc = Tss2_Tcti_Socket_Init (tcti_ctx, &size, conf);
-    if (rc != TSS2_RC_SUCCESS) {
-        fprintf (stderr, "Failed to initialize tcti context: 0x%x\n", rc);
-        return NULL;
-    }
-    return tcti_ctx;
-}
-#endif /* HAVE_TCTI_SOCKET */
 /*
  * Initialize a TCTI context for the tabrmd. Currently it requires no options.
  */
@@ -209,21 +149,11 @@ sapi_init_from_opts (test_opts_t *options)
 TSS2_TCTI_CONTEXT*
 tcti_init_from_opts (test_opts_t *options)
 {
-    switch (options->tcti_type) {
-#ifdef HAVE_TCTI_DEVICE
-    case DEVICE_TCTI:
-        return tcti_device_init (options->device_file);
-#endif
-#ifdef HAVE_TCTI_SOCKET
-    case SOCKET_TCTI:
-        return tcti_socket_init (options->socket_address,
-                                 options->socket_port);
-#endif
-    case TABRMD_TCTI:
+    if (options->tcti_filename != NULL) {
+        return tcti_dynamic_init (options->tcti_filename, options->tcti_conf);
+    } else {
         return tcti_tabrmd_init (options->tabrmd_bus_type,
                                  options->tabrmd_bus_name);
-    default:
-        return NULL;
     }
 }
 /*
