@@ -437,85 +437,73 @@ test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(libtcti_echo)
 test_tss2_tcti_echo_unit_SOURCES = test/tss2-tcti-echo_unit.c
 endif
 
-test_integration_auth_session_max_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+TEST_INT_LIBS = $(libtest) $(libutil) $(libtcti_tabrmd) $(GLIB_LIBS)
+test_integration_auth_session_max_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_max_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-max.int.c
 
-test_integration_auth_session_start_flush_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_auth_session_start_flush_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_start_flush_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-start-flush.int.c
 
-test_integration_auth_session_start_save_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_auth_session_start_save_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_start_save_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-start-save.int.c
 
-test_integration_auth_session_start_save_load_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_auth_session_start_save_load_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_start_save_load_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-start-save-load.int.c
 
-test_integration_create_keys_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) \
-    $(TCTI_SOCKET_LIBS)
+test_integration_create_keys_int_LDADD = $(TEST_INT_LIBS)
 test_integration_create_keys_int_SOURCES = test/integration/main.c test/integration/create-keys.int.c
 
-test_integration_get_capability_handles_transient_int_LDADD   = $(libtest) \
-    $(libtcti_tabrmd) $(GLIB_LIBS) $(SAPI_LIBS)
+test_integration_get_capability_handles_transient_int_LDADD = $(TEST_INT_LIBS)
 test_integration_get_capability_handles_transient_int_SOURCES = \
     test/integration/main.c test/integration/get-capability-handles-transient.int.c
 
-test_integration_session_load_from_open_connection_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_session_load_from_open_connection_int_LDADD = $(TEST_INT_LIBS)
 test_integration_session_load_from_open_connection_int_SOURCES = \
     test/integration/session-load-from-open-connection.int.c
 
-test_integration_session_load_from_closed_connection_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_session_load_from_closed_connection_int_LDADD = $(TEST_INT_LIBS)
 test_integration_session_load_from_closed_connection_int_SOURCES = \
     test/integration/session-load-from-closed-connection.int.c
 
-test_integration_session_load_from_closed_connections_lru_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_session_load_from_closed_connections_lru_int_LDADD = $(TEST_INT_LIBS)
 test_integration_session_load_from_closed_connections_lru_int_SOURCES = \
     test/integration/session-load-from-closed-connections-lru.int.c
 
-test_integration_start_auth_session_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS)
+test_integration_start_auth_session_int_LDADD = $(TEST_INT_LIBS)
 test_integration_start_auth_session_int_SOURCES = test/integration/main.c test/integration/start-auth-session.int.c
 
-test_integration_tcti_cancel_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_cancel_int_LDADD = $(TEST_INT_LIBS)
 test_integration_tcti_cancel_int_SOURCES = test/integration/main.c test/integration/tcti-cancel.int.c
 
-test_integration_tcti_connect_multiple_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_connect_multiple_int_LDADD = $(TEST_INT_LIBS)
 test_integration_tcti_connect_multiple_int_SOURCES = test/integration/tcti-connect-multiple.int.c
 
-test_integration_tcti_sessions_max_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_sessions_max_int_LDADD = $(TEST_INT_LIBS)
 test_integration_tcti_sessions_max_int_SOURCES = test/integration/tcti-sessions-max.int.c
 
-test_integration_tcti_set_locality_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_set_locality_int_LDADD  = $(TEST_INT_LIBS)
 test_integration_tcti_set_locality_int_SOURCES = test/integration/main.c test/integration/tcti-set-locality.int.c
 
-test_integration_hash_sequence_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_hash_sequence_int_LDADD = $(TEST_INT_LIBS)
 test_integration_hash_sequence_int_SOURCES = test/integration/main.c test/integration/hash-sequence.int.c
 
-test_integration_not_enough_handles_for_command_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_not_enough_handles_for_command_int_LDADD = $(TEST_INT_LIBS)
 test_integration_not_enough_handles_for_command_int_SOURCES = test/integration/main.c test/integration/not-enough-handles-for-command.int.c
 
-test_integration_password_authorization_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_password_authorization_int_LDADD = $(TEST_INT_LIBS)
 test_integration_password_authorization_int_SOURCES = test/integration/main.c test/integration/password-authorization.int.c
 
-test_integration_manage_transient_keys_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
+test_integration_manage_transient_keys_int_LDADD = $(TEST_INT_LIBS)
 test_integration_manage_transient_keys_int_SOURCES = test/integration/main.c test/integration/manage-transient-keys.int.c
 
-test_integration_tpm2_command_flush_no_handle_int_LDADD   = $(libtest) \
-    $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tpm2_command_flush_no_handle_int_LDADD = $(TEST_INT_LIBS)
 test_integration_tpm2_command_flush_no_handle_int_SOURCES = \
     test/integration/main.c test/integration/tpm2-command-flush-no-handle.int.c
 
-test_integration_util_buf_max_upper_bound_int_LDADD   = $(libtest) \
-    $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_util_buf_max_upper_bound_int_LDADD = $(TEST_INT_LIBS)
 test_integration_util_buf_max_upper_bound_int_SOURCES = \
     test/integration/main.c test/integration/util-buf-max-upper-bound.int.c
