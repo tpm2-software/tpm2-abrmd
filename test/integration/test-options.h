@@ -54,6 +54,16 @@
 #define ENV_TABRMD_BUS_NAME "TABRMD_TEST_BUS_NAME"
 #define ENV_TCTI_RETRIES    "TABRMD_TEST_TCTI_RETRIES"
 
+#define TEST_OPTS_DEFAULT_INIT { \
+    .tcti_type = TCTI_DEFAULT, \
+    .device_file = DEVICE_PATH_DEFAULT, \
+    .socket_address = HOSTNAME_DEFAULT, \
+    .socket_port    = PORT_DEFAULT, \
+    .tabrmd_bus_type = TCTI_TABRMD_DBUS_TYPE_DEFAULT, \
+    .tabrmd_bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT, \
+    .tcti_retries    = TCTI_RETRIES_DEFAULT, \
+}
+
 typedef enum {
     UNKNOWN_TCTI,
 #ifdef HAVE_TCTI_DEVICE

@@ -46,15 +46,7 @@ main (int   argc,
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context;
     int ret;
-    test_opts_t opts = {
-        .tcti_type      = TCTI_DEFAULT,
-        .device_file    = DEVICE_PATH_DEFAULT,
-        .socket_address = HOSTNAME_DEFAULT,
-        .socket_port    = PORT_DEFAULT,
-        .tabrmd_bus_type = TCTI_TABRMD_DBUS_TYPE_DEFAULT,
-        .tabrmd_bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT,
-        .tcti_retries    = TCTI_RETRIES_DEFAULT,
-    };
+    test_opts_t opts = TEST_OPTS_DEFAULT_INIT;
 
     get_test_opts_from_env (&opts);
     if (sanity_check_test_opts (&opts) != 0)

@@ -96,11 +96,7 @@ main (int   argc,
 {
     TSS2_RC rc;
     TSS2_TCTI_CONTEXT *tcti_context[CONNECTION_COUNT] = { 0 };
-    test_opts_t opts = {
-        .tcti_type      = TCTI_DEFAULT,
-        .tabrmd_bus_type = TCTI_TABRMD_DBUS_TYPE_DEFAULT,
-        .tabrmd_bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT,
-    };
+    test_opts_t opts = TEST_OPTS_DEFAULT_INIT;
     /* This is a pre-canned TPM2 command buffer to invoke 'GetCapability' */
     uint8_t cmd_buf[] = {
         0x80, 0x01, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00,
