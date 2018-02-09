@@ -169,6 +169,11 @@ tcti_dynamic_teardown (void **state)
 {
     TctiDynamic *tcti_dynamic = TCTI_DYNAMIC (*state);
 
+#if !defined (DISABLE_DLCLOSE)
+    if (tcti_dynamic->tcti_dl_handle != NULL) {
+        will_return (__wrap_dlclose, 0);
+    }
+#endif
     g_object_unref (tcti_dynamic);
     return 0;
 }
@@ -181,62 +186,6 @@ tcti_dynamic_new_unref_test (void **state)
     assert_non_null (*state);
     assert_true (IS_TCTI (*state));
     assert_true (IS_TCTI_DYNAMIC (*state));
-}
-/*
- * Cause a failure (NULL context) to be returned by dlopen while the
- * TctiDynamic is trying to load the requested shared object.
- */
-static void
-tcti_dynamic_discover_info_dlopen_fail_test (void **state)
-{
-    TctiDynamic *tcti_dynamic = TCTI_DYNAMIC (*state);
-    TSS2_RC rc;
-
-    will_return (__wrap_dlopen, NULL);
-    rc = tcti_dynamic_discover_info (tcti_dynamic);
-    assert_int_equal (rc, TSS2_RESMGR_RC_BAD_VALUE);
-}
-/*
- * Cause a failure in the tcti_dynamic_discover_info function by causing the
- * dlsym function to return a NULL pointer.
- */
-static void
-tcti_dynamic_discover_info_dlsym_fail_test (void **state)
-{
-    TctiDynamic *tcti_dynamic = TCTI_DYNAMIC (*state);
-    TSS2_RC rc;
-
-    will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
-    will_return (__wrap_dlsym, NULL);
-#if !defined (DISABLE_DLCLOSE)
-    will_return (__wrap_dlclose, 0);
-#endif
-    rc = tcti_dynamic_discover_info (tcti_dynamic);
-    assert_int_equal (rc, TSS2_RESMGR_RC_BAD_VALUE);
-}
-/*
- * Cause the dynamic_tcti_discover_info function to execute successfully.
- * This requires that we:
- * 1) mock a successful call to dlopen
- * 2) mock a call to dlsym such that it returns a fake TCTI info function that
- *    will return a valid INFO structure.
- * 3) mock a successful call to dlclose
- * 4) check the return type etc
- */
-static void
-tcti_dynamic_discover_info_func_success_test (void **state)
-{
-    TctiDynamic *tcti_dynamic = TCTI_DYNAMIC (*state);
-    TSS2_RC rc;
-
-    will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
-    will_return (__wrap_dlsym, tcti_dynamic_get_info_empty);
-#if !defined (DISABLE_DLCLOSE)
-    will_return (__wrap_dlclose, 0);
-#endif
-    rc = tcti_dynamic_discover_info (tcti_dynamic);
-    assert_int_equal (rc, TSS2_RC_SUCCESS);
-    assert_ptr_equal (tcti_dynamic->tcti_info, &tcti_info_empty);
 }
 /*
  * Cause a failure in the tcti_dynamic_discover_info function by causing
@@ -252,9 +201,6 @@ tcti_dynamic_initialize_bad_info_test (void **state)
 
     will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
     will_return (__wrap_dlsym, tcti_dynamic_get_info_null);
-#if !defined (DISABLE_DLCLOSE)
-    will_return (__wrap_dlclose, 0);
-#endif
     rc = tcti_dynamic_initialize (tcti_dynamic);
     assert_int_equal (rc, TSS2_RESMGR_RC_BAD_VALUE);
 }
@@ -270,9 +216,6 @@ tcti_dynamic_initialize_null_init_test (void **state)
 
     will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
     will_return (__wrap_dlsym, tcti_dynamic_get_info_empty);
-#if !defined (DISABLE_DLCLOSE)
-    will_return (__wrap_dlclose, 0);
-#endif
     rc = tcti_dynamic_initialize (tcti_dynamic);
     assert_int_equal (rc, TSS2_RESMGR_RC_BAD_VALUE);
 }
@@ -288,9 +231,6 @@ tcti_dynamic_initialize_init_1_fail_test (void **state)
 
     will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
     will_return (__wrap_dlsym, tcti_dynamic_get_info_init_1_fail);
-#if !defined (DISABLE_DLCLOSE)
-    will_return (__wrap_dlclose, 0);
-#endif
     rc = tcti_dynamic_initialize (tcti_dynamic);
     assert_int_equal (rc, TCTI_DYNAMIC_UNIT_INIT_1_FAIL_RC);
 }
@@ -305,9 +245,6 @@ tcti_dynamic_initialize_init_2_fail_test (void **state)
 
     will_return (__wrap_dlopen, TCTI_DYNAMIC_UNIT_HANDLE);
     will_return (__wrap_dlsym, tcti_dynamic_get_info_init_2_fail);
-#if !defined (DISABLE_DLCLOSE)
-    will_return (__wrap_dlclose, 0);
-#endif
     rc = tcti_dynamic_initialize (tcti_dynamic);
     assert_int_equal (rc, TCTI_DYNAMIC_UNIT_INIT_2_FAIL_RC);
 }
@@ -317,15 +254,6 @@ main (gint     argc,
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (tcti_dynamic_new_unref_test,
-                                         tcti_dynamic_setup,
-                                         tcti_dynamic_teardown),
-        cmocka_unit_test_setup_teardown (tcti_dynamic_discover_info_dlopen_fail_test,
-                                         tcti_dynamic_setup,
-                                         tcti_dynamic_teardown),
-        cmocka_unit_test_setup_teardown (tcti_dynamic_discover_info_dlsym_fail_test,
-                                         tcti_dynamic_setup,
-                                         tcti_dynamic_teardown),
-        cmocka_unit_test_setup_teardown (tcti_dynamic_discover_info_func_success_test,
                                          tcti_dynamic_setup,
                                          tcti_dynamic_teardown),
         cmocka_unit_test_setup_teardown (tcti_dynamic_initialize_bad_info_test,

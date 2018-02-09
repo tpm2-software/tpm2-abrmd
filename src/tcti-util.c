@@ -27,37 +27,47 @@
 #include <dlfcn.h>
 #include <glib.h>
 #include <inttypes.h>
-#include <sapi/tpm20.h>
 
+#include "tcti-util.h"
 #include "tabrmd.h"
 
+/*
+ * This function does all the dl* magic required to get a reference to a TCTI
+ * modules TSS2_TCTI_INFO structure. A successful call will return
+ * TSS2_RC_SUCCESS, a reference to the info structure in the 'info' parameter
+ * and a reference to the dlhandle returned by dlopen. The caller will need
+ * to close this handle after they're done using the TCTI.
+ */
 TSS2_RC
 tcti_util_discover_info (const char *filename,
-                         const TSS2_TCTI_INFO **info)
+                         const TSS2_TCTI_INFO **info,
+                         void **tcti_dl_handle)
 {
     TSS2_TCTI_INFO_FUNC info_func;
-    void *tcti_dl_handle;
 
     g_debug ("%s", __func__);
-    tcti_dl_handle = dlopen (filename, RTLD_LAZY);
-    if (tcti_dl_handle == NULL) {
+    *tcti_dl_handle = dlopen (filename, RTLD_LAZY);
+    if (*tcti_dl_handle == NULL) {
         g_warning ("failed to dlopen file %s: %s", filename, dlerror ());
         return TSS2_RESMGR_RC_BAD_VALUE;
     }
-    info_func = dlsym (tcti_dl_handle, TSS2_TCTI_INFO_SYMBOL);
+    info_func = dlsym (*tcti_dl_handle, TSS2_TCTI_INFO_SYMBOL);
     if (info_func == NULL) {
         g_warning ("Failed to get reference to symbol: %s", dlerror ());
 #if !defined (DISABLE_DLCLOSE)
-        dlclose (tcti_dl_handle);
+        dlclose (*tcti_dl_handle);
 #endif
         return TSS2_RESMGR_RC_BAD_VALUE;
     }
     *info = info_func ();
-#if !defined (DISABLE_DLCLOSE)
-    dlclose (tcti_dl_handle);
-#endif
     return TSS2_RC_SUCCESS;
 }
+/*
+ * This function allocates and initializes a TCTI context structure using the
+ * initialization function in the provide 'info' parameter according to the
+ * provided configuration string. The caller must deallocate the reference
+ * returned in the 'context' parameter when TSS2_RC_SUCCESS is returned.
+ */
 TSS2_RC
 tcti_util_dynamic_init (const TSS2_TCTI_INFO *info,
                         const char *conf,
