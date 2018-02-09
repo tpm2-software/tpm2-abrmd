@@ -24,6 +24,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <dlfcn.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -39,14 +40,15 @@ tcti_dynamic_init (const char *filename,
     TSS2_TCTI_CONTEXT *context;
     const TSS2_TCTI_INFO *info;
     TSS2_RC rc;
+    void *tcti_dl_handle;
 
-    rc = tcti_util_discover_info (filename, &info);
+    rc = tcti_util_discover_info (filename, &info, &tcti_dl_handle);
     if (rc != TSS2_RC_SUCCESS) {
         return NULL;
     }
     rc = tcti_util_dynamic_init (info, conf, &context);
     if (rc != TSS2_RC_SUCCESS) {
-        return NULL;
+        context = NULL;
     }
     return context;
 }

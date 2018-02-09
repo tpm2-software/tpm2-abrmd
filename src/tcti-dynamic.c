@@ -25,6 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <dlfcn.h>
 #include <inttypes.h>
 
 #include "tabrmd.h"
@@ -102,6 +103,9 @@ tcti_dynamic_finalize (GObject *obj)
         tss2_tcti_finalize (tcti->tcti_context);
     }
     g_clear_pointer (&tcti->tcti_context, g_free);
+#if !defined (DISABLE_DLCLOSE)
+    g_clear_pointer (&tcti_dynamic->tcti_dl_handle, dlclose);
+#endif
     g_clear_pointer (&tcti_dynamic->file_name, g_free);
     g_clear_pointer (&tcti_dynamic->conf_str, g_free);
     G_OBJECT_CLASS (tcti_dynamic_parent_class)->finalize (obj);
@@ -156,12 +160,6 @@ tcti_dynamic_new (const gchar *file_name,
                                        NULL));
 }
 
-TSS2_RC
-tcti_dynamic_discover_info (TctiDynamic *self)
-{
-    g_debug ("%s: TctiDynamic 0x%" PRIxPTR, __func__, (uintptr_t)self);
-    return tcti_util_discover_info (self->file_name, &self->tcti_info);
-}
 /*
  * Initialize an instance of a TSS2_TCTI_CONTEXT for the device TCTI.
  */
@@ -175,7 +173,9 @@ tcti_dynamic_initialize (TctiDynamic *self)
      * This should be done through the GInitable interface.
      */
     g_debug ("%s: TctiDynamic 0x%" PRIxPTR, __func__, (uintptr_t)self);
-    rc = tcti_util_discover_info (self->file_name, &self->tcti_info);
+    rc = tcti_util_discover_info (self->file_name,
+                                  &self->tcti_info,
+                                  &self->tcti_dl_handle);
     if (rc != TSS2_RC_SUCCESS) {
         return rc;
     }

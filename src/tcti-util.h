@@ -27,9 +27,12 @@
 #ifndef TABRMD_TCTI_UTIL_H
 #define TABRMD_TCTI_UTIL_H
 
+#include <sapi/tpm20.h>
+
 TSS2_RC
 tcti_util_discover_info (const char *filename,
-                         const TSS2_TCTI_INFO **info);
+                         const TSS2_TCTI_INFO **info,
+                         void **tcti_dl_handle);
 TSS2_RC
 tcti_util_dynamic_init (const TSS2_TCTI_INFO *info,
                         const char *conf,

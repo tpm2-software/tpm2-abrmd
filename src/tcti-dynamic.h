@@ -46,6 +46,7 @@ typedef struct _TctiDynamic
     Tcti               parent_instance;
     gchar             *file_name;
     gchar             *conf_str;
+    void              *tcti_dl_handle;
     const TSS2_TCTI_INFO *tcti_info;
 } TctiDynamic;
 
@@ -59,7 +60,6 @@ typedef struct _TctiDynamic
 GType                tcti_dynamic_get_type       (void);
 TctiDynamic*         tcti_dynamic_new            (gchar const      *file_name,
                                                   gchar const      *conf_str);
-TSS2_RC              tcti_dynamic_discover_info  (TctiDynamic      *tcti);
 TSS2_RC              tcti_dynamic_initialize     (TctiDynamic      *tcti);
 
 G_END_DECLS
