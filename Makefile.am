@@ -35,6 +35,7 @@ TESTS_UNIT = \
     test/test-skeleton_unit \
     test/tcti-dynamic_unit \
     test/tcti-echo_unit \
+    test/tcti-util_unit \
     test/thread_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
@@ -426,6 +427,11 @@ test_tcti_dynamic_unit_SOURCES  = test/tcti-dynamic_unit.c
 test_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
 test_tcti_echo_unit_SOURCES = test/tcti-echo_unit.c
+
+test_tcti_util_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
+test_tcti_util_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_tcti_util_unit_LDFLAGS  = -Wl,--wrap=dlopen,--wrap=dlsym,--wrap=dlclose
+test_tcti_util_unit_SOURCES  = test/tcti-util_unit.c
 
 test_tss2_tcti_tabrmd_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tss2_tcti_tabrmd_unit_LDFLAGS = -Wl,--wrap=g_dbus_proxy_call_with_unix_fd_list_sync,--wrap=tcti_tabrmd_call_cancel_sync,--wrap=tcti_tabrmd_call_set_locality_sync,--wrap=read_data,--wrap=poll
