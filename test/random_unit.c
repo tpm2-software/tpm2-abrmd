@@ -33,6 +33,8 @@
 
 #include "random.h"
 
+#define ENTROPY_SRC "/dev/urandom"
+
 typedef struct test_data {
     Random *random;
 } test_data_t;
@@ -68,9 +70,9 @@ __wrap_open(const char *pathname,
 {
     /*
      * Mock calls to 'open' only for operations on the default entropy
-     * source used by the Random object (RANDOM_ENTROPY_FILE_DEFAULT).
+     * source used by the Random object (ENTROPY_SRC).
      */
-    if (strcmp (pathname, RANDOM_ENTROPY_FILE_DEFAULT)) {
+    if (strcmp (pathname, ENTROPY_SRC)) {
         return __real_open (pathname, flags, mode);
     }
     return mock_type (int);
@@ -114,7 +116,7 @@ random_seed_from_file_success_test (void **state)
     will_return (__wrap_open, 5);
     will_return (__wrap_read, sizeof (long int));
     will_return (__wrap_close, 0);
-    ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
+    ret = random_seed_from_file (data->random, ENTROPY_SRC);
     assert_int_equal (ret, 0);
 }
 /*
@@ -129,7 +131,7 @@ random_seed_from_file_open_fail_test (void **state)
     int ret;
 
     will_return (__wrap_open, -1);
-    ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
+    ret = random_seed_from_file (data->random, ENTROPY_SRC);
     assert_int_equal (ret, -1);
 }
 /*
@@ -147,7 +149,7 @@ random_seed_from_file_read_fail_test (void **state)
     will_return (__wrap_open, 5);
     will_return (__wrap_read, -1);
     will_return (__wrap_close, 0);
-    ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
+    ret = random_seed_from_file (data->random, ENTROPY_SRC);
     assert_int_equal (ret, -1);
 }
 /*
@@ -167,7 +169,7 @@ random_seed_from_file_close_fail_test (void **state)
     will_return (__wrap_open, 5);
     will_return (__wrap_read, sizeof (long int));
     will_return (__wrap_close, -1);
-    ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
+    ret = random_seed_from_file (data->random, ENTROPY_SRC);
     assert_int_equal (ret, 0);
 }
 /*
@@ -184,7 +186,7 @@ random_seed_from_file_read_close_fail_test (void **state)
     will_return (__wrap_open, 5);
     will_return (__wrap_read, -1);
     will_return (__wrap_close, -1);
-    ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
+    ret = random_seed_from_file (data->random, ENTROPY_SRC);
     assert_int_equal (ret, -1);
 }
 /*
@@ -202,7 +204,7 @@ random_seed_from_file_read_short_test (void **state)
     will_return (__wrap_open, 5);
     will_return (__wrap_read, sizeof (long int) - 1);
     will_return (__wrap_close, 0);
-    ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
+    ret = random_seed_from_file (data->random, ENTROPY_SRC);
     assert_int_equal (ret, -1);
 }
 static int
@@ -217,7 +219,7 @@ random_get_bytes_setup (void **state)
     will_return (__wrap_open, 5);
     will_return (__wrap_read, sizeof (long int));
     will_return (__wrap_close, 0);
-    ret = random_seed_from_file (data->random, RANDOM_ENTROPY_FILE_DEFAULT);
+    ret = random_seed_from_file (data->random, ENTROPY_SRC);
     assert_int_equal (ret, 0);
     return 0;
 }
