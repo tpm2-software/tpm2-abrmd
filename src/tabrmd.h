@@ -42,11 +42,13 @@
 #define TABRMD_DBUS_METHOD_CANCEL            "Cancel"
 #define TABRMD_ERROR tabrmd_error_quark ()
 #define TABRMD_ENTROPY_SRC_DEFAULT "/dev/urandom"
+#define TABRMD_SESSIONS_MAX_DEFAULT 4
+#define TABRMD_SESSIONS_MAX 64
+#define TABRMD_TCTI_FILENAME_DEFAULT "libtcti-device.so"
+#define TABRMD_TCTI_CONF_DEFAULT NULL
+#define TABRMD_TRANSIENT_MAX_DEFAULT 27
+#define TABRMD_TRANSIENT_MAX 100
 
-#define MAX_SESSIONS 64
-#define MAX_SESSIONS_DEFAULT 4
-#define MAX_TRANSIENT_OBJECTS 100
-#define MAX_TRANSIENT_OBJECTS_DEFAULT 27
 #define TABD_INIT_THREAD_NAME "tss2-tabrmd_init-thread"
 
 /* implementation specific RCs */
@@ -60,6 +62,17 @@
 #define TSS2_RESMGR_RC_GENERAL_FAILURE (TSS2_RC)(TSS2_RESMGR_RC_LAYER | TSS2_BASE_RC_GENERAL_FAILURE)
 #define TSS2_RESMGR_RC_OBJECT_MEMORY   (TSS2_RC)(TSS2_RESMGR_RC_LAYER | TPM2_RC_OBJECT_MEMORY)
 #define TSS2_RESMGR_RC_SESSION_MEMORY  (TSS2_RC)(TSS2_RESMGR_RC_LAYER | TPM2_RC_SESSION_MEMORY)
+
+#define TABRMD_OPTIONS_INIT_DEFAULT { \
+    .bus = (GBusType)TABRMD_DBUS_TYPE_DEFAULT, \
+    .flush_all = FALSE, \
+    .max_connections = TABRMD_CONNECTIONS_MAX_DEFAULT, \
+    .max_transient_objects = TABRMD_TRANSIENT_MAX_DEFAULT, \
+    .max_sessions = TABRMD_SESSIONS_MAX_DEFAULT, \
+    .dbus_name = TABRMD_DBUS_NAME_DEFAULT, \
+    .prng_seed_file = TABRMD_ENTROPY_SRC_DEFAULT, \
+    .allow_root = FALSE, \
+}
 
 typedef struct tabrmd_options {
     GBusType        bus;

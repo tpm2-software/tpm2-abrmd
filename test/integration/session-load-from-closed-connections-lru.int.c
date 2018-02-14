@@ -37,8 +37,7 @@
 #include "context-util.h"
 
 #define PRIxHANDLE "08" PRIx32
-#define TABRMD_MAX_SESSIONS MAX_SESSIONS_DEFAULT
-#define TEST_MAX_SESSIONS (TABRMD_MAX_SESSIONS + 1)
+#define TEST_MAX_SESSIONS (TABRMD_SESSIONS_MAX_DEFAULT + 1)
 
 /*
  * This test exercises the session tracking logic specifically around the
@@ -164,9 +163,9 @@ main (int argc,
      * available to us.
      */
     success_count = load_sessions (sapi_context, test_data, TEST_MAX_SESSIONS);
-    if (success_count != TABRMD_MAX_SESSIONS) {
+    if (success_count != TABRMD_SESSIONS_MAX_DEFAULT) {
         g_critical ("Expected to load %u sessions, got %u instead",
-                    TABRMD_MAX_SESSIONS, success_count);
+                    TABRMD_SESSIONS_MAX_DEFAULT, success_count);
         exit (1);
     }
     /*
