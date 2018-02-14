@@ -35,6 +35,9 @@
 
 #include "connection-manager.h"
 
+#define MAX_CONNECTIONS 100
+#define MAX_CONNECTIONS_DEFAULT 27
+
 G_DEFINE_TYPE (ConnectionManager, connection_manager, G_TYPE_OBJECT);
 
 enum {
