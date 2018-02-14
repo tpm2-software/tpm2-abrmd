@@ -34,7 +34,7 @@
 
 G_BEGIN_DECLS
 
-#define TCTI_DYNAMIC_DEFAULT_FILE_NAME "tcti-device.so"
+#define TCTI_DYNAMIC_DEFAULT_FILE_NAME "libtcti-device.so"
 #define TCTI_DYNAMIC_DEFAULT_CONF_STR  "/dev/tpm0"
 
 typedef struct _TctiDynamicClass {
