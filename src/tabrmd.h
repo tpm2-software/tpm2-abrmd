@@ -41,6 +41,7 @@
 #define TABRMD_DBUS_METHOD_CREATE_CONNECTION "CreateConnection"
 #define TABRMD_DBUS_METHOD_CANCEL            "Cancel"
 #define TABRMD_ERROR tabrmd_error_quark ()
+#define TABRMD_ENTROPY_SRC_DEFAULT "/dev/urandom"
 
 #define MAX_SESSIONS 64
 #define MAX_SESSIONS_DEFAULT 4

@@ -289,7 +289,7 @@ parse_opts (gint            argc,
     options->max_sessions = MAX_SESSIONS_DEFAULT;
     options->max_transient_objects = MAX_TRANSIENT_OBJECTS_DEFAULT;
     options->dbus_name = TABRMD_DBUS_NAME_DEFAULT;
-    options->prng_seed_file = RANDOM_ENTROPY_FILE_DEFAULT;
+    options->prng_seed_file = TABRMD_ENTROPY_SRC_DEFAULT;
 
     GOptionEntry entries[] = {
         { "dbus-name", 'n', 0, G_OPTION_ARG_STRING, &options->dbus_name,
