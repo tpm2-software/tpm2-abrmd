@@ -6,8 +6,7 @@
 tpm2-abrmd \- TPM2 access broker and resource management daemon
 .SH SYNOPSIS
 .B tpm2-abrmd 
-.RB [\-m][\-e][\-i][\-o][\-l\ logger-name][\-r][\-s][\-g\ /dev/urandom][\-t\ tcti-filename]
-[\-c\ tcti-conf]
+.RB [\-m][\-e][\-i][\-o][\-l\ logger-name][\-r][\-s][\-g\ /dev/urandom][\-t\ conf]
 .SH DESCRIPTION
 .B tpm2-abrmd
 is a daemon that implements the TPM access broker and resource manager as
@@ -19,17 +18,23 @@ clients.
 .SH OPTIONS
 .TP
 \fB\-t,\ \-\-tcti\fR
-Select the TCTI used by tabd for communication with the next component down
-the TSS stack. In most configurations this will be the TPM accessed through
-the 'device TCTI' but it could be a simulator or proxy. Only TCTIs that
-implement the common TCTI initialization mechanism are supported. Pass the
-Name of the TCTI library to load using this option. Values for this
-parameter will depend on the TCTI. Libraries are found using the same
-algorithm as dlopen (3).
-.TP
-\fB\-c,\ \-\-tcti-conf\fR
-Specify the configureation string passed to the TCTI during the 'dynamic'
-loading and initialization. The format for this string is TCTI specific.
+Provide the daemon with a string that describes the TCTI and how to configure
+it for communication with the next component down the TSS2 stack. This string
+is formatted as "tcti-name:tcti-conf" where:
+.RS
+.IP 'tcti-name'
+The name of the TCTI library. Libraries are found using the same algorithm
+as dlopen (3).
+.IP 'tcti-conf'
+The configuration string passed to the TCTI library upon initialization.
+.PP
+If this option is omitted (or a NULL string provided) then a default TCTI is
+used in it's default configuration. If the string does not contain a colon
+then it will be interpreted as only the 'tcti-name'. To provide only the
+configuration string (using the default TCTI) then the first character in the
+string passed to this option must be a colon followed by the configuration
+string. See examples below.
+.RE
 .TP
 \fB\-o,\ \-\-allow-root\fR
 Allow daemon to run as root. If this option is not provided the daemon will
@@ -70,6 +75,23 @@ behavior.
 .TP
 \fB\-v,\ \-\-version\fR
 Disply version string.
+.SH EXAMPLES
+.TP 3
+Execute daemon with default TCTI and options:
+.B tpm2-abrmd
+.TP
+Execute daemon with default TCTI and provided config string:
+.B tpm2-abrmd --tcti=":/dev/tpm0"
+.TP
+This is equivalent to:
+.B tpm2-abrmd --tcti="libtcti-device.so:/dev/tpm0"
+.TP
+Have daemon use socket tcti library 'libtcti-socket.so'
+.B tpm2-abrmd --tcti="libtcti-socket.so"
+.TP
+Have daemon use tcti library 'libtcti-socket.so' and config string
+'tcp://127.0.0.1:5555':
+.B tpm2-abrmd --tcti="libtcti-socket.so:tcp://127.0.0.1:5555"
 .SH AUTHOR
 Philip Tricca <philip.b.tricca@intel.com>
 .SH "SEE ALSO"
