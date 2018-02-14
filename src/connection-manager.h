@@ -34,8 +34,7 @@
 
 G_BEGIN_DECLS
 
-#define MAX_CONNECTIONS 100
-#define MAX_CONNECTIONS_DEFAULT 27
+#define CONNECTION_MANAGER_MAX 100
 
 typedef struct _ConnectionManagerClass {
     GObjectClass      parent;
