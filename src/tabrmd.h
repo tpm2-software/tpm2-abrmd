@@ -72,6 +72,8 @@
     .dbus_name = TABRMD_DBUS_NAME_DEFAULT, \
     .prng_seed_file = TABRMD_ENTROPY_SRC_DEFAULT, \
     .allow_root = FALSE, \
+    .tcti_filename = TABRMD_TCTI_FILENAME_DEFAULT, \
+    .tcti_conf = TABRMD_TCTI_CONF_DEFAULT, \
 }
 
 typedef struct tabrmd_options {
