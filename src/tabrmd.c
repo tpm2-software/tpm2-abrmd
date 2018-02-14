@@ -285,7 +285,7 @@ parse_opts (gint            argc,
     GError *err = NULL;
     gboolean session_bus = FALSE;
 
-    options->max_connections = MAX_CONNECTIONS_DEFAULT;
+    options->max_connections = TABRMD_CONNECTIONS_MAX_DEFAULT;
     options->max_sessions = MAX_SESSIONS_DEFAULT;
     options->max_transient_objects = MAX_TRANSIENT_OBJECTS_DEFAULT;
     options->dbus_name = TABRMD_DBUS_NAME_DEFAULT;
@@ -350,10 +350,10 @@ parse_opts (gint            argc,
         tabrmd_critical ("Unknown logger: %s, try --help\n", logger_name);
     }
     if (options->max_connections < 1 ||
-        options->max_connections > MAX_CONNECTIONS)
+        options->max_connections > TABRMD_CONNECTION_MAX)
     {
-        tabrmd_critical ("MAX_CONNECTIONS must be between 1 and %d",
-                         MAX_CONNECTIONS);
+        tabrmd_critical ("maximum number of connections must be between 1 "
+                         "and %d", TABRMD_CONNECTION_MAX);
     }
     if (options->max_sessions < 1 ||
         options->max_sessions > MAX_SESSIONS)

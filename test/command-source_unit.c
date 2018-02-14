@@ -45,6 +45,7 @@
 #include "source-interface.h"
 #include "command-attrs.h"
 #include "command-source.h"
+#include "tabrmd.h"
 #include "tpm2-command.h"
 #include "util.h"
 
@@ -142,7 +143,7 @@ command_source_allocate_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
+    data->manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
 
     *state = data;
     return 0;
@@ -173,7 +174,7 @@ command_source_start_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
+    data->manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
     if (data->manager == NULL)
         g_error ("failed to allocate new connection_manager");
     data->command_attrs = command_attrs_new ();
@@ -215,7 +216,7 @@ command_source_connection_setup (void **state)
 
     g_debug ("%s", __func__);
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
+    data->manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
                                        data->command_attrs);

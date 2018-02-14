@@ -41,6 +41,7 @@
 
 #include "connection.h"
 #include "connection-manager.h"
+#include "tabrmd.h"
 #include "util.h"
 
 static void
@@ -48,7 +49,7 @@ connection_manager_allocate_test (void **state)
 {
     ConnectionManager *manager = NULL;
 
-    manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
+    manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
     assert_non_null (manager);
     g_object_unref (manager);
 }
@@ -58,7 +59,7 @@ connection_manager_setup (void **state)
 {
     ConnectionManager *manager = NULL;
 
-    manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
+    manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
     assert_non_null (manager);
     *state = manager;
     return 0;
