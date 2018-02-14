@@ -285,12 +285,6 @@ parse_opts (gint            argc,
     GError *err = NULL;
     gboolean session_bus = FALSE;
 
-    options->max_connections = TABRMD_CONNECTIONS_MAX_DEFAULT;
-    options->max_sessions = MAX_SESSIONS_DEFAULT;
-    options->max_transient_objects = MAX_TRANSIENT_OBJECTS_DEFAULT;
-    options->dbus_name = TABRMD_DBUS_NAME_DEFAULT;
-    options->prng_seed_file = TABRMD_ENTROPY_SRC_DEFAULT;
-
     GOptionEntry entries[] = {
         { "dbus-name", 'n', 0, G_OPTION_ARG_STRING, &options->dbus_name,
           "Name for daemon to \"own\" on the D-Bus",
@@ -356,16 +350,16 @@ parse_opts (gint            argc,
                          "and %d", TABRMD_CONNECTION_MAX);
     }
     if (options->max_sessions < 1 ||
-        options->max_sessions > MAX_SESSIONS)
+        options->max_sessions > TABRMD_SESSIONS_MAX_DEFAULT)
     {
         tabrmd_critical ("max-sessions must be between 1 and %d",
-                         MAX_SESSIONS);
+                         TABRMD_SESSIONS_MAX_DEFAULT);
     }
     if (options->max_transient_objects < 1 ||
-        options->max_transient_objects > MAX_TRANSIENT_OBJECTS)
+        options->max_transient_objects > TABRMD_TRANSIENT_MAX)
     {
         tabrmd_critical ("max-trans-obj parameter must be between 1 and %d",
-                         MAX_TRANSIENT_OBJECTS);
+                         TABRMD_TRANSIENT_MAX);
     }
     g_option_context_free (ctx);
 }
@@ -394,7 +388,7 @@ thread_cleanup (Thread *thread)
 int
 main (int argc, char *argv[])
 {
-    gmain_data_t gmain_data = { 0 };
+    gmain_data_t gmain_data = { .options = TABRMD_OPTIONS_INIT_DEFAULT };
     GThread *init_thread;
 
     g_info ("tabrmd startup");

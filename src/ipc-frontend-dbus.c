@@ -185,8 +185,8 @@ ipc_frontend_dbus_class_init (IpcFrontendDbusClass *klass)
                           "maximum transient objects",
                           "maximum number of transient objects for the handle map",
                           1,
-                          MAX_TRANSIENT_OBJECTS,
-                          MAX_TRANSIENT_OBJECTS_DEFAULT,
+                          TABRMD_TRANSIENT_MAX,
+                          TABRMD_TRANSIENT_MAX_DEFAULT,
                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_RANDOM] =
         g_param_spec_object ("random",
