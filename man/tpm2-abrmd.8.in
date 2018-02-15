@@ -23,8 +23,11 @@ it for communication with the next component down the TSS2 stack. This string
 is formatted as "tcti-name:tcti-conf" where:
 .RS
 .IP 'tcti-name'
-The name of the TCTI library. Libraries are found using the same algorithm
-as dlopen (3).
+The name of the TCTI library shared object file. Libraries are found using
+the same algorithm as dlopen (3). If the TCTI library file name follows the
+naming convention: \fBlibtcti-<name>.so\fR where <name> is the name for the
+TCTI, the value of \fB<name>\fR may be supplied in place of the full library
+file name. See 'EXAMPLES' below.
 .IP 'tcti-conf'
 The configuration string passed to the TCTI library upon initialization.
 .PP
@@ -84,13 +87,19 @@ Execute daemon with default TCTI and provided config string:
 .B tpm2-abrmd --tcti=":/dev/tpm0"
 .TP
 This is equivalent to:
+.B tpm2-abrmd --tcti="device:/dev/tpm0"
+.br
 .B tpm2-abrmd --tcti="libtcti-device.so:/dev/tpm0"
 .TP
 Have daemon use socket tcti library 'libtcti-socket.so'
+.B tpm2-abrmd --tcti="socket"
+.br
 .B tpm2-abrmd --tcti="libtcti-socket.so"
 .TP
 Have daemon use tcti library 'libtcti-socket.so' and config string
 'tcp://127.0.0.1:5555':
+.B tpm2-abrmd --tcti=socket:tcp://127.0.0.1:5555"
+.br
 .B tpm2-abrmd --tcti="libtcti-socket.so:tcp://127.0.0.1:5555"
 .SH AUTHOR
 Philip Tricca <philip.b.tricca@intel.com>
