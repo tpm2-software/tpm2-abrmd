@@ -138,6 +138,7 @@ EXTRA_DIST = \
     dist/tpm2-abrmd.preset \
     dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
+    dist/com.intel.tss2.Tabrmd.service \
     scripts/int-simulator-setup.sh \
     scripts/int-hardware-setup.sh \
     scripts/int-test-funcs.sh \
@@ -172,6 +173,8 @@ dbuspolicy_DATA  = dist/tpm2-abrmd.conf
 udevrules_DATA   = dist/tpm-udev.rules
 if HAVE_SYSTEMD
 systemdsystemunit_DATA = dist/tpm2-abrmd.service
+dbusservicedir   = $(datadir)/dbus-1/system-services
+dbusservice_DATA = dist/com.intel.tss2.Tabrmd.service
 endif # HAVE_SYSTEMD
 systemdpreset_DATA = dist/tpm2-abrmd.preset
 
