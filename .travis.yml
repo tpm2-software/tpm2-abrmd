@@ -15,6 +15,7 @@ addons:
       - dbus-x11
       - cmake
       - lcov
+      - libgcrypt20-dev
       - libglib2.0-dev
       - libdbus-1-dev
       - liburiparser-dev
