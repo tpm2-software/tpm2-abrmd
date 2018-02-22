@@ -105,6 +105,13 @@ AC_ARG_WITH([dbuspolicydir],
             [with_dbuspolicydir=${sysconfdir}/dbus-1/system.d])
 AX_NORMALIZE_PATH([with_dbuspolicydir])
 AC_SUBST([dbuspolicydir], [$with_dbuspolicydir])
+
+AC_ARG_WITH([dbusdatadir],
+            [AS_HELP_STRING([--with-dbusdatadir=DIR],[D-Bus data directory])],
+            [],
+            [with_dbusdatadir=${datadir}/dbus-1/system-services])
+AX_NORMALIZE_PATH([with_dbusdatadir])
+AC_SUBST([dbusdatadir], [$with_dbusdatadir])
 #
 # udev
 #
@@ -114,10 +121,21 @@ AC_ARG_WITH([udevrulesdir],
             [with_udevrulesdir=${libdir}/udev/rules.d])
 AX_NORMALIZE_PATH([with_udevrulesdir])
 AC_SUBST([udevrulesdir], [$with_udevrulesdir])
+
 AC_ARG_WITH([udevrulesprefix],
             [AS_HELP_STRING([--with-udevrulesprefix=XY],[prefix for udev rules file])],
             [AC_SUBST([udevrulesprefix],[$with_udevrulesprefix])])
 AM_CONDITIONAL(WITH_UDEVRULESPREFIX, [test -n "$with_udevrulesprefix"])
+#
+# systemd EnvironmentFile directory
+#
+AC_ARG_WITH([sysdefaultdir],
+            [AS_HELP_STRING([--with-sysdefaultdir=DIR],[system default directory])],
+            [],
+            [with_sysdefaultdir=${sysconfdir}/default])
+AX_NORMALIZE_PATH([with_sysdefaultdir])
+AC_SUBST([sysdefaultdir], [$with_sysdefaultdir])
+
 #
 # simulator binary
 #

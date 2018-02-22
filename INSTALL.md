@@ -12,6 +12,7 @@ required:
 * pkg-config
 * glib 2.0 library and development files
 * libsapi and TCTI libraries from https://github.com/01org/TPM2.0-TSS
+* D-Bus 1 library and header files
 
 **NOTE**: Different GNU/Linux distros package glib-2.0 differently and so
 additional packages may be required. The tabrmd requires the GObject and
@@ -21,8 +22,8 @@ your distro provides are installed for these features.
 The following dependencies are required only if the test suite is being built
 and executed.
 * cmocka unit test framework
-* Microsoft / IBM Software TPM2 simulator version 532 as packaged by IBM:
-https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm532.tar
+* Microsoft / IBM Software TPM2 simulator version 974 as packaged by IBM:
+https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm974.tar
 * Alternately, run the test suite on a real TPM hardware, with a safety
 attention described below.
 
@@ -92,17 +93,31 @@ in turn.
 Invoking the configure script with the `--help` option will display
 all supported options.
 
+The default values for GNU installation directories are documented here:
+https://www.gnu.org/prep/standards/html_node/Directory-Variables.html
+
 ### D-Bus Policy: `--with-dbuspolicydir`
 The `tpm2-abrmd` claims a name on the D-Bus system bus. This requires policy
 to allow the `tss` user account to claim this name. By default the build
 installs this configuration file to `${sysconfdir}/dbus-1/system.d`. We allow
-this to be overriden using the `--with-dbuspolicydir` option.
+this to be overridden using the `--with-dbuspolicydir` option.
 
 Using Debian (and it's various derivatives) as an example we can instruct the
 build to install the dbus policy configuration in the right location with the
 following configure option:
 ```
 --with-dbuspolicydir=/etc/dbus-1/system.d
+```
+
+### D-Bus Data: `--with-dbusdatadir`
+The `tpm2-abrmd` also installs data files to ${datadir}/dbus-1/system-services
+We allow this to be overridden using the `--with-dbusdatadir` option.
+
+Using Debian (and it's various derivatives) as an example we can instruct the
+build to install the dbus data files in the right location with the
+following configure option:
+```
+--with-dbusdatadir=/usr/share/dbus-1/system-services
 ```
 
 ### Systemd
@@ -125,7 +140,10 @@ systemd unit in the right location with the following configure option:
 By default the build installs the systemd preset file for the tabrmd to
 `${libdir}/systemd/system-preset`. If you need to install this file to a
 different directory pass the desired path to the `configure` script using this
-option.
+option:
+```
+--with-systemdpresetdir=/lib/systemd/system-preset
+```
 
 #### Systemd Preset Default: `--with-systemdpresetdisable`
 The systemd preset file will enable the tabrmd by default, causing it to be
@@ -156,6 +174,14 @@ It is common for Linux distros to prefix udev rules files with a numeric
 string (e.g. "70-"). This allows for the rules to be applied in a predictable
 order. This option allows for the name of the installed udev rules file to
 have a string prepended to the file name when it is installed.
+
+#### `--with-sysdefaultdir`
+To override the default root directory, `${sysconfdir}/default`, used for
+the optional tpm2-abrmd Systemd service EnvironmentFile use
+the --with-sysdefaultdir configure option:
+```
+--with-sysdefaultdir=/etc/default
+```
 
 ### Enable Unit Tests: `--enable-unit`
 When provided to the `./configure` script this option will attempt to detect

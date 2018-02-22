@@ -173,7 +173,7 @@ dbuspolicy_DATA  = dist/tpm2-abrmd.conf
 udevrules_DATA   = dist/tpm-udev.rules
 if HAVE_SYSTEMD
 systemdsystemunit_DATA = dist/tpm2-abrmd.service
-dbusservicedir   = $(datadir)/dbus-1/system-services
+dbusservicedir   = $(dbusdatadir)
 dbusservice_DATA = dist/com.intel.tss2.Tabrmd.service
 endif # HAVE_SYSTEMD
 systemdpreset_DATA = dist/tpm2-abrmd.preset
@@ -312,6 +312,7 @@ endef # man_tcti_prefix
 %.service : %.service.in
 	$(AM_V_GEN)$(call make_parent_dir,$@) && \
 	sed -e "s,[@]SBINDIR[@],$(sbindir),g; \
+	        s,[@]sysdefaultdir[@],$(sysdefaultdir),g; \
 	        s,[@]sysconfdir[@],$(sysconfdir),g;" $^ > $@
 
 %.pc : %.pc.in

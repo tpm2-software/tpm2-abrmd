@@ -1,4 +1,4 @@
-# copy this file into /etc/systemd/system
+# copy this file into /lib/systemd/system
 [Unit]
 Description=TPM2 Access Broker and Resource Management Daemon
 
@@ -6,7 +6,7 @@ Description=TPM2 Access Broker and Resource Management Daemon
 Type=dbus
 Restart=always
 RestartSec=5
-EnvironmentFile=-@sysconfdir@/default/tpm2-abrmd
+EnvironmentFile=-@sysdefaultdir@/tpm2-abrmd
 BusName=com.intel.tss2.Tabrmd
 StandardOutput=syslog
 ExecStart=@SBINDIR@/tpm2-abrmd
