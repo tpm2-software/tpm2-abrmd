@@ -7,6 +7,15 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 ### Added
 - Integration test script and build support to execute integration tests
 against a physical TPM2 device on the build platform.
+- Install systemd service file to allow on-demand systemd unit activation.
+### Changed
+- Converted some inappropriate uses of g_error to critical / warning instead.
+- Removed use of gen_require from SELinux policy, use dbus_stub instead.
+- udev rules now give tss group read / write access to the TPM device node.
+- udev rules now give tss user and group read / write access to kernel RM
+node.
+### Fixed
+- Memory leak on an error path in the AccessBroker.
 
 ## 1.2.0 - 2017-12-08
 ### Added
