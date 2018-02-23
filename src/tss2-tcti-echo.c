@@ -33,7 +33,7 @@
 TSS2_RC
 tss2_tcti_echo_transmit (TSS2_TCTI_CONTEXT *tcti_context,
                          size_t             size,
-                         uint8_t           *command)
+                         const uint8_t      *command)
 {
     TCTI_ECHO_CONTEXT *echo_context = (TCTI_ECHO_CONTEXT*)tcti_context;
 
