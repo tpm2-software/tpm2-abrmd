@@ -44,7 +44,7 @@
 static TSS2_RC
 tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
                            size_t             size,
-                           uint8_t           *command)
+                           const uint8_t      *command)
 {
     ssize_t write_ret;
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;

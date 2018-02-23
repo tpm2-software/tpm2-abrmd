@@ -93,7 +93,7 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
 TSS2_RC
 __wrap_tcti_echo_transmit (TSS2_TCTI_CONTEXT *tcti_context,
                            size_t             size,
-                           uint8_t           *command)
+                           const uint8_t      *command)
 {
     TSS2_RC rc;
 
