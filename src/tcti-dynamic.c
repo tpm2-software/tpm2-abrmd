@@ -100,7 +100,7 @@ tcti_dynamic_finalize (GObject *obj)
     TctiDynamic    *tcti_dynamic = TCTI_DYNAMIC (obj);
 
     if (tcti->tcti_context) {
-        tss2_tcti_finalize (tcti->tcti_context);
+        Tss2_Tcti_Finalize (tcti->tcti_context);
     }
     g_clear_pointer (&tcti->tcti_context, g_free);
 #if !defined (DISABLE_DLCLOSE)
