@@ -174,7 +174,7 @@ tss2_tcti_echo_init_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
 
-    tss2_tcti_finalize (data->tcti_context);
+    Tss2_Tcti_Finalize (data->tcti_context);
     free (data->tcti_context);
     free (data);
 
@@ -192,7 +192,7 @@ tss2_tcti_echo_cancel_unit (void **state)
     test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
 
-    rc = tss2_tcti_cancel (data->tcti_context);
+    rc = Tss2_Tcti_Cancel (data->tcti_context);
     assert_int_equal (rc, TSS2_TCTI_RC_NOT_IMPLEMENTED);
 }
 /**
@@ -209,7 +209,7 @@ tss2_tcti_echo_get_poll_handles_unit (void **state)
     TSS2_TCTI_POLL_HANDLE handles[3] = { 0, };
     size_t  num_handles = 3;
 
-    rc = tss2_tcti_get_poll_handles (data->tcti_context,
+    rc = Tss2_Tcti_GetPollHandles (data->tcti_context,
                                      handles,
                                      &num_handles);
     assert_int_equal (rc, TSS2_TCTI_RC_NOT_IMPLEMENTED);
@@ -226,7 +226,7 @@ tss2_tcti_echo_set_locality_unit (void **state)
     TSS2_RC rc;
     uint8_t locality = 0;
 
-    rc = tss2_tcti_set_locality (data->tcti_context, locality);
+    rc = Tss2_Tcti_SetLocality (data->tcti_context, locality);
     assert_int_equal (rc, TSS2_TCTI_RC_NOT_IMPLEMENTED);
 }
 /**
@@ -240,8 +240,8 @@ tss2_tcti_echo_transmit_null_context_unit (void **state)
 {
     TSS2_RC rc;
 
-    rc = tss2_tcti_transmit (NULL, 0, NULL);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
+    rc = Tss2_Tcti_Transmit (NULL, 0, NULL);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
 }
 /**
  * A test: Call transmit with a NULL command buffer. Ensure we get the
@@ -253,7 +253,7 @@ tss2_tcti_echo_transmit_null_command_unit (void **state)
     test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
 
-    rc = tss2_tcti_transmit (data->tcti_context, 5, NULL);
+    rc = Tss2_Tcti_Transmit (data->tcti_context, 5, NULL);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /**
@@ -267,7 +267,7 @@ tss2_tcti_echo_transmit_negative_size_unit (void **state)
     TSS2_RC rc;
     uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0, };
 
-    rc = tss2_tcti_transmit (data->tcti_context, -1, buffer);
+    rc = Tss2_Tcti_Transmit (data->tcti_context, -1, buffer);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /**
@@ -281,7 +281,7 @@ tss2_tcti_echo_transmit_size_gt_max_unit (void **state)
     TSS2_RC rc;
     uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0, };
 
-    rc = tss2_tcti_transmit (data->tcti_context,
+    rc = Tss2_Tcti_Transmit (data->tcti_context,
                              TSS2_TCTI_ECHO_MAX_BUF + 1,
                              buffer);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
@@ -300,7 +300,7 @@ tss2_tcti_echo_transmit_bad_sequence_unit (void **state)
     TSS2_RC rc;
 
     echo_context->state = CAN_RECEIVE;
-    rc = tss2_tcti_transmit (data->tcti_context,
+    rc = Tss2_Tcti_Transmit (data->tcti_context,
                              TSS2_TCTI_ECHO_MAX_BUF,
                              buffer);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
@@ -321,7 +321,7 @@ tss2_tcti_echo_transmit_success_unit (void **state)
     uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0xde, 0xad, 0xbe, 0xef, 0x0 };
     TSS2_RC rc;
 
-    rc = tss2_tcti_transmit (data->tcti_context,
+    rc = Tss2_Tcti_Transmit (data->tcti_context,
                              TSS2_TCTI_ECHO_MAX_BUF,
                              buffer);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
@@ -340,8 +340,8 @@ tss2_tcti_echo_receive_null_context_unit (void **state)
 {
     TSS2_RC rc;
 
-    rc = tss2_tcti_receive (NULL, NULL, NULL, 0);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
+    rc = Tss2_Tcti_Receive (NULL, NULL, NULL, 0);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
 }
 /**
  * A test: Call receive with a NULL size. Ensure we get the right error
@@ -355,7 +355,7 @@ tss2_tcti_echo_receive_null_size_unit (void **state)
     TSS2_RC rc;
 
     echo_context->state = CAN_RECEIVE;
-    rc = tss2_tcti_receive (data->tcti_context, NULL, NULL, 0);
+    rc = Tss2_Tcti_Receive (data->tcti_context, NULL, NULL, 0);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /**
@@ -376,7 +376,7 @@ tss2_tcti_echo_receive_insufficient_size_unit (void **state)
 
     echo_context->data_size = TSS2_TCTI_ECHO_MAX_BUF;
     echo_context->state = CAN_RECEIVE;
-    rc = tss2_tcti_receive (data->tcti_context,
+    rc = Tss2_Tcti_Receive (data->tcti_context,
                             &size,
                             NULL,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -396,7 +396,7 @@ tss2_tcti_echo_receive_null_response_unit (void **state)
     size_t size = TSS2_TCTI_ECHO_MAX_BUF;
 
     echo_context->state = CAN_RECEIVE;
-    rc = tss2_tcti_receive (data->tcti_context, &size, NULL, 0);
+    rc = Tss2_Tcti_Receive (data->tcti_context, &size, NULL, 0);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /**
@@ -413,7 +413,7 @@ tss2_tcti_echo_receive_negative_timeout_unit (void **state)
     uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0, };
 
     echo_context->state = CAN_RECEIVE;
-    rc = tss2_tcti_receive (data->tcti_context, &size, buffer, -99);
+    rc = Tss2_Tcti_Receive (data->tcti_context, &size, buffer, -99);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /**
@@ -436,7 +436,7 @@ tss2_tcti_echo_receive_success_unit (void **state)
     echo_context->buf[2] = 0xbe;
     echo_context->buf[3] = 0xef;
 
-    rc = tss2_tcti_receive (data->tcti_context,
+    rc = Tss2_Tcti_Receive (data->tcti_context,
                             &size,
                             buffer,
                             TSS2_TCTI_TIMEOUT_BLOCK);

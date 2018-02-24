@@ -120,13 +120,13 @@ main (int   argc,
         }
     }
     for (i = 0; i < CONNECTION_COUNT; ++i) {
-        rc = tss2_tcti_transmit (tcti_context [i], sizeof (cmd_buf), cmd_buf);
+        rc = Tss2_Tcti_Transmit (tcti_context [i], sizeof (cmd_buf), cmd_buf);
         if (rc != TSS2_RC_SUCCESS) {
             g_error ("failed to transmit TPM command");
         }
     }
     for (i = 0; i < CONNECTION_COUNT; ++i) {
-        tss2_tcti_finalize (tcti_context [i]);
+        Tss2_Tcti_Finalize (tcti_context [i]);
         free (tcti_context [i]);
     }
 }
