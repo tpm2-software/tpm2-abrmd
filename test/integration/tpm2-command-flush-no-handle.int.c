@@ -58,11 +58,11 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                  PRIx32, rc);
     }
 
-    rc = tss2_tcti_transmit (tcti_context, sizeof (cmd_buf), cmd_buf);
+    rc = Tss2_Tcti_Transmit (tcti_context, sizeof (cmd_buf), cmd_buf);
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("Error transmitting cmd_buf: 0x%" PRIx32, rc);
     }
-    rc = tss2_tcti_receive (tcti_context,
+    rc = Tss2_Tcti_Receive (tcti_context,
                             &buf_size,
                             cmd_buf,
                             TSS2_TCTI_TIMEOUT_BLOCK);
