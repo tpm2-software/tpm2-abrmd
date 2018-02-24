@@ -417,7 +417,7 @@ tcti_tabrmd_teardown (void **state)
 {
     data_t *data = *state;
 
-    tss2_tcti_finalize (data->context);
+    Tss2_Tcti_Finalize (data->context);
     close (data->client_fd);
     close (data->server_fd);
     if (data->context)
@@ -476,40 +476,40 @@ tcti_tabrmd_transmit_null_context_test (void **state)
 {
     TSS2_RC rc;
 
-    rc = tss2_tcti_transmit (NULL, 5, NULL);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
+    rc = Tss2_Tcti_Transmit (NULL, 5, NULL);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
 }
 static void
 tcti_tabrmd_receive_null_context_test (void **state)
 {
     TSS2_RC rc;
 
-    rc = tss2_tcti_receive (NULL, NULL, NULL, TSS2_TCTI_TIMEOUT_BLOCK);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
+    rc = Tss2_Tcti_Receive (NULL, NULL, NULL, TSS2_TCTI_TIMEOUT_BLOCK);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
 }
 static void
 tcti_tabrmd_cancel_null_context_test (void **state)
 {
     TSS2_RC rc;
 
-    rc = tss2_tcti_cancel (NULL);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
+    rc = Tss2_Tcti_Cancel (NULL);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
 }
 static void
 tcti_tabrmd_get_poll_handles_null_context_test (void **state)
 {
     TSS2_RC rc;
 
-    rc = tss2_tcti_get_poll_handles (NULL, NULL, NULL);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
+    rc = Tss2_Tcti_GetPollHandles (NULL, NULL, NULL);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
 }
 static void
 tcti_tabrmd_set_locality_null_context_test (void **state)
 {
     TSS2_RC rc;
 
-    rc = tss2_tcti_set_locality (NULL, 5);
-    assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
+    rc = Tss2_Tcti_SetLocality (NULL, 5);
+    assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
 }
 /*
  * This test makes a single call to the transmit function in the the
@@ -533,7 +533,7 @@ tcti_tabrmd_transmit_success_test (void **state)
     TSS2_RC rc;
     ssize_t ret;
 
-    rc = tss2_tcti_transmit (data->context, size, command_in);
+    rc = Tss2_Tcti_Transmit (data->context, size, command_in);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     ret = read (data->server_fd, command_out, size);
     assert_int_equal (ret, size);
@@ -554,7 +554,7 @@ tcti_tabrmd_transmit_bad_magic_test (void **state)
     size_t size = 12;
 
     TSS2_TCTI_MAGIC (data->context) = 1;
-    rc = tss2_tcti_transmit (data->context, size, command);
+    rc = Tss2_Tcti_Transmit (data->context, size, command);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_TRANSMIT);
@@ -572,7 +572,7 @@ tcti_tabrmd_transmit_bad_version_test (void **state)
     size_t size = 12;
 
     TSS2_TCTI_VERSION (data->context) = -1;
-    rc = tss2_tcti_transmit (data->context, size, command);
+    rc = Tss2_Tcti_Transmit (data->context, size, command);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_TRANSMIT);
@@ -590,7 +590,7 @@ tcti_tabrmd_transmit_bad_sequence_receive_test (void **state)
     size_t size = 12;
 
     TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_RECEIVE;
-    rc = tss2_tcti_transmit (data->context, size, command);
+    rc = Tss2_Tcti_Transmit (data->context, size, command);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_RECEIVE);
@@ -608,7 +608,7 @@ tcti_tabrmd_transmit_bad_sequence_final_test (void **state)
     size_t size = 12;
 
     TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_FINAL;
-    rc = tss2_tcti_transmit (data->context, size, command);
+    rc = Tss2_Tcti_Transmit (data->context, size, command);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_FINAL);
@@ -709,7 +709,7 @@ tcti_tabrmd_receive_success_test (void **state)
     will_return (__wrap_read_data, command_in);
     will_return (__wrap_read_data, sizeof (command_in) - TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             command_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -750,7 +750,7 @@ tcti_tabrmd_receive_poll_eintr_test (void **state)
     will_return (__wrap_read_data, command_in);
     will_return (__wrap_read_data, sizeof (command_in));
     will_return (__wrap_read_data, 0);
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             command_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -777,7 +777,7 @@ tcti_tabrmd_receive_poll_fail_test (void **state)
     will_return (__wrap_poll, ENOMEM);
     will_return (__wrap_poll, -1);
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             command_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -801,7 +801,7 @@ tcti_tabrmd_receive_poll_timeout_test (void **state)
     will_return (__wrap_poll, 0);
     will_return (__wrap_poll, 0);
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             command_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -821,7 +821,7 @@ tcti_tabrmd_receive_bad_magic_test (void **state)
     size_t size = 12;
 
     TSS2_TCTI_MAGIC (data->context) = 1;
-    rc = tss2_tcti_receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
+    rc = Tss2_Tcti_Receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_RECEIVE);
@@ -839,7 +839,7 @@ tcti_tabrmd_receive_bad_version_test (void **state)
     size_t size = 12;
 
     TSS2_TCTI_VERSION (data->context) = -1;
-    rc = tss2_tcti_receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
+    rc = Tss2_Tcti_Receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_RECEIVE);
@@ -857,7 +857,7 @@ tcti_tabrmd_receive_bad_sequence_transmit_test (void **state)
     size_t size = 12;
 
     TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_TRANSMIT;
-    rc = tss2_tcti_receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
+    rc = Tss2_Tcti_Receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_TRANSMIT);
@@ -875,7 +875,7 @@ tcti_tabrmd_receive_bad_sequence_final_test (void **state)
     size_t size = 12;
 
     TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_FINAL;
-    rc = tss2_tcti_receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
+    rc = Tss2_Tcti_Receive (data->context, &size, buf, TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_FINAL);
@@ -899,7 +899,7 @@ tcti_tabrmd_receive_bad_timeout_test (void **state)
     uint8_t command_out [sizeof (command_in)] = { 0 };
     TSS2_RC rc;
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             command_out,
                             -2);
@@ -915,7 +915,7 @@ tcti_tabrmd_receive_null_size_test (void **state)
     uint8_t command_out [TPM_HEADER_SIZE] = { 0, };
     TSS2_RC rc;
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             NULL,
                             command_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -931,7 +931,7 @@ tcti_tabrmd_receive_null_response_size_nonzero_test (void **state)
     size_t size = 1;
     TSS2_RC rc;
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             NULL,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -949,7 +949,7 @@ tcti_tabrmd_receive_size_lt_header_test (void **state)
     size_t size = sizeof (response) - 1;
     TSS2_RC rc;
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             response,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -981,7 +981,7 @@ tcti_tabrmd_receive_size_lt_body_test (void **state)
     will_return (__wrap_read_data, TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             buffer_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -1014,7 +1014,7 @@ tcti_tabrmd_receive_error_first_read_test (void **state)
     will_return (__wrap_read_data, 0);
     will_return (__wrap_read_data, G_IO_ERROR_WOULD_BLOCK);
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             buffer_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -1046,7 +1046,7 @@ tcti_tabrmd_receive_malformed_header_test (void **state)
     will_return (__wrap_read_data, TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             buffer_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -1084,7 +1084,7 @@ tcti_tabrmd_receive_two_reads_header_test (void **state)
     will_return (__wrap_read_data, TPM_HEADER_SIZE / 2);
     will_return (__wrap_read_data, G_IO_ERROR_WOULD_BLOCK);
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             buffer_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -1100,7 +1100,7 @@ tcti_tabrmd_receive_two_reads_header_test (void **state)
     will_return (__wrap_read_data, TPM_HEADER_SIZE / 2);
     will_return (__wrap_read_data, 0);
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             buffer_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -1133,7 +1133,7 @@ tcti_tabrmd_receive_get_size_test (void **state)
     will_return (__wrap_read_data, TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             NULL,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -1167,7 +1167,7 @@ tcti_tabrmd_receive_get_size_and_body_test (void **state)
     will_return (__wrap_read_data, TPM_HEADER_SIZE);
     will_return (__wrap_read_data, 0);
 
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             NULL,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -1184,7 +1184,7 @@ tcti_tabrmd_receive_get_size_and_body_test (void **state)
     will_return (__wrap_read_data, 0);
 
     size = sizeof (buffer_in) + 1;
-    rc = tss2_tcti_receive (data->context,
+    rc = Tss2_Tcti_Receive (data->context,
                             &size,
                             buffer_out,
                             TSS2_TCTI_TIMEOUT_BLOCK);
@@ -1207,7 +1207,7 @@ tcti_tabrmd_cancel_test (void **state)
 
     will_return (__wrap_tcti_tabrmd_call_cancel_sync, TSS2_RC_SUCCESS);
     will_return (__wrap_tcti_tabrmd_call_cancel_sync, TRUE);
-    rc = tss2_tcti_cancel (data->context);
+    rc = Tss2_Tcti_Cancel (data->context);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_RECEIVE);
@@ -1223,7 +1223,7 @@ tcti_tabrmd_cancel_bad_sequence_test (void **state)
     TSS2_RC rc;
 
     TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_TRANSMIT;
-    rc = tss2_tcti_cancel (data->context);
+    rc = Tss2_Tcti_Cancel (data->context);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
     assert_int_equal (TSS2_TCTI_TABRMD_STATE (data->context),
                       TABRMD_STATE_TRANSMIT);
@@ -1238,7 +1238,7 @@ tcti_tabrmd_get_poll_handles_all_null_test (void **state)
     data_t *data = *state;
     TSS2_RC rc;
 
-    rc = tss2_tcti_get_poll_handles (data->context, NULL, NULL);
+    rc = Tss2_Tcti_GetPollHandles (data->context, NULL, NULL);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_REFERENCE);
 }
 /*
@@ -1253,7 +1253,7 @@ tcti_tabrmd_get_poll_handles_count_test (void **state)
     size_t num_handles = 0;
     TSS2_RC rc;
 
-    rc = tss2_tcti_get_poll_handles (data->context, NULL, &num_handles);
+    rc = Tss2_Tcti_GetPollHandles (data->context, NULL, &num_handles);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_true (num_handles > 0);
 }
@@ -1270,7 +1270,7 @@ tcti_tabrmd_get_poll_handles_bad_handles_count_test (void **state)
     size_t num_handles = 0;
     TSS2_RC rc;
 
-    rc = tss2_tcti_get_poll_handles (data->context, handles, &num_handles);
+    rc = Tss2_Tcti_GetPollHandles (data->context, handles, &num_handles);
     assert_int_equal (rc, TSS2_TCTI_RC_INSUFFICIENT_BUFFER);
 }
 /*
@@ -1288,7 +1288,7 @@ tcti_tabrmd_get_poll_handles_handles_test (void **state)
     TSS2_RC rc;
     int fd;
 
-    rc = tss2_tcti_get_poll_handles (data->context, handles, &num_handles);
+    rc = Tss2_Tcti_GetPollHandles (data->context, handles, &num_handles);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_int_equal (1, num_handles);
     fd = TSS2_TCTI_TABRMD_FD (data->context);
@@ -1308,7 +1308,7 @@ tcti_tabrmd_set_locality_test (void **state)
 
     will_return (__wrap_tcti_tabrmd_call_set_locality_sync, TSS2_RC_SUCCESS);
     will_return (__wrap_tcti_tabrmd_call_set_locality_sync, TRUE);
-    rc = tss2_tcti_set_locality (data->context, locality);
+    rc = Tss2_Tcti_SetLocality (data->context, locality);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
 }
 /*
@@ -1323,7 +1323,7 @@ tcti_tabrmd_set_locality_bad_sequence_test (void **state)
     TSS2_RC rc;
 
     TSS2_TCTI_TABRMD_STATE (data->context) = TABRMD_STATE_RECEIVE;
-    rc = tss2_tcti_set_locality (data->context, locality);
+    rc = Tss2_Tcti_SetLocality (data->context, locality);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
 }
 int
