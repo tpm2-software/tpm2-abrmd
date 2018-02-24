@@ -55,13 +55,13 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         return 1;
     }
     g_info ("sending command buffer");
-    rc = tss2_tcti_transmit (tcti_context, cmd_buffer_size, cmd_buffer);
+    rc = Tss2_Tcti_Transmit (tcti_context, cmd_buffer_size, cmd_buffer);
     if (rc != TSS2_RC_SUCCESS) {
         g_critical ("failed to send command");
         return 1;
     }
     g_info ("invoking tss2_tcti_tabrmd_cancel");
-    rc = tss2_tcti_cancel (tcti_context);
+    rc = Tss2_Tcti_Cancel (tcti_context);
     if (rc == TSS2_RESMGR_RC_NOT_IMPLEMENTED) {
         g_warning ("tss2_tcti_tabrmd_cancel failed as expected: 0x%" PRIx32,
                    rc);

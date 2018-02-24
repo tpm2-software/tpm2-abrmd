@@ -70,7 +70,7 @@ tcti_transmit (Tcti      *self,
                size_t     size,
                uint8_t   *command)
 {
-    return tss2_tcti_transmit (self->tcti_context,
+    return Tss2_Tcti_Transmit (self->tcti_context,
                                size,
                                command);
 }
@@ -80,7 +80,7 @@ tcti_receive (Tcti      *self,
               uint8_t   *response,
               int32_t    timeout)
 {
-    return tss2_tcti_receive (self->tcti_context,
+    return Tss2_Tcti_Receive (self->tcti_context,
                               size,
                               response,
                               timeout);
@@ -88,11 +88,11 @@ tcti_receive (Tcti      *self,
 TSS2_RC
 tcti_cancel (Tcti  *self)
 {
-    return tss2_tcti_cancel (self->tcti_context);
+    return Tss2_Tcti_Cancel (self->tcti_context);
 }
 TSS2_RC
 tcti_set_locality (Tcti     *self,
                    uint8_t   locality)
 {
-    return tss2_tcti_set_locality (self->tcti_context, locality);
+    return Tss2_Tcti_SetLocality (self->tcti_context, locality);
 }
