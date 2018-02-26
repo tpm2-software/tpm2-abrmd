@@ -89,7 +89,7 @@ tcti_echo_finalize (GObject *obj)
     Tcti *tcti = TCTI (obj);
 
     if (tcti->tcti_context != NULL) {
-        tss2_tcti_finalize (tcti->tcti_context);
+        Tss2_Tcti_Finalize (tcti->tcti_context);
     }
     g_clear_pointer (&tcti->tcti_context, g_free);
     G_OBJECT_CLASS (tcti_echo_parent_class)->finalize (obj);
