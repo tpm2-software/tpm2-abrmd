@@ -27,6 +27,7 @@ https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm532.tar
 attention described below.
 
 # System User & Group
+`tpm2-abrmd` must run as user `tss` or `root`.
 As is common security practice we encourage *everyone* to run the `tpm2-abrmd`
 as an unprivileged user. This requires creating a user account and group to
 use for this purpose. Our current configuration assumes that the name for this
@@ -43,9 +44,12 @@ $ sudo useradd --system --user-group tss
 You may wish to further restrict this user account based on your needs. This
 topic however is beyond the scope of this document.
 
+To run tpm2-abrmd as root, which is not recommended, use the `--allow-root`
+option.
+
 # Obtaining the Source Code
 As is always the case, you should check for packages available through your
-Linux distro before you attepmt to download and build the tpm2-abrmd from
+Linux distro before you attempt to download and build the tpm2-abrmd from
 source code directly. If you need a newer version than provided by your
 Distro of choice then you should download our latest stable release here:
 https://github.com/01org/tpm2-abrmd/releases/latest.
@@ -96,7 +100,7 @@ all supported options.
 The `tpm2-abrmd` claims a name on the D-Bus system bus. This requires policy
 to allow the `tss` user account to claim this name. By default the build
 installs this configuration file to `${sysconfdir}/dbus-1/system.d`. We allow
-this to be overriden using the `--with-dbuspolicydir` option.
+this to be overridden using the `--with-dbuspolicydir` option.
 
 Using Debian (and it's various derivatives) as an example we can instruct the
 build to install the dbus policy configuration in the right location with the
