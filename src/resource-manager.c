@@ -27,6 +27,8 @@
 #include <errno.h>
 #include <inttypes.h>
 
+#include <glib.h>
+
 #include "connection.h"
 #include "connection-manager.h"
 #include "control-message.h"
@@ -660,7 +662,7 @@ post_process_loaded_sessions (ResourceManager *resmgr,
 typedef struct {
     TPMS_CAPABILITY_DATA *cap_data;
     size_t                max_count;
-    TPMI_YES_NO           more_data;
+    gboolean              more_data;
     TPM2_HANDLE            start_handle;
 } vhandle_iterator_state_t;
 /*
@@ -687,7 +689,7 @@ vhandle_iterator_callback (gpointer entry,
              PRIu32, state->max_count, cap_data->data.handles.count);
     /* if we've collected max_count handles set 'more_data' and return */
     if (!(cap_data->data.handles.count < state->max_count)) {
-        state->more_data = YES;
+        state->more_data = TRUE;
         return;
     }
     cap_data->data.handles.handle [cap_data->data.handles.count] = vhandle;
@@ -717,10 +719,10 @@ handle_compare (gconstpointer a,
  * is the lowest numerical handle to return. The 'count' parameter is the
  * maximum number of handles to return in the capability data structure.
  * Returns:
- *   YES when more handles are present
- *   NO when there are no more handles
+ *   TRUE when more handles are present
+ *   FALSE when there are no more handles
  */
-TPMI_YES_NO
+gboolean
 get_cap_handles (HandleMap            *map,
                  TPM2_HANDLE            prop,
                  UINT32                count,
@@ -730,7 +732,7 @@ get_cap_handles (HandleMap            *map,
     vhandle_iterator_state_t state = {
         .cap_data     = cap_data,
         .max_count    = count,
-        .more_data    = NO,
+        .more_data    = FALSE,
         .start_handle = prop,
     };
 
@@ -823,7 +825,7 @@ get_cap_handles_response (Tpm2Command *command,
     TPM2_HT   handle_type = prop >> TPM2_HR_SHIFT;
     HandleMap *map;
     TPMS_CAPABILITY_DATA cap_data = { .capability = cap };
-    TPMI_YES_NO more_data = NO;
+    gboolean more_data = FALSE;
     uint8_t *resp_buf;
     Tpm2Response *response = NULL;
 
