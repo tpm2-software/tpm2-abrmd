@@ -66,7 +66,7 @@ handles_count (TSS2_SYS_CONTEXT *sapi_context,
 {
     TSS2_RC              rc         = TSS2_RC_SUCCESS;
     TPM2_CAP              capability = TPM2_CAP_HANDLES;
-    TPMI_YES_NO          more_data  = NO;
+    TPMI_YES_NO          more_data  = 0;
     TPMS_CAPABILITY_DATA cap_data   = { 0, };
 
     rc = Tss2_Sys_GetCapability (sapi_context,
@@ -80,7 +80,7 @@ handles_count (TSS2_SYS_CONTEXT *sapi_context,
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("error getting capability: 0x%" PRIx32, rc);
     }
-    if (more_data == YES) {
+    if (more_data == 1) {
         g_warning ("got 'more_data' from query on loaded sessions");
     }
     *count = cap_data.data.handles.count;
@@ -97,7 +97,7 @@ prettyprint_getcap_handles (TSS2_SYS_CONTEXT *sapi_context,
 {
     TSS2_RC              rc         = TSS2_RC_SUCCESS;
     TPM2_CAP              capability = TPM2_CAP_HANDLES;
-    TPMI_YES_NO          more_data  = NO;
+    TPMI_YES_NO          more_data  = 0;
     TPMS_CAPABILITY_DATA cap_data   = { 0, };
     size_t               count      = 100;
     size_t               i;
@@ -113,7 +113,7 @@ prettyprint_getcap_handles (TSS2_SYS_CONTEXT *sapi_context,
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("error getting capability: 0x%" PRIx32, rc);
     }
-    if (more_data == YES) {
+    if (more_data == 1) {
         g_warning ("got 'more_data' from query on loaded sessions");
     }
     g_print ("GetCapability: cap: 0x%" PRIxHANDLE " prop: 0x%" PRIxHANDLE
