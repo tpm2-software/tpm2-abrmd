@@ -88,7 +88,7 @@ get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
                        size_t           *handle_count)
 {
     TSS2_RC              rc          = TSS2_RC_SUCCESS;
-    TPMI_YES_NO          more_data   = NO;
+    TPMI_YES_NO          more_data   = 0;
     TPMS_CAPABILITY_DATA cap_data    = { 0, };
     size_t               handles_left = *handle_count;
     size_t               handles_got = 0;
@@ -124,8 +124,8 @@ get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
         }
         handles_got += cap_data.data.handles.count;
         handles_left -= handles_got;
-        more_data == YES ? g_print ("more data\n") : g_print ("no more data\n");
-    } while (more_data == YES);
+        more_data == 1 ? g_print ("more data\n") : g_print ("no more data\n");
+    } while (more_data == 1);
 
     *handle_count = handles_got + 1;
 
@@ -141,7 +141,7 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
                     size_t count)
 {
     TSS2_RC              rc          = TSS2_RC_SUCCESS;
-    TPMI_YES_NO          more_data   = NO;
+    TPMI_YES_NO          more_data   = 0;
     TPMS_CAPABILITY_DATA cap_data    = { 0, };
     TPM2_HANDLE           last_handle = TPM2_TRANSIENT_FIRST;
 
@@ -170,8 +170,8 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
             /* add one to last handle to get the next handle */
             last_handle = cap_data.data.handles.handle [i] + 1;
         }
-        more_data == YES ? g_print ("more data\n") : g_print ("no more data\n");
-    } while (more_data == YES);
+        more_data == 1 ? g_print ("more data\n") : g_print ("no more data\n");
+    } while (more_data == 1);
 
     return TSS2_RC_SUCCESS;
 }
