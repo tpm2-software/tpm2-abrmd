@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -94,7 +94,7 @@ static gboolean
 signal_handler (gpointer user_data)
 {
     g_info ("handling signal");
-    /* this is the only place the global poiner to the GMainLoop is accessed */
+    /* this is the only place the global pointer to the GMainLoop is accessed */
     main_loop_quit ((GMainLoop*)user_data);
 
     return G_SOURCE_CONTINUE;
@@ -111,7 +111,7 @@ on_ipc_frontend_disconnect (IpcFrontend *ipc_frontend,
  * This function initializes and configures all of the long-lived objects
  * in the tabrmd system. It is invoked on a thread separate from the main
  * thread as a way to get the main thread listening for connections on
- * DBus as quickly as possible. Any incomming DBus requests will block
+ * DBus as quickly as possible. Any incoming DBus requests will block
  * on the 'init_mutex' until this thread completes but they won't be
  * timing etc. This function does X things:
  * - Locks the init_mutex.
@@ -448,7 +448,7 @@ main (int argc, char *argv[])
     g_info ("tabrmd startup");
     parse_opts (argc, argv, &gmain_data.options);
     if (geteuid() == 0 && ! gmain_data.options.allow_root) {
-        g_print ("refusing to run as root. pass --allow-root if you know what you're doing.");
+        g_print ("Refusing to run as root. Pass --allow-root if you know what you are doing.\n");
         return 1;
     }
 
