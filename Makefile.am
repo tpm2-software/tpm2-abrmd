@@ -57,6 +57,7 @@ tests_integration = \
     test/integration/session-load-from-open-connection.int \
     test/integration/start-auth-session.int \
     test/integration/tcti-cancel.int \
+    test/integration/tcti-double-finalize.int \
     test/integration/tcti-sessions-max.int \
     test/integration/tcti-set-locality.int \
     test/integration/hash-sequence.int \
@@ -487,6 +488,10 @@ test_integration_start_auth_session_int_SOURCES = test/integration/main.c test/i
 
 test_integration_tcti_cancel_int_LDADD = $(TEST_INT_LIBS)
 test_integration_tcti_cancel_int_SOURCES = test/integration/main.c test/integration/tcti-cancel.int.c
+
+test_integration_tcti_double_finalize_int_LDADD = $(TEST_INT_LIBS)
+test_integration_tcti_double_finalize_int_SOURCES = test/integration/main.c \
+    test/integration/tcti-double-finalize.int.c
 
 test_integration_tcti_connect_multiple_int_LDADD = $(TEST_INT_LIBS)
 test_integration_tcti_connect_multiple_int_SOURCES = test/integration/tcti-connect-multiple.int.c
