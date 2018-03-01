@@ -27,6 +27,7 @@ https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm532.tar
 attention described below.
 
 # System User & Group
+`tpm2-abrmd` must run as user `tss` or `root`.
 As is common security practice we encourage *everyone* to run the `tpm2-abrmd`
 as an unprivileged user. This requires creating a user account and group to
 use for this purpose. Our current configuration assumes that the name for this
@@ -42,6 +43,9 @@ $ sudo useradd --system --user-group tss
 
 You may wish to further restrict this user account based on your needs. This
 topic however is beyond the scope of this document.
+
+To run tpm2-abrmd as root, which is not recommended, use the `--allow-root`
+option.
 
 # Obtaining the Source Code
 As is always the case, you should check for packages available through your
