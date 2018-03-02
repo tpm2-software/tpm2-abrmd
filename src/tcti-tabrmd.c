@@ -293,6 +293,10 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *context)
         g_warning ("Invalid parameter");
         return;
     }
+    if (TABRMD_STATE_FINAL == TSS2_TCTI_TABRMD_STATE (context)) {
+        g_warning ("TSS2_TCTI_CONTEXT is already finalized");
+        return;
+    }
     TSS2_TCTI_TABRMD_STATE (context) = TABRMD_STATE_FINAL;
     g_clear_object (&TSS2_TCTI_TABRMD_SOCK_CONNECT (context));
     g_clear_object (&TSS2_TCTI_TABRMD_PROXY (context));
