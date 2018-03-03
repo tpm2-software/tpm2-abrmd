@@ -3,10 +3,10 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-## Unreleased
+## 1.3.0 - 2018-03-02
 ### Added
-- Integration test script and build support to execute integration tests
-against a physical TPM2 device on the build platform.
+- New configure option (--test-hwtpm) to run integration tests against a
+physical TPM2 device on the build platform.
 - Install systemd service file to allow on-demand systemd unit activation.
 ### Changed
 - Converted some inappropriate uses of g_error to critical / warning instead.
