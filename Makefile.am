@@ -139,7 +139,7 @@ EXTRA_DIST = \
     man/tpm2-abrmd.8.in \
     dist/tpm2-abrmd.conf \
     dist/tcti-tabrmd.pc.in \
-    dist/tpm2-abrmd.preset \
+    dist/tpm2-abrmd.preset.in \
     dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
     dist/com.intel.tss2.Tabrmd.service \
