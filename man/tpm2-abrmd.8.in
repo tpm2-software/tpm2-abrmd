@@ -91,7 +91,9 @@ This is equivalent to:
 .br
 .B tpm2-abrmd --tcti="libtcti-device.so:/dev/tpm0"
 .TP
-Have daemon use socket tcti library 'libtcti-socket.so'
+Have daemon use socket tcti library 'libtcti-socket.so'.
+This connects to a TPM2 simulator via a TCP socket.
+.br
 .B tpm2-abrmd --tcti="socket"
 .br
 .B tpm2-abrmd --tcti="libtcti-socket.so"
