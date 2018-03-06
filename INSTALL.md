@@ -12,6 +12,7 @@ required:
 * pkg-config
 * glib 2.0 library and development files
 * libsapi and TCTI libraries from https://github.com/01org/TPM2.0-TSS
+* D-Bus 1 library and header files
 
 **NOTE**: Different GNU/Linux distros package glib-2.0 differently and so
 additional packages may be required. The tabrmd requires the GObject and
@@ -96,6 +97,9 @@ in turn.
 Invoking the configure script with the `--help` option will display
 all supported options.
 
+The default values for GNU installation directories are documented here:
+https://www.gnu.org/prep/standards/html_node/Directory-Variables.html
+
 ### D-Bus Policy: `--with-dbuspolicydir`
 The `tpm2-abrmd` claims a name on the D-Bus system bus. This requires policy
 to allow the `tss` user account to claim this name. By default the build
@@ -129,7 +133,10 @@ systemd unit in the right location with the following configure option:
 By default the build installs the systemd preset file for the tabrmd to
 `${libdir}/systemd/system-preset`. If you need to install this file to a
 different directory pass the desired path to the `configure` script using this
-option.
+option. For example:
+```
+--with-systemdpresetdir=/lib/systemd/system-preset
+```
 
 #### Systemd Preset Default: `--with-systemdpresetdisable`
 The systemd preset file will enable the tabrmd by default, causing it to be
@@ -160,6 +167,17 @@ It is common for Linux distros to prefix udev rules files with a numeric
 string (e.g. "70-"). This allows for the rules to be applied in a predictable
 order. This option allows for the name of the installed udev rules file to
 have a string prepended to the file name when it is installed.
+
+
+#### `--datarootdir`
+To override the system data directory, used for
+${datadir}/dbus-1/system-services/com.intel.tss2.Tabrmd.service,
+use the `--datarootdir` option.
+Using Debian as an example we can instruct the build to install the
+DBUS service files in the right location with the following configure option:
+```
+--datarootdir=/usr/share
+```
 
 ### Enable Unit Tests: `--enable-unit`
 When provided to the `./configure` script this option will attempt to detect
