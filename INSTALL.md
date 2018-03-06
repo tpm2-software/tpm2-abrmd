@@ -211,6 +211,13 @@ and executed. The test harness in the build system will run a `tpm_server` and
 `tpm2-abrmd` for each test executable. This allows the test harness to execute
 integration tests in parallel.
 
+**NOTE**: The `--with-simulatorbin` option does not change the default for
+tpm2-abrmd, which is to use TPM hardware.
+To run tpm2-abrmd with the simulator, use:
+```
+$ sudo -u tss /usr/local/sbin/tpm2-abrmd --tcti=socket
+```
+
 ### Run Integration Tests with hardware TPM2: `--test-hwtpm`
 Once you have a TPM hardware, configure the `./configure` script through the
 `--test-hwtpm` option:
