@@ -22,8 +22,9 @@ your distro provides are installed for these features.
 The following dependencies are required only if the test suite is being built
 and executed.
 * cmocka unit test framework
-* Microsoft / IBM Software TPM2 simulator version 532 as packaged by IBM:
-https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm532.tar
+* Microsoft / IBM Software TPM2 simulator version 974 as packaged by IBM
+for Linux:
+https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm974.tar
 * Alternately, run the test suite on a real TPM hardware, with a safety
 attention described below.
 
