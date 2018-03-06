@@ -49,7 +49,7 @@ and the size of this context in the
 .I size
 parameter.
 .sp
-This patterm is common to all TCTI initialization functions. We provide an
+This pattern is common to all TCTI initialization functions. We provide an
 example of this pattern using the
 .BR tss2_tcti_tabrmd_init ()
 function in the section titled
@@ -58,7 +58,7 @@ function in the section titled
 Once initialized, the TCTI context returned exposes the Trusted Computing
 Group (TCG) defined API for the lowest level communication with the TPM.
 Using this API the caller can exchange (send / receive) TPM2 command and
-respons buffers with the
+response buffers with the
 .B tpm2-abrmd (8).
 In nearly all cases however, the caller
 will initialize a context using this funnction before passing the context to
