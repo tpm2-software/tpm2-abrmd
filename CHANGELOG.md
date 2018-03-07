@@ -3,6 +3,10 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## Unreleased
+### Fixed
+- Distribute systemd preset template instead of the generated file.
+
 ## 1.3.0 - 2018-03-02
 ### Added
 - New configure option (--test-hwtpm) to run integration tests against a
