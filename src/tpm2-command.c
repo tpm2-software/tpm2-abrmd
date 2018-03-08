@@ -27,6 +27,8 @@
 #include <inttypes.h>
 #include <stdint.h>
 
+#include <sapi/tss2_tpm2_types.h>
+
 #include "tpm2-command.h"
 #include "tpm2-header.h"
 #include "util.h"
@@ -343,7 +345,7 @@ tpm2_command_get_handle_count (Tpm2Command *command)
         return 0;
     }
     tmp = tpm2_command_get_attributes (command);
-    return (guint8)((tmp & TPMA_CC_CHANDLES) >> 25);
+    return (guint8)((tmp & TPMA_CC_CHANDLES_MASK) >> TPMA_CC_CHANDLES_SHIFT);
 }
 /*
  * Simple function to access handles in the provided Tpm2Command. The
