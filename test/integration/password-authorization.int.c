@@ -72,9 +72,9 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
     *(UINT32 *)&( publicInfo.nvPublic.attributes ) = 0;
 
     // Now set the attributes.
-    publicInfo.nvPublic.attributes |= TPMA_NV_TPMA_NV_AUTHREAD;
-    publicInfo.nvPublic.attributes |= TPMA_NV_TPMA_NV_AUTHWRITE;
-    publicInfo.nvPublic.attributes |= TPMA_NV_TPMA_NV_ORDERLY;
+    publicInfo.nvPublic.attributes |= TPMA_NV_AUTHREAD;
+    publicInfo.nvPublic.attributes |= TPMA_NV_AUTHWRITE;
+    publicInfo.nvPublic.attributes |= TPMA_NV_ORDERLY;
     publicInfo.nvPublic.authPolicy.size = 0;
     publicInfo.nvPublic.dataSize = 32;
 
