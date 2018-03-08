@@ -1,7 +1,7 @@
 .\" Process this file with
 .\" groff -man -Tascii foo.1
 .\"
-.TH TPM2-ABRMD 8 "February 2018" Intel "TPM2 Software Stack"
+.TH TPM2-ABRMD 8 "March 2018" Intel "TPM2 Software Stack"
 .SH NAME
 tpm2-abrmd \- TPM2 access broker and resource management daemon
 .SH SYNOPSIS
@@ -77,7 +77,7 @@ Connect daemon to the session dbus. This option overrides the default
 behavior.
 .TP
 \fB\-v,\ \-\-version\fR
-Disply version string.
+Display version string.
 .SH EXAMPLES
 .TP 3
 Execute daemon with default TCTI and options:
