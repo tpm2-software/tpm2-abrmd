@@ -110,7 +110,7 @@ tabrmd_start ()
     local tabrmd_opts="--session --dbus-name=${tabrmd_name}"
 
     if [ $tabrmd_port -ne 0 ]; then
-        tabrmd_opts="$tabrmd_opts --tcti=socket:tcp://127.0.0.1:${tabrmd_port}/"
+        tabrmd_opts="$tabrmd_opts --tcti=mssim:tcp://127.0.0.1:${tabrmd_port}/"
     else
         tabrmd_opts="$tabrmd_opts --tcti=device --allow-root"
     fi
