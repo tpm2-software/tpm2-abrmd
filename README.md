@@ -28,9 +28,9 @@ Check out the man page TPM2-ABRMD(8) for the currently supported options.
 
 ## libtcti-tabrmd
 This repository also hosts a client library for interacting with this daemon.
-It is intended for use with the SAPI library (libsapi) like any other TCTI.
-The initialization function for this library is hard coded to connect to the
-tabrmd on the system bus as this is the most common configuration.
+It is intended for use with the SAPI library (libtss2-sapi) like any other
+TCTI. The initialization function for this library is hard coded to connect to
+the tabrmd on the system bus as this is the most common configuration.
 
 Check out the man page TCTI-TABRMD(7) and TSS2_TCTI_TABRMD_INIT(3).
 

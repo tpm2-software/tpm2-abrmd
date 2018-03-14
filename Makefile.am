@@ -10,7 +10,7 @@ unit-count: check
 AM_CFLAGS = $(EXTRA_CFLAGS) \
     -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
     $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
-    $(SAPI_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS) \
+    $(TSS2_SYS_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS) \
     $(CODE_COVERAGE_CFLAGS)
 AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
 UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
@@ -190,7 +190,7 @@ src/ipc-frontend-dbus.c : $(BUILT_SOURCES)
 
 # utility library with most of the code that makes up the daemon
 src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
+    $(TSS2_SYS_LIBS) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
 src_libutil_la_SOURCES = \
     src/access-broker.c \
     src/access-broker.h \
@@ -253,7 +253,7 @@ src_libutil_la_SOURCES = \
     src/util.c \
     src/util.h
 
-test_integration_libtest_la_LIBADD  = $(SAPI_LIBS) $(TCTI_SOCKET_LIBS) \
+test_integration_libtest_la_LIBADD  = $(TSS2_SYS_LIBS) $(TCTI_SOCKET_LIBS) \
     $(TCTI_DEVICE_LIBS) $(GLIB_LIBS)
 test_integration_libtest_la_SOURCES = \
     test/integration/common.c \
@@ -264,7 +264,7 @@ test_integration_libtest_la_SOURCES = \
     test/integration/test-options.h
 
 src_libtcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
-    $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(SAPI_LIBS)
+    $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(TSS2_SYS_LIBS)
 src_libtcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
 src_libtcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(srcdir)/src/tcti-tabrmd.map
 
@@ -277,7 +277,7 @@ src_libtcti_echo_la_SOURCES = \
     src/tss2-tcti-echo-priv.h
 
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(SAPI_LIBS) $(libutil) $(libtcti_echo)
+    $(TSS2_SYS_LIBS) $(libutil) $(libtcti_echo)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
 
 AUTHORS :
@@ -330,7 +330,7 @@ test_test_skeleton_unit_LDADD   = $(CMOCKA_LIBS)
 test_test_skeleton_unit_SOURCES = test/test-skeleton_unit.c
 
 test_response_sink_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
+test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(GOBJECT_LIBS)
 test_response_sink_unit_SOURCES = \
     src/connection.c \
@@ -353,12 +353,12 @@ test_connection_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIB
 test_connection_manager_unit_SOURCES = test/connection-manager_unit.c
 
 test_command_attrs_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
+test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
 test_command_attrs_unit_LDFLAGS  = -Wl,--wrap=access_broker_lock_sapi,--wrap=access_broker_get_max_command,--wrap=Tss2_Sys_GetCapability
 test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
 test_command_source_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_command_source_unit_LDFLAGS = -Wl,--wrap=g_source_set_callback,--wrap=connection_manager_lookup_istream,--wrap=connection_manager_remove,--wrap=sink_enqueue,--wrap=read_tpm_buffer_alloc,--wrap=command_attrs_from_cc
 test_command_source_unit_SOURCES = test/command-source_unit.c
 
@@ -367,7 +367,7 @@ test_handle_map_entry_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_handle_map_entry_unit_SOURCES = test/handle-map-entry_unit.c
 
 test_handle_map_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_handle_map_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_handle_map_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_handle_map_unit_SOURCES = test/handle-map_unit.c
 
 test_ipc_frontend_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -384,15 +384,15 @@ test_logging_unit_LDFLAGS = -Wl,--wrap=getenv,--wrap=syslog
 test_logging_unit_SOURCES = test/logging_unit.c
 
 test_thread_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_thread_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
+test_thread_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(libutil)
 test_thread_unit_SOURCES = test/thread_unit.c
 
 test_tpm2_command_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
+test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(libutil)
 test_tpm2_command_unit_SOURCES = test/tpm2-command_unit.c
 
 test_tpm2_response_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tpm2_response_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
+test_tpm2_response_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(libutil)
 test_tpm2_response_unit_SOURCES = test/tpm2-response_unit.c
 
 test_util_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -406,7 +406,7 @@ test_message_queue_unit_SOURCES = test/message-queue_unit.c
 
 test_access_broker_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_GetCapability,--wrap=tcti_echo_transmit
-test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
+test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
 test_access_broker_unit_SOURCES = test/access-broker_unit.c
 
 test_random_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -420,7 +420,7 @@ test_session_entry_unit_SOURCES = test/session-entry_unit.c
 
 test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
-test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
+test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
 test_resource_manager_unit_SOURCES = test/resource-manager_unit.c
 
 test_tcti_dynamic_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
