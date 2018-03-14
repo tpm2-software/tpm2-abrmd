@@ -53,7 +53,7 @@ tcti_util_discover_info (const char *filename,
     if (*tcti_dl_handle == NULL) {
         size = snprintf (filename_xfrm,
                          sizeof (filename_xfrm),
-                         "libtcti-%s.so",
+                         "libtss2-tcti-%s.so",
                          filename);
         if (size >= sizeof (filename_xfrm)) {
             g_critical ("TCTI name truncated in transform.");
