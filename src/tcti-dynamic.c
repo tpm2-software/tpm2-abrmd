@@ -135,7 +135,7 @@ tcti_dynamic_class_init (TctiDynamicClass *klass)
         g_param_spec_string ("file-name",
                              "TCTI library file",
                              "Library file containing TCTI implementation.",
-                             "tcti-device.so",
+                             "libtss2-tcti-device.so",
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties[PROP_CONF_STR] =
         g_param_spec_string ("conf-str",
