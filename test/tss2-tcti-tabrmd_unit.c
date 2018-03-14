@@ -34,7 +34,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 #include "tcti-tabrmd.h"
 #include "tcti-tabrmd-priv.h"

@@ -27,7 +27,7 @@
 #ifndef TCTI_ECHO_H
 #define TCTI_ECHO_H
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 #include <glib-object.h>
 
 #include "tcti.h"

@@ -32,7 +32,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 #include "random.h"
 

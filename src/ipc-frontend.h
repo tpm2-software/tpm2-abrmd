@@ -27,7 +27,7 @@
 #ifndef IPC_FRONTEND_H
 #define IPC_FRONTEND_H
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 #include <glib-object.h>
 
 #include "connection.h"

@@ -28,7 +28,7 @@
 #define TEST_OPTIONS_H
 
 #include <gio/gio.h>
-#include "sapi/tpm20.h"
+#include <tss2/tpm20.h>
 #include "tcti-tabrmd.h"
 
 /* Default number of attempts to init selected TCTI */

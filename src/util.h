@@ -29,7 +29,7 @@
 
 #include <glib.h>
 #include <gio/gio.h>
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 #include "control-message.h"
 

@@ -32,7 +32,7 @@
 #include <glib.h>
 #include <inttypes.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 #include "tabrmd.h"
 #include "tcti-tabrmd.h"

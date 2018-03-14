@@ -32,7 +32,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 G_BEGIN_DECLS
 

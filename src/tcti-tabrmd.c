@@ -33,7 +33,7 @@
 #include <poll.h>
 #include <string.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 #include "tabrmd.h"
 #include "tcti-tabrmd.h"

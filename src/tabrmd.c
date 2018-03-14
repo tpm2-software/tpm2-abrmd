@@ -34,7 +34,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 #include "tabrmd.h"
 #include "access-broker.h"
 #include "connection.h"
