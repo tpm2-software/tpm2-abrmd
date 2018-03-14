@@ -234,7 +234,7 @@ integration tests in parallel.
 tpm2-abrmd, which is to use TPM hardware.
 To run tpm2-abrmd with the simulator, use:
 ```
-$ sudo -u tss /usr/local/sbin/tpm2-abrmd --tcti=socket
+$ sudo -u tss /usr/local/sbin/tpm2-abrmd --tcti=mssim
 ```
 
 ### Run Integration Tests with hardware TPM2: `--test-hwtpm`

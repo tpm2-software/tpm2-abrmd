@@ -5,7 +5,7 @@
 .SH NAME
 tpm2-abrmd \- TPM2 access broker and resource management daemon
 .SH SYNOPSIS
-.B tpm2-abrmd 
+.B tpm2-abrmd
 .RB [\-m][\-e][\-i][\-o][\-l\ logger-name][\-r][\-s][\-g\ /dev/urandom][\-t\ conf]
 .SH DESCRIPTION
 .B tpm2-abrmd
@@ -25,9 +25,9 @@ is formatted as "tcti-name:tcti-conf" where:
 .IP 'tcti-name'
 The name of the TCTI library shared object file. Libraries are found using
 the same algorithm as dlopen (3). If the TCTI library file name follows the
-naming convention: \fBlibtcti-<name>.so\fR where <name> is the name for the
-TCTI, the value of \fB<name>\fR may be supplied in place of the full library
-file name. See 'EXAMPLES' below.
+naming convention: \fBlibtss2-tcti-<name>.so\fR where <name> is the name for
+the TCTI, the value of \fB<name>\fR may be supplied in place of the full
+library file name. See 'EXAMPLES' below.
 .IP 'tcti-conf'
 The configuration string passed to the TCTI library upon initialization.
 .PP
@@ -89,20 +89,21 @@ Execute daemon with default TCTI and provided config string:
 This is equivalent to:
 .B tpm2-abrmd --tcti="device:/dev/tpm0"
 .br
-.B tpm2-abrmd --tcti="libtcti-device.so:/dev/tpm0"
+.B tpm2-abrmd --tcti="libtss2-tcti-device.so:/dev/tpm0"
 .TP
-Have daemon use socket tcti library 'libtcti-socket.so'.
-This connects to a TPM2 simulator via a TCP socket.
+Have daemon use Microsoft/IBM TPM2 Simulator tcti library
+'libtss2-tcti-mssim.so'.
+This connects to a TPM2 simulator via a TCP mssim.
 .br
-.B tpm2-abrmd --tcti="socket"
+.B tpm2-abrmd --tcti="mssim"
 .br
-.B tpm2-abrmd --tcti="libtcti-socket.so"
+.B tpm2-abrmd --tcti="libtss2-tcti-mssim.so"
 .TP
-Have daemon use tcti library 'libtcti-socket.so' and config string
+Have daemon use tcti library 'libtss2-tcti-mssim.so' and config string
 'tcp://127.0.0.1:5555':
-.B tpm2-abrmd --tcti=socket:tcp://127.0.0.1:5555"
+.B tpm2-abrmd --tcti=mssim:tcp://127.0.0.1:5555"
 .br
-.B tpm2-abrmd --tcti="libtcti-socket.so:tcp://127.0.0.1:5555"
+.B tpm2-abrmd --tcti="libtss2-tcti-mssim.so:tcp://127.0.0.1:5555"
 .SH AUTHOR
 Philip Tricca <philip.b.tricca@intel.com>
 .SH "SEE ALSO"
