@@ -33,7 +33,7 @@
 #include <inttypes.h>
 
 #include "tabrmd.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "common.h"
 
 #define TPM20_INDEX_PASSWORD_TEST       0x01500020

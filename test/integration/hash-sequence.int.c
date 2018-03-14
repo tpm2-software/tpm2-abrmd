@@ -35,7 +35,7 @@
 #include <tss2/tpm20.h>
 
 #include "tabrmd.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "common.h"
 
 #define INIT_SIMPLE_TPM2B_SIZE(type) (type).size = sizeof (type) - 2

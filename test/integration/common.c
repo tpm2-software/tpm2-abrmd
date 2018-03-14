@@ -30,7 +30,7 @@
 #include <glib.h>
 
 #include "common.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "tpm2-struct-init.h"
 
 /*

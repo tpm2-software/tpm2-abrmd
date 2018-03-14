@@ -27,7 +27,7 @@
 #include <glib.h>
 #include <inttypes.h>
 
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 
 /*
  * This is a test program that exercises the TCTI cancel command.

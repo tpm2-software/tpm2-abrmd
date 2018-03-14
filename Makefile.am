@@ -97,18 +97,18 @@ sbin_PROGRAMS   = src/tpm2-abrmd
 check_PROGRAMS  = $(sbin_PROGRAMS) $(TESTS)
 
 # libraries
-libtcti_tabrmd = src/libtcti-tabrmd.la
-libtcti_echo   = src/libtcti-echo.la
+libtss2_tcti_tabrmd = src/libtss2-tcti-tabrmd.la
+libtss2_tcti_echo = src/libtss2-tcti-echo.la
 libtest        = test/integration/libtest.la
 libutil        = src/libutil.la
 
-lib_LTLIBRARIES = src/libtcti-tabrmd.la
+lib_LTLIBRARIES = $(libtss2_tcti_tabrmd)
 noinst_LTLIBRARIES = \
-    $(libtcti_echo) \
+    $(libtss2_tcti_echo) \
     $(libtest) \
     $(libutil)
 man3_MANS = man/man3/tss2_tcti_tabrmd_init.3
-man7_MANS = man/man7/tcti-tabrmd.7
+man7_MANS = man/man7/tss2-tcti-tabrmd.7
 man8_MANS = man/man8/tpm2-abrmd.8
 
 install-data-hook:
@@ -122,8 +122,8 @@ uninstall-local:
 	-rm $(DESTDIR)$(mandir)/man3/tss2_tcti_tabrmd_init_full.3
 	-rm $(DESTDIR)$(udevrulesdir)/$(udevrulesprefix)tpm-udev.rules
 
-libtcti_tabrmddir      = $(includedir)/tcti
-libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
+libtss2_tcti_tabrmddir      = $(includedir)/tcti
+libtss2_tcti_tabrmd_HEADERS = $(srcdir)/src/include/tss2-tcti-tabrmd.h
 
 EXTRA_DIST = \
     src/tabrmd.xml \
@@ -132,10 +132,10 @@ EXTRA_DIST = \
     src/tcti-tabrmd.map \
     man/colophon.in \
     man/tss2_tcti_tabrmd_init.3.in \
-    man/tcti-tabrmd.7.in \
+    man/tss2-tcti-tabrmd.7.in \
     man/tpm2-abrmd.8.in \
     dist/tpm2-abrmd.conf \
-    dist/tcti-tabrmd.pc.in \
+    dist/tss2-tcti-tabrmd.pc.in \
     dist/tpm2-abrmd.preset \
     dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
@@ -169,7 +169,7 @@ CLEANFILES = \
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
 pkgconfigdir     = $(libdir)/pkgconfig
-pkgconfig_DATA   = dist/tcti-tabrmd.pc
+pkgconfig_DATA   = dist/tss2-tcti-tabrmd.pc
 dbuspolicy_DATA  = dist/tpm2-abrmd.conf
 udevrules_DATA   = dist/tpm-udev.rules
 if HAVE_SYSTEMD
@@ -263,13 +263,13 @@ test_integration_libtest_la_SOURCES = \
     test/integration/test-options.c \
     test/integration/test-options.h
 
-src_libtcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
+src_libtss2_tcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(TSS2_SYS_LIBS)
-src_libtcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
-src_libtcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(srcdir)/src/tcti-tabrmd.map
+src_libtss2_tcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
+src_libtss2_tcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(srcdir)/src/tcti-tabrmd.map
 
-src_libtcti_echo_la_LIBADD  = $(DBUS_LIBS) $(GLIB_LIBS)
-src_libtcti_echo_la_SOURCES = \
+src_libtss2_tcti_echo_la_LIBADD  = $(DBUS_LIBS) $(GLIB_LIBS)
+src_libtss2_tcti_echo_la_SOURCES = \
     src/tcti-echo.c \
     src/tcti-echo.h \
     src/tss2-tcti-echo.c \
@@ -277,7 +277,7 @@ src_libtcti_echo_la_SOURCES = \
     src/tss2-tcti-echo-priv.h
 
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(TSS2_SYS_LIBS) $(libutil) $(libtcti_echo)
+    $(TSS2_SYS_LIBS) $(libutil) $(libtss2_tcti_echo)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
 
 AUTHORS :
@@ -353,7 +353,7 @@ test_connection_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIB
 test_connection_manager_unit_SOURCES = test/connection-manager_unit.c
 
 test_command_attrs_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
+test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtss2_tcti_echo)
 test_command_attrs_unit_LDFLAGS  = -Wl,--wrap=access_broker_lock_sapi,--wrap=access_broker_get_max_command,--wrap=Tss2_Sys_GetCapability
 test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
@@ -406,7 +406,7 @@ test_message_queue_unit_SOURCES = test/message-queue_unit.c
 
 test_access_broker_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_GetCapability,--wrap=tcti_echo_transmit
-test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
+test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtss2_tcti_echo)
 test_access_broker_unit_SOURCES = test/access-broker_unit.c
 
 test_random_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -420,7 +420,7 @@ test_session_entry_unit_SOURCES = test/session-entry_unit.c
 
 test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
-test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
+test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtss2_tcti_echo)
 test_resource_manager_unit_SOURCES = test/resource-manager_unit.c
 
 test_tcti_dynamic_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
@@ -429,7 +429,7 @@ test_tcti_dynamic_unit_LDFLAGS  = -Wl,--wrap=dlopen,--wrap=dlsym,--wrap=dlclose
 test_tcti_dynamic_unit_SOURCES  = test/tcti-dynamic_unit.c
 
 test_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
+test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtss2_tcti_echo)
 test_tcti_echo_unit_SOURCES = test/tcti-echo_unit.c
 
 test_tcti_util_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
@@ -443,11 +443,11 @@ test_tss2_tcti_tabrmd_unit_LDADD   = $(CMOCKA_LIBS) $(GIO_LIBS) $(libutil)
 test_tss2_tcti_tabrmd_unit_SOURCES = src/tcti-tabrmd.c test/tss2-tcti-tabrmd_unit.c
 
 test_tss2_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(libtcti_echo)
+test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(libtss2_tcti_echo)
 test_tss2_tcti_echo_unit_SOURCES = test/tss2-tcti-echo_unit.c
 endif
 
-TEST_INT_LIBS = $(libtest) $(libutil) $(libtcti_tabrmd) $(GLIB_LIBS)
+TEST_INT_LIBS = $(libtest) $(libutil) $(libtss2_tcti_tabrmd) $(GLIB_LIBS)
 test_integration_auth_session_max_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_max_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-max.int.c

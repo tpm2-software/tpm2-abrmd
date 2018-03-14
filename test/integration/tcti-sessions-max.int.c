@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "common.h"
 
 #define TCTI_COUNT_DEFAULT 30

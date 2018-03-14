@@ -28,7 +28,7 @@
 #include <stdbool.h>
 
 #include "common.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "test.h"
 #include "test-options.h"
 #include "context-util.h"

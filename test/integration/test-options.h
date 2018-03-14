@@ -29,7 +29,7 @@
 
 #include <gio/gio.h>
 #include <tss2/tpm20.h>
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 
 /* Default number of attempts to init selected TCTI */
 #define TCTI_RETRIES_DEFAULT 5
