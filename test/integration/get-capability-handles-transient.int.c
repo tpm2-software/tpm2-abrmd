@@ -27,7 +27,7 @@
 #include <glib.h>
 #include <inttypes.h>
 
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "tpm2-struct-init.h"
 #include "common.h"
 

@@ -36,7 +36,7 @@
 
 #include <tss2/tpm20.h>
 
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "tcti-tabrmd-priv.h"
 #include "tpm2-header.h"
 

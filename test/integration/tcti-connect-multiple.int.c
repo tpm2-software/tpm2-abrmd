@@ -43,7 +43,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "test-options.h"
 
 #define CONNECTION_COUNT 25

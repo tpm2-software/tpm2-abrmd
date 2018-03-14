@@ -30,7 +30,7 @@
 #include <gio/gio.h>
 #include <tss2/tpm20.h>
 
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 
 #define TABRMD_CONNECTIONS_MAX_DEFAULT 27
 #define TABRMD_CONNECTION_MAX 100

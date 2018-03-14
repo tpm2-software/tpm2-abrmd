@@ -29,7 +29,7 @@
 #include <inttypes.h>
 
 #include "test-options.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 
 TCTI_TABRMD_DBUS_TYPE
 bus_type_from_str (const char *bus_type_str)
