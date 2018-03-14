@@ -24,7 +24,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 /**
  * Extract the 'tag' field from the tpm command header. This is a

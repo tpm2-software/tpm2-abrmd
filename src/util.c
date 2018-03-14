@@ -35,7 +35,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <sapi/tss2_tpm2_types.h>
+#include <tss2/tss2_tpm2_types.h>
 
 #include "util.h"
 #include "tpm2-header.h"

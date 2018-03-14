@@ -30,7 +30,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <pthread.h>
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 #include "access-broker.h"
 #include "connection-manager.h"

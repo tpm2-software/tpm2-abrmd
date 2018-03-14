@@ -28,7 +28,7 @@
 #define TPM2_HEADER_H
 
 #include <sys/types.h>
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 /* A convenience macro to get us the size of the TPM header. */
 #define TPM_HEADER_SIZE (UINT32)(sizeof (TPM2_ST) + sizeof (UINT32) + sizeof (TPM2_CC))

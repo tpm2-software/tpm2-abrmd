@@ -27,7 +27,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 
-#include <sapi/tss2_tpm2_types.h>
+#include <tss2/tss2_tpm2_types.h>
 
 #include "tpm2-command.h"
 #include "tpm2-header.h"

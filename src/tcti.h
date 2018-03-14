@@ -27,7 +27,7 @@
 #ifndef TCTI_H
 #define TCTI_H
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 #include <glib-object.h>
 
 G_BEGIN_DECLS

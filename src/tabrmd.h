@@ -28,7 +28,7 @@
 #define TSS2_TABD_H
 
 #include <gio/gio.h>
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 #include "tcti-tabrmd.h"
 

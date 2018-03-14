@@ -28,7 +28,7 @@
 #define TPM2_COMMAND_H
 
 #include <glib-object.h>
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 #include "connection.h"
 

@@ -29,7 +29,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 G_BEGIN_DECLS
 

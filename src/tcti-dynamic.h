@@ -27,7 +27,7 @@
 #ifndef TABD_TCTI_DYNAMIC_H
 #define TABD_TCTI_DYNAMIC_H
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 #include <glib-object.h>
 
 #include "tcti.h"

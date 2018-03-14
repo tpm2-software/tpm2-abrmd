@@ -31,8 +31,8 @@
 extern "C" {
 #endif
 
-#include <sapi/tpm20.h>
-#include <sapi/tss2_tcti.h>
+#include <tss2/tpm20.h>
+#include <tss2/tss2_tcti.h>
 
 #define TCTI_TABRMD_DBUS_INTERFACE_DEFAULT "com.intel.tss2.TctiTabrmd"
 #define TCTI_TABRMD_DBUS_NAME_DEFAULT      "com.intel.tss2.Tabrmd"

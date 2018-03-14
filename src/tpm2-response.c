@@ -27,7 +27,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <string.h>
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 #include "tpm2-header.h"
 #include "tpm2-response.h"

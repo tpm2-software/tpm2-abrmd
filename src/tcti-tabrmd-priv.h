@@ -30,7 +30,7 @@
 #include <glib.h>
 #include <pthread.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 #include "tabrmd-generated.h"
 #include "tpm2-header.h"

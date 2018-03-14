@@ -28,7 +28,7 @@
  * These are common functions used by the integration tests.
  */
 #include <inttypes.h>
-#include <sapi/tpm20.h>
+#include <tss2/tpm20.h>
 
 /*
  * This macro is useful as a wrapper around SAPI functions to automatically
