@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,12 +29,14 @@
 #include <glib.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include <tss2/tpm20.h>
+#include <tss2/tss2_tpm2_types.h>
 
 #include "tss2-tcti-tabrmd.h"
 #include "tcti-tabrmd-priv.h"

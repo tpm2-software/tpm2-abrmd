@@ -27,7 +27,7 @@
 #ifndef TABRMD_TCTI_UTIL_H
 #define TABRMD_TCTI_UTIL_H
 
-#include <tss2/tpm20.h>
+#include <tss2/tss2_tcti.h>
 
 TSS2_RC
 tcti_util_discover_info (const char *filename,

@@ -26,6 +26,7 @@
  */
 #include <glib.h>
 #include <inttypes.h>
+#include <tss2/tss2_sys.h>
 
 #include "tss2-tcti-tabrmd.h"
 
