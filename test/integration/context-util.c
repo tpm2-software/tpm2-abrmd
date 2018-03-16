@@ -33,6 +33,7 @@
 
 #include "context-util.h"
 #include "tcti-util.h"
+#include "common.h"
 
 TSS2_TCTI_CONTEXT*
 tcti_dynamic_init (const char *filename,
@@ -96,12 +97,7 @@ sapi_init_from_tcti_ctx (TSS2_TCTI_CONTEXT *tcti_ctx)
     TSS2_SYS_CONTEXT *sapi_ctx;
     TSS2_RC rc;
     size_t size;
-    TSS2_ABI_VERSION abi_version = {
-        .tssCreator = TSSWG_INTEROP,
-        .tssFamily  = TSS_SAPI_FIRST_FAMILY,
-        .tssLevel   = TSS_SAPI_FIRST_LEVEL,
-        .tssVersion = TSS_SAPI_FIRST_VERSION,
-    };
+    TSS2_ABI_VERSION abi_version = SUPPORTED_ABI_VERSION;
 
     size = Tss2_Sys_GetContextSize (0);
     sapi_ctx = (TSS2_SYS_CONTEXT*)calloc (1, size);

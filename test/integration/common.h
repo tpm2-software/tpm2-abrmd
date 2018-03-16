@@ -31,6 +31,15 @@
 #include <tss2/tss2_sys.h>
 #include <tss2/tss2_tcti.h>
 
+/* Current ABI version */
+#define SUPPORTED_ABI_VERSION \
+{ \
+    .tssCreator = 1, \
+    .tssFamily = 2, \
+    .tssLevel = 1, \
+    .tssVersion = 108, \
+}
+
 /*
  * This macro is useful as a wrapper around SAPI functions to automatically
  * retry function calls when the RC is TPM2_RC_RETRY.

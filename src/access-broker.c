@@ -156,6 +156,15 @@ access_broker_class_init (AccessBrokerClass *klass)
                                        N_PROPERTIES,
                                        obj_properties);
 }
+
+#define SUPPORTED_ABI_VERSION \
+{ \
+    .tssCreator = 1, \
+    .tssFamily = 2, \
+    .tssLevel = 1, \
+    .tssVersion = 108, \
+}
+
 static TSS2_SYS_CONTEXT*
 sapi_context_init (Tcti *tcti)
 {
@@ -163,12 +172,7 @@ sapi_context_init (Tcti *tcti)
     TSS2_TCTI_CONTEXT *tcti_context;
     TSS2_RC rc;
     size_t size;
-    TSS2_ABI_VERSION abi_version = {
-        .tssCreator = TSSWG_INTEROP,
-        .tssFamily  = TSS_SAPI_FIRST_FAMILY,
-        .tssLevel   = TSS_SAPI_FIRST_LEVEL,
-        .tssVersion = TSS_SAPI_FIRST_VERSION,
-    };
+    TSS2_ABI_VERSION abi_version = SUPPORTED_ABI_VERSION;
 
     g_debug ("sapi_context_init w/ Tcti: 0x%" PRIxPTR, (uintptr_t)tcti);
     tcti_context = tcti_peek_context (tcti);
