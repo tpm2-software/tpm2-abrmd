@@ -200,7 +200,7 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
     in_public.publicArea.objectAttributes = \
         TPMA_OBJECT_FIXEDTPM            | TPMA_OBJECT_FIXEDPARENT  | \
         TPMA_OBJECT_SENSITIVEDATAORIGIN | TPMA_OBJECT_USERWITHAUTH | \
-        TPMA_OBJECT_DECRYPT             | TPMA_OBJECT_SIGN;
+        TPMA_OBJECT_DECRYPT             | TPMA_OBJECT_SIGN_ENCRYPT;
     /* TPM2B_DIGEST / authPolicy */
     in_public.publicArea.authPolicy.size = 0;
     /* TPMU_PUBLIC_PARAMS / parameters: key type is TPM2_ALG_RSA, set parameters accordingly */
