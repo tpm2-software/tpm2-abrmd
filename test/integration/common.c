@@ -73,12 +73,7 @@ sapi_context_init (TSS2_SYS_CONTEXT  **sapi_context,
     TSS2_SYS_CONTEXT *tmp_sapi_context;
     TSS2_RC rc;
     size_t size;
-    TSS2_ABI_VERSION abi_version = {
-        .tssCreator = TSSWG_INTEROP,
-        .tssFamily  = TSS_SAPI_FIRST_FAMILY,
-        .tssLevel   = TSS_SAPI_FIRST_LEVEL,
-        .tssVersion = TSS_SAPI_FIRST_VERSION,
-    };
+    TSS2_ABI_VERSION abi_version = SUPPORTED_ABI_VERSION;
 
     if (sapi_context == NULL || tcti_context == NULL)
         g_error ("sapi_context_init passed NULL reference");
