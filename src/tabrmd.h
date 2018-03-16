@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,8 @@
 #define TSS2_TABD_H
 
 #include <gio/gio.h>
-#include <tss2/tpm20.h>
+
+#include <tss2/tss2_tpm2_types.h>
 
 #include "tss2-tcti-tabrmd.h"
 

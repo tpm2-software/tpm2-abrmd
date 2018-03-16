@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 - 2018, Intel Corporation
+ * Copyright (c) 2017 - 2018 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <tss2/tss2_tpm2_types.h>
 
-#include <tss2/tpm20.h>
 #include "tabrmd.h"
 #include "access-broker.h"
 #include "connection.h"

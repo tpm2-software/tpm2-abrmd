@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,8 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "tcti-util.h"
 #include "tabrmd.h"
