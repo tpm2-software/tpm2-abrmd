@@ -3,7 +3,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-## Unreleased
+## 1.3.1 - 2018-03-18
 ### Fixed
 - Distribute systemd preset template instead of the generated file.
 
