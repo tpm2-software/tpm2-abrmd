@@ -272,6 +272,12 @@ you won't need to do much more than provide an alternative `--prefix` option
 at configure time, and maybe `DESTDIR` at install time if you're packaging
 for a distro.
 
+**NOTE**: It may be necessary to run ldconfig (as root) to update the run-time
+bindings before executing a program that links against the tabrmd library:
+```
+$ sudo ldconfig
+```
+
 # Post-install
 After installing the compiled software and configuration all components with
 new configuration (Systemd, D-Bus and udev) must be prompted to reload their
