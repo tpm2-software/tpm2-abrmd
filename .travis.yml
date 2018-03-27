@@ -23,8 +23,8 @@ addons:
       name: 01org/tpm2-abrmd
       description: Build submitted via Travis-CI
     notification_email: flihp@twobit.us
-    build_command_prepend: "mkdir cov-build && pushd cov-build && ../configure && popd"
-    build_command: "make --directory=cov-build --jobs=$(($(nproc)*3/2))"
+    build_command_prepend: "./bootstrap && ./configure"
+    build_command: "make --jobs=$(nproc)"
     branch_pattern: coverity_scan
 
 env:
@@ -74,6 +74,12 @@ before_script:
   - ./bootstrap
 
 script :
+# short-circuit normal build if we've already done a coverity scan
+  - |
+    if [ "${COVERITY_SCAN_BRANCH}" == 1 ]; then
+        echo "COVERITY_SCAN_BRANCH set, not running normal build."
+        exit 0
+    fi
   - echo 'Configuring source code...' && echo -en 'travis_fold:start:tabrmd-configure\\r'
   - |
     CONFIGURE_OPTIONS="--enable-unit --with-simulatorbin=${DEPS}/ibmtpm/src/tpm_server"
