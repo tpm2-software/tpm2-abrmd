@@ -10,6 +10,24 @@ against a physical TPM2 device on the build platform.
 ### Removed
 - Command line option --fail-on-loaded-trans.
 
+## 1.3.1 - 2018-03-18
+### Fixed
+- Distribute systemd preset template instead of the generated file.
+
+## 1.3.0 - 2018-03-02
+### Added
+- New configure option (--test-hwtpm) to run integration tests against a
+physical TPM2 device on the build platform.
+- Install systemd service file to allow on-demand systemd unit activation.
+### Changed
+- Converted some inappropriate uses of g_error to critical / warning instead.
+- Removed use of gen_require from SELinux policy, use dbus_stub instead.
+- udev rules now give tss group read / write access to the TPM device node.
+- udev rules now give tss user and group read / write access to kernel RM
+node.
+### Fixed
+- Memory leak on an error path in the AccessBroker.
+
 ## 1.2.0 - 2017-12-08
 ### Added
 - Check SAPI library is < 2.0.0 (API change upstream).
