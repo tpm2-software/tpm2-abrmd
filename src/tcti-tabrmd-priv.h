@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,7 @@
 
 #include <glib.h>
 #include <pthread.h>
-
-#include <sapi/tpm20.h>
+#include <tss2/tss2_tcti.h>
 
 #include "tabrmd-generated.h"
 #include "tpm2-header.h"
@@ -111,5 +110,23 @@ typedef struct {
     size_t                         index;
     uint8_t                        header_buf [TPM_HEADER_SIZE];
 } TSS2_TCTI_TABRMD_CONTEXT;
+
+typedef struct {
+    TCTI_TABRMD_DBUS_TYPE bus_type;
+    const char *bus_name;
+} tabrmd_conf_t;
+
+/*
+ * This function is not exposed through the public header. It is meant to be
+ * dynamically discovered using dlopen at run time. We include it here in the
+ * private header so that we can invoke it in the test harness.
+ */
+const TSS2_TCTI_INFO* Tss2_Tcti_Info (void);
+TCTI_TABRMD_DBUS_TYPE tabrmd_bus_type_from_str (const char* const bus_type);
+TSS2_RC tabrmd_conf_parse_kv (const char *key,
+                              const char *value,
+                              tabrmd_conf_t * const tabrmd_conf);
+TSS2_RC tabrmd_conf_parse (char *conf_str,
+                           tabrmd_conf_t * const tabrmd_conf);
 
 #endif /* TSS2TCTI_TABRMD_PRIV_H */

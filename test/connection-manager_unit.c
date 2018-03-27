@@ -41,6 +41,7 @@
 
 #include "connection.h"
 #include "connection-manager.h"
+#include "tabrmd.h"
 #include "util.h"
 
 static void
@@ -48,7 +49,7 @@ connection_manager_allocate_test (void **state)
 {
     ConnectionManager *manager = NULL;
 
-    manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
+    manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
     assert_non_null (manager);
     g_object_unref (manager);
 }
@@ -58,7 +59,7 @@ connection_manager_setup (void **state)
 {
     ConnectionManager *manager = NULL;
 
-    manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
+    manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
     assert_non_null (manager);
     *state = manager;
     return 0;
@@ -82,7 +83,7 @@ connection_manager_insert_test (void **state)
     gint ret, client_fd;
     GIOStream *iostream;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
@@ -100,7 +101,7 @@ connection_manager_lookup_fd_test (void **state)
     gint ret, client_fd;
     GIOStream *iostream;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
@@ -122,7 +123,7 @@ connection_manager_lookup_id_test (void **state)
     GIOStream *iostream;
     gint ret, client_fd;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
@@ -143,7 +144,7 @@ connection_manager_remove_test (void **state)
     gint ret_int, client_fd;
     gboolean ret_bool;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);

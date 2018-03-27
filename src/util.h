@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,12 +29,12 @@
 
 #include <glib.h>
 #include <gio/gio.h>
-#include <sapi/tpm20.h>
+#include <tss2/tss2_tpm2_types.h>
 
 #include "control-message.h"
 
 /* set the layer / component to indicate the RC comes from the RM */
-#define RM_RC(rc) TSS2_RESMGR_ERROR_LEVEL + rc
+#define RM_RC(rc) TSS2_RESMGR_RC_LAYER + rc
 
 /* allocate read blocks in BUF_SIZE increments */
 #define UTIL_BUF_SIZE 1024
@@ -43,7 +43,7 @@
 
 #define prop_str(val) val ? "set" : "clear"
 /*
-#define TPM_CC_FROM_TPMA_CC(attrs) (attrs.val & 0x0000ffff)
+#define TPM2_CC_FROM_TPMA_CC(attrs) (attrs.val & 0x0000ffff)
 #define TPMA_CC_RESERVED(attrs)    (attrs.val & 0x003f0000)
 #define TPMA_CC_NV(attrs)          (attrs.val & 0x00400000)
 #define TPMA_CC_EXTENSIVE(attrs)   (attrs.val & 0x00800000)

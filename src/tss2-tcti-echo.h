@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
 #ifndef TSS2_TCTI_ECHO_H
 #define TSS2_TCTI_ECHO_H
 
-#include <sapi/tpm20.h>
+#include <tss2/tss2_tcti.h>
 
 #define TCTI_ECHO_MAGIC 0xd511f126d4656f6d
 #define TSS2_TCTI_ECHO_MIN_BUF ( 1024 )

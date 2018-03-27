@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -185,8 +185,8 @@ ipc_frontend_dbus_class_init (IpcFrontendDbusClass *klass)
                           "maximum transient objects",
                           "maximum number of transient objects for the handle map",
                           1,
-                          MAX_TRANSIENT_OBJECTS,
-                          MAX_TRANSIENT_OBJECTS_DEFAULT,
+                          TABRMD_TRANSIENT_MAX,
+                          TABRMD_TRANSIENT_MAX_DEFAULT,
                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_RANDOM] =
         g_param_spec_object ("random",
@@ -276,7 +276,7 @@ get_pid_from_dbus_invocation (GDBusProxy            *proxy,
     }
 }
 /*
- * Generate a random uint64 returned in the id out paramter.
+ * Generate a random uint64 returned in the id out parameter.
  * Mix this random ID with the PID from the caller. This is obtained
  * through the invocation parameter. Mix the two together using xor and
  * return the result through the id_pid_mix out parameter.
@@ -398,7 +398,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
             "Failed to allocate connection ID. Try again later.");
         return TRUE;
     }
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, self->max_transient_objects);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, self->max_transient_objects);
     if (handle_map == NULL)
         g_error ("Failed to allocate new HandleMap");
     iostream = create_connection_iostream (&client_fd);
@@ -439,7 +439,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
  * requesting that an outstanding TPM command should be canceled. It is
  * registered with the Tabrmd in response to acquiring a name
  * on the dbus (on_name_acquired). It does X things:
- * - Locate the Connection object associted with the 'id' parameter in
+ * - Locate the Connection object associated with the 'id' parameter in
  *   the ConnectionManager.
  * - If the connection has a command being processed by the tabrmd then it's
  *   removed from the processing queue.
@@ -622,7 +622,8 @@ on_name_lost (GDBusConnection *connection,
 
     if (self->dbus_name_acquired == FALSE) {
         g_critical ("Failed to acquire DBus name %s. UID %d must be "
-                    "allowed to \"own\" this name. Check DBus config.",
+                    "allowed to \"own\" this name. Check DBus config "
+                    "and check that this is running as user tss or root.",
                     name, getuid ());
     } else {
         self->dbus_name_acquired = FALSE;

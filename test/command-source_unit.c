@@ -45,6 +45,7 @@
 #include "source-interface.h"
 #include "command-attrs.h"
 #include "command-source.h"
+#include "tabrmd.h"
 #include "tpm2-command.h"
 #include "util.h"
 
@@ -60,7 +61,7 @@ typedef struct source_test_data {
 /* mock function to return TPM command attributes TPMA_CC */
 TPMA_CC
 __wrap_command_attrs_from_cc (CommandAttrs *attrs,
-                              TPM_CC        command_code)
+                              TPM2_CC        command_code)
 {
     return (TPMA_CC)mock_type (UINT32);
 }
@@ -142,7 +143,7 @@ command_source_allocate_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
+    data->manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
 
     *state = data;
     return 0;
@@ -173,7 +174,7 @@ command_source_start_setup (void **state)
     source_test_data_t *data;
 
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
+    data->manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
     if (data->manager == NULL)
         g_error ("failed to allocate new connection_manager");
     data->command_attrs = command_attrs_new ();
@@ -215,7 +216,7 @@ command_source_connection_setup (void **state)
 
     g_debug ("%s", __func__);
     data = calloc (1, sizeof (source_test_data_t));
-    data->manager = connection_manager_new (MAX_CONNECTIONS_DEFAULT);
+    data->manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
     data->command_attrs = command_attrs_new ();
     data->source = command_source_new (data->manager,
                                        data->command_attrs);
@@ -235,7 +236,7 @@ command_source_connection_insert_test (void **state)
     gint ret, client_fd;
 
     g_debug ("%s", __func__);
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 5, handle_map);
     g_object_unref (handle_map);
@@ -286,7 +287,7 @@ command_source_on_io_ready_success_test (void **state)
                           0x0,  0x06, 0x0,  0x0,  0x01, 0x0,
                           0x0,  0x0,  0x0,  0x7f, 0x0a };
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);
@@ -328,7 +329,7 @@ command_source_on_io_ready_eof_test (void **state)
     gint client_fd, hash_table_size;
     gboolean ret;
 
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,10 +33,10 @@
 #include <poll.h>
 #include <string.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tss2_tpm2_types.h>
 
 #include "tabrmd.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "tcti-tabrmd-priv.h"
 #include "tpm2-header.h"
 #include "util.h"
@@ -44,7 +44,7 @@
 static TSS2_RC
 tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
                            size_t             size,
-                           uint8_t           *command)
+                           const uint8_t      *command)
 {
     ssize_t write_ret;
     TSS2_RC tss2_ret = TSS2_RC_SUCCESS;
@@ -522,4 +522,148 @@ tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
                                        size,
                                        TCTI_TABRMD_DBUS_TYPE_DEFAULT,
                                        TCTI_TABRMD_DBUS_NAME_DEFAULT);
+}
+
+typedef struct {
+    TCTI_TABRMD_DBUS_TYPE type;
+    char *name;
+} bus_name_type_entry_t;
+
+const static bus_name_type_entry_t bus_name_type_map[] = {
+    {
+        TCTI_TABRMD_DBUS_TYPE_SESSION,
+        "session",
+    },
+    {
+        TCTI_TABRMD_DBUS_TYPE_SYSTEM,
+        "system",
+    },
+};
+#define BUS_NAME_TYPE_MAP_LENGTH (sizeof (bus_name_type_map) / sizeof (bus_name_type_entry_t))
+TCTI_TABRMD_DBUS_TYPE
+tabrmd_bus_type_from_str (const char* const bus_type)
+{
+    size_t i;
+    g_debug ("BUS_NAME_TYPE_MAP_LENGTH: %zu", BUS_NAME_TYPE_MAP_LENGTH);
+    g_debug ("looking up type for bus_type string: %s", bus_type);
+    for (i = 0; i < BUS_NAME_TYPE_MAP_LENGTH; ++i) {
+        if (strcmp (bus_name_type_map [i].name, bus_type) == 0) {
+            g_debug ("matched bus_type string \"%s\" to type %d",
+                     bus_name_type_map [i].name,
+                     bus_name_type_map [i].type);
+            return bus_name_type_map [i].type;
+        }
+    }
+    g_debug ("no match for bus_type string %s", bus_type);
+    return TCTI_TABRMD_DBUS_TYPE_NONE;
+}
+
+TSS2_RC
+tabrmd_conf_parse_kv (const char *key,
+                      const char *value,
+                      tabrmd_conf_t * const tabrmd_conf)
+{
+    g_debug ("key: %s / value: %s\n", key, value);
+    if (strcmp (key, "bus_name") == 0) {
+        tabrmd_conf->bus_name = value;
+        return TSS2_RC_SUCCESS;
+    }
+    if (strcmp (key, "bus_type") == 0) {
+        tabrmd_conf->bus_type = tabrmd_bus_type_from_str (value);
+        if (tabrmd_conf->bus_type == TCTI_TABRMD_DBUS_TYPE_NONE) {
+            return TSS2_TCTI_RC_BAD_VALUE;
+        }
+        return TSS2_RC_SUCCESS;
+    }
+
+    return TSS2_TCTI_RC_BAD_VALUE;
+}
+
+/*
+ * This function parses the provided configuration string extracting the
+ * key/value pairs, validating them and populating the provided
+ * tabrmd_conf_t structure with the results.
+ */
+TSS2_RC
+tabrmd_conf_parse (char *conf_str,
+                   tabrmd_conf_t * const tabrmd_conf)
+{
+    TSS2_RC ret = TSS2_RC_SUCCESS;
+    char *key_value, *key, *value;
+    char *tok_kv_ctx = NULL;
+
+    tabrmd_conf->bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT;
+    tabrmd_conf->bus_type = TCTI_TABRMD_DBUS_TYPE_SYSTEM;
+
+    while ((key_value = strtok_r (conf_str, ",", &conf_str)) != NULL) {
+        key = strtok_r (key_value, "=", &tok_kv_ctx);
+        if (key == NULL) {
+            return TSS2_TCTI_RC_BAD_VALUE;
+        }
+        value = strtok_r (NULL, "=", &tok_kv_ctx);
+        if (value == NULL) {
+            return TSS2_TCTI_RC_BAD_VALUE;
+        }
+        ret = tabrmd_conf_parse_kv (key, value, tabrmd_conf);
+        if (ret != TSS2_RC_SUCCESS) {
+            return ret;
+        }
+    }
+
+    return TSS2_RC_SUCCESS;
+}
+
+/*
+ * The longest configuration string we'll take. Each dbus name can be 255
+ * characters long (see dbus spec). The bus_types that we support are
+ * 'system' or 'session' (255 + 7 = 262). 'bus_type=' and 'bus_name=' are
+ * each another 9 characters for a total of 280.
+ */
+#define CONF_STRING_MAX 280
+static TSS2_RC
+Tss2_Tcti_Tabrmd_Init (TSS2_TCTI_CONTEXT *context,
+                       size_t            *size,
+                       const char        *conf)
+{
+    TSS2_RC ret;
+    size_t conf_len;
+    char *conf_copy;
+    tabrmd_conf_t tabrmd_conf = {
+        TCTI_TABRMD_DBUS_TYPE_DEFAULT,
+        TCTI_TABRMD_DBUS_NAME_DEFAULT,
+    };
+
+    if (conf != NULL) {
+        conf_len = strlen (conf);
+        if (conf_len > CONF_STRING_MAX) {
+            return TSS2_TCTI_RC_BAD_VALUE;
+        }
+        conf_copy = strdup (conf);
+        if (conf_copy == NULL) {
+            g_critical ("Failed to duplicate config string: %s", strerror (errno));
+            return TSS2_TCTI_RC_GENERAL_FAILURE;
+        }
+
+        ret = tabrmd_conf_parse (conf_copy, &tabrmd_conf);
+        if (ret != TSS2_RC_SUCCESS)
+            return ret;
+    }
+    return tss2_tcti_tabrmd_init_full (context,
+                                       size,
+                                       tabrmd_conf.bus_type,
+                                       tabrmd_conf.bus_name);
+}
+
+/* public info structure */
+const static TSS2_TCTI_INFO tss2_tcti_info = {
+    .name = "tcti-abrmd",
+    .description = "TCTI module for communication with tabrmd.",
+    .config_help = "This module takes NO arguments.",
+    .init = Tss2_Tcti_Tabrmd_Init,
+};
+
+const TSS2_TCTI_INFO*
+Tss2_Tcti_Info (void)
+{
+    return &tss2_tcti_info;
 }

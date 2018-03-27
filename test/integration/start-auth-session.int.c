@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
 #include <glib.h>
 #include <stdio.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tss2_sys.h>
 
 #include "common.h"
 #include "test.h"
@@ -61,12 +61,12 @@
  */
 TSS2_RC
 handles_count (TSS2_SYS_CONTEXT *sapi_context,
-               TPM_HANDLE        query_handle,
+               TPM2_HANDLE        query_handle,
                UINT32           *count)
 {
     TSS2_RC              rc         = TSS2_RC_SUCCESS;
-    TPM_CAP              capability = TPM_CAP_HANDLES;
-    TPMI_YES_NO          more_data  = NO;
+    TPM2_CAP              capability = TPM2_CAP_HANDLES;
+    TPMI_YES_NO          more_data  = 0;
     TPMS_CAPABILITY_DATA cap_data   = { 0, };
 
     rc = Tss2_Sys_GetCapability (sapi_context,
@@ -80,7 +80,7 @@ handles_count (TSS2_SYS_CONTEXT *sapi_context,
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("error getting capability: 0x%" PRIx32, rc);
     }
-    if (more_data == YES) {
+    if (more_data == 1) {
         g_warning ("got 'more_data' from query on loaded sessions");
     }
     *count = cap_data.data.handles.count;
@@ -93,11 +93,11 @@ handles_count (TSS2_SYS_CONTEXT *sapi_context,
  */
 TSS2_RC
 prettyprint_getcap_handles (TSS2_SYS_CONTEXT *sapi_context,
-                            TPM_HANDLE        query_handle)
+                            TPM2_HANDLE        query_handle)
 {
     TSS2_RC              rc         = TSS2_RC_SUCCESS;
-    TPM_CAP              capability = TPM_CAP_HANDLES;
-    TPMI_YES_NO          more_data  = NO;
+    TPM2_CAP              capability = TPM2_CAP_HANDLES;
+    TPMI_YES_NO          more_data  = 0;
     TPMS_CAPABILITY_DATA cap_data   = { 0, };
     size_t               count      = 100;
     size_t               i;
@@ -113,7 +113,7 @@ prettyprint_getcap_handles (TSS2_SYS_CONTEXT *sapi_context,
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("error getting capability: 0x%" PRIx32, rc);
     }
-    if (more_data == YES) {
+    if (more_data == 1) {
         g_warning ("got 'more_data' from query on loaded sessions");
     }
     g_print ("GetCapability: cap: 0x%" PRIxHANDLE " prop: 0x%" PRIxHANDLE
@@ -135,13 +135,13 @@ dump_loaded_active_handles (TSS2_SYS_CONTEXT *sapi_context)
     TSS2_RC rc = TSS2_RC_SUCCESS;
 
     g_print ("Printing LOADED_SESSION handles\n");
-    rc = prettyprint_getcap_handles (sapi_context, LOADED_SESSION_FIRST);
+    rc = prettyprint_getcap_handles (sapi_context, TPM2_LOADED_SESSION_FIRST);
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("Failed to get handles for LOADED_SESSION_FIRST: 0x%" PRIxHANDLE,
                  rc);
     }
     g_print ("Printing ACTIVE_SESSION handles\n");
-    rc = prettyprint_getcap_handles (sapi_context, ACTIVE_SESSION_FIRST);
+    rc = prettyprint_getcap_handles (sapi_context, TPM2_ACTIVE_SESSION_FIRST);
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("Failed to get handles for ACTIVE_SESSION_FIRST: 0x%" PRIx32,
                  rc);
@@ -168,9 +168,9 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
     g_info ("StartAuthSession for TPM_SE_POLICY success! Session handle: "
             "0x%08" PRIx32, session_handle);
-    handles_count (sapi_context, LOADED_SESSION_FIRST, &count);
+    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
     g_assert (count == 1);
-    handles_count (sapi_context, ACTIVE_SESSION_FIRST, &count);
+    handles_count (sapi_context, TPM2_ACTIVE_SESSION_FIRST, &count);
     g_assert (count == 0);
     dump_loaded_active_handles (sapi_context);
 
@@ -184,9 +184,9 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
             session_handle);
     prettyprint_context (&context);
     dump_loaded_active_handles (sapi_context);
-    handles_count (sapi_context, LOADED_SESSION_FIRST, &count);
+    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
     g_assert (count == 0);
-    handles_count (sapi_context, ACTIVE_SESSION_FIRST, &count);
+    handles_count (sapi_context, TPM2_ACTIVE_SESSION_FIRST, &count);
     g_assert (count == 1);
 
     /* load context */
@@ -203,9 +203,9 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         g_info ("session_handle != session_handle_load");
     }
     dump_loaded_active_handles (sapi_context);
-    handles_count (sapi_context, LOADED_SESSION_FIRST, &count);
+    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
     g_assert (count == 1);
-    handles_count (sapi_context, ACTIVE_SESSION_FIRST, &count);
+    handles_count (sapi_context, TPM2_ACTIVE_SESSION_FIRST, &count);
     g_assert (count == 0);
 
     g_info ("Flushing context for session: 0x%" PRIxHANDLE, session_handle);
@@ -216,9 +216,9 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     g_info ("Flushed context for session handle: 0x%" PRIxHANDLE " success!",
             session_handle);
     dump_loaded_active_handles (sapi_context);
-    handles_count (sapi_context, LOADED_SESSION_FIRST, &count);
+    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
     g_assert (count == 0);
-    handles_count (sapi_context, ACTIVE_SESSION_FIRST, &count);
+    handles_count (sapi_context, TPM2_ACTIVE_SESSION_FIRST, &count);
     g_assert (count == 0);
 
     return 0;

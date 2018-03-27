@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,49 +28,29 @@
 #define TEST_OPTIONS_H
 
 #include <gio/gio.h>
-#include "sapi/tpm20.h"
-#include "tcti-tabrmd.h"
-
-/* Default TCTI */
-#define TCTI_DEFAULT      TABRMD_TCTI
-#define TCTI_DEFAULT_STR  "tabrmd"
-
-/* Defaults for Device TCTI */
-#define DEVICE_PATH_DEFAULT "/dev/tpm0"
-
-/* Deafults for Socket TCTI connections */
-#define HOSTNAME_DEFAULT "127.0.0.1"
-#define PORT_DEFAULT     2321
+#include "tss2-tcti-tabrmd.h"
 
 /* Default number of attempts to init selected TCTI */
 #define TCTI_RETRIES_DEFAULT 5
 
 /* environment variables holding TCTI config */
-#define ENV_TCTI_NAME      "TPM20TEST_TCTI_NAME"
-#define ENV_DEVICE_FILE    "TPM2OTEST_DEVICE_FILE"
-#define ENV_SOCKET_ADDRESS "TPM20TEST_SOCKET_ADDRESS"
-#define ENV_SOCKET_PORT    "TPM20TEST_SOCKET_PORT"
+#define ENV_TCTI      "TABRMD_TEST_TCTI"
+#define ENV_TCTI_CONF "TABRMD_TEST_TCTI_CONF"
 #define ENV_TABRMD_BUS_TYPE "TABRMD_TEST_BUS_TYPE"
 #define ENV_TABRMD_BUS_NAME "TABRMD_TEST_BUS_NAME"
 #define ENV_TCTI_RETRIES    "TABRMD_TEST_TCTI_RETRIES"
 
-typedef enum {
-    UNKNOWN_TCTI,
-#ifdef HAVE_TCTI_DEVICE
-    DEVICE_TCTI,
-#endif
-#ifdef HAVE_TCTI_SOCKET
-    SOCKET_TCTI,
-#endif
-    TABRMD_TCTI,
-    N_TCTI,
-} TCTI_TYPE;
+#define TEST_OPTS_DEFAULT_INIT { \
+    .tcti_filename = NULL, \
+    .tcti_conf = NULL, \
+    .tabrmd_bus_type = TCTI_TABRMD_DBUS_TYPE_DEFAULT, \
+    .tabrmd_bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT, \
+    .tcti_retries = TCTI_RETRIES_DEFAULT, \
+}
 
 typedef struct {
-    TCTI_TYPE tcti_type;
-    char     *device_file;
-    char     *socket_address;
-    uint16_t  socket_port;
+    const char *tcti_filename;
+    const char *tcti_conf;
     TCTI_TABRMD_DBUS_TYPE tabrmd_bus_type;
     const char *tabrmd_bus_name;
     uintmax_t   tcti_retries;
@@ -80,8 +60,6 @@ typedef struct {
 
 const char  *bus_name_from_type         (TCTI_TABRMD_DBUS_TYPE bus_type);
 TCTI_TABRMD_DBUS_TYPE bus_type_from_str (const char*           bus_type_str);
-char* const  tcti_name_from_type        (TCTI_TYPE             tcti_type);
-TCTI_TYPE    tcti_type_from_name        (char const           *tcti_str);
 int          get_test_opts_from_env     (test_opts_t          *opts);
 int          sanity_check_test_opts     (test_opts_t          *opts);
 void         dump_test_opts             (test_opts_t          *opts);

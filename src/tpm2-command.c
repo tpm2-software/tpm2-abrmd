@@ -27,23 +27,25 @@
 #include <inttypes.h>
 #include <stdint.h>
 
+#include <tss2/tss2_tpm2_types.h>
+
 #include "tpm2-command.h"
 #include "tpm2-header.h"
 #include "util.h"
 /* macros to make getting at fields in the command more simple */
 
 #define HANDLE_AREA_OFFSET TPM_HEADER_SIZE
-#define HANDLE_OFFSET(i) (HANDLE_AREA_OFFSET + sizeof (TPM_HANDLE) * i)
-#define HANDLE_END_OFFSET(i) (HANDLE_OFFSET (i) + sizeof (TPM_HANDLE))
+#define HANDLE_OFFSET(i) (HANDLE_AREA_OFFSET + sizeof (TPM2_HANDLE) * i)
+#define HANDLE_END_OFFSET(i) (HANDLE_OFFSET (i) + sizeof (TPM2_HANDLE))
 #define HANDLE_GET(buffer, count) \
-    (*(TPM_HANDLE*)(&buffer [HANDLE_OFFSET (count)]))
+    (*(TPM2_HANDLE*)(&buffer [HANDLE_OFFSET (count)]))
 /*
  * Offset of capability field in TPM2_GetCapability command buffer is
  * immediately after the header.
  */
 #define CAP_OFFSET TPM_HEADER_SIZE
-#define CAP_END_OFFSET (CAP_OFFSET + sizeof (TPM_CAP))
-#define CAP_GET(buffer) (*(TPM_CAP*)(&buffer [CAP_OFFSET]))
+#define CAP_END_OFFSET (CAP_OFFSET + sizeof (TPM2_CAP))
+#define CAP_GET(buffer) (*(TPM2_CAP*)(&buffer [CAP_OFFSET]))
 /*
  * Offset of property field in TPM2_GetCapability command buffer is
  * immediately after the capability field.
@@ -63,7 +65,7 @@
  * authorization area.
  */
 #define AUTH_AREA_OFFSET(cmd) \
-    (TPM_HEADER_SIZE + (tpm2_command_get_handle_count (cmd) * sizeof (TPM_HANDLE)))
+    (TPM_HEADER_SIZE + (tpm2_command_get_handle_count (cmd) * sizeof (TPM2_HANDLE)))
 #define AUTH_AREA_SIZE_OFFSET(cmd) AUTH_AREA_OFFSET (cmd)
 #define AUTH_AREA_SIZE_END_OFFSET(cmd) \
     (AUTH_AREA_SIZE_OFFSET (cmd) + sizeof (UINT32))
@@ -81,9 +83,9 @@
  */
 #define AUTH_HANDLE_OFFSET(index) (index + 0)
 #define AUTH_HANDLE_END_OFFSET(index) \
-    (AUTH_HANDLE_OFFSET(index) + sizeof (TPM_HANDLE))
+    (AUTH_HANDLE_OFFSET(index) + sizeof (TPM2_HANDLE))
 #define AUTH_GET_HANDLE(cmd, index) \
-    (be32toh (*(TPM_HANDLE*)&cmd->buffer [AUTH_HANDLE_OFFSET (index)]))
+    (be32toh (*(TPM2_HANDLE*)&cmd->buffer [AUTH_HANDLE_OFFSET (index)]))
 /* nonce */
 #define AUTH_NONCE_SIZE_OFFSET(index) (AUTH_HANDLE_END_OFFSET (index))
 #define AUTH_NONCE_SIZE_END_OFFSET(index) \
@@ -104,7 +106,7 @@
 #define AUTH_SESSION_ATTRS_END_OFFSET(cmd, index) \
     (AUTH_SESSION_ATTRS_OFFSET (cmd, index) + sizeof (UINT8))
 #define AUTH_GET_SESSION_ATTRS(cmd, index) \
-    ((TPMA_SESSION)(UINT32)cmd->buffer [AUTH_SESSION_ATTRS_OFFSET (cmd, index)])
+    ((TPMA_SESSION)(UINT8)cmd->buffer [AUTH_SESSION_ATTRS_OFFSET (cmd, index)])
 /* authorization */
 #define AUTH_AUTH_SIZE_OFFSET(cmd, index) \
     (AUTH_SESSION_ATTRS_END_OFFSET (cmd, index))
@@ -180,7 +182,7 @@ tpm2_command_get_property (GObject     *object,
     g_debug ("tpm2_command_get_property: 0x%" PRIxPTR, (uintptr_t)self);
     switch (property_id) {
     case PROP_ATTRIBUTES:
-        g_value_set_uint (value, self->attributes.val);
+        g_value_set_uint (value, self->attributes);
         break;
     case PROP_BUFFER:
         g_value_set_pointer (value, self->buffer);
@@ -299,7 +301,7 @@ tpm2_command_get_buffer (Tpm2Command *command)
 }
 /**
  */
-TPM_CC
+TPM2_CC
 tpm2_command_get_code (Tpm2Command *command)
 {
     return get_command_code (command->buffer);
@@ -342,8 +344,8 @@ tpm2_command_get_handle_count (Tpm2Command *command)
         g_warning ("tpm2_command_get_handle_count received NULL parameter");
         return 0;
     }
-    tmp = tpm2_command_get_attributes (command).val;
-    return (guint8)((tmp & TPMA_CC_CHANDLES) >> 25);
+    tmp = tpm2_command_get_attributes (command);
+    return (guint8)((tmp & TPMA_CC_CHANDLES_MASK) >> TPMA_CC_CHANDLES_SHIFT);
 }
 /*
  * Simple function to access handles in the provided Tpm2Command. The
@@ -351,7 +353,7 @@ tpm2_command_get_handle_count (Tpm2Command *command)
  * which is effectively an array. If the handle_number requests a handle
  * beyond the end of this array 0 is returned.
  */
-TPM_HANDLE
+TPM2_HANDLE
 tpm2_command_get_handle (Tpm2Command *command,
                          guint8       handle_number)
 {
@@ -375,7 +377,7 @@ tpm2_command_get_handle (Tpm2Command *command,
  */
 gboolean
 tpm2_command_set_handle (Tpm2Command *command,
-                         TPM_HANDLE   handle,
+                         TPM2_HANDLE   handle,
                          guint8       handle_number)
 {
     guint8 real_count;
@@ -400,7 +402,7 @@ tpm2_command_set_handle (Tpm2Command *command,
  */
 gboolean
 tpm2_command_get_handles (Tpm2Command *command,
-                          TPM_HANDLE   handles[],
+                          TPM2_HANDLE   handles[],
                           size_t      *count)
 {
     guint8 real_count;
@@ -437,7 +439,7 @@ tpm2_command_get_handles (Tpm2Command *command,
  */
 gboolean
 tpm2_command_set_handles (Tpm2Command *command,
-                          TPM_HANDLE   handles[],
+                          TPM2_HANDLE   handles[],
                           guint8       count)
 {
     guint8 real_count, i;
@@ -472,22 +474,22 @@ tpm2_command_set_handles (Tpm2Command *command,
  * provide a special function for getting at this single handle.
  * Use this function with caution.
  */
-TPM_RC
+TSS2_RC
 tpm2_command_get_flush_handle (Tpm2Command *command,
-                               TPM_HANDLE  *handle)
+                               TPM2_HANDLE  *handle)
 {
     if (command == NULL || handle == NULL) {
         g_error ("tpm2_command_get_flush_handle passed null parameter");
     }
-    if (tpm2_command_get_code (command) != TPM_CC_FlushContext) {
+    if (tpm2_command_get_code (command) != TPM2_CC_FlushContext) {
         g_warning ("tpm2_command_get_flush_handle called with wrong command");
         *handle = 0;
-        return RM_RC (TPM_RC_TYPE);
+        return RM_RC (TPM2_RC_TYPE);
     }
-    if (command->buffer_size < TPM_HEADER_SIZE + sizeof (TPM_HANDLE)) {
+    if (command->buffer_size < TPM_HEADER_SIZE + sizeof (TPM2_HANDLE)) {
         g_warning ("%s: command buffer_size insufficient", __func__);
         *handle = 0;
-        return RM_RC (TPM_RC_INSUFFICIENT);
+        return RM_RC (TPM2_RC_INSUFFICIENT);
     }
     /*
      * Despite not technically being in the "handle area" of the command we
@@ -503,14 +505,14 @@ tpm2_command_get_flush_handle (Tpm2Command *command,
  * GetCapability command this function will extract the 'capability' field.
  * On error 0 is returned.
  */
-TPM_CAP
+TPM2_CAP
 tpm2_command_get_cap (Tpm2Command *command)
 {
     if (command == NULL) {
         g_warning ("tpm2_command_get_cap passed NULL parameter");
         return 0;
     }
-    if (tpm2_command_get_code (command) != TPM_CC_GetCapability) {
+    if (tpm2_command_get_code (command) != TPM2_CC_GetCapability) {
         g_warning ("tpm2_command_get_cap provided a Tpm2Command buffer "
                    "containing the wrong command code.");
         return 0;
@@ -519,7 +521,7 @@ tpm2_command_get_cap (Tpm2Command *command)
         g_warning ("%s insufficient buffer", __func__);
         return 0;
     }
-    return (TPM_CAP)be32toh (CAP_GET (tpm2_command_get_buffer (command)));
+    return (TPM2_CAP)be32toh (CAP_GET (tpm2_command_get_buffer (command)));
 }
 /*
  * When provided with a Tpm2Command that represents a call to the
@@ -533,7 +535,7 @@ tpm2_command_get_prop (Tpm2Command *command)
         g_warning ("tpm2_command_get_prop passed NULL parameter");
         return 0;
     }
-    if (tpm2_command_get_code (command) != TPM_CC_GetCapability) {
+    if (tpm2_command_get_code (command) != TPM2_CC_GetCapability) {
         g_warning ("tpm2_command_get_cap provided a Tpm2Command buffer "
                    "containing the wrong command code.");
         return 0;
@@ -556,7 +558,7 @@ tpm2_command_get_prop_count (Tpm2Command *command)
         g_warning ("tpm2_command_get_prop_count assed NULL parameter");
         return 0;
     }
-    if (tpm2_command_get_code (command) != TPM_CC_GetCapability) {
+    if (tpm2_command_get_code (command) != TPM2_CC_GetCapability) {
         g_warning ("tpm2_command_get_cap provided a Tpm2Command buffer "
                    "containing the wrong command code.");
         return 0;
@@ -569,7 +571,7 @@ tpm2_command_get_prop_count (Tpm2Command *command)
 }
 /*
  * This is a convencience function to keep from having to compare the tag
- * value to TPM_ST_(NO_)?_SESSIONS repeatedly.
+ * value to TPM2_ST_(NO_)?_SESSIONS repeatedly.
  */
 gboolean
 tpm2_command_has_auths (Tpm2Command *command)
@@ -578,7 +580,7 @@ tpm2_command_has_auths (Tpm2Command *command)
         g_warning ("tpm2_command_has_auths passed NULL parameter");
         return FALSE;
     }
-    if (tpm2_command_get_tag (command) == TPM_ST_NO_SESSIONS) {
+    if (tpm2_command_get_tag (command) == TPM2_ST_NO_SESSIONS) {
         return FALSE;
     } else {
         return TRUE;
@@ -618,7 +620,7 @@ tpm2_command_get_auths_size (Tpm2Command *command)
  * auth area that begins at offset 'auth_offset'. Any failure to read this
  * value will return 0.
  */
-TPM_HANDLE
+TPM2_HANDLE
 tpm2_command_get_auth_handle (Tpm2Command *command,
                               size_t       auth_index)
 {
@@ -639,13 +641,13 @@ tpm2_command_get_auth_attrs (Tpm2Command *command,
     size_t attrs_end;
 
     if (command == NULL) {
-        return (TPMA_SESSION)(UINT32)0;
+        return (TPMA_SESSION)(UINT8)0;
     }
     attrs_end = AUTH_SESSION_ATTRS_END_OFFSET (command, auth_offset);
     if (attrs_end > command->buffer_size) {
         g_warning ("%s attempt to access session attributes overruns command "
                    "buffer", __func__);
-        return (TPMA_SESSION)(UINT32)0;
+        return (TPMA_SESSION)(UINT8)0;
     }
     return AUTH_GET_SESSION_ATTRS (command, auth_offset);
 }

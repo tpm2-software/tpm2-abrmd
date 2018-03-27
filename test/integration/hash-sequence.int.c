@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,14 +31,16 @@
 
 #include <glib.h>
 #include <inttypes.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tss2_sys.h>
 
 #include "tabrmd.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "common.h"
 
-#define INIT_SIMPLE_TPM2B_SIZE(type) (type).t.size = sizeof (type) - 2
+#define INIT_SIMPLE_TPM2B_SIZE(type) (type).size = sizeof (type) - 2
 #define MAX_TEST_SEQUENCES 10
 
 const uint8_t memoryToHash [] = {
@@ -123,48 +125,37 @@ int
 test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
     int i;
-
     TSS2_RC rval;
-    TPM2B_AUTH auth = {
-        .t = {
-            .size = 2,
-            .buffer = { 0x00, 0xff },
-        }
-    };
-
     TPMI_DH_OBJECT  sequenceHandle[MAX_TEST_SEQUENCES];
     TPM2B_MAX_BUFFER dataToHash;
     TPM2B_DIGEST result;
     TPMT_TK_HASHCHECK validation;
+    TPM2B_AUTH auth = {
+        .size = 2,
+        .buffer = { 0x00, 0xff },
+    };
 
-    TPMS_AUTH_COMMAND auth_command = {
-        .sessionHandle = TPM_RS_PW,
-        .hmac = auth,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+            .hmac = auth,
+        }}
     };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
-    };
-    TPMS_AUTH_RESPONSE  auth_response = { 0 };
-    TPMS_AUTH_RESPONSE *auth_response_array[1] = { &auth_response };
-    TSS2_SYS_RSP_AUTHS  rsp_auths = {
-        .rspAuths      = auth_response_array,
-        .rspAuthsCount = 1
-    };
+    TSS2L_SYS_AUTH_RESPONSE rsp_auths;
 
     rval = Tss2_Sys_HashSequenceStart (sapi_context,
                                        0,
                                        &auth,
-                                       TPM_ALG_SHA1,
+                                       TPM2_ALG_SHA1,
                                        &sequenceHandle[0],
                                        0);
     if (rval != TSS2_RC_SUCCESS) {
         g_error ("Failed to initialize hash sequence. RC = 0x%x", rval);
     }
 
-    dataToHash.t.size = MAX_DIGEST_BUFFER;
-    memcpy (&dataToHash.t.buffer[0], &memoryToHash[0], dataToHash.t.size);
+    dataToHash.size = TPM2_MAX_DIGEST_BUFFER;
+    memcpy (&dataToHash.buffer[0], &memoryToHash[0], dataToHash.size);
 
     rval = Tss2_Sys_SequenceUpdate (sapi_context,
                                     sequenceHandle[0],
@@ -184,7 +175,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         rval = Tss2_Sys_HashSequenceStart (sapi_context,
                                            0,
                                            &auth,
-                                           TPM_ALG_SHA1,
+                                           TPM2_ALG_SHA1,
                                            &sequenceHandle[i],
                                            0);
         if (rval != TSS2_RC_SUCCESS) {
@@ -194,14 +185,14 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     /* Now end the created sequences. */
-    dataToHash.t.size = 0;
+    dataToHash.size = 0;
     for (i = 1; i < 5; i++) {
         INIT_SIMPLE_TPM2B_SIZE (result);
         rval = Tss2_Sys_SequenceComplete (sapi_context,
                                           sequenceHandle[i],
                                           &cmd_auths,
                                           &dataToHash,
-                                          TPM_RH_PLATFORM,
+                                          TPM2_RH_PLATFORM,
                                           &result,
                                           &validation,
                                           &rsp_auths);
@@ -221,16 +212,16 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         g_error ("Failed to update original hash sequence. RC = 0x%x", rval);
     }
 
-    dataToHash.t.size = sizeof (memoryToHash) - MAX_DIGEST_BUFFER;
-    memcpy (dataToHash.t.buffer,
-            &memoryToHash[MAX_DIGEST_BUFFER],
-            dataToHash.t.size);
+    dataToHash.size = sizeof (memoryToHash) - TPM2_MAX_DIGEST_BUFFER;
+    memcpy (dataToHash.buffer,
+            &memoryToHash[TPM2_MAX_DIGEST_BUFFER],
+            dataToHash.size);
     INIT_SIMPLE_TPM2B_SIZE (result);
     rval = Tss2_Sys_SequenceComplete (sapi_context,
                                       sequenceHandle[0],
                                       &cmd_auths,
                                       &dataToHash,
-                                      TPM_RH_PLATFORM,
+                                      TPM2_RH_PLATFORM,
                                       &result,
                                       &validation,
                                       &rsp_auths);
@@ -239,7 +230,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     /* Test the resulting hash. */
-    int ret = memcmp (result.t.buffer, goodHashValue, result.t.size);
+    int ret = memcmp (result.buffer, goodHashValue, result.size);
     if (ret != 0) {
         g_error ("ERROR!! resulting hash is incorrect." );
     }
@@ -253,7 +244,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         rval = Tss2_Sys_HashSequenceStart (sapi_context,
                                            0,
                                            &auth,
-                                           TPM_ALG_SHA1,
+                                           TPM2_ALG_SHA1,
                                            &sequenceHandle[i],
                                            0);
         if (rval != TSS2_RC_SUCCESS) {
@@ -263,14 +254,14 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     /* Now end them all */
-    dataToHash.t.size = 0;
+    dataToHash.size = 0;
     for (i = (MAX_TEST_SEQUENCES - 1); i >= 0; i--) {
         INIT_SIMPLE_TPM2B_SIZE( result );
         rval = Tss2_Sys_SequenceComplete (sapi_context,
                                           sequenceHandle[i],
                                           &cmd_auths,
                                           &dataToHash,
-                                          TPM_RH_PLATFORM,
+                                          TPM2_RH_PLATFORM,
                                           &result,
                                           &validation,
                                           &rsp_auths);

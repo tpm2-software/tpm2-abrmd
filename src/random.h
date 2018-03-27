@@ -34,10 +34,6 @@
 
 G_BEGIN_DECLS
 
-#define RANDOM_ENTROPY_FILE_BLOCK   "/dev/random"
-#define RANDOM_ENTROPY_FILE_NOBLOCK "/dev/urandom"
-#define RANDOM_ENTROPY_FILE_DEFAULT RANDOM_ENTROPY_FILE_NOBLOCK
-
 typedef struct _RandomClass {
     GObjectClass    parent;
 } RandomClass;

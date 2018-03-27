@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,10 @@
  */
 #include <glib.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "common.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "test.h"
 #include "test-options.h"
 #include "context-util.h"
@@ -46,15 +47,7 @@ main (int   argc,
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context;
     int ret;
-    test_opts_t opts = {
-        .tcti_type      = TCTI_DEFAULT,
-        .device_file    = DEVICE_PATH_DEFAULT,
-        .socket_address = HOSTNAME_DEFAULT,
-        .socket_port    = PORT_DEFAULT,
-        .tabrmd_bus_type = TCTI_TABRMD_DBUS_TYPE_DEFAULT,
-        .tabrmd_bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT,
-        .tcti_retries    = TCTI_RETRIES_DEFAULT,
-    };
+    test_opts_t opts = TEST_OPTS_DEFAULT_INIT;
 
     get_test_opts_from_env (&opts);
     if (sanity_check_test_opts (&opts) != 0)
@@ -62,8 +55,8 @@ main (int   argc,
     sapi_context = sapi_init_from_opts (&opts);
     if (sapi_context == NULL)
         exit (1);
-    rc = Tss2_Sys_Startup (sapi_context, TPM_SU_CLEAR);
-    if (rc != TSS2_RC_SUCCESS && rc != TPM_RC_INITIALIZE)
+    rc = Tss2_Sys_Startup (sapi_context, TPM2_SU_CLEAR);
+    if (rc != TSS2_RC_SUCCESS && rc != TPM2_RC_INITIALIZE)
         g_error ("TPM Startup FAILED! Response Code : 0x%x", rc);
     ret = test_invoke (sapi_context);
     sapi_teardown_full (sapi_context);

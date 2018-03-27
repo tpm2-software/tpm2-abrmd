@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <pthread.h>
-#include <sapi/tpm20.h>
+#include <tss2/tss2_tpm2_types.h>
 
 #include "connection.h"
 #include "session-entry.h"
@@ -67,9 +67,9 @@ gint           session_list_unlock            (SessionList      *list);
 SessionEntry*  session_list_lookup_connection (SessionList      *list,
                                                Connection       *connection);
 SessionEntry*  session_list_lookup_handle     (SessionList      *list,
-                                              TPM_HANDLE        handle);
+                                              TPM2_HANDLE        handle);
 gint           session_list_remove_handle     (SessionList      *list,
-                                               TPM_HANDLE        handle);
+                                               TPM2_HANDLE        handle);
 gint           session_list_remove_connection (SessionList      *list,
                                                Connection       *connection);
 void           session_list_remove            (SessionList      *list,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,8 +26,9 @@
  */
 #include <glib.h>
 #include <inttypes.h>
+#include <stdlib.h>
 
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "tpm2-struct-init.h"
 #include "common.h"
 
@@ -40,7 +41,7 @@
  */
 TSS2_RC
 create_keys (TSS2_SYS_CONTEXT *sapi_context,
-             TPM_HANDLE       *handles[],
+             TPM2_HANDLE       *handles[],
              size_t            count)
 {
     TPM2B_PRIVATE      out_private = TPM2B_PRIVATE_STATIC_INIT;
@@ -71,7 +72,7 @@ create_keys (TSS2_SYS_CONTEXT *sapi_context,
                        &out_public);
         if (rc != TSS2_RC_SUCCESS)
             g_error ("Failed to create_key: 0x%" PRIx32, rc);
-        out_public.t.size = 0;
+        out_public.size = 0;
     }
 
     return rc;
@@ -84,21 +85,21 @@ create_keys (TSS2_SYS_CONTEXT *sapi_context,
  */
 TSS2_RC
 get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
-                       TPM_HANDLE        handles[],
+                       TPM2_HANDLE        handles[],
                        size_t           *handle_count)
 {
     TSS2_RC              rc          = TSS2_RC_SUCCESS;
-    TPMI_YES_NO          more_data   = NO;
+    TPMI_YES_NO          more_data   = 0;
     TPMS_CAPABILITY_DATA cap_data    = { 0, };
     size_t               handles_left = *handle_count;
     size_t               handles_got = 0;
 
-    handles [handles_got] = TRANSIENT_FIRST;
+    handles [handles_got] = TPM2_TRANSIENT_FIRST;
     do {
         g_print ("requesting %zu handles from TPM\n", handles_left);
         rc = Tss2_Sys_GetCapability (sapi_context,
                                      NULL,
-                                     TPM_CAP_HANDLES,
+                                     TPM2_CAP_HANDLES,
                                      handles [handles_got],
                                      handles_left,
                                      &more_data,
@@ -107,7 +108,7 @@ get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
         if (rc != TSS2_RC_SUCCESS) {
             return rc;
         }
-        if (cap_data.capability != TPM_CAP_HANDLES) {
+        if (cap_data.capability != TPM2_CAP_HANDLES) {
             g_error ("got weird capability: 0x%" PRIx32,
                      cap_data.capability);
         }
@@ -124,8 +125,8 @@ get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
         }
         handles_got += cap_data.data.handles.count;
         handles_left -= handles_got;
-        more_data == YES ? g_print ("more data\n") : g_print ("no more data\n");
-    } while (more_data == YES);
+        more_data == 1 ? g_print ("more data\n") : g_print ("no more data\n");
+    } while (more_data == 1);
 
     *handle_count = handles_got + 1;
 
@@ -141,15 +142,15 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
                     size_t count)
 {
     TSS2_RC              rc          = TSS2_RC_SUCCESS;
-    TPMI_YES_NO          more_data   = NO;
+    TPMI_YES_NO          more_data   = 0;
     TPMS_CAPABILITY_DATA cap_data    = { 0, };
-    TPM_HANDLE           last_handle = TRANSIENT_FIRST;
+    TPM2_HANDLE           last_handle = TPM2_TRANSIENT_FIRST;
 
     do {
         g_print ("requesting %zu handles from TPM\n", count);
         rc = Tss2_Sys_GetCapability (sapi_context,
                                      NULL,
-                                     TPM_CAP_HANDLES,
+                                     TPM2_CAP_HANDLES,
                                      last_handle,
                                      count,
                                      &more_data,
@@ -158,7 +159,7 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
         if (rc != TSS2_RC_SUCCESS) {
             return rc;
         }
-        if (cap_data.capability != TPM_CAP_HANDLES) {
+        if (cap_data.capability != TPM2_CAP_HANDLES) {
             g_error ("got weird capability: 0x%" PRIx32,
                      cap_data.capability);
         }
@@ -170,8 +171,8 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
             /* add one to last handle to get the next handle */
             last_handle = cap_data.data.handles.handle [i] + 1;
         }
-        more_data == YES ? g_print ("more data\n") : g_print ("no more data\n");
-    } while (more_data == YES);
+        more_data == 1 ? g_print ("more data\n") : g_print ("no more data\n");
+    } while (more_data == 1);
 
     return TSS2_RC_SUCCESS;
 }
@@ -185,8 +186,8 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
 int
 test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
-    TPM_HANDLE          *handles_load;
-    TPM_HANDLE          *handles_query;
+    TPM2_HANDLE          *handles_load;
+    TPM2_HANDLE          *handles_query;
     size_t               handles_count;
     char                *env_str         = NULL, *end_ptr = NULL;
     uint8_t              loops           = NUM_KEYS;
@@ -198,8 +199,8 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 
     g_print ("%s: %d\n", ENV_NUM_KEYS, loops);
 
-    handles_load = calloc (loops, sizeof (TPM_HANDLE));
-    handles_query = calloc (loops, sizeof (TPM_HANDLE));
+    handles_load = calloc (loops, sizeof (TPM2_HANDLE));
+    handles_query = calloc (loops, sizeof (TPM2_HANDLE));
     handles_count = loops;
 
     rc = create_keys (sapi_context, &handles_load, handles_count);

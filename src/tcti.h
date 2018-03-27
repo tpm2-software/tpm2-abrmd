@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,8 @@
 #ifndef TCTI_H
 #define TCTI_H
 
-#include <sapi/tpm20.h>
 #include <glib-object.h>
+#include <tss2/tss2_tcti.h>
 
 G_BEGIN_DECLS
 

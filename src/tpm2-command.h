@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
 #define TPM2_COMMAND_H
 
 #include <glib-object.h>
-#include <sapi/tpm20.h>
+#include <tss2/tss2_tpm2_types.h>
 
 #include "connection.h"
 
@@ -65,28 +65,28 @@ Tpm2Command*          tpm2_command_new             (Connection      *connection,
 TPMA_CC               tpm2_command_get_attributes  (Tpm2Command      *command);
 TPMA_SESSION          tpm2_command_get_auth_attrs  (Tpm2Command      *command,
                                                     size_t            auth_offset);
-TPM_HANDLE            tpm2_command_get_auth_handle (Tpm2Command      *command,
+TPM2_HANDLE            tpm2_command_get_auth_handle (Tpm2Command      *command,
                                                     size_t            offset);
 guint8*               tpm2_command_get_buffer      (Tpm2Command      *command);
-TPM_CC                tpm2_command_get_code        (Tpm2Command      *command);
+TPM2_CC                tpm2_command_get_code        (Tpm2Command      *command);
 guint8                tpm2_command_get_handle_count (Tpm2Command     *command);
-TPM_HANDLE            tpm2_command_get_handle      (Tpm2Command      *command,
+TPM2_HANDLE            tpm2_command_get_handle      (Tpm2Command      *command,
                                                     guint8            handle_number);
 gboolean              tpm2_command_get_handles     (Tpm2Command      *command,
-                                                    TPM_HANDLE        handles[],
+                                                    TPM2_HANDLE        handles[],
                                                     size_t           *count);
 gboolean              tpm2_command_set_handle      (Tpm2Command      *command,
-                                                    TPM_HANDLE        handle,
+                                                    TPM2_HANDLE        handle,
                                                     guint8            handle_number);
 gboolean              tpm2_command_set_handles     (Tpm2Command      *command,
-                                                    TPM_HANDLE        handles[],
+                                                    TPM2_HANDLE        handles[],
                                                     guint8            count);
-TPM_RC                tpm2_command_get_flush_handle (Tpm2Command     *command,
-                                                     TPM_HANDLE      *handle);
+TSS2_RC                tpm2_command_get_flush_handle (Tpm2Command     *command,
+                                                     TPM2_HANDLE      *handle);
 guint32               tpm2_command_get_size        (Tpm2Command      *command);
 TPMI_ST_COMMAND_TAG   tpm2_command_get_tag         (Tpm2Command      *command);
 Connection*           tpm2_command_get_connection  (Tpm2Command      *command);
-TPM_CAP               tpm2_command_get_cap         (Tpm2Command      *command);
+TPM2_CAP               tpm2_command_get_cap         (Tpm2Command      *command);
 UINT32                tpm2_command_get_prop        (Tpm2Command      *command);
 UINT32                tpm2_command_get_prop_count  (Tpm2Command      *command);
 gboolean              tpm2_command_has_auths       (Tpm2Command      *command);

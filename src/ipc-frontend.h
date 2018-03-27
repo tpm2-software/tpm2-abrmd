@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,6 @@
 #ifndef IPC_FRONTEND_H
 #define IPC_FRONTEND_H
 
-#include <sapi/tpm20.h>
 #include <glib-object.h>
 
 #include "connection.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,39 +24,18 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef TABD_TCTI_DEVICE_H
-#define TABD_TCTI_DEVICE_H
+#ifndef TABRMD_TCTI_UTIL_H
+#define TABRMD_TCTI_UTIL_H
 
-#include <sapi/tpm20.h>
-#include <tcti/tcti_device.h>
-#include <glib-object.h>
+#include <tss2/tss2_tcti.h>
 
-#include "tcti.h"
+TSS2_RC
+tcti_util_discover_info (const char *filename,
+                         const TSS2_TCTI_INFO **info,
+                         void **tcti_dl_handle);
+TSS2_RC
+tcti_util_dynamic_init (const TSS2_TCTI_INFO *info,
+                        const char *conf,
+                        TSS2_TCTI_CONTEXT **context);
 
-G_BEGIN_DECLS
-
-#define TCTI_DEVICE_DEFAULT_FILE "/dev/tpm0"
-
-typedef struct _TctiDeviceClass {
-   TctiClass           parent;
-} TctiDeviceClass;
-
-typedef struct _TctiDevice
-{
-    Tcti               parent_instance;
-    gchar             *filename;
-} TctiDevice;
-
-#define TYPE_TCTI_DEVICE             (tcti_device_get_type       ())
-#define TCTI_DEVICE(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_TCTI_DEVICE, TctiDevice))
-#define TCTI_DEVICE_CLASS(klass)     (G_TYPE_CHECK_CLASS_CAST    ((klass), TYPE_TCTI_DEVICE, TctiDeviceClass))
-#define IS_TCTI_DEVICE(obj)          (G_TYPE_CHECK_INSTANCE_TYPE ((obj),   TYPE_TCTI_DEVICE))
-#define IS_TCTI_DEVICE_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE    ((klass), TYPE_TCTI_DEVICE))
-#define TCTI_DEVICE_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TCTI_DEVICE, TctiDeviceClass))
-
-GType                tcti_device_get_type       (void);
-TctiDevice*          tcti_device_new            (gchar const      *filename);
-TSS2_RC              tcti_device_initialize     (TctiDevice       *tcti);
-
-G_END_DECLS
-#endif /* TABD_TCTI_DEVICE_H */
+#endif /* TABRMD_TCTI_UTIL_H */

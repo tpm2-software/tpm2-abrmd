@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,43 +24,43 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef TABD_TCTI_SOCKET_H
-#define TABD_TCTI_SOCKET_H
+#ifndef TABD_TCTI_DYNAMIC_H
+#define TABD_TCTI_DYNAMIC_H
 
-#include <arpa/inet.h>
-#include <sapi/tpm20.h>
-#include <tcti/tcti_socket.h>
 #include <glib-object.h>
+#include <tss2/tss2_tcti.h>
 
 #include "tcti.h"
 
 G_BEGIN_DECLS
 
-#define TCTI_SOCKET_DEFAULT_HOST "127.0.0.1"
-#define TCTI_SOCKET_DEFAULT_PORT 2321
+#define TCTI_DYNAMIC_DEFAULT_FILE_NAME "libtss2-tcti-device.so"
+#define TCTI_DYNAMIC_DEFAULT_CONF_STR  "/dev/tpm0"
 
-typedef struct _TctiSocketClass {
-    TctiClass          parent;
-} TctiSocketClass;
+typedef struct _TctiDynamicClass {
+   TctiClass           parent;
+} TctiDynamicClass;
 
-typedef struct _TctiSocket
+typedef struct _TctiDynamic
 {
     Tcti               parent_instance;
-    gchar             *address;
-    guint              port;
-} TctiSocket;
+    gchar             *file_name;
+    gchar             *conf_str;
+    void              *tcti_dl_handle;
+    const TSS2_TCTI_INFO *tcti_info;
+} TctiDynamic;
 
-#define TYPE_TCTI_SOCKET             (tcti_socket_get_type       ())
-#define TCTI_SOCKET(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_TCTI_SOCKET, TctiSocket))
-#define TCTI_SOCKET_CLASS(klass)     (G_TYPE_CHECK_CLASS_CAST    ((klass), TYPE_TCTI_SOCKET, TctiSocketClass))
-#define IS_TCTI_SOCKET(obj)          (G_TYPE_CHECK_INSTANCE_TYPE ((obj),   TYPE_TCTI_SOCKET))
-#define IS_TCTI_SOCKET_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE    ((klass), TYPE_TCTI_SOCKET))
-#define TCTI_SOCKET_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TCTI_SOCKET, TctiSocketClass))
+#define TYPE_TCTI_DYNAMIC             (tcti_dynamic_get_type       ())
+#define TCTI_DYNAMIC(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_TCTI_DYNAMIC, TctiDynamic))
+#define TCTI_DYNAMIC_CLASS(klass)     (G_TYPE_CHECK_CLASS_CAST    ((klass), TYPE_TCTI_DYNAMIC, TctiDynamicClass))
+#define IS_TCTI_DYNAMIC(obj)          (G_TYPE_CHECK_INSTANCE_TYPE ((obj),   TYPE_TCTI_DYNAMIC))
+#define IS_TCTI_DYNAMIC_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE    ((klass), TYPE_TCTI_DYNAMIC))
+#define TCTI_DYNAMIC_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TCTI_DYNAMIC, TctiDynamicClass))
 
-GType                tcti_socket_get_type       (void);
-TctiSocket*          tcti_socket_new            (gchar const   *address,
-                                                 guint          port);
-TSS2_RC              tcti_socket_initialize     (TctiSocket    *tcti);
+GType                tcti_dynamic_get_type       (void);
+TctiDynamic*         tcti_dynamic_new            (gchar const      *file_name,
+                                                  gchar const      *conf_str);
+TSS2_RC              tcti_dynamic_initialize     (TctiDynamic      *tcti);
 
 G_END_DECLS
-#endif /* TABD_TCTI_SOCKET_H */
+#endif /* TABD_TCTI_DYNAMIC_H */

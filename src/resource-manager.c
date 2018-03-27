@@ -27,6 +27,8 @@
 #include <errno.h>
 #include <inttypes.h>
 
+#include <glib.h>
+
 #include "connection.h"
 #include "connection-manager.h"
 #include "control-message.h"
@@ -80,7 +82,7 @@ resource_manager_virt_to_phys (ResourceManager *resmgr,
                                HandleMapEntry  *entry,
                                guint8           handle_number)
 {
-    TPM_HANDLE    phandle = 0;
+    TPM2_HANDLE    phandle = 0;
     TPMS_CONTEXT *context;
     TSS2_RC       rc = TSS2_RC_SUCCESS;
 
@@ -99,7 +101,7 @@ TSS2_RC
 resource_manager_load_transient (ResourceManager  *resmgr,
                                  Tpm2Command      *command,
                                  GSList          **entry_slist,
-                                 TPM_HANDLE        handle,
+                                 TPM2_HANDLE        handle,
                                  guint8            handle_index)
 {
     HandleMap    *map;
@@ -107,11 +109,11 @@ resource_manager_load_transient (ResourceManager  *resmgr,
     Connection  *connection;
     TSS2_RC       rc = TSS2_RC_SUCCESS;
 
-    g_debug ("processing TPM_HT_TRANSIENT: 0x%" PRIx32, handle);
+    g_debug ("processing TPM2_HT_TRANSIENT: 0x%" PRIx32, handle);
     connection = tpm2_command_get_connection (command);
     map = connection_get_trans_map (connection);
     g_object_unref (connection);
-    g_debug ("handle 0x%" PRIx32 " is virtual TPM_HT_TRANSIENT, "
+    g_debug ("handle 0x%" PRIx32 " is virtual TPM2_HT_TRANSIENT, "
              "loading", handle);
     /* we don't unref the entry since we're adding it to the entry_slist below */
     entry = handle_map_vlookup (map, handle);
@@ -135,13 +137,13 @@ TSS2_RC
 resource_manager_load_session (ResourceManager *resmgr,
                                Tpm2Command     *command,
                                SessionList     *loaded_sessions,
-                               TPM_HANDLE       handle,
+                               TPM2_HANDLE       handle,
                                gboolean         will_flush)
 {
     Connection    *connection;
     SessionEntry  *session_entry;
     TSS2_RC        rc = TSS2_RC_SUCCESS;
-    TPM_HANDLE     handle_tmp;
+    TPM2_HANDLE     handle_tmp;
     TPMS_CONTEXT  *context;
     SessionEntryStateEnum session_entry_state;
 
@@ -212,7 +214,7 @@ void
 resource_manager_load_auth_callback (gpointer auth_offset_ptr,
                                      gpointer user_data)
 {
-    TPM_HANDLE handle;
+    TPM2_HANDLE handle;
     auth_callback_data_t *data = (auth_callback_data_t*)user_data;
     TPMA_SESSION session_attrs;
     gboolean will_flush;
@@ -221,10 +223,10 @@ resource_manager_load_auth_callback (gpointer auth_offset_ptr,
     handle = tpm2_command_get_auth_handle (data->command, auth_offset);
     session_attrs = tpm2_command_get_auth_attrs (data->command,
                                                  auth_offset);
-    will_flush = session_attrs.val & TPMA_SESSION_CONTINUESESSION ? FALSE : TRUE;
-    switch (handle >> HR_SHIFT) {
-    case TPM_HT_HMAC_SESSION:
-    case TPM_HT_POLICY_SESSION:
+    will_flush = session_attrs & TPMA_SESSION_CONTINUESESSION ? FALSE : TRUE;
+    switch (handle >> TPM2_HR_SHIFT) {
+    case TPM2_HT_HMAC_SESSION:
+    case TPM2_HT_POLICY_SESSION:
         resource_manager_load_session (data->resmgr,
                                        data->command,
                                        data->loaded_sessions,
@@ -249,7 +251,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
                                 SessionList     *loaded_sessions)
 {
     TSS2_RC       rc = TSS2_RC_SUCCESS;
-    TPM_HANDLE    handles[TPM2_COMMAND_MAX_HANDLES] = { 0, };
+    TPM2_HANDLE    handles[TPM2_COMMAND_MAX_HANDLES] = { 0, };
     size_t        i, handle_count = TPM2_COMMAND_MAX_HANDLES;
     gboolean      handle_ret;
     auth_callback_data_t auth_callback_data = {
@@ -271,19 +273,19 @@ resource_manager_load_contexts (ResourceManager *resmgr,
     g_debug ("loading contexts for %zu handles in command handle area",
              handle_count);
     for (i = 0; i < handle_count; ++i) {
-        switch (handles [i] >> HR_SHIFT) {
-        case TPM_HT_TRANSIENT:
-            g_debug ("processing TPM_HT_TRANSIENT: 0x%" PRIx32, handles [i]);
+        switch (handles [i] >> TPM2_HR_SHIFT) {
+        case TPM2_HT_TRANSIENT:
+            g_debug ("processing TPM2_HT_TRANSIENT: 0x%" PRIx32, handles [i]);
             rc = resource_manager_load_transient (resmgr,
                                                   command,
                                                   entry_slist,
                                                   handles [i],
                                                   i);
             break;
-        case TPM_HT_HMAC_SESSION:
-        case TPM_HT_POLICY_SESSION:
-            g_debug ("processing TPM_HT_HMAC_SESSION or "
-                     "TPM_HT_POLICY_SESSION: 0x%" PRIx32, handles [i]);
+        case TPM2_HT_HMAC_SESSION:
+        case TPM2_HT_POLICY_SESSION:
+            g_debug ("processing TPM2_HT_HMAC_SESSION or "
+                     "TPM2_HT_POLICY_SESSION: 0x%" PRIx32, handles [i]);
             rc = resource_manager_load_session (resmgr,
                                                 command,
                                                 loaded_sessions,
@@ -317,7 +319,7 @@ resource_manager_flushsave_context (gpointer data_entry,
     ResourceManager *resmgr = RESOURCE_MANAGER (data_resmgr);
     HandleMapEntry  *entry  = HANDLE_MAP_ENTRY (data_entry);
     TPMS_CONTEXT   *context;
-    TPM_HANDLE      phandle;
+    TPM2_HANDLE      phandle;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
 
     g_debug ("resource_manager_flushsave_context for entry: 0x%" PRIxPTR,
@@ -326,8 +328,8 @@ resource_manager_flushsave_context (gpointer data_entry,
         g_error ("resource_manager_flushsave_context passed NULL parameter");
     phandle = handle_map_entry_get_phandle (entry);
     g_debug ("resource_manager_save_context phandle: 0x%" PRIx32, phandle);
-    switch (phandle >> HR_SHIFT) {
-    case TPM_HT_TRANSIENT:
+    switch (phandle >> TPM2_HR_SHIFT) {
+    case TPM2_HT_TRANSIENT:
         g_debug ("handle is transient, saving context");
         context = handle_map_entry_get_context (entry);
         rc = access_broker_context_saveflush (resmgr->access_broker,
@@ -423,13 +425,13 @@ resource_manager_save_context (ResourceManager *resmgr,
                                Tpm2Command     *command)
 {
     SessionEntry *entry       = NULL;
-    TPM_HANDLE    handle      = tpm2_command_get_handle (command, 0);
+    TPM2_HANDLE    handle      = tpm2_command_get_handle (command, 0);
 
     g_debug ("resource_manager_save_context: resmgr: 0x%" PRIxPTR
              " command: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
-    switch (handle >> HR_SHIFT) {
-    case TPM_HT_HMAC_SESSION:
-    case TPM_HT_POLICY_SESSION:
+    switch (handle >> TPM2_HR_SHIFT) {
+    case TPM2_HT_HMAC_SESSION:
+    case TPM2_HT_POLICY_SESSION:
         g_debug ("save_context for session handle: 0x%" PRIx32, handle);
         entry = session_list_lookup_handle (resmgr->session_list, handle);
         if (entry != NULL) {
@@ -440,7 +442,7 @@ resource_manager_save_context (ResourceManager *resmgr,
         }
         break;
     default:
-        g_debug ("save_context: not virtualizing TPM_CC_ContextSave for "
+        g_debug ("save_context: not virtualizing TPM2_CC_ContextSave for "
                  "handles: 0x%08" PRIx32, handle);
         break;
     }
@@ -474,11 +476,11 @@ resource_manager_flush_context (ResourceManager *resmgr,
     HandleMap      *map;
     HandleMapEntry *entry;
     Tpm2Response   *response = NULL;
-    TPM_HANDLE      handle;
-    TPM_HT          handle_type;
+    TPM2_HANDLE      handle;
+    TPM2_HT          handle_type;
     TSS2_RC         rc;
 
-    if (tpm2_command_get_code (command) != TPM_CC_FlushContext) {
+    if (tpm2_command_get_code (command) != TPM2_CC_FlushContext) {
         g_warning ("resource_manager_flush_context with wrong command");
         return NULL;
     }
@@ -490,10 +492,10 @@ resource_manager_flush_context (ResourceManager *resmgr,
         goto out;
     }
     g_debug ("resource_manager_flush_context handle: 0x%" PRIx32, handle);
-    handle_type = handle >> HR_SHIFT;
+    handle_type = handle >> TPM2_HR_SHIFT;
     switch (handle_type) {
-    case TPM_HT_TRANSIENT:
-        g_debug ("handle is TPM_HT_TRANSIENT, virtualizing");
+    case TPM2_HT_TRANSIENT:
+        g_debug ("handle is TPM2_HT_TRANSIENT, virtualizing");
         connection = tpm2_command_get_connection (command);
         map = connection_get_trans_map (connection);
         entry = handle_map_vlookup (map, handle);
@@ -508,15 +510,15 @@ resource_manager_flush_context (ResourceManager *resmgr,
              * indicating that error is related to a handle, that it's a parameter
              * and that it's the first parameter.
              */
-            rc = RM_RC (TPM_RC_HANDLE + TPM_RC_P + TPM_RC_1);
+            rc = RM_RC (TPM2_RC_HANDLE + TPM2_RC_P + TPM2_RC_1);
         }
         g_object_unref (map);
         response = tpm2_response_new_rc (connection, rc);
         g_object_unref (connection);
         break;
-    case TPM_HT_HMAC_SESSION:
-    case TPM_HT_POLICY_SESSION:
-        g_debug ("handle is TPM_HT_HMAC_SESSION or TPM_HT_POLICY_SESSION");
+    case TPM2_HT_HMAC_SESSION:
+    case TPM2_HT_POLICY_SESSION:
+        g_debug ("handle is TPM2_HT_HMAC_SESSION or TPM2_HT_POLICY_SESSION");
         g_info ("f");
         session_list_remove_handle (resmgr->session_list, handle);
         /*
@@ -545,9 +547,9 @@ resource_manager_quota_check (ResourceManager *resmgr,
 
     switch (tpm2_command_get_code (command)) {
     /* These commands load transient objects. */
-    case TPM_CC_CreatePrimary:
-    case TPM_CC_Load:
-    case TPM_CC_LoadExternal:
+    case TPM2_CC_CreatePrimary:
+    case TPM2_CC_Load:
+    case TPM2_CC_LoadExternal:
         connection = tpm2_command_get_connection (command);
         handle_map = connection_get_trans_map (connection);
         if (handle_map_is_full (handle_map)) {
@@ -557,7 +559,7 @@ resource_manager_quota_check (ResourceManager *resmgr,
         }
         break;
     /* These commands create sessions. */
-    case TPM_CC_StartAuthSession:
+    case TPM2_CC_StartAuthSession:
         connection = tpm2_command_get_connection (command);
         if (session_list_is_full (resmgr->session_list, connection)) {
             g_info ("Connection 0x%" PRIxPTR " has exceeded session limit",
@@ -583,13 +585,13 @@ remove_entry_from_handle_map (gpointer data_entry,
     HandleMapEntry  *entry       = HANDLE_MAP_ENTRY (data_entry);
     Connection      *connection  = CONNECTION (data_connection);
     HandleMap       *map         = connection_get_trans_map (connection);
-    TPM_HANDLE       handle      = handle_map_entry_get_vhandle (entry);
-    TPM_HT           handle_type = 0;
+    TPM2_HANDLE       handle      = handle_map_entry_get_vhandle (entry);
+    TPM2_HT           handle_type = 0;
 
-    handle_type = handle >> HR_SHIFT;
+    handle_type = handle >> TPM2_HR_SHIFT;
     g_debug ("remove_entry_from_handle_map");
     switch (handle_type) {
-    case TPM_HT_TRANSIENT:
+    case TPM2_HT_TRANSIENT:
         g_debug ("entry 0x%" PRIxPTR " is transient, removing from map",
                  (uintptr_t)entry);
         handle_map_remove (map, handle);
@@ -612,7 +614,7 @@ post_process_entry_list (ResourceManager  *resmgr,
                          TPMA_CC           command_attrs)
 {
     /* if flushed bit is clear we need to flush & save contexts */
-    if (!command_attrs.flushed) {
+    if (!(command_attrs & TPMA_CC_FLUSHED)) {
         g_debug ("flushsave_context for %" PRIu32 " entries",
                  g_slist_length (*entry_slist));
         g_slist_foreach (*entry_slist,
@@ -647,7 +649,7 @@ post_process_loaded_sessions (ResourceManager *resmgr,
 }
 /*
  * This structure is used to keep state while iterating over a list of
- * TPM_HANDLES.
+ * TPM2_HANDLES.
  * 'cap_data'    : this parameter is used to collect the list of handles that
  *   we want as well as the number of handles in the structure
  * 'max_count'   : is the maximum number of handles to return
@@ -660,8 +662,8 @@ post_process_loaded_sessions (ResourceManager *resmgr,
 typedef struct {
     TPMS_CAPABILITY_DATA *cap_data;
     size_t                max_count;
-    TPMI_YES_NO           more_data;
-    TPM_HANDLE            start_handle;
+    gboolean              more_data;
+    TPM2_HANDLE            start_handle;
 } vhandle_iterator_state_t;
 /*
  * This callback function is invoked as part of iterating over a list of
@@ -675,7 +677,7 @@ void
 vhandle_iterator_callback (gpointer entry,
                            gpointer data)
 {
-    TPM_HANDLE                vhandle  = (uintptr_t)entry;
+    TPM2_HANDLE                vhandle  = (uintptr_t)entry;
     vhandle_iterator_state_t *state    = (vhandle_iterator_state_t*)data;
     TPMS_CAPABILITY_DATA     *cap_data = state->cap_data;
 
@@ -687,21 +689,21 @@ vhandle_iterator_callback (gpointer entry,
              PRIu32, state->max_count, cap_data->data.handles.count);
     /* if we've collected max_count handles set 'more_data' and return */
     if (!(cap_data->data.handles.count < state->max_count)) {
-        state->more_data = YES;
+        state->more_data = TRUE;
         return;
     }
     cap_data->data.handles.handle [cap_data->data.handles.count] = vhandle;
     ++cap_data->data.handles.count;
 }
 /*
- * This is a GCompareFunc used to sort a list of TPM_HANDLES.
+ * This is a GCompareFunc used to sort a list of TPM2_HANDLES.
  */
 int
 handle_compare (gconstpointer a,
                 gconstpointer b)
 {
-    TPM_HANDLE handle_a = (uintptr_t)a;
-    TPM_HANDLE handle_b = (uintptr_t)b;
+    TPM2_HANDLE handle_a = (uintptr_t)a;
+    TPM2_HANDLE handle_b = (uintptr_t)b;
 
     if (handle_a < handle_b) {
         return -1;
@@ -717,12 +719,12 @@ handle_compare (gconstpointer a,
  * is the lowest numerical handle to return. The 'count' parameter is the
  * maximum number of handles to return in the capability data structure.
  * Returns:
- *   YES when more handles are present
- *   NO when there are no more handles
+ *   TRUE when more handles are present
+ *   FALSE when there are no more handles
  */
-TPMI_YES_NO
+gboolean
 get_cap_handles (HandleMap            *map,
-                 TPM_HANDLE            prop,
+                 TPM2_HANDLE            prop,
                  UINT32                count,
                  TPMS_CAPABILITY_DATA *cap_data)
 {
@@ -730,11 +732,11 @@ get_cap_handles (HandleMap            *map,
     vhandle_iterator_state_t state = {
         .cap_data     = cap_data,
         .max_count    = count,
-        .more_data    = NO,
+        .more_data    = FALSE,
         .start_handle = prop,
     };
 
-    cap_data->capability = TPM_CAP_HANDLES;
+    cap_data->capability = TPM2_CAP_HANDLES;
     cap_data->data.handles.count = 0;
 
     vhandle_list = handle_map_get_keys (map);
@@ -760,14 +762,14 @@ get_cap_handles (HandleMap            *map,
     (*(TPMI_YES_NO*)(buffer + YES_NO_OFFSET) = value)
 #define CAP_OFFSET (TPM_HEADER_SIZE + sizeof (TPMI_YES_NO))
 #define CAP_SET(buffer, value) \
-    (*(TPM_CAP*)(buffer + CAP_OFFSET) = htobe32 (value))
-#define HANDLE_COUNT_OFFSET (CAP_OFFSET + sizeof (TPM_CAP))
+    (*(TPM2_CAP*)(buffer + CAP_OFFSET) = htobe32 (value))
+#define HANDLE_COUNT_OFFSET (CAP_OFFSET + sizeof (TPM2_CAP))
 #define HANDLE_COUNT_SET(buffer, value) \
     (*(UINT32*)(buffer + HANDLE_COUNT_OFFSET) = htobe32 (value))
 #define HANDLE_OFFSET (HANDLE_COUNT_OFFSET + sizeof (UINT32))
-#define HANDLE_INDEX(i) (sizeof (TPM_HANDLE) * i)
+#define HANDLE_INDEX(i) (sizeof (TPM2_HANDLE) * i)
 #define HANDLE_SET(buffer, i, value) \
-    (*(TPM_HANDLE*)(buffer + HANDLE_OFFSET + HANDLE_INDEX (i)) = \
+    (*(TPM2_HANDLE*)(buffer + HANDLE_OFFSET + HANDLE_INDEX (i)) = \
         htobe32 (value))
 #define CAP_RESP_SIZE(value) \
     (TPM_HEADER_SIZE + \
@@ -781,7 +783,7 @@ get_cap_handles (HandleMap            *map,
  * TPMS_CAPABILITY_DATA and TPMI_YES_NO. These are the two response parameters
  * to the TPM2_GetCapability function.
  * The 'cap_data' parameter *must* have the TPMU_CAPABILITY union populated
- * with the TPM_CAP_HANDLES selector.
+ * with the TPM2_CAP_HANDLES selector.
  */
 uint8_t*
 build_cap_handles_response (TPMS_CAPABILITY_DATA *cap_data,
@@ -795,7 +797,7 @@ build_cap_handles_response (TPMS_CAPABILITY_DATA *cap_data,
         tabrmd_critical ("failed to allocate buffer for handle capability "
                          "response");
     }
-    set_response_tag (buf, TPM_ST_NO_SESSIONS);
+    set_response_tag (buf, TPM2_ST_NO_SESSIONS);
     set_response_size (buf, CAP_RESP_SIZE (cap_data));
     set_response_code (buf, TSS2_RC_SUCCESS);
     YES_NO_SET (buf, more_data);
@@ -817,21 +819,21 @@ Tpm2Response*
 get_cap_handles_response (Tpm2Command *command,
                           Connection *connection)
 {
-    TPM_CAP  cap         = tpm2_command_get_cap (command);
+    TPM2_CAP  cap         = tpm2_command_get_cap (command);
     UINT32   prop        = tpm2_command_get_prop (command);
     UINT32   prop_count  = tpm2_command_get_prop_count (command);
-    TPM_HT   handle_type = prop >> HR_SHIFT;
+    TPM2_HT   handle_type = prop >> TPM2_HR_SHIFT;
     HandleMap *map;
     TPMS_CAPABILITY_DATA cap_data = { .capability = cap };
-    TPMI_YES_NO more_data = NO;
+    gboolean more_data = FALSE;
     uint8_t *resp_buf;
     Tpm2Response *response = NULL;
 
-    g_debug ("processing TPM_CC_GetCapability with cap: 0x%" PRIx32
+    g_debug ("processing TPM2_CC_GetCapability with cap: 0x%" PRIx32
              " prop: 0x%" PRIx32 " prop_count: 0x%" PRIx32,
              cap, prop, prop_count);
-    if (cap == TPM_CAP_HANDLES && handle_type == TPM_HT_TRANSIENT) {
-        g_debug ("TPM_CAP_HANDLES && TPM_HT_TRANSIENT");
+    if (cap == TPM2_CAP_HANDLES && handle_type == TPM2_HT_TRANSIENT) {
+        g_debug ("TPM2_CAP_HANDLES && TPM2_HT_TRANSIENT");
         map = connection_get_trans_map (connection);
         more_data = get_cap_handles (map,  prop, prop_count, &cap_data);
         g_object_unref (map);
@@ -858,15 +860,15 @@ command_special_processing (ResourceManager *resmgr,
     Tpm2Response *response   = NULL;
 
     switch (tpm2_command_get_code (command)) {
-    case TPM_CC_FlushContext:
-        g_debug ("processing TPM_CC_FlushContext");
+    case TPM2_CC_FlushContext:
+        g_debug ("processing TPM2_CC_FlushContext");
         response = resource_manager_flush_context (resmgr, command);
         break;
-    case TPM_CC_ContextSave:
-        g_debug ("processing TPM_CC_ContextSave");
+    case TPM2_CC_ContextSave:
+        g_debug ("processing TPM2_CC_ContextSave");
         response = resource_manager_save_context (resmgr, command);
         break;
-    case TPM_CC_GetCapability:
+    case TPM2_CC_GetCapability:
         g_debug ("processing TPM2_CC_GetCapability");
         connection = tpm2_command_get_connection (command);
         response = get_cap_handles_response (command, connection);
@@ -891,7 +893,7 @@ create_context_mapping_transient (ResourceManager  *resmgr,
 {
     HandleMap      *handle_map;
     HandleMapEntry *handle_entry;
-    TPM_HANDLE      phandle, vhandle;
+    TPM2_HANDLE      phandle, vhandle;
     Connection     *connection;
 
     g_debug ("create_context_mapping_transient");
@@ -934,8 +936,8 @@ session_entry_compare_on_handle (gconstpointer a,
         g_error ("session_entry_compare_on_handle received NULL parameter");
     }
     SessionEntry *entry_a = SESSION_ENTRY (a);
-    TPM_HANDLE handle_a = session_entry_get_handle (entry_a);
-    TPM_HANDLE handle_b = *(TPM_HANDLE*)b;
+    TPM2_HANDLE handle_a = session_entry_get_handle (entry_a);
+    TPM2_HANDLE handle_b = *(TPM2_HANDLE*)b;
 
     if (handle_a < handle_b) {
         return -1;
@@ -963,7 +965,7 @@ create_context_mapping_session (ResourceManager *resmgr,
 {
     GList *abandoned_link;
     SessionEntry *session_entry = NULL, *abandoned_entry = NULL;
-    TPM_HANDLE    handle;
+    TPM2_HANDLE    handle;
     Connection   *connection;
 
     handle = tpm2_response_get_handle (response);
@@ -1011,14 +1013,14 @@ create_context_mapping_session (ResourceManager *resmgr,
  * This function assumes that the handle in the parameter Tpm2Response
  * object is the handle assigned by the TPM. Depending on the type of the
  * handle we do to possible things:
- * For TPM_HT_TRANSIENT handles we create a new virtual handle and
+ * For TPM2_HT_TRANSIENT handles we create a new virtual handle and
  * allocates a new HandleMapEntry to map the virtual handle to a
  * TPMS_CONTEXT structure when processing future commands associated
  * with the same connection. This HandleMapEntry is inserted into the
  * handle map for the connection. It is also added to the list of loaded
  * transient objects so that it can be saved / flushed by the typical code
  * path.
- * For TPM_HT_HMAC_SESSION or TPM_HT_POLICY_SESSION handles we create a
+ * For TPM2_HT_HMAC_SESSION or TPM2_HT_POLICY_SESSION handles we create a
  * new session_entry_t object, populate the connection field with the
  * connection associated with the response object, and set the savedHandle
  * field. We then add this entry to the list of sessions we're tracking
@@ -1030,7 +1032,7 @@ resource_manager_create_context_mapping (ResourceManager  *resmgr,
                                          GSList          **loaded_transient_slist,
                                          SessionList      *loaded_session_list)
 {
-    TPM_HANDLE       handle;
+    TPM2_HANDLE       handle;
 
     g_debug ("resource_manager_create_context_mapping");
     if (!tpm2_response_has_handle (response)) {
@@ -1038,12 +1040,12 @@ resource_manager_create_context_mapping (ResourceManager  *resmgr,
         return;
     }
     handle = tpm2_response_get_handle (response);
-    switch (handle >> HR_SHIFT) {
-    case TPM_HT_TRANSIENT:
+    switch (handle >> TPM2_HR_SHIFT) {
+    case TPM2_HT_TRANSIENT:
         create_context_mapping_transient (resmgr, response, loaded_transient_slist);
         break;
-    case TPM_HT_HMAC_SESSION:
-    case TPM_HT_POLICY_SESSION:
+    case TPM2_HT_HMAC_SESSION:
+    case TPM2_HT_POLICY_SESSION:
         create_context_mapping_session (resmgr, response, loaded_session_list);
         break;
     default:
@@ -1390,7 +1392,7 @@ void
 resource_manager_prune_abandoned (ResourceManager *resource_manager)
 {
     SessionEntry *session_entry;
-    TPM_HANDLE session_handle;
+    TPM2_HANDLE session_handle;
     TSS2_RC rc;
     guint length;
 
@@ -1431,7 +1433,7 @@ resource_manager_on_connection_removed (ConnectionManager *connection_manager,
 {
     TSS2_RC          rc;
     SessionEntry    *session_entry;
-    TPM_HANDLE       handle;
+    TPM2_HANDLE       handle;
 
     g_info ("resource_manager_on_connection_removed: flushing session "
             "contexts associated with connection 0x%" PRIxPTR,

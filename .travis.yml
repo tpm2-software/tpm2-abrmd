@@ -15,8 +15,10 @@ addons:
       - dbus-x11
       - cmake
       - lcov
+      - libgcrypt20-dev
       - libglib2.0-dev
       - libdbus-1-dev
+      - liburiparser-dev
       - realpath
   coverity_scan:
     project:
@@ -57,12 +59,13 @@ install:
   - cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release
   - make -j$(nproc) install
   - popd # cmocka
-  - git clone -b 1.x --single-branch https://github.com/01org/tpm2-tss.git
+  - git clone -b master --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
   - ./bootstrap
   - ./configure --prefix=${PREFIX}
   - make -j$(nproc) install
   - popd # tpm2-tss
+  - sed -i -e "s&\(\/usr\/lib\/lib.*\.la\)&${DESTDIR}\1&" ${DESTDIR}${PREFIX}/lib/*.la
   - wget http://mirror.twobit.us/tpm2-deps/ibmtpm974.tar.gz
   - sha256sum ibmtpm974.tar.gz | grep -q ^8e45d86129a0adb95fee4cee51f4b1e5b2d81ed3e55af875df53f98f39eb7ad7
   - mkdir ibmtpm
@@ -76,7 +79,7 @@ before_script:
 script :
   - echo 'Configuring source code...' && echo -en 'travis_fold:start:tabrmd-configure\\r'
   - |
-    CONFIGURE_OPTIONS="--enable-unit --with-simulatorbin=${DEPS}/ibmtpm/src/tpm_server"
+    CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --with-simulatorbin=${DEPS}/ibmtpm/src/tpm_server"
     if [ "$CC" = "gcc" ]; then
         CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-code-coverage"
     fi

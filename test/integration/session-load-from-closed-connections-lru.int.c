@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,8 +28,9 @@
 #include <glib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tss2_sys.h>
 
 #include "common.h"
 #include "tabrmd.h"
@@ -37,8 +38,7 @@
 #include "context-util.h"
 
 #define PRIxHANDLE "08" PRIx32
-#define TABRMD_MAX_SESSIONS MAX_SESSIONS_DEFAULT
-#define TEST_MAX_SESSIONS (TABRMD_MAX_SESSIONS + 1)
+#define TEST_MAX_SESSIONS (TABRMD_SESSIONS_MAX_DEFAULT + 1)
 
 /*
  * This test exercises the session tracking logic specifically around the
@@ -146,15 +146,7 @@ main (int argc,
 {
     TSS2_SYS_CONTEXT *sapi_context;
     test_data_t test_data [TEST_MAX_SESSIONS] = { 0 };
-    test_opts_t opts = {
-        .tcti_type      = TCTI_DEFAULT,
-        .device_file    = DEVICE_PATH_DEFAULT,
-        .socket_address = HOSTNAME_DEFAULT,
-        .socket_port    = PORT_DEFAULT,
-        .tabrmd_bus_type = TCTI_TABRMD_DBUS_TYPE_DEFAULT,
-        .tabrmd_bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT,
-        .tcti_retries    = TCTI_RETRIES_DEFAULT,
-    };
+    test_opts_t opts = TEST_OPTS_DEFAULT_INIT;
     guint success_count;
 
     get_test_opts_from_env (&opts);
@@ -172,9 +164,9 @@ main (int argc,
      * available to us.
      */
     success_count = load_sessions (sapi_context, test_data, TEST_MAX_SESSIONS);
-    if (success_count != TABRMD_MAX_SESSIONS) {
+    if (success_count != TABRMD_SESSIONS_MAX_DEFAULT) {
         g_critical ("Expected to load %u sessions, got %u instead",
-                    TABRMD_MAX_SESSIONS, success_count);
+                    TABRMD_SESSIONS_MAX_DEFAULT, success_count);
         exit (1);
     }
     /*

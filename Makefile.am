@@ -10,7 +10,7 @@ unit-count: check
 AM_CFLAGS = $(EXTRA_CFLAGS) \
     -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
     $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
-    $(SAPI_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS) \
+    $(TSS2_SYS_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS) \
     $(CODE_COVERAGE_CFLAGS)
 AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
 UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
@@ -33,20 +33,15 @@ TESTS_UNIT = \
     test/random_unit \
     test/session-entry_unit \
     test/test-skeleton_unit \
+    test/tcti-dynamic_unit \
     test/tcti-echo_unit \
-    test/tcti-factory_unit \
+    test/tcti-util_unit \
     test/thread_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
     test/tss2-tcti-tabrmd_unit \
     test/tss2-tcti-echo_unit \
     test/util_unit
-if TCTI_DEVICE
-    TESTS_UNIT += test/tcti-device_unit
-endif
-if TCTI_SOCKET
-    TESTS_UNIT += test/tcti-socket_unit
-endif
 endif #UNIT
 
 tests_integration = \
@@ -62,7 +57,7 @@ tests_integration = \
     test/integration/session-load-from-open-connection.int \
     test/integration/start-auth-session.int \
     test/integration/tcti-cancel.int \
-    test/integration/tcti-connect-multiple.int \
+    test/integration/tcti-double-finalize.int \
     test/integration/tcti-sessions-max.int \
     test/integration/tcti-set-locality.int \
     test/integration/hash-sequence.int \
@@ -71,8 +66,10 @@ tests_integration = \
     test/integration/tpm2-command-flush-no-handle.int \
     test/integration/util-buf-max-upper-bound.int
 
+tests_integration_nohw = test/integration/tcti-connect-multiple.int
+
 if SIMULATOR_BIN
-TESTS_INTEGRATION = $(tests_integration)
+TESTS_INTEGRATION = $(tests_integration) $(tests_integration_nohw)
 endif
 
 if HWTPM
@@ -100,18 +97,18 @@ sbin_PROGRAMS   = src/tpm2-abrmd
 check_PROGRAMS  = $(sbin_PROGRAMS) $(TESTS)
 
 # libraries
-libtcti_tabrmd = src/libtcti-tabrmd.la
-libtcti_echo   = src/libtcti-echo.la
+libtss2_tcti_tabrmd = src/libtss2-tcti-tabrmd.la
+libtss2_tcti_echo = src/libtss2-tcti-echo.la
 libtest        = test/integration/libtest.la
 libutil        = src/libutil.la
 
-lib_LTLIBRARIES = src/libtcti-tabrmd.la
+lib_LTLIBRARIES = $(libtss2_tcti_tabrmd)
 noinst_LTLIBRARIES = \
-    $(libtcti_echo) \
-    $(libutil) \
-    $(libtest)
+    $(libtss2_tcti_echo) \
+    $(libtest) \
+    $(libutil)
 man3_MANS = man/man3/tss2_tcti_tabrmd_init.3
-man7_MANS = man/man7/tcti-tabrmd.7
+man7_MANS = man/man7/tss2-tcti-tabrmd.7
 man8_MANS = man/man8/tpm2-abrmd.8
 
 install-data-hook:
@@ -125,8 +122,8 @@ uninstall-local:
 	-rm $(DESTDIR)$(mandir)/man3/tss2_tcti_tabrmd_init_full.3
 	-rm $(DESTDIR)$(udevrulesdir)/$(udevrulesprefix)tpm-udev.rules
 
-libtcti_tabrmddir      = $(includedir)/tcti
-libtcti_tabrmd_HEADERS = $(srcdir)/src/include/tcti-tabrmd.h
+libtss2_tcti_tabrmddir      = $(includedir)/tcti
+libtss2_tcti_tabrmd_HEADERS = $(srcdir)/src/include/tss2-tcti-tabrmd.h
 
 EXTRA_DIST = \
     src/tabrmd.xml \
@@ -135,17 +132,21 @@ EXTRA_DIST = \
     src/tcti-tabrmd.map \
     man/colophon.in \
     man/tss2_tcti_tabrmd_init.3.in \
-    man/tcti-tabrmd.7.in \
+    man/tss2-tcti-tabrmd.7.in \
     man/tpm2-abrmd.8.in \
     dist/tpm2-abrmd.conf \
-    dist/tcti-tabrmd.pc.in \
     dist/tpm2-abrmd.preset.in \
+    dist/tss2-tcti-tabrmd.pc.in \
     dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
     dist/com.intel.tss2.Tabrmd.service \
     scripts/int-simulator-setup.sh \
     scripts/int-hardware-setup.sh \
     scripts/int-test-funcs.sh \
+    selinux/Makefile \
+    selinux/tabrmd.fc \
+    selinux/tabrmd.if \
+    selinux/tabrmd.te \
     AUTHORS \
     CHANGELOG.md \
     CONTRIBUTING.md \
@@ -169,7 +170,7 @@ CLEANFILES = \
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
 pkgconfigdir     = $(libdir)/pkgconfig
-pkgconfig_DATA   = dist/tcti-tabrmd.pc
+pkgconfig_DATA   = dist/tss2-tcti-tabrmd.pc
 dbuspolicy_DATA  = dist/tpm2-abrmd.conf
 udevrules_DATA   = dist/tpm-udev.rules
 if HAVE_SYSTEMD
@@ -190,7 +191,7 @@ src/ipc-frontend-dbus.c : $(BUILT_SOURCES)
 
 # utility library with most of the code that makes up the daemon
 src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
+    $(TSS2_SYS_LIBS) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
 src_libutil_la_SOURCES = \
     src/access-broker.c \
     src/access-broker.h \
@@ -238,10 +239,10 @@ src_libutil_la_SOURCES = \
     src/tabrmd.h \
     src/tcti.c \
     src/tcti.h \
-    src/tcti-factory.c \
-    src/tcti-factory.h \
-    src/tcti-type-enum.c \
-    src/tcti-type-enum.h \
+    src/tcti-dynamic.c \
+    src/tcti-dynamic.h \
+    src/tcti-util.c \
+    src/tcti-util.h \
     src/thread.c \
     src/thread.h \
     src/tpm2-command.c \
@@ -252,14 +253,9 @@ src_libutil_la_SOURCES = \
     src/tpm2-response.h \
     src/util.c \
     src/util.h
-if TCTI_DEVICE
-src_libutil_la_SOURCES += src/tcti-device.c src/tcti-device.h
-endif
-if TCTI_SOCKET
-src_libutil_la_SOURCES += src/tcti-socket.c src/tcti-socket.h
-endif
 
-test_integration_libtest_la_LIBADD  = $(SAPI_LIBS) $(TCTI_SOCKET_LIBS) $(TCTI_DEVICE_LIBS) $(GLIB_LIBS)
+test_integration_libtest_la_LIBADD  = $(TSS2_SYS_LIBS) $(TCTI_SOCKET_LIBS) \
+    $(TCTI_DEVICE_LIBS) $(GLIB_LIBS)
 test_integration_libtest_la_SOURCES = \
     test/integration/common.c \
     test/integration/common.h \
@@ -268,13 +264,13 @@ test_integration_libtest_la_SOURCES = \
     test/integration/test-options.c \
     test/integration/test-options.h
 
-src_libtcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
-    $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(SAPI_LIBS)
-src_libtcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
-src_libtcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(srcdir)/src/tcti-tabrmd.map
+src_libtss2_tcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
+    $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(TSS2_SYS_LIBS)
+src_libtss2_tcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
+src_libtss2_tcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(srcdir)/src/tcti-tabrmd.map
 
-src_libtcti_echo_la_LIBADD  = $(DBUS_LIBS) $(GLIB_LIBS)
-src_libtcti_echo_la_SOURCES = \
+src_libtss2_tcti_echo_la_LIBADD  = $(DBUS_LIBS) $(GLIB_LIBS)
+src_libtss2_tcti_echo_la_SOURCES = \
     src/tcti-echo.c \
     src/tcti-echo.h \
     src/tss2-tcti-echo.c \
@@ -282,7 +278,7 @@ src_libtcti_echo_la_SOURCES = \
     src/tss2-tcti-echo-priv.h
 
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(SAPI_LIBS) $(libutil) $(libtcti_echo)
+    $(TSS2_SYS_LIBS) $(libutil) $(libtss2_tcti_echo)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
 
 AUTHORS :
@@ -290,48 +286,38 @@ AUTHORS :
 	    uniq -c | sort -nr | sed 's/^\s*//' | cut -d" " -f2- > $@
 
 man/man3/%.3 : man/%.3.in
-	$(call man_tcti_prefix,$@,$^)
+	$(AM_V_GEN)$(call man_tcti_prefix,$@,$^)
 
 man/man7/%.7 : man/%.7.in
-	$(call man_tcti_prefix,$@,$^)
+	$(AM_V_GEN)$(call man_tcti_prefix,$@,$^)
 
 man/man8/%.8 : man/%.8.in
-	$(call man_tcti_prefix,$@,$^)
+	$(AM_V_GEN)$(call man_tcti_prefix,$@,$^)
 
 # this function is used to generate man pages from templates found in
 # $(srcdir)/man/*.in
 define man_tcti_prefix
 	$(call make_parent_dir,$@)
-	-rm $@
-if TCTI_DEVICE
-	echo ".nr HAVE_DEVICE_TCTI 1" >> $1
-else
-	echo ".nr HAVE_DEVICE_TCTI 0" >> $1
-endif
-if TCTI_SOCKET
-	echo ".nr HAVE_SOCKET_TCTI 1" >> $1
-else
-	echo ".nr HAVE_SOCKET_TCTI 0" >> $1
-endif
-	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g;" $2 $(srcdir)/man/colophon.in >> $1
+	-$(AM_V_at)rm -f $@
+	$(AM_V_GEN)sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g;" $2 $(srcdir)/man/colophon.in >> $1
 endef # man_tcti_prefix
 
 %-generated.c %-generated.h : src/tabrmd.xml
-	$(call make_parent_dir,$@)
+	$(AM_V_GEN)$(call make_parent_dir,$@) && \
 	$(GDBUS_CODEGEN) --interface-prefix=com.intel.tss2. \
 	    --generate-c-code=src/tabrmd-generated $^
 
 %.preset : %.preset.in
-	$(call make_parent_dir,$@)
+	$(AM_V_GEN)$(call make_parent_dir,$@) && \
 	sed -e "s,[@]SYSTEMD_PRESET_DEFAULT[@],$(SYSTEMD_PRESET_DEFAULT),g;" $^ > $@
 
 %.service : %.service.in
-	$(call make_parent_dir,$@)
+	$(AM_V_GEN)$(call make_parent_dir,$@) && \
 	sed -e "s,[@]SBINDIR[@],$(sbindir),g; \
 	        s,[@]sysconfdir[@],$(sysconfdir),g;" $^ > $@
 
 %.pc : %.pc.in
-	$(call make_parent_dir,$@)
+	$(AM_V_GEN)$(call make_parent_dir,$@) && \
 	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g; \
                 s,[@]includedir[@],$(includedir),g;" $^ > $@
 
@@ -345,7 +331,7 @@ test_test_skeleton_unit_LDADD   = $(CMOCKA_LIBS)
 test_test_skeleton_unit_SOURCES = test/test-skeleton_unit.c
 
 test_response_sink_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) \
+test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(GOBJECT_LIBS)
 test_response_sink_unit_SOURCES = \
     src/connection.c \
@@ -368,12 +354,12 @@ test_connection_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIB
 test_connection_manager_unit_SOURCES = test/connection-manager_unit.c
 
 test_command_attrs_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
+test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtss2_tcti_echo)
 test_command_attrs_unit_LDFLAGS  = -Wl,--wrap=access_broker_lock_sapi,--wrap=access_broker_get_max_command,--wrap=Tss2_Sys_GetCapability
 test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
 test_command_source_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_command_source_unit_LDFLAGS = -Wl,--wrap=g_source_set_callback,--wrap=connection_manager_lookup_istream,--wrap=connection_manager_remove,--wrap=sink_enqueue,--wrap=read_tpm_buffer_alloc,--wrap=command_attrs_from_cc
 test_command_source_unit_SOURCES = test/command-source_unit.c
 
@@ -382,7 +368,7 @@ test_handle_map_entry_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS)
 test_handle_map_entry_unit_SOURCES = test/handle-map-entry_unit.c
 
 test_handle_map_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_handle_map_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_handle_map_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_handle_map_unit_SOURCES = test/handle-map_unit.c
 
 test_ipc_frontend_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -398,30 +384,16 @@ test_logging_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libuti
 test_logging_unit_LDFLAGS = -Wl,--wrap=getenv,--wrap=syslog
 test_logging_unit_SOURCES = test/logging_unit.c
 
-if TCTI_DEVICE
-test_tcti_device_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_tcti_device_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_tcti_device_unit_LDFLAGS  = -Wl,--wrap=InitDeviceTcti
-test_tcti_device_unit_SOURCES  = test/tcti-device_unit.c
-endif
-
-if TCTI_SOCKET
-test_tcti_socket_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_tcti_socket_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TCTI_SOCKET_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_tcti_socket_unit_LDFLAGS  = -Wl,--wrap=InitSocketTcti
-test_tcti_socket_unit_SOURCES  = test/tcti-socket_unit.c
-endif
-
 test_thread_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_thread_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
+test_thread_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(libutil)
 test_thread_unit_SOURCES = test/thread_unit.c
 
 test_tpm2_command_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
+test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(libutil)
 test_tpm2_command_unit_SOURCES = test/tpm2-command_unit.c
 
 test_tpm2_response_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tpm2_response_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(libutil)
+test_tpm2_response_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(libutil)
 test_tpm2_response_unit_SOURCES = test/tpm2-response_unit.c
 
 test_util_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -435,7 +407,7 @@ test_message_queue_unit_SOURCES = test/message-queue_unit.c
 
 test_access_broker_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_GetCapability,--wrap=tcti_echo_transmit
-test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
+test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtss2_tcti_echo)
 test_access_broker_unit_SOURCES = test/access-broker_unit.c
 
 test_random_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -449,16 +421,22 @@ test_session_entry_unit_SOURCES = test/session-entry_unit.c
 
 test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
-test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtcti_echo)
+test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtss2_tcti_echo)
 test_resource_manager_unit_SOURCES = test/resource-manager_unit.c
 
-test_tcti_factory_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tcti_factory_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_tcti_factory_unit_SOURCES = test/tcti-factory_unit.c
+test_tcti_dynamic_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
+test_tcti_dynamic_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_tcti_dynamic_unit_LDFLAGS  = -Wl,--wrap=dlopen,--wrap=dlsym,--wrap=dlclose
+test_tcti_dynamic_unit_SOURCES  = test/tcti-dynamic_unit.c
 
 test_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtcti_echo)
+test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtss2_tcti_echo)
 test_tcti_echo_unit_SOURCES = test/tcti-echo_unit.c
+
+test_tcti_util_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
+test_tcti_util_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_tcti_util_unit_LDFLAGS  = -Wl,--wrap=dlopen,--wrap=dlsym,--wrap=dlclose
+test_tcti_util_unit_SOURCES  = test/tcti-util_unit.c
 
 test_tss2_tcti_tabrmd_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tss2_tcti_tabrmd_unit_LDFLAGS = -Wl,--wrap=g_dbus_proxy_call_with_unix_fd_list_sync,--wrap=tcti_tabrmd_call_cancel_sync,--wrap=tcti_tabrmd_call_set_locality_sync,--wrap=read_data,--wrap=poll
@@ -466,89 +444,81 @@ test_tss2_tcti_tabrmd_unit_LDADD   = $(CMOCKA_LIBS) $(GIO_LIBS) $(libutil)
 test_tss2_tcti_tabrmd_unit_SOURCES = src/tcti-tabrmd.c test/tss2-tcti-tabrmd_unit.c
 
 test_tss2_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(libtcti_echo)
+test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(libtss2_tcti_echo)
 test_tss2_tcti_echo_unit_SOURCES = test/tss2-tcti-echo_unit.c
 endif
 
-test_integration_auth_session_max_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+TEST_INT_LIBS = $(libtest) $(libutil) $(libtss2_tcti_tabrmd) $(GLIB_LIBS)
+test_integration_auth_session_max_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_max_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-max.int.c
 
-test_integration_auth_session_start_flush_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_auth_session_start_flush_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_start_flush_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-start-flush.int.c
 
-test_integration_auth_session_start_save_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_auth_session_start_save_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_start_save_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-start-save.int.c
 
-test_integration_auth_session_start_save_load_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_auth_session_start_save_load_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_start_save_load_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-start-save-load.int.c
 
-test_integration_create_keys_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS) $(TCTI_DEVICE_LIBS) \
-    $(TCTI_SOCKET_LIBS)
+test_integration_create_keys_int_LDADD = $(TEST_INT_LIBS)
 test_integration_create_keys_int_SOURCES = test/integration/main.c test/integration/create-keys.int.c
 
-test_integration_get_capability_handles_transient_int_LDADD   = $(libtest) \
-    $(libtcti_tabrmd) $(GLIB_LIBS) $(SAPI_LIBS)
+test_integration_get_capability_handles_transient_int_LDADD = $(TEST_INT_LIBS)
 test_integration_get_capability_handles_transient_int_SOURCES = \
     test/integration/main.c test/integration/get-capability-handles-transient.int.c
 
-test_integration_session_load_from_open_connection_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_session_load_from_open_connection_int_LDADD = $(TEST_INT_LIBS)
 test_integration_session_load_from_open_connection_int_SOURCES = \
     test/integration/session-load-from-open-connection.int.c
 
-test_integration_session_load_from_closed_connection_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_session_load_from_closed_connection_int_LDADD = $(TEST_INT_LIBS)
 test_integration_session_load_from_closed_connection_int_SOURCES = \
     test/integration/session-load-from-closed-connection.int.c
 
-test_integration_session_load_from_closed_connections_lru_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS)
+test_integration_session_load_from_closed_connections_lru_int_LDADD = $(TEST_INT_LIBS)
 test_integration_session_load_from_closed_connections_lru_int_SOURCES = \
     test/integration/session-load-from-closed-connections-lru.int.c
 
-test_integration_start_auth_session_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS)
+test_integration_start_auth_session_int_LDADD = $(TEST_INT_LIBS)
 test_integration_start_auth_session_int_SOURCES = test/integration/main.c test/integration/start-auth-session.int.c
 
-test_integration_tcti_cancel_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_cancel_int_LDADD = $(TEST_INT_LIBS)
 test_integration_tcti_cancel_int_SOURCES = test/integration/main.c test/integration/tcti-cancel.int.c
 
-test_integration_tcti_connect_multiple_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_double_finalize_int_LDADD = $(TEST_INT_LIBS)
+test_integration_tcti_double_finalize_int_SOURCES = test/integration/main.c \
+    test/integration/tcti-double-finalize.int.c
+
+test_integration_tcti_connect_multiple_int_LDADD = $(TEST_INT_LIBS)
 test_integration_tcti_connect_multiple_int_SOURCES = test/integration/tcti-connect-multiple.int.c
 
-test_integration_tcti_sessions_max_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_sessions_max_int_LDADD = $(TEST_INT_LIBS)
 test_integration_tcti_sessions_max_int_SOURCES = test/integration/tcti-sessions-max.int.c
 
-test_integration_tcti_set_locality_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tcti_set_locality_int_LDADD  = $(TEST_INT_LIBS)
 test_integration_tcti_set_locality_int_SOURCES = test/integration/main.c test/integration/tcti-set-locality.int.c
 
-test_integration_hash_sequence_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_hash_sequence_int_LDADD = $(TEST_INT_LIBS)
 test_integration_hash_sequence_int_SOURCES = test/integration/main.c test/integration/hash-sequence.int.c
 
-test_integration_not_enough_handles_for_command_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_not_enough_handles_for_command_int_LDADD = $(TEST_INT_LIBS)
 test_integration_not_enough_handles_for_command_int_SOURCES = test/integration/main.c test/integration/not-enough-handles-for-command.int.c
 
-test_integration_password_authorization_int_LDADD   = $(libtest) $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_password_authorization_int_LDADD = $(TEST_INT_LIBS)
 test_integration_password_authorization_int_SOURCES = test/integration/main.c test/integration/password-authorization.int.c
 
-test_integration_manage_transient_keys_int_LDADD   = $(libtest) $(libtcti_tabrmd) \
-    $(GLIB_LIBS) $(GOBJECT_LIBS) $(SAPI_LIBS)
+test_integration_manage_transient_keys_int_LDADD = $(TEST_INT_LIBS)
 test_integration_manage_transient_keys_int_SOURCES = test/integration/main.c test/integration/manage-transient-keys.int.c
 
-test_integration_tpm2_command_flush_no_handle_int_LDADD   = $(libtest) \
-    $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_tpm2_command_flush_no_handle_int_LDADD = $(TEST_INT_LIBS)
 test_integration_tpm2_command_flush_no_handle_int_SOURCES = \
     test/integration/main.c test/integration/tpm2-command-flush-no-handle.int.c
 
-test_integration_util_buf_max_upper_bound_int_LDADD   = $(libtest) \
-    $(libtcti_tabrmd) $(GLIB_LIBS) $(GOBJECT_LIBS)
+test_integration_util_buf_max_upper_bound_int_LDADD = $(TEST_INT_LIBS)
 test_integration_util_buf_max_upper_bound_int_SOURCES = \
     test/integration/main.c test/integration/util-buf-max-upper-bound.int.c

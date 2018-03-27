@@ -38,7 +38,7 @@
 int
 test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
-    TPM_HANDLE         primary_handle, out_handle;
+    TPM2_HANDLE         primary_handle, out_handle;
     TPMS_CONTEXT       context     = { 0 };
     TPM2B_PRIVATE      out_private = TPM2B_PRIVATE_STATIC_INIT;
     TPM2B_PUBLIC       out_public  = { 0 };

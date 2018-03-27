@@ -28,7 +28,7 @@
 #include <inttypes.h>
 
 #include "tabrmd.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "common.h"
 
 #define NUM_KEYS 5
@@ -49,7 +49,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         return 1;
     }
     g_info ("invoking tss2_tcti_tabrmd_set_locality");
-    rc = tss2_tcti_set_locality (tcti_context, 1);
+    rc = Tss2_Tcti_SetLocality (tcti_context, 1);
     if (rc == TSS2_RESMGR_RC_NOT_IMPLEMENTED) {
         g_info ("tss2_tcti_tabrmd_set_locality failed as expected: 0x%" PRIx32,
                 rc);

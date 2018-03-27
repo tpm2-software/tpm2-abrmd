@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,9 +31,10 @@
 
 #include <glib.h>
 #include <inttypes.h>
+#include <string.h>
 
 #include "tabrmd.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "common.h"
 
 #define TPM20_INDEX_PASSWORD_TEST       0x01500020
@@ -50,44 +51,36 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
     int i;
     TPM2B_NV_PUBLIC publicInfo;
     TPM2B_AUTH  nvAuth;
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
+    };
+    TSS2L_SYS_AUTH_RESPONSE rsp_auths;
 
-    TPMS_AUTH_COMMAND auth_command = {
-        .sessionHandle = TPM_RS_PW,
-    };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
-    };
-    TPMS_AUTH_RESPONSE  auth_response = { 0 };
-    TPMS_AUTH_RESPONSE *auth_response_array[1] = { &auth_response };
-    TSS2_SYS_RSP_AUTHS  rsp_auths = {
-        .rspAuths      = auth_response_array,
-        .rspAuthsCount = 1
-    };
-
-    nvAuth.t.size = strlen (password);
-    for (i = 0; i < nvAuth.t.size; i++) {
-        nvAuth.t.buffer[i] = password[i];
+    nvAuth.size = strlen (password);
+    for (i = 0; i < nvAuth.size; i++) {
+        nvAuth.buffer[i] = password[i];
     }
 
-    publicInfo.t.size = sizeof (TPMI_RH_NV_INDEX) + sizeof (TPMI_ALG_HASH) +
+    publicInfo.size = sizeof (TPMI_RH_NV_INDEX) + sizeof (TPMI_ALG_HASH) +
         sizeof (TPMA_NV) + sizeof (UINT16) + sizeof (UINT16);
-    publicInfo.t.nvPublic.nvIndex = nvIndex;
-    publicInfo.t.nvPublic.nameAlg = TPM_ALG_SHA1;
+    publicInfo.nvPublic.nvIndex = nvIndex;
+    publicInfo.nvPublic.nameAlg = TPM2_ALG_SHA1;
 
     // First zero out attributes.
-    *(UINT32 *)&( publicInfo.t.nvPublic.attributes ) = 0;
+    *(UINT32 *)&( publicInfo.nvPublic.attributes ) = 0;
 
     // Now set the attributes.
-    publicInfo.t.nvPublic.attributes.TPMA_NV_AUTHREAD = 1;
-    publicInfo.t.nvPublic.attributes.TPMA_NV_AUTHWRITE = 1;
-    publicInfo.t.nvPublic.attributes.TPMA_NV_ORDERLY = 1;
-    publicInfo.t.nvPublic.authPolicy.t.size = 0;
-    publicInfo.t.nvPublic.dataSize = 32;
+    publicInfo.nvPublic.attributes |= TPMA_NV_AUTHREAD;
+    publicInfo.nvPublic.attributes |= TPMA_NV_AUTHWRITE;
+    publicInfo.nvPublic.attributes |= TPMA_NV_ORDERLY;
+    publicInfo.nvPublic.authPolicy.size = 0;
+    publicInfo.nvPublic.dataSize = 32;
 
     rval = Tss2_Sys_NV_DefineSpace (sapi_context,
-                                    TPM_RH_OWNER,
+                                    TPM2_RH_OWNER,
                                     &cmd_auths,
                                     &nvAuth,
                                     &publicInfo,
@@ -106,25 +99,18 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 
     TSS2_RC rval;
     int i, ret;
-
     TPM2B_MAX_NV_BUFFER nvWriteData;
+#define PASSWORD "test password"
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+            .hmac.buffer = {PASSWORD},
+            .hmac.size = strlen(PASSWORD),
+        }}
+    };
 
-    char password[] = "test password";
-
-    TPMS_AUTH_COMMAND auth_command = {
-        .sessionHandle = TPM_RS_PW,
-    };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
-    };
-    TPMS_AUTH_RESPONSE  auth_response = { 0 };
-    TPMS_AUTH_RESPONSE *auth_response_array[1] = { &auth_response };
-    TSS2_SYS_RSP_AUTHS  rsp_auths = {
-        .rspAuths      = auth_response_array,
-        .rspAuthsCount = 1
-    };
+    TSS2L_SYS_AUTH_RESPONSE rsp_auths;
 
     /*
      * Create an NV index that will use password
@@ -133,20 +119,16 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
      */
     ret = CreatePasswordTestNV (sapi_context,
                                 TPM20_INDEX_PASSWORD_TEST,
-                                password);
+                                PASSWORD);
     if (ret != 1) {
 	// Error message already printed in CreatePasswordTestNV()
         return 1;
     }
 
-    // Init password (HMAC field in authorization structure).
-    auth_command.hmac.t.size = strlen (password);
-    memcpy (auth_command.hmac.t.buffer, password, strlen (password));
-
     // Initialize write data.
-    nvWriteData.t.size = 4;
-    for (i = 0; i < nvWriteData.t.size; i++) {
-        nvWriteData.t.buffer[i] = 0xff - i;
+    nvWriteData.size = 4;
+    for (i = 0; i < nvWriteData.size; i++) {
+        nvWriteData.buffer[i] = 0xff - i;
     }
 
     // Attempt write with the correct password. It should pass.
@@ -164,7 +146,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
 
     // Alter the password so it's incorrect.
-    auth_command.hmac.t.buffer[4] = 0xff;
+    cmd_auths.auths[0].hmac.buffer[4] = 0xff;
     rval = Tss2_Sys_NV_Write (sapi_context,
                               TPM20_INDEX_PASSWORD_TEST,
                               TPM20_INDEX_PASSWORD_TEST,
@@ -177,17 +159,17 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
      * since password was incorrect.  If wrong
      * response code received, exit.
      */
-    if (rval != (TPM_RC_S + TPM_RC_1 + TPM_RC_AUTH_FAIL)) {
+    if (rval != (TPM2_RC_S + TPM2_RC_1 + TPM2_RC_AUTH_FAIL)) {
 	g_warning("Unexpected error while writing NV with incorrect password. RC = 0x%x", rval);
 	return 1;
     }
 
     // Change hmac to null one, since null auth is used to undefine the index.
-    auth_command.hmac.t.size = 0;
+    cmd_auths.auths[0].hmac.size = 0;
 
     // Now undefine the index.
     rval = Tss2_Sys_NV_UndefineSpace (sapi_context,
-                                      TPM_RH_OWNER,
+                                      TPM2_RH_OWNER,
                                       TPM20_INDEX_PASSWORD_TEST,
                                       &cmd_auths,
                                       0);

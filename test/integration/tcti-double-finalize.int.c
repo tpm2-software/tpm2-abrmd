@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,33 +24,27 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef TSS2_TCTI_TABD_H
-#define TSS2_TCTI_TABD_H
+#include <glib.h>
+#include <inttypes.h>
+#include <tss2/tss2_sys.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "tss2-tcti-tabrmd.h"
 
-#include <sapi/tpm20.h>
-#include <sapi/tss2_tcti.h>
+/*
+ * This is a test program that exercises the TCTI cancel command.
+ */
+int
+test_invoke (TSS2_SYS_CONTEXT *sapi_context)
+{
+    TSS2_TCTI_CONTEXT *tcti_context = NULL;
+    TSS2_RC            rc = TSS2_RC_SUCCESS;
 
-#define TCTI_TABRMD_DBUS_INTERFACE_DEFAULT "com.intel.tss2.TctiTabrmd"
-#define TCTI_TABRMD_DBUS_NAME_DEFAULT      "com.intel.tss2.Tabrmd"
-#define TCTI_TABRMD_DBUS_TYPE_DEFAULT      TCTI_TABRMD_DBUS_TYPE_SYSTEM
-
-typedef enum {
-    TCTI_TABRMD_DBUS_TYPE_SESSION,
-    TCTI_TABRMD_DBUS_TYPE_SYSTEM,
-} TCTI_TABRMD_DBUS_TYPE;
-
-TSS2_RC tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context, size_t *size);
-TSS2_RC tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
-                                    size_t                 *size,
-                                    TCTI_TABRMD_DBUS_TYPE   bus,
-                                    const char             *name);
-
-#ifdef __cplusplus
+    rc = Tss2_Sys_GetTctiContext (sapi_context, &tcti_context);
+    if (rc != TSS2_RC_SUCCESS || tcti_context == NULL) {
+        g_critical ("Tss2_Sys_GetTctiContext failed: 0x%" PRIx32, rc);
+        return 1;
+    }
+    Tss2_Tcti_Finalize (tcti_context);
+    Tss2_Tcti_Finalize (tcti_context);
+    return 0;
 }
-#endif
-
-#endif /* TSS2_TCTI_TABD_H */

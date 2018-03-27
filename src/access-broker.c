@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "tabrmd.h"
 
@@ -155,6 +156,15 @@ access_broker_class_init (AccessBrokerClass *klass)
                                        N_PROPERTIES,
                                        obj_properties);
 }
+
+#define SUPPORTED_ABI_VERSION \
+{ \
+    .tssCreator = 1, \
+    .tssFamily = 2, \
+    .tssLevel = 1, \
+    .tssVersion = 108, \
+}
+
 static TSS2_SYS_CONTEXT*
 sapi_context_init (Tcti *tcti)
 {
@@ -162,12 +172,7 @@ sapi_context_init (Tcti *tcti)
     TSS2_TCTI_CONTEXT *tcti_context;
     TSS2_RC rc;
     size_t size;
-    TSS2_ABI_VERSION abi_version = {
-        .tssCreator = TSSWG_INTEROP,
-        .tssFamily  = TSS_SAPI_FIRST_FAMILY,
-        .tssLevel   = TSS_SAPI_FIRST_LEVEL,
-        .tssVersion = TSS_SAPI_FIRST_VERSION,
-    };
+    TSS2_ABI_VERSION abi_version = SUPPORTED_ABI_VERSION;
 
     g_debug ("sapi_context_init w/ Tcti: 0x%" PRIxPTR, (uintptr_t)tcti);
     tcti_context = tcti_peek_context (tcti);
@@ -194,8 +199,8 @@ access_broker_send_tpm_startup (AccessBroker *broker)
 {
     TSS2_RC rc;
 
-    rc = Tss2_Sys_Startup (broker->sapi_context, TPM_SU_CLEAR);
-    if (rc != TSS2_RC_SUCCESS && rc != TPM_RC_INITIALIZE)
+    rc = Tss2_Sys_Startup (broker->sapi_context, TPM2_SU_CLEAR);
+    if (rc != TSS2_RC_SUCCESS && rc != TPM2_RC_INITIALIZE)
         g_warning ("Tss2_Sys_Startup returned unexpected RC: 0x%" PRIx32, rc);
     else
         rc = TSS2_RC_SUCCESS;
@@ -253,7 +258,7 @@ access_broker_unlock (AccessBroker *broker)
     }
 }
 /**
- * Query the TPM for fixed (PT_FIXED) TPM properties.
+ * Query the TPM for fixed (TPM2_PT_FIXED) TPM properties.
  * This function is intended for internal use only. The caller MUST
  * hold the sapi_mutex lock before calling.
  */
@@ -271,21 +276,21 @@ access_broker_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
         return TSS2_RESMGR_RC_SAPI_INIT;
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
-                                 TPM_CAP_TPM_PROPERTIES,
-                                 /* get PT_FIXED TPM property group */
-                                 PT_FIXED,
+                                 TPM2_CAP_TPM_PROPERTIES,
+                                 /* get TPM2_PT_FIXED TPM property group */
+                                 TPM2_PT_FIXED,
                                  /* get all properties in the group */
-                                 MAX_TPM_PROPERTIES,
+                                 TPM2_MAX_TPM_PROPERTIES,
                                  &more_data,
                                  capability_data,
                                  NULL);
     if (rc != TSS2_RC_SUCCESS) {
-        g_error ("Failed to GetCapability: TPM_CAP_TPM_PROPERTIES, "
-                 "PT_FIXED: 0x%x", rc);
+        g_error ("Failed to GetCapability: TPM2_CAP_TPM_PROPERTIES, "
+                 "TPM2_PT_FIXED: 0x%x", rc);
         return rc;
     }
     /* sanity check the property returned */
-    if (capability_data->capability != TPM_CAP_TPM_PROPERTIES)
+    if (capability_data->capability != TPM2_CAP_TPM_PROPERTIES)
         g_warning ("GetCapability returned wrong capability: 0x%x",
                    capability_data->capability);
     return rc;
@@ -298,7 +303,7 @@ access_broker_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
  */
 TSS2_RC
 access_broker_get_fixed_property (AccessBroker           *broker,
-                                  TPM_PT                  property,
+                                  TPM2_PT                  property,
                                   guint32                *value)
 {
     gint i;
@@ -329,36 +334,36 @@ access_broker_lock_sapi (AccessBroker *broker)
     return broker->sapi_context;
 }
 /*
- * Return the TPM_PT_TOTAL_COMAMNDS fixed TPM property.
+ * Return the TPM2_PT_TOTAL_COMAMNDS fixed TPM property.
  */
 TSS2_RC
 access_broker_get_total_commands (AccessBroker *broker,
                                   guint        *value)
 {
     return access_broker_get_fixed_property (broker,
-                                             TPM_PT_TOTAL_COMMANDS,
+                                             TPM2_PT_TOTAL_COMMANDS,
                                              value);
 }
 /**
- * Return the TPM_PT_MAX_COMMAND_SIZE fixed TPM property.
+ * Return the TPM2_PT_TPM2_MAX_COMMAND_SIZE fixed TPM property.
  */
 TSS2_RC
 access_broker_get_max_command (AccessBroker *broker,
                                guint32      *value)
 {
     return access_broker_get_fixed_property (broker,
-                                             TPM_PT_MAX_COMMAND_SIZE,
+                                             TPM2_PT_MAX_COMMAND_SIZE,
                                              value);
 }
 /**
- * Return the TPM_PT_MAX_RESPONSE_SIZE fixed TPM property.
+ * Return the TPM2_PT_TPM2_MAX_RESPONSE_SIZE fixed TPM property.
  */
 TSS2_RC
 access_broker_get_max_response (AccessBroker *broker,
                                 guint32      *value)
 {
     return access_broker_get_fixed_property (broker,
-                                             TPM_PT_MAX_RESPONSE_SIZE,
+                                             TPM2_PT_MAX_RESPONSE_SIZE,
                                              value);
 }
 /* Send the parameter Tpm2Command to the TPM. Return the TSS2_RC. */
@@ -402,7 +407,7 @@ access_broker_get_response (AccessBroker *broker,
     if (*buffer == NULL) {
         g_warning ("failed to allocate buffer for Tpm2Response: %s",
                    strerror (errno));
-        return RM_RC (TPM_RC_MEMORY);
+        return RM_RC (TPM2_RC_MEMORY);
     }
     *buffer_size = max_size;
     rc = tcti_receive (broker->tcti, buffer_size, *buffer, TSS2_TCTI_TIMEOUT_BLOCK);
@@ -505,8 +510,7 @@ access_broker_init_tpm (AccessBroker *broker)
     pthread_mutex_init (&broker->sapi_mutex, NULL);
     rc = access_broker_send_tpm_startup (broker);
     if (rc != TSS2_RC_SUCCESS) {
-        g_error ("access_broker_sent_tpm_startup failed: 0x%x", rc);
-        goto out;
+        g_warning ("access_broker_sent_tpm_startup failed: 0x%x", rc);
     }
     rc = access_broker_get_tpm_properties_fixed (broker->sapi_context,
                                                  &broker->properties_fixed);
@@ -534,15 +538,15 @@ access_broker_get_trans_object_count (AccessBroker *broker,
     g_assert_nonnull (count);
     sapi_context = access_broker_lock_sapi (broker);
     /*
-     * GCC gets confused by the TRANSIENT_FIRST constant being used for the
-     * 4th parameter. It assumes that it's a signed type which causes
+     * GCC gets confused by the TPM2_TRANSIENT_FIRST constant being used for
+     * the 4th parameter. It assumes that it's a signed type which causes
      * -Wsign-conversion to complain. Casting to UINT32 is all we can do.
      */
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
-                                 TPM_CAP_HANDLES,
-                                 (UINT32)TRANSIENT_FIRST,
-                                 TRANSIENT_LAST - TRANSIENT_FIRST,
+                                 TPM2_CAP_HANDLES,
+                                 (UINT32)TPM2_TRANSIENT_FIRST,
+                                 TPM2_TRANSIENT_LAST - TPM2_TRANSIENT_FIRST,
                                  &more_data,
                                  &capability_data,
                                  NULL);
@@ -556,7 +560,7 @@ out:
 TSS2_RC
 access_broker_context_load (AccessBroker *broker,
                             TPMS_CONTEXT *context,
-                            TPM_HANDLE   *handle)
+                            TPM2_HANDLE   *handle)
 {
     TSS2_RC           rc;
     TSS2_SYS_CONTEXT *sapi_context;
@@ -587,7 +591,7 @@ access_broker_context_load (AccessBroker *broker,
  */
 TSS2_RC
 access_broker_context_save (AccessBroker *broker,
-                            TPM_HANDLE    handle,
+                            TPM2_HANDLE    handle,
                             TPMS_CONTEXT *context)
 {
     TSS2_RC rc;
@@ -608,7 +612,7 @@ access_broker_context_save (AccessBroker *broker,
  */
 TSS2_RC
 access_broker_context_flush (AccessBroker *broker,
-                             TPM_HANDLE    handle)
+                             TPM2_HANDLE    handle)
 {
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context;
@@ -629,7 +633,7 @@ access_broker_context_flush (AccessBroker *broker,
 }
 TSS2_RC
 access_broker_context_saveflush (AccessBroker *broker,
-                                 TPM_HANDLE    handle,
+                                 TPM2_HANDLE    handle,
                                  TPMS_CONTEXT *context)
 {
     TSS2_RC           rc;
@@ -658,27 +662,27 @@ out:
 static void
 access_broker_flush_all_unlocked (AccessBroker     *broker,
                                   TSS2_SYS_CONTEXT *sapi_context,
-                                  TPM_RH            first,
-                                  TPM_RH            last)
+                                  TPM2_RH            first,
+                                  TPM2_RH            last)
 {
     TSS2_RC rc = TSS2_RC_SUCCESS;
     TPMI_YES_NO more_data;
     TPMS_CAPABILITY_DATA capability_data = { 0, };
-    TPM_HANDLE handle;
+    TPM2_HANDLE handle;
     size_t i;
 
     g_debug ("%s: AccessBroker: 0x%" PRIxPTR ", first: 0x%08" PRIx32 ", last: "
              "0x%08" PRIx32, __func__, (uintptr_t)broker, first, last);
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
-                                 TPM_CAP_HANDLES,
+                                 TPM2_CAP_HANDLES,
                                  first,
                                  last - first,
                                  &more_data,
                                  &capability_data,
                                  NULL);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("Failed to get capability TPM_CAP_HANDLES");
+        g_warning ("Failed to get capability TPM2_CAP_HANDLES");
         return;
     }
     g_debug ("%s: got %u handles", __func__, capability_data.data.handles.count);
@@ -703,15 +707,15 @@ access_broker_flush_all_context (AccessBroker *broker)
     sapi_context = access_broker_lock_sapi (broker);
     access_broker_flush_all_unlocked (broker,
                                       sapi_context,
-                                      ACTIVE_SESSION_FIRST,
-                                      ACTIVE_SESSION_LAST);
+                                      TPM2_ACTIVE_SESSION_FIRST,
+                                      TPM2_ACTIVE_SESSION_LAST);
     access_broker_flush_all_unlocked (broker,
                                       sapi_context,
-                                      LOADED_SESSION_FIRST,
-                                      LOADED_SESSION_LAST);
+                                      TPM2_LOADED_SESSION_FIRST,
+                                      TPM2_LOADED_SESSION_LAST);
     access_broker_flush_all_unlocked (broker,
                                       sapi_context,
-                                      TRANSIENT_FIRST,
-                                      TRANSIENT_LAST);
+                                      TPM2_TRANSIENT_FIRST,
+                                      TPM2_TRANSIENT_LAST);
     access_broker_unlock (broker);
 }

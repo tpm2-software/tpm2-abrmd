@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
 #define TPM2_RESPONSE_H
 
 #include <glib-object.h>
-#include <sapi/tpm20.h>
+#include <tss2/tss2_tpm2_types.h>
 
 #include "connection.h"
 
@@ -46,7 +46,7 @@ typedef struct _Tpm2Response {
     TPMA_CC         attributes;
 } Tpm2Response;
 
-#define TPM_RESPONSE_HEADER_SIZE (sizeof (TPM_ST) + sizeof (UINT32) + sizeof (TPM_RC))
+#define TPM_RESPONSE_HEADER_SIZE (sizeof (TPM2_ST) + sizeof (UINT32) + sizeof (TPM2_RC))
 
 #define TYPE_TPM2_RESPONSE            (tpm2_response_get_type      ())
 #define TPM2_RESPONSE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_TPM2_RESPONSE, Tpm2Response))
@@ -61,18 +61,18 @@ Tpm2Response*       tpm2_response_new           (Connection      *connection,
                                                  size_t           buffer_size,
                                                  TPMA_CC          attributes);
 Tpm2Response*       tpm2_response_new_rc        (Connection      *connection,
-                                                 TPM_RC           rc);
+                                                 TSS2_RC           rc);
 TPMA_CC             tpm2_response_get_attributes (Tpm2Response   *response);
 guint8*             tpm2_response_get_buffer    (Tpm2Response    *response);
-TPM_RC              tpm2_response_get_code      (Tpm2Response    *response);
-TPM_HANDLE          tpm2_response_get_handle    (Tpm2Response    *response);
-TPM_HT              tpm2_response_get_handle_type (Tpm2Response  *response);
+TSS2_RC              tpm2_response_get_code      (Tpm2Response    *response);
+TPM2_HANDLE          tpm2_response_get_handle    (Tpm2Response    *response);
+TPM2_HT              tpm2_response_get_handle_type (Tpm2Response  *response);
 gboolean            tpm2_response_has_handle    (Tpm2Response    *response);
 guint32             tpm2_response_get_size      (Tpm2Response    *response);
-TPM_ST              tpm2_response_get_tag       (Tpm2Response    *response);
+TPM2_ST              tpm2_response_get_tag       (Tpm2Response    *response);
 Connection*         tpm2_response_get_connection (Tpm2Response    *response);
 void                tpm2_response_set_handle    (Tpm2Response    *response,
-                                                 TPM_HANDLE       handle);
+                                                 TPM2_HANDLE       handle);
 
 G_END_DECLS
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,8 +26,9 @@
  */
 #include <glib.h>
 #include <inttypes.h>
+#include <stdlib.h>
 
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "tpm2-struct-init.h"
 #include "common.h"
 
@@ -43,7 +44,7 @@
 int
 test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
-    TPM_HANDLE         parent_handle, out_handle;
+    TPM2_HANDLE         parent_handle, out_handle;
     TPM2B_PRIVATE      out_private = TPM2B_PRIVATE_STATIC_INIT;
     TPM2B_PUBLIC       out_public  = { 0 };
     TSS2_RC            rc = TSS2_RC_SUCCESS;
@@ -74,7 +75,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                        &out_public);
         if (rc != TSS2_RC_SUCCESS)
             g_error ("Failed to create_key: 0x%" PRIx32, rc);
-        out_public.t.size = 0;
+        out_public.size = 0;
     }
 
     return rc;

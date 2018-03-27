@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/tpm2-software/tpm2-abrmd.svg?branch=1.x)](https://travis-ci.org/tpm2-software/tpm2-abrmd)
+[![Build Status](https://travis-ci.org/tpm2-software/tpm2-abrmd.svg?branch=master)](https://travis-ci.org/tpm2-software/tpm2-abrmd)
 [![Coverity Scan](https://img.shields.io/coverity/scan/3997.svg)](https://scan.coverity.com/projects/01org-tpm2-abrmd)
-[![Coverage Status](https://img.shields.io/coveralls/github/intel/tpm2-abrmd/1.x.svg)](https://coveralls.io/github/intel/tpm2-abrmd)
+[![Coverage Status](https://img.shields.io/coveralls/github/tpm2-software/tpm2-abrmd/master.svg)](https://coveralls.io/github/tpm2-software/tpm2-abrmd?branch=master)
 
 # TPM2 Access Broker & Resource Manager
 This is a system daemon implementing the TPM2 access broker (TAB) & Resource
@@ -28,11 +28,11 @@ Check out the man page TPM2-ABRMD(8) for the currently supported options.
 
 ## libtcti-tabrmd
 This repository also hosts a client library for interacting with this daemon.
-It is intended for use with the SAPI library (libsapi) like any other TCTI.
-The initialization function for this library is hard coded to connect to the
-tabrmd on the system bus as this is the most common configuration.
+It is intended for use with the SAPI library (libtss2-sapi) like any other
+TCTI. The initialization function for this library is hard coded to connect to
+the tabrmd on the system bus as this is the most common configuration.
 
-Check out the man page TCTI-TABRMD(7) and TSS2_TCTI_TABRMD_INIT(3).
+Check out the man page TSS2-TCTI-TABRMD(7) and TSS2_TCTI_TABRMD_INIT(3).
 
 ## tpm2-abrmd vs in-kernel RM
 The current implementations are mostly equivalent with a few differences.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,9 @@
 #include <inttypes.h>
 #include <glib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#include <sapi/tpm20.h>
+#include <tss2/tss2_tpm2_types.h>
 
 #include "common.h"
 #include "test-options.h"
@@ -58,15 +59,7 @@ main (int argc,
 		TSS2_SYS_CONTEXT *sapi_context;
 		TPMI_SH_AUTH_SESSION  session_handle = 0, session_handle_load = 0;
 		TPMS_CONTEXT          context = { 0, };
-		test_opts_t opts = {
-			.tcti_type      = TCTI_DEFAULT,
-			.device_file    = DEVICE_PATH_DEFAULT,
-			.socket_address = HOSTNAME_DEFAULT,
-			.socket_port    = PORT_DEFAULT,
-			.tabrmd_bus_type = TCTI_TABRMD_DBUS_TYPE_DEFAULT,
-			.tabrmd_bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT,
-			.tcti_retries    = TCTI_RETRIES_DEFAULT,
-		};
+		test_opts_t opts = TEST_OPTS_DEFAULT_INIT;
 
 		get_test_opts_from_env (&opts);
 		if (sanity_check_test_opts (&opts) != 0)

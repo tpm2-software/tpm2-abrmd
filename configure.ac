@@ -8,6 +8,8 @@ AC_PROG_CC
 AC_PROG_LN_S
 LT_INIT()
 AM_INIT_AUTOMAKE([foreign subdir-objects])
+# enable "silent-rules" option by default
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_FILES([Makefile])
 
 # propagate configure arguments to distcheck
@@ -26,11 +28,16 @@ AS_IF([test "x$enable_unit" != xno],
                                     [1],
                                     [cmocka is available])])])
 AM_CONDITIONAL([UNIT], [test "x$enable_unit" != xno])
+
+# -dl or -dld
+AC_SEARCH_LIBS([dlopen], [dl dld], [], [
+  AC_MSG_ERROR([unable to find the dlopen() function])
+])
 PKG_CHECK_MODULES([DBUS], [dbus-1])
 PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GOBJECT], [gobject-2.0])
-PKG_CHECK_MODULES([SAPI],[sapi < 2.0.0])
+PKG_CHECK_MODULES([TSS2_SYS],[tss2-sys >= 2.0.0])
 AC_ARG_VAR([GDBUS_CODEGEN],[The gdbus-codegen executable.])
 AC_PATH_PROG([GDBUS_CODEGEN], [`$PKG_CONFIG --variable=gdbus_codegen gio-2.0`])
 if test -z "$GDBUS_CODEGEN"; then
@@ -43,6 +50,15 @@ AX_VALGRIND_DFLT([sgcheck], [off])
 AX_VALGRIND_DFLT([helgrind], [off])
 AX_VALGRIND_DFLT([drd], [off])
 AX_VALGRIND_CHECK
+
+# allow
+AC_ARG_ENABLE([dlclose],
+  [AS_HELP_STRING([--disable-dlclose],
+    [Some versions of libc cause a sigsegv on exit, this disables the dlclose and works around that bug])],
+  []
+  [AC_DEFINE([DISABLE_DLCLOSE], [1])]
+)
+
 # function from the gnu.org docs
 AC_DEFUN([MY_ARG_WITH],
          [AC_ARG_WITH(m4_translit([[$1]], [_], [-]),
@@ -51,28 +67,6 @@ AC_DEFUN([MY_ARG_WITH],
                       [use_[]$1=$withval],
                       [use_[]$1=$2])
          ])
-#
-# TCTIs
-#
-MY_ARG_WITH([tcti_device], [yes])
-AS_IF([test "x$use_tcti_device" != xno],
-      [PKG_CHECK_MODULES([TCTI_DEVICE],
-                         [tcti-device],
-                         [AC_DEFINE([HAVE_TCTI_DEVICE],
-                                    [1],
-                                    [device TCTI is available])])])
-AM_CONDITIONAL([TCTI_DEVICE], [test "x$use_tcti_device" != xno])
-MY_ARG_WITH([tcti_socket], [yes])
-AS_IF([test "x$use_tcti_socket" != xno],
-      [PKG_CHECK_MODULES([TCTI_SOCKET],
-                         [tcti-socket],
-                         [AC_DEFINE([HAVE_TCTI_SOCKET],
-                                    [1],
-                                    [socket TCTI is available])])])
-AM_CONDITIONAL([TCTI_SOCKET], [test "x$use_tcti_socket" != xno])
-AS_IF([test "x$use_tcti_device" == xno -a \
-            "x$use_tcti_socket" == xno],
-      [AC_MSG_ERROR([At least one TCTI must be enabled.])])
 
 #
 # systemd

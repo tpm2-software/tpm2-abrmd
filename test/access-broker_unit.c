@@ -53,7 +53,7 @@ typedef struct test_data {
  */
 TSS2_RC
 __wrap_Tss2_Sys_Startup (TSS2_SYS_CONTEXT *sapi_context,
-                         TPM_SU            startup_type)
+                         TPM2_SU           startup_type)
 {
     TSS2_RC rc;
 
@@ -68,21 +68,21 @@ __wrap_Tss2_Sys_Startup (TSS2_SYS_CONTEXT *sapi_context,
  */
 TSS2_RC
 __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
-                               TSS2_SYS_CMD_AUTHS const *cmdAuthsArray,
-                               TPM_CAP                   capability,
+                               TSS2L_SYS_AUTH_COMMAND const *cmdAuthsArray,
+                               TPM2_CAP                  capability,
                                UINT32                    property,
                                UINT32                    propertyCount,
                                TPMI_YES_NO              *moreData,
                                TPMS_CAPABILITY_DATA     *capabilityData,
-                               TSS2_SYS_RSP_AUTHS       *rspAuthsArray)
+                               TSS2L_SYS_AUTH_RESPONSE  *rspAuthsArray)
 
 {
     TSS2_RC rc;
 
-    capabilityData->capability = TPM_CAP_TPM_PROPERTIES;
-    capabilityData->data.tpmProperties.tpmProperty[0].property = TPM_PT_MAX_COMMAND_SIZE;
+    capabilityData->capability = TPM2_CAP_TPM_PROPERTIES;
+    capabilityData->data.tpmProperties.tpmProperty[0].property = TPM2_PT_MAX_COMMAND_SIZE;
     capabilityData->data.tpmProperties.tpmProperty[0].value    = mock_type (guint32);
-    capabilityData->data.tpmProperties.tpmProperty[1].property = TPM_PT_MAX_RESPONSE_SIZE;
+    capabilityData->data.tpmProperties.tpmProperty[1].property = TPM2_PT_MAX_RESPONSE_SIZE;
     capabilityData->data.tpmProperties.tpmProperty[1].value    = mock_type (guint32);
     capabilityData->data.tpmProperties.count = 2;
 
@@ -93,7 +93,7 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
 TSS2_RC
 __wrap_tcti_echo_transmit (TSS2_TCTI_CONTEXT *tcti_context,
                            size_t             size,
-                           uint8_t           *command)
+                           const uint8_t      *command)
 {
     TSS2_RC rc;
 
@@ -180,7 +180,7 @@ access_broker_setup_with_command (void **state)
     data = (test_data_t*)*state;
     buffer_size = TPM_HEADER_SIZE;
     buffer = calloc (1, buffer_size);
-    handle_map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
     data->connection = connection_new (iostream, 0, handle_map);
     g_object_unref (handle_map);

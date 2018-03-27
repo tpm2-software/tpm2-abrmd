@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,102 +24,36 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <dlfcn.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include <tcti/tcti_device.h>
-#include <tcti/tcti_socket.h>
-
-#include "tcti-tabrmd.h"
-
 #include "context-util.h"
+#include "tcti-util.h"
+#include "common.h"
 
-/*
- * Initialize a TSS2_TCTI_CONTEXT for the device TCTI.
- */
-#ifdef HAVE_TCTI_DEVICE
 TSS2_TCTI_CONTEXT*
-tcti_device_init (char const *device_path)
+tcti_dynamic_init (const char *filename,
+                   const char *conf)
 {
-    TCTI_DEVICE_CONF conf = {
-        .device_path =device_path,
-        .logCallback = NULL,
-        .logData     = NULL,
-    };
-    size_t size;
+    TSS2_TCTI_CONTEXT *context;
+    const TSS2_TCTI_INFO *info;
     TSS2_RC rc;
-    TSS2_TCTI_CONTEXT *tcti_ctx;
+    void *tcti_dl_handle;
 
-    rc = InitDeviceTcti (NULL, &size, 0);
+    rc = tcti_util_discover_info (filename, &info, &tcti_dl_handle);
     if (rc != TSS2_RC_SUCCESS) {
-        fprintf (stderr,
-                 "Failed to get allocation size for device tcti context: "
-                 "0x%x\n", rc);
         return NULL;
     }
-    tcti_ctx = (TSS2_TCTI_CONTEXT*)calloc (1, size);
-    if (tcti_ctx == NULL) {
-        fprintf (stderr,
-                 "Allocation for device TCTI context failed: %s\n",
-                 strerror (errno));
-        return NULL;
-    }
-    rc = InitDeviceTcti (tcti_ctx, &size, &conf);
+    rc = tcti_util_dynamic_init (info, conf, &context);
     if (rc != TSS2_RC_SUCCESS) {
-        fprintf (stderr,
-                 "Failed to initialize device TCTI context: 0x%x\n",
-                 rc);
-        free (tcti_ctx);
-        return NULL;
+        context = NULL;
     }
-    return tcti_ctx;
+    return context;
 }
-#endif /* HAVE_TCTI_DEVICE */
-/*
- * Initialize a socket TCTI instance using the provided options structure.
- * The hostname and port are the only configuration options used. Callbacks
- * for logging are set to NULL.
- * The caller is returned a TCTI context structure that is allocated by this
- * function. This structure must be freed by the caller.
- */
-#ifdef HAVE_TCTI_SOCKET
-TSS2_TCTI_CONTEXT*
-tcti_socket_init (char const *address,
-                  uint16_t    port)
-{
-    TCTI_SOCKET_CONF conf = {
-        .hostname          = address,
-        .port              = port,
-        .logCallback       = NULL,
-        .logBufferCallback = NULL,
-        .logData           = NULL,
-    };
-    size_t size;
-    TSS2_RC rc;
-    TSS2_TCTI_CONTEXT *tcti_ctx;
-
-    rc = InitSocketTcti (NULL, &size, &conf, 0);
-    if (rc != TSS2_RC_SUCCESS) {
-        fprintf (stderr, "Faled to get allocation size for tcti context: "
-                 "0x%x\n", rc);
-        return NULL;
-    }
-    tcti_ctx = (TSS2_TCTI_CONTEXT*)calloc (1, size);
-    if (tcti_ctx == NULL) {
-        fprintf (stderr, "Allocation for tcti context failed: %s\n",
-                 strerror (errno));
-        return NULL;
-    }
-    rc = InitSocketTcti (tcti_ctx, &size, &conf, 0);
-    if (rc != TSS2_RC_SUCCESS) {
-        fprintf (stderr, "Failed to initialize tcti context: 0x%x\n", rc);
-        return NULL;
-    }
-    return tcti_ctx;
-}
-#endif /* HAVE_TCTI_SOCKET */
 /*
  * Initialize a TCTI context for the tabrmd. Currently it requires no options.
  */
@@ -163,12 +97,7 @@ sapi_init_from_tcti_ctx (TSS2_TCTI_CONTEXT *tcti_ctx)
     TSS2_SYS_CONTEXT *sapi_ctx;
     TSS2_RC rc;
     size_t size;
-    TSS2_ABI_VERSION abi_version = {
-        .tssCreator = TSSWG_INTEROP,
-        .tssFamily  = TSS_SAPI_FIRST_FAMILY,
-        .tssLevel   = TSS_SAPI_FIRST_LEVEL,
-        .tssVersion = TSS_SAPI_FIRST_VERSION,
-    };
+    TSS2_ABI_VERSION abi_version = SUPPORTED_ABI_VERSION;
 
     size = Tss2_Sys_GetContextSize (0);
     sapi_ctx = (TSS2_SYS_CONTEXT*)calloc (1, size);
@@ -219,21 +148,11 @@ sapi_init_from_opts (test_opts_t *options)
 TSS2_TCTI_CONTEXT*
 tcti_init_from_opts (test_opts_t *options)
 {
-    switch (options->tcti_type) {
-#ifdef HAVE_TCTI_DEVICE
-    case DEVICE_TCTI:
-        return tcti_device_init (options->device_file);
-#endif
-#ifdef HAVE_TCTI_SOCKET
-    case SOCKET_TCTI:
-        return tcti_socket_init (options->socket_address,
-                                 options->socket_port);
-#endif
-    case TABRMD_TCTI:
+    if (options->tcti_filename != NULL) {
+        return tcti_dynamic_init (options->tcti_filename, options->tcti_conf);
+    } else {
         return tcti_tabrmd_init (options->tabrmd_bus_type,
                                  options->tabrmd_bus_name);
-    default:
-        return NULL;
     }
 }
 /*
@@ -252,7 +171,7 @@ sapi_teardown_full (TSS2_SYS_CONTEXT *sapi_context)
     Tss2_Sys_Finalize (sapi_context);
     free (sapi_context);
     if (tcti_context) {
-        tss2_tcti_finalize (tcti_context);
+        Tss2_Tcti_Finalize (tcti_context);
         free (tcti_context);
     }
 }

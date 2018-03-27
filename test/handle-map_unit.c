@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdio.h>
-
+#include <stdlib.h>
 #include <setjmp.h>
 #include <cmocka.h>
 
@@ -48,7 +48,7 @@ handle_map_setup_base (void **state)
     test_data_t *data = NULL;
 
     data = calloc (1, sizeof (test_data_t));
-    data->map = handle_map_new (TPM_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    data->map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->entry = handle_map_entry_new (PHANDLE, VHANDLE);
 
     *state = data;
@@ -149,7 +149,7 @@ static void
 handle_map_next_vhandle_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM_HANDLE handle1, handle2;
+    TPM2_HANDLE handle1, handle2;
 
     handle1 = handle_map_next_vhandle (data->map);
     handle2 = handle_map_next_vhandle (data->map);

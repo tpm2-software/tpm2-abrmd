@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <tss2/tss2_tpm2_types.h>
 
-#include <sapi/tpm20.h>
 #include "tabrmd.h"
 #include "access-broker.h"
 #include "connection.h"
@@ -49,7 +49,13 @@
 #include "resource-manager.h"
 #include "response-sink.h"
 #include "source-interface.h"
+#include "tcti-dynamic.h"
 #include "util.h"
+
+/* work around older glib versions missing this symbol */
+#ifndef G_OPTION_FLAG_NONE
+#define G_OPTION_FLAG_NONE 0
+#endif
 
 /* Structure to hold data that we pass to the gmain loop as 'user_data'.
  * This data will be available to events from gmain including events from
@@ -60,7 +66,7 @@ typedef struct gmain_data {
     GMainLoop              *loop;
     AccessBroker           *access_broker;
     ResourceManager        *resource_manager;
-    CommandSource         *command_source;
+    CommandSource          *command_source;
     Random                 *random;
     ResponseSink           *response_sink;
     GMutex                  init_mutex;
@@ -88,7 +94,7 @@ static gboolean
 signal_handler (gpointer user_data)
 {
     g_info ("handling signal");
-    /* this is the only place the global poiner to the GMainLoop is accessed */
+    /* this is the only place the global pointer to the GMainLoop is accessed */
     main_loop_quit ((GMainLoop*)user_data);
 
     return G_SOURCE_CONTINUE;
@@ -105,7 +111,7 @@ on_ipc_frontend_disconnect (IpcFrontend *ipc_frontend,
  * This function initializes and configures all of the long-lived objects
  * in the tabrmd system. It is invoked on a thread separate from the main
  * thread as a way to get the main thread listening for connections on
- * DBus as quickly as possible. Any incomming DBus requests will block
+ * DBus as quickly as possible. Any incoming DBus requests will block
  * on the 'init_mutex' until this thread completes but they won't be
  * timing etc. This function does X things:
  * - Locks the init_mutex.
@@ -124,7 +130,6 @@ init_thread_func (gpointer user_data)
 {
     gmain_data_t *data = (gmain_data_t*)user_data;
     gint ret;
-    uint32_t loaded_trans_objs;
     TSS2_RC rc;
     CommandAttrs *command_attrs;
     ConnectionManager *connection_manager = NULL;
@@ -180,21 +185,6 @@ init_thread_func (gpointer user_data)
     rc = access_broker_init_tpm (data->access_broker);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize AccessBroker: 0x%" PRIx32, rc);
-    /*
-     * Ensure the TPM is in a state in which we can use it w/o stepping all
-     * over someone else.
-     */
-    rc = access_broker_get_trans_object_count (data->access_broker,
-                                               &loaded_trans_objs);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to get number of loaded transient objects from "
-                 "access broker 0x%" PRIxPTR " RC: 0x%" PRIx32,
-                 (uintptr_t)data->access_broker,
-                 rc);
-    if ((loaded_trans_objs > 0) && data->options.fail_on_loaded_trans) {
-        tabrmd_critical ("TPM reports 0x%" PRIx32 " loaded transient objects, "
-                         "aborting", loaded_trans_objs);
-    }
     if (data->options.flush_all) {
         access_broker_flush_all_context (data->access_broker);
     }
@@ -275,6 +265,64 @@ show_version (const gchar  *option_name,
     g_print ("tpm2-abrmd version %s\n", VERSION);
     exit (0);
 }
+/*
+ * Break the 'combined_conf' string up into the name of the TCTI and the
+ * config string passed to the TCTI. The combined_conf string is formatted:
+ * "name:conf" where:
+ * - 'name' is the name of the TCTI library in the form 'libtcti-name.so'.
+ *   Additionally the prefix 'libtcti-' and suffix '.so' may be omitted.
+ * - 'conf' is the configuration string passed to the TCTI. This is TCTI
+ *   specific.
+ * Bot the 'name' and 'conf' fields in this string are optional HOWEVER if
+ * no semicolon is present in the combined_conf string it will be assumed
+ * that the whole string is the 'name'. To provide a 'conf' string to the
+ * default TCTI the first character of the combined_conf string must be a
+ * semicolon.
+ * If a field in the combined_conf string indicates a default value then
+ * the provided tcti_filename or tcti_conf will not be set. This is to allow
+ * defaults to be set by the caller and only updated here if we're changing
+ * them.
+ * This function returns TRUE if 'combined_conf' is successfully parsed, FALSE
+ * otherwise.
+ */
+gboolean
+tcti_conf_parse (gchar *combined_conf,
+                 gchar **tcti_filename,
+                 gchar **tcti_conf)
+{
+    gchar *split;
+
+    g_debug ("%s", __func__);
+    if (tcti_filename == NULL || tcti_conf == NULL) {
+        g_info ("%s: tcti_filename and tcti_conf out params may not be NULL",
+                __func__);
+        return FALSE;
+    }
+    if (combined_conf == NULL) {
+        g_debug ("%s: combined conf is null", __func__);
+        return TRUE;
+    }
+    if (strlen (combined_conf) == 0) {
+        g_debug ("%s: combined conf is the empty string", __func__);
+        return TRUE;
+    }
+
+    split = strchr (combined_conf, ':');
+    /* no semicolon, combined_conf is tcti name */
+    if (split == NULL) {
+        *tcti_filename = combined_conf;
+        return TRUE;
+    }
+    split [0] = '\0';
+    if (combined_conf[0] != '\0') {
+        *tcti_filename = combined_conf;
+    }
+    if (split [1] != '\0') {
+        *tcti_conf = &split [1];
+    }
+
+    return TRUE;
+}
 /**
  * This function parses the parameter argument vector and populates the
  * parameter 'options' structure with data needed to configure the tabrmd.
@@ -290,16 +338,10 @@ parse_opts (gint            argc,
             gchar          *argv[],
             tabrmd_options_t *options)
 {
-    gchar *logger_name = "stdout";
+    gchar *logger_name = "stdout", *tcti_optconf = NULL;
     GOptionContext *ctx;
     GError *err = NULL;
     gboolean session_bus = FALSE;
-
-    options->max_connections = MAX_CONNECTIONS_DEFAULT;
-    options->max_sessions = MAX_SESSIONS_DEFAULT;
-    options->max_transient_objects = MAX_TRANSIENT_OBJECTS_DEFAULT;
-    options->dbus_name = TABRMD_DBUS_NAME_DEFAULT;
-    options->prng_seed_file = RANDOM_ENTROPY_FILE_DEFAULT;
 
     GOptionEntry entries[] = {
         { "dbus-name", 'n', 0, G_OPTION_ARG_STRING, &options->dbus_name,
@@ -309,13 +351,10 @@ parse_opts (gint            argc,
           "The name of desired logger, stdout is default.", "[stdout|syslog]"},
         { "session", 's', 0, G_OPTION_ARG_NONE, &session_bus,
           "Connect to the session bus (system bus is default)." },
-        { "fail-on-loaded-trans", 'i', 0, G_OPTION_ARG_NONE,
-          &options->fail_on_loaded_trans,
-          "Fail initialization if the TPM reports loaded transient objects" },
         { "flush-all", 'f', G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE,
           &options->flush_all,
           "Flush all objects and sessions from TPM on startup." },
-        { "max-connections", 'c', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
+        { "max-connections", 'm', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_connections, "Maximum number of client connections." },
         { "max-sessions", 'e', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_sessions,
@@ -328,12 +367,23 @@ parse_opts (gint            argc,
           options->prng_seed_file },
         { "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK,
           show_version, "Show version string" },
+        { "allow-root", 'o', 0, G_OPTION_ARG_NONE,
+          &options->allow_root,
+          "Allow the daemon to run as root, which is not recommended" },
+        {
+            .long_name       = "tcti",
+            .short_name      = 't',
+            .flags           = G_OPTION_FLAG_NONE,
+            .arg             = G_OPTION_ARG_STRING,
+            .arg_data        = &tcti_optconf,
+            .description     = "TCTI configuration string. See tpm2-abrmd (8) for search rules.",
+            .arg_description = "tcti-conf",
+        },
         { NULL },
     };
 
     ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabrmd)");
     g_option_context_add_main_entries (ctx, entries, NULL);
-    g_option_context_add_group (ctx, tcti_factory_get_group (options->tcti_factory));
     if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
         tabrmd_critical ("Failed to parse options: %s", err->message);
     }
@@ -343,22 +393,27 @@ parse_opts (gint            argc,
         tabrmd_critical ("Unknown logger: %s, try --help\n", logger_name);
     }
     if (options->max_connections < 1 ||
-        options->max_connections > MAX_CONNECTIONS)
+        options->max_connections > TABRMD_CONNECTION_MAX)
     {
-        tabrmd_critical ("MAX_CONNECTIONS must be between 1 and %d",
-                         MAX_CONNECTIONS);
+        tabrmd_critical ("maximum number of connections must be between 1 "
+                         "and %d", TABRMD_CONNECTION_MAX);
     }
     if (options->max_sessions < 1 ||
-        options->max_sessions > MAX_SESSIONS)
+        options->max_sessions > TABRMD_SESSIONS_MAX_DEFAULT)
     {
         tabrmd_critical ("max-sessions must be between 1 and %d",
-                         MAX_SESSIONS);
+                         TABRMD_SESSIONS_MAX_DEFAULT);
     }
     if (options->max_transient_objects < 1 ||
-        options->max_transient_objects > MAX_TRANSIENT_OBJECTS)
+        options->max_transient_objects > TABRMD_TRANSIENT_MAX)
     {
         tabrmd_critical ("max-trans-obj parameter must be between 1 and %d",
-                         MAX_TRANSIENT_OBJECTS);
+                         TABRMD_TRANSIENT_MAX);
+    }
+    if (!tcti_conf_parse (tcti_optconf,
+                          &options->tcti_filename,
+                          &options->tcti_conf)) {
+        tabrmd_critical ("bad tcti conf string");
     }
     g_option_context_free (ctx);
 }
@@ -387,15 +442,18 @@ thread_cleanup (Thread *thread)
 int
 main (int argc, char *argv[])
 {
-    gmain_data_t gmain_data = { 0 };
+    gmain_data_t gmain_data = { .options = TABRMD_OPTIONS_INIT_DEFAULT };
     GThread *init_thread;
 
     g_info ("tabrmd startup");
-    /* instantiate a TctiOptions object for the parse_opts function to use */
-    gmain_data.options.tcti_factory = tcti_factory_new ();
     parse_opts (argc, argv, &gmain_data.options);
-    gmain_data.tcti = tcti_factory_get_tcti (gmain_data.options.tcti_factory);
+    if (geteuid() == 0 && ! gmain_data.options.allow_root) {
+        g_print ("Refusing to run as root. Pass --allow-root if you know what you are doing.\n");
+        return 1;
+    }
 
+    gmain_data.tcti = TCTI (tcti_dynamic_new (gmain_data.options.tcti_filename,
+                                              gmain_data.options.tcti_conf));
     g_mutex_init (&gmain_data.init_mutex);
     gmain_data.loop = g_main_loop_new (NULL, FALSE);
     /*
@@ -418,7 +476,6 @@ main (int argc, char *argv[])
     thread_cleanup (THREAD (gmain_data.resource_manager));
     thread_cleanup (THREAD (gmain_data.response_sink));
     /* clean up what remains */
-    g_object_unref (gmain_data.options.tcti_factory);
     g_object_unref (gmain_data.random);
     g_object_unref (gmain_data.tcti);
     return 0;

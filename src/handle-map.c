@@ -75,7 +75,7 @@ handle_map_set_property (GObject        *object,
 
     switch (property_id) {
     case PROP_HANDLE_TYPE:
-        map->handle_type = (TPM_HT)g_value_get_uint (value);
+        map->handle_type = (TPM2_HT)g_value_get_uint (value);
         break;
     case PROP_MAX_ENTRIES:
         map->max_entries = g_value_get_uint (value);
@@ -173,7 +173,7 @@ handle_map_class_init (HandleMapClass *klass)
  * and create the instance.
  */
 HandleMap*
-handle_map_new (TPM_HT handle_type,
+handle_map_new (TPM2_HT handle_type,
                 guint  max_entries)
 {
     g_debug ("handle_map_new with handle_type 0x%" PRIx32
@@ -226,7 +226,7 @@ handle_map_is_full (HandleMap *map)
  */
 gboolean
 handle_map_insert (HandleMap      *map,
-                   TPM_HANDLE      vhandle,
+                   TPM2_HANDLE      vhandle,
                    HandleMapEntry *entry)
 {
     g_debug ("handle_map_insert: vhandle: 0x%" PRIx32 ", entry: 0x%" PRIxPTR,
@@ -253,7 +253,7 @@ handle_map_insert (HandleMap      *map,
  */
 gboolean
 handle_map_remove (HandleMap *map,
-                   TPM_HANDLE vhandle)
+                   TPM2_HANDLE vhandle)
 {
     gboolean ret;
 
@@ -270,7 +270,7 @@ handle_map_remove (HandleMap *map,
  */
 static HandleMapEntry*
 handle_map_lookup (HandleMap     *map,
-                   TPM_HANDLE     handle,
+                   TPM2_HANDLE     handle,
                    GHashTable    *table)
 {
     HandleMapEntry *entry;
@@ -292,7 +292,7 @@ handle_map_lookup (HandleMap     *map,
  */
 HandleMapEntry*
 handle_map_vlookup (HandleMap    *map,
-                    TPM_HANDLE    vhandle)
+                    TPM2_HANDLE    vhandle)
 {
     return handle_map_lookup (map, vhandle, map->vhandle_to_entry_table);
 }
@@ -319,15 +319,15 @@ handle_map_size (HandleMap *map)
  * NOTE: recycling handles is something we should be able to do for long
  * lived programs / daemons that may want to use the TPM.
  */
-TPM_HANDLE
+TPM2_HANDLE
 handle_map_next_vhandle (HandleMap *map)
 {
-    TPM_HANDLE handle;
+    TPM2_HANDLE handle;
 
     /* (2 ^ 24) - 1 handles max, return 0 if we roll over*/
-    if (map->handle_count & HR_RANGE_MASK)
+    if (map->handle_count & TPM2_HR_RANGE_MASK)
         return 0;
-    handle = map->handle_count + (TPM_HANDLE)(map->handle_type << HR_SHIFT);
+    handle = map->handle_count + (TPM2_HANDLE)(map->handle_type << TPM2_HR_SHIFT);
     ++map->handle_count;
     return handle;
 }

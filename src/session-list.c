@@ -255,8 +255,8 @@ session_entry_compare_on_handle (gconstpointer a,
         g_error ("session_entry_compare_on_handle received NULL parameter");
     }
     SessionEntry *entry_a = SESSION_ENTRY (a);
-    TPM_HANDLE handle_a = session_entry_get_handle (entry_a);
-    TPM_HANDLE handle_b = *(TPM_HANDLE*)b;
+    TPM2_HANDLE handle_a = session_entry_get_handle (entry_a);
+    TPM2_HANDLE handle_b = *(TPM2_HANDLE*)b;
 
     if (handle_a < handle_b) {
         return -1;
@@ -324,7 +324,7 @@ session_list_remove_custom (SessionList  *list,
  */
 gboolean
 session_list_remove_handle (SessionList      *list,
-                            TPM_HANDLE        handle)
+                            TPM2_HANDLE        handle)
 {
     return session_list_remove_custom (list,
                                        &handle,
@@ -413,7 +413,7 @@ session_list_lookup_connection (SessionList   *list,
  */
 SessionEntry*
 session_list_lookup_handle (SessionList   *list,
-                            TPM_HANDLE     handle)
+                            TPM2_HANDLE     handle)
 {
     GList *list_entry;
 

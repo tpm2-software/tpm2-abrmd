@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,38 +24,33 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef TABD_TCTI_TYPE_ENUM_H
-#define TABD_TCTI_TYPE_ENUM_H
+#ifndef TSS2_TCTI_TABD_H
+#define TSS2_TCTI_TABD_H
 
-#include <glib-object.h>
-
-G_BEGIN_DECLS
-
-/*
- * Set the default TCTI. In order of preference: libtcti-device (if enabled),
- * otherwise fall back to libtcti-socket. If neither are available throw an
- * error. This should be a configure time error though.
- */
-#ifdef HAVE_TCTI_DEVICE
-#define TCTI_TYPE_DEFAULT TCTI_TYPE_DEVICE
-#elif HAVE_TCTI_SOCKET
-#define TCTI_TYPE_DEFAULT TCTI_TYPE_SOCKET
-#else
-#error at least one TCTI must be enabled
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-typedef enum TCTI_TYPE {
-    TCTI_TYPE_NONE,
-#ifdef HAVE_TCTI_DEVICE
-    TCTI_TYPE_DEVICE,
-#endif
-#ifdef HAVE_TCTI_SOCKET
-    TCTI_TYPE_SOCKET,
-#endif
-} TctiTypeEnum;
+#include <tss2/tss2_tcti.h>
 
-#define TYPE_TCTI_TYPE_ENUM      (tcti_type_enum_get_type ())
-GType   tcti_type_enum_get_type  (void);
+#define TCTI_TABRMD_DBUS_INTERFACE_DEFAULT "com.intel.tss2.TctiTabrmd"
+#define TCTI_TABRMD_DBUS_NAME_DEFAULT      "com.intel.tss2.Tabrmd"
+#define TCTI_TABRMD_DBUS_TYPE_DEFAULT      TCTI_TABRMD_DBUS_TYPE_SYSTEM
 
-G_END_DECLS
-#endif /* TABD_TCTI_TYPE_ENUM_H */
+typedef enum {
+    TCTI_TABRMD_DBUS_TYPE_NONE,
+    TCTI_TABRMD_DBUS_TYPE_SESSION,
+    TCTI_TABRMD_DBUS_TYPE_SYSTEM,
+} TCTI_TABRMD_DBUS_TYPE;
+
+TSS2_RC tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context, size_t *size);
+TSS2_RC tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
+                                    size_t                 *size,
+                                    TCTI_TABRMD_DBUS_TYPE   bus,
+                                    const char             *name);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* TSS2_TCTI_TABD_H */

@@ -107,12 +107,12 @@ tabrmd_start ()
     local tabrmd_pid_file=$5
 
     local tabrmd_env="G_MESSAGES_DEBUG=all"
-    local tabrmd_opts="--session --dbus-name=${tabrmd_name} --fail-on-loaded-trans"
+    local tabrmd_opts="--session --dbus-name=${tabrmd_name}"
 
     if [ $tabrmd_port -ne 0 ]; then
-        tabrmd_opts="$tabrmd_opts --tcti=socket --tcti-socket-port=${tabrmd_port}"
+        tabrmd_opts="$tabrmd_opts --tcti=mssim:tcp://127.0.0.1:${tabrmd_port}/"
     else
-        tabrmd_opts="$tabrmd_opts --tcti=device"
+        tabrmd_opts="$tabrmd_opts --tcti=device --allow-root"
     fi
 
     daemon_start "${tabrmd_bin}" "${tabrmd_opts}" "${tabrmd_log_file}" \

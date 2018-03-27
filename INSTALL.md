@@ -12,6 +12,7 @@ required:
 * pkg-config
 * glib 2.0 library and development files
 * libsapi and TCTI libraries from https://github.com/01org/TPM2.0-TSS
+* D-Bus 1 library and header files
 
 **NOTE**: Different GNU/Linux distros package glib-2.0 differently and so
 additional packages may be required. The tabrmd requires the GObject and
@@ -21,12 +22,14 @@ your distro provides are installed for these features.
 The following dependencies are required only if the test suite is being built
 and executed.
 * cmocka unit test framework
-* Microsoft / IBM Software TPM2 simulator version 532 as packaged by IBM:
-https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm532.tar
+* Microsoft / IBM Software TPM2 simulator version 974 as packaged by IBM
+for Linux:
+https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm974.tar
 * Alternately, run the test suite on a real TPM hardware, with a safety
 attention described below.
 
 # System User & Group
+`tpm2-abrmd` must run as user `tss` or `root`.
 As is common security practice we encourage *everyone* to run the `tpm2-abrmd`
 as an unprivileged user. This requires creating a user account and group to
 use for this purpose. Our current configuration assumes that the name for this
@@ -43,9 +46,12 @@ $ sudo useradd --system --user-group tss
 You may wish to further restrict this user account based on your needs. This
 topic however is beyond the scope of this document.
 
+To run tpm2-abrmd as root, which is not recommended, use the `--allow-root`
+option.
+
 # Obtaining the Source Code
 As is always the case, you should check for packages available through your
-Linux distro before you attepmt to download and build the tpm2-abrmd from
+Linux distro before you attempt to download and build the tpm2-abrmd from
 source code directly. If you need a newer version than provided by your
 Distro of choice then you should download our latest stable release here:
 https://github.com/01org/tpm2-abrmd/releases/latest.
@@ -92,11 +98,14 @@ in turn.
 Invoking the configure script with the `--help` option will display
 all supported options.
 
+The default values for GNU installation directories are documented here:
+https://www.gnu.org/prep/standards/html_node/Directory-Variables.html
+
 ### D-Bus Policy: `--with-dbuspolicydir`
 The `tpm2-abrmd` claims a name on the D-Bus system bus. This requires policy
 to allow the `tss` user account to claim this name. By default the build
 installs this configuration file to `${sysconfdir}/dbus-1/system.d`. We allow
-this to be overriden using the `--with-dbuspolicydir` option.
+this to be overridden using the `--with-dbuspolicydir` option.
 
 Using Debian (and it's various derivatives) as an example we can instruct the
 build to install the dbus policy configuration in the right location with the
@@ -125,7 +134,10 @@ systemd unit in the right location with the following configure option:
 By default the build installs the systemd preset file for the tabrmd to
 `${libdir}/systemd/system-preset`. If you need to install this file to a
 different directory pass the desired path to the `configure` script using this
-option.
+option. For example:
+```
+--with-systemdpresetdir=/lib/systemd/system-preset
+```
 
 #### Systemd Preset Default: `--with-systemdpresetdisable`
 The systemd preset file will enable the tabrmd by default, causing it to be
@@ -156,6 +168,17 @@ It is common for Linux distros to prefix udev rules files with a numeric
 string (e.g. "70-"). This allows for the rules to be applied in a predictable
 order. This option allows for the name of the installed udev rules file to
 have a string prepended to the file name when it is installed.
+
+
+#### `--datarootdir`
+To override the system data directory, used for
+${datadir}/dbus-1/system-services/com.intel.tss2.Tabrmd.service,
+use the `--datarootdir` option.
+Using Debian as an example we can instruct the build to install the
+DBUS service files in the right location with the following configure option:
+```
+--datarootdir=/usr/share
+```
 
 ### Enable Unit Tests: `--enable-unit`
 When provided to the `./configure` script this option will attempt to detect
@@ -207,6 +230,13 @@ and executed. The test harness in the build system will run a `tpm_server` and
 `tpm2-abrmd` for each test executable. This allows the test harness to execute
 integration tests in parallel.
 
+**NOTE**: The `--with-simulatorbin` option does not change the default for
+tpm2-abrmd, which is to use TPM hardware.
+To run tpm2-abrmd with the simulator, use:
+```
+$ sudo -u tss /usr/local/sbin/tpm2-abrmd --tcti=mssim
+```
+
 ### Run Integration Tests with hardware TPM2: `--test-hwtpm`
 Once you have a TPM hardware, configure the `./configure` script through the
 `--test-hwtpm` option:
@@ -241,6 +271,12 @@ See the output of `./configure --help` for the available options. Typically
 you won't need to do much more than provide an alternative `--prefix` option
 at configure time, and maybe `DESTDIR` at install time if you're packaging
 for a distro.
+
+**NOTE**: It may be necessary to run ldconfig (as root) to update the run-time
+bindings before executing a program that links against the tabrmd library:
+```
+$ sudo ldconfig
+```
 
 # Post-install
 After installing the compiled software and configuration all components with

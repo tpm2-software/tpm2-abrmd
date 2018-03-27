@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,9 +28,10 @@
  * These are common functions used by the integration tests.
  */
 #include <glib.h>
+#include <stdlib.h>
 
 #include "common.h"
-#include "tcti-tabrmd.h"
+#include "tss2-tcti-tabrmd.h"
 #include "tpm2-struct-init.h"
 
 /*
@@ -72,12 +73,7 @@ sapi_context_init (TSS2_SYS_CONTEXT  **sapi_context,
     TSS2_SYS_CONTEXT *tmp_sapi_context;
     TSS2_RC rc;
     size_t size;
-    TSS2_ABI_VERSION abi_version = {
-        .tssCreator = TSSWG_INTEROP,
-        .tssFamily  = TSS_SAPI_FIRST_FAMILY,
-        .tssLevel   = TSS_SAPI_FIRST_LEVEL,
-        .tssVersion = TSS_SAPI_FIRST_VERSION,
-    };
+    TSS2_ABI_VERSION abi_version = SUPPORTED_ABI_VERSION;
 
     if (sapi_context == NULL || tcti_context == NULL)
         g_error ("sapi_context_init passed NULL reference");
@@ -100,7 +96,7 @@ sapi_context_init (TSS2_SYS_CONTEXT  **sapi_context,
  */
 TSS2_RC
 create_primary (TSS2_SYS_CONTEXT *sapi_context,
-                TPM_HANDLE       *handle)
+                TPM2_HANDLE       *handle)
 {
     TSS2_RC rc;
     TPM2B_SENSITIVE_CREATE in_sensitive    = { 0 };
@@ -113,40 +109,40 @@ create_primary (TSS2_SYS_CONTEXT *sapi_context,
     TPMT_TK_CREATION       creation_ticket = { 0 };
     TPM2B_NAME             name            = TPM2B_NAME_STATIC_INIT;
     /* command auth stuff */
-    TPMS_AUTH_COMMAND auth_command = { .sessionHandle = TPM_RS_PW, };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
 
     /* prepare in_sensitive */
-    in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.t.size + 2;
+    in_sensitive.size = in_sensitive.sensitive.userAuth.size + 2;
     /* prepare in_public TPMT_PUBLIC */
     /* TPMI_ALG_PUBLIC / publicArea */
-    in_public.t.publicArea.type    = TPM_ALG_RSA;
+    in_public.publicArea.type    = TPM2_ALG_RSA;
     /* TPMI_ALG_HASH / nameAlg */
-    in_public.t.publicArea.nameAlg = TPM_ALG_SHA256;
+    in_public.publicArea.nameAlg = TPM2_ALG_SHA256;
     /* TPMA_OBJECT / objectAttributes */
-    in_public.t.publicArea.objectAttributes.val = \
+    in_public.publicArea.objectAttributes = \
         TPMA_OBJECT_FIXEDTPM            | TPMA_OBJECT_FIXEDPARENT  | \
         TPMA_OBJECT_SENSITIVEDATAORIGIN | TPMA_OBJECT_USERWITHAUTH | \
         TPMA_OBJECT_RESTRICTED          | TPMA_OBJECT_DECRYPT;
     /* TPM2B_DIGEST / authPolicy */
-    in_public.t.publicArea.authPolicy.t.size = 0;
-    /* TPMU_PUBLIC_PARAMS / parameters: key type is TPM_ALG_RSA, set parameters accordingly */
-    in_public.t.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_AES;
-    in_public.t.publicArea.parameters.rsaDetail.symmetric.keyBits.aes = 128;
-    in_public.t.publicArea.parameters.rsaDetail.symmetric.mode.aes = TPM_ALG_CFB;
-    in_public.t.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_NULL;
-    in_public.t.publicArea.parameters.rsaDetail.keyBits = 2048;
-    in_public.t.publicArea.parameters.rsaDetail.exponent = 0;
+    in_public.publicArea.authPolicy.size = 0;
+    /* TPMU_PUBLIC_PARAMS / parameters: key type is TPM2_ALG_RSA, set parameters accordingly */
+    in_public.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM2_ALG_AES;
+    in_public.publicArea.parameters.rsaDetail.symmetric.keyBits.aes = 128;
+    in_public.publicArea.parameters.rsaDetail.symmetric.mode.aes = TPM2_ALG_CFB;
+    in_public.publicArea.parameters.rsaDetail.scheme.scheme = TPM2_ALG_NULL;
+    in_public.publicArea.parameters.rsaDetail.keyBits = 2048;
+    in_public.publicArea.parameters.rsaDetail.exponent = 0;
     /* TPMU_PUBLIC_ID / unique */
-    in_public.t.publicArea.unique.rsa.t.size = 0;
+    in_public.publicArea.unique.rsa.size = 0;
 
     rc = TSS2_RETRY_EXP (Tss2_Sys_CreatePrimary (
         sapi_context,
-        TPM_RH_NULL,      /* in: hierarchy */
+        TPM2_RH_NULL,      /* in: hierarchy */
         &cmd_auths,       /* in: in sessions / auths */
         &in_sensitive,    /* in: sensitive data? */
         &in_public,       /* in: key template */
@@ -172,11 +168,11 @@ create_primary (TSS2_SYS_CONTEXT *sapi_context,
  */
 TSS2_RC
 create_key (TSS2_SYS_CONTEXT *sapi_context,
-            TPM_HANDLE        parent_handle,
+            TPM2_HANDLE        parent_handle,
             TPM2B_PRIVATE    *out_private,
             TPM2B_PUBLIC     *out_public)
 {
-    TPM_RC rc;
+    TSS2_RC rc;
 
     TPM2B_SENSITIVE_CREATE  in_sensitive     = { 0 };
     TPM2B_PUBLIC	    in_public        = { 0 };
@@ -185,30 +181,30 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
     TPM2B_CREATION_DATA	    creation_data    = { 0 };
     TPM2B_DIGEST	    creation_hash    = TPM2B_DIGEST_STATIC_INIT;
     TPMT_TK_CREATION	    creation_ticket  = { 0 };
-    TPMS_AUTH_COMMAND auth_command           = { .sessionHandle = TPM_RS_PW, };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
 
     g_debug ("create_key with parent_handle: 0x%" PRIx32, parent_handle);
-    in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.t.size + 2;
-    in_public.t.publicArea.type = TPM_ALG_RSA;
-    in_public.t.publicArea.nameAlg = TPM_ALG_SHA256;
-    in_public.t.publicArea.objectAttributes.val = \
+    in_sensitive.size = in_sensitive.sensitive.userAuth.size + 2;
+    in_public.publicArea.type = TPM2_ALG_RSA;
+    in_public.publicArea.nameAlg = TPM2_ALG_SHA256;
+    in_public.publicArea.objectAttributes = \
         TPMA_OBJECT_FIXEDTPM            | TPMA_OBJECT_FIXEDPARENT  | \
         TPMA_OBJECT_SENSITIVEDATAORIGIN | TPMA_OBJECT_USERWITHAUTH | \
-        TPMA_OBJECT_DECRYPT             | TPMA_OBJECT_SIGN;
+        TPMA_OBJECT_DECRYPT             | TPMA_OBJECT_SIGN_ENCRYPT;
     /* TPM2B_DIGEST / authPolicy */
-    in_public.t.publicArea.authPolicy.t.size = 0;
-    /* TPMU_PUBLIC_PARAMS / parameters: key type is TPM_ALG_RSA, set parameters accordingly */
-    in_public.t.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM_ALG_NULL;
-    in_public.t.publicArea.parameters.rsaDetail.scheme.scheme = TPM_ALG_NULL;
-    in_public.t.publicArea.parameters.rsaDetail.keyBits = 2048;
-    in_public.t.publicArea.parameters.rsaDetail.exponent = 0;
+    in_public.publicArea.authPolicy.size = 0;
+    /* TPMU_PUBLIC_PARAMS / parameters: key type is TPM2_ALG_RSA, set parameters accordingly */
+    in_public.publicArea.parameters.rsaDetail.symmetric.algorithm = TPM2_ALG_NULL;
+    in_public.publicArea.parameters.rsaDetail.scheme.scheme = TPM2_ALG_NULL;
+    in_public.publicArea.parameters.rsaDetail.keyBits = 2048;
+    in_public.publicArea.parameters.rsaDetail.exponent = 0;
     /* TPMU_PUBLIC_ID / unique */
-    in_public.t.publicArea.unique.rsa.t.size = 0;
+    in_public.publicArea.unique.rsa.size = 0;
 
     g_print ("Tss2_Sys_Create with parent handle: 0x%" PRIx32 "\n",
              parent_handle);
@@ -242,18 +238,18 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
  */
 TSS2_RC
 load_key (TSS2_SYS_CONTEXT *sapi_context,
-          TPM_HANDLE        parent_handle,
-          TPM_HANDLE       *out_handle,
+          TPM2_HANDLE        parent_handle,
+          TPM2_HANDLE       *out_handle,
           TPM2B_PRIVATE    *in_private,
           TPM2B_PUBLIC     *in_public)
 {
     TSS2_RC            rc;
     TPM2B_NAME         name                  = TPM2B_NAME_STATIC_INIT;
-    TPMS_AUTH_COMMAND  auth_command          = { .sessionHandle = TPM_RS_PW, };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths             = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
 
     g_print ("Tss2_Sys_Load with parent handle: 0x%" PRIx32 "\n  in_private: "
@@ -280,14 +276,14 @@ load_key (TSS2_SYS_CONTEXT *sapi_context,
 }
 TSS2_RC
 undefine_nv_index (TSS2_SYS_CONTEXT *sapi_context,
-                   TPM_HANDLE        index)
+                   TPM2_HANDLE        index)
 {
     TSS2_RC rc;
-    TPMS_AUTH_COMMAND  auth_command          = { .sessionHandle = TPM_RS_PW, };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths             = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
 
     g_debug ("undefine_nv_index: sapi_context: 0x%" PRIxPTR " index: 0x%"
@@ -297,7 +293,7 @@ undefine_nv_index (TSS2_SYS_CONTEXT *sapi_context,
     }
 
     rc = Tss2_Sys_NV_UndefineSpace (sapi_context,
-                                    TPM_RH_OWNER,
+                                    TPM2_RH_OWNER,
                                     index,
                                     &cmd_auths,
                                     0);
@@ -310,7 +306,7 @@ undefine_nv_index (TSS2_SYS_CONTEXT *sapi_context,
 }
 TSS2_RC
 save_context (TSS2_SYS_CONTEXT *sapi_context,
-              TPM_HANDLE        handle,
+              TPM2_HANDLE        handle,
               TPMS_CONTEXT     *context)
 {
     TSS2_RC rc;
@@ -332,7 +328,7 @@ save_context (TSS2_SYS_CONTEXT *sapi_context,
 }
 TSS2_RC
 flush_context (TSS2_SYS_CONTEXT *sapi_context,
-               TPM_HANDLE        handle)
+               TPM2_HANDLE        handle)
 {
     TSS2_RC rc;
 
@@ -352,14 +348,14 @@ flush_context (TSS2_SYS_CONTEXT *sapi_context,
 }
 TSS2_RC
 evict_persistent_objs (TSS2_SYS_CONTEXT *sapi_context,
-                       TPM_HANDLE        handle)
+                       TPM2_HANDLE        handle)
 {
     TSS2_RC rc;
-    TPMS_AUTH_COMMAND  auth_command          = { .sessionHandle = TPM_RS_PW, };
-    TPMS_AUTH_COMMAND *auth_command_array[1] = { &auth_command, };
-    TSS2_SYS_CMD_AUTHS cmd_auths             = {
-        .cmdAuthsCount = 1,
-        .cmdAuths      = auth_command_array,
+    TSS2L_SYS_AUTH_COMMAND cmd_auths = {
+        .count = 1,
+        .auths = {{
+            .sessionHandle = TPM2_RS_PW,
+        }}
     };
 
     g_debug ("evict_persistent_objs: sapi_context: 0x%" PRIxPTR
@@ -368,10 +364,10 @@ evict_persistent_objs (TSS2_SYS_CONTEXT *sapi_context,
         g_error ("evict_persistent_objs passed NULL reference");
     }
 
-    rc = Tss2_Sys_EvictControl (sapi_context, TPM_RH_OWNER,
+    rc = Tss2_Sys_EvictControl (sapi_context, TPM2_RH_OWNER,
                                 handle, &cmd_auths,
                                 handle, NULL);
-    if (rc != TPM_RC_SUCCESS) {
+    if (rc != TPM2_RC_SUCCESS) {
         g_warning ("Tss2_Sys_EvictControl: failed to evict control for "
                    "handle: 0x%" PRIx32 " TSS2_RC: 0x%" PRIx32, handle, rc);
     }
@@ -391,27 +387,31 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
         UINT32 count;
     } properties[] = {
         {
-            .property = PERSISTENT_FIRST,
-            .count = MAX_CAP_HANDLES,
+            .property = TPM2_PERSISTENT_FIRST,
+            .count = TPM2_MAX_CAP_HANDLES,
         },
         {
-            .property = TRANSIENT_FIRST,
-            .count = MAX_CAP_HANDLES,
+            .property = TPM2_TRANSIENT_FIRST,
+            .count = TPM2_MAX_CAP_HANDLES,
         },
         {
-            .property = NV_INDEX_FIRST,
-            .count = MAX_CAP_HANDLES,
+            .property = TPM2_NV_INDEX_FIRST,
+            .count = TPM2_MAX_CAP_HANDLES,
         },
         {
-            .property = POLICY_SESSION_FIRST,
-            .count = MAX_CAP_HANDLES,
+            .property = TPM2_LOADED_SESSION_FIRST,
+            .count = TPM2_MAX_CAP_HANDLES,
         },
+        {
+            .property = TPM2_ACTIVE_SESSION_FIRST,
+            .count = TPM2_MAX_CAP_HANDLES,
+        }
     };
 
     for (i = 0; i < sizeof(properties) / sizeof(struct property_info); ++i) {
         rc = Tss2_Sys_GetCapability (sapi_context,
                                      NULL,
-                                     TPM_CAP_HANDLES,
+                                     TPM2_CAP_HANDLES,
                                      properties[i].property,
                                      properties[i].count,
                                      &more_data,
@@ -426,7 +426,7 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
         }
 
         for (j = 0; j < handles->count; ++j) {
-            if (properties[i].property == NV_INDEX_FIRST) {
+            if (properties[i].property == TPM2_NV_INDEX_FIRST) {
                 undefine_nv_index (sapi_context, handles->handle[j]);
                 continue;
             }
@@ -436,7 +436,7 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
              * objects from the TPM. So we always handle persistent handles
              * prior to transient handles to allow evicting them on next round.
              */
-            if (properties[i].property == PERSISTENT_FIRST) {
+            if (properties[i].property == TPM2_PERSISTENT_FIRST) {
                 evict_persistent_objs (sapi_context, handles->handle[j]);
                 continue;
             }
@@ -456,35 +456,31 @@ start_auth_session (TSS2_SYS_CONTEXT      *sapi_context,
 {
     TSS2_RC rc;
     TPM2B_NONCE nonce_caller = {
-        .t = {
-            .size   = SHA256_DIGEST_SIZE,
-            .buffer = {
-                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
-                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
-                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
-                0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef
-            }
+        .size   = TPM2_SHA256_DIGEST_SIZE,
+        .buffer = {
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef
         }
     };
     TPM2B_NONCE nonce_tpm = {
-        .t = {
-            .size   = SHA256_DIGEST_SIZE,
-            .buffer = { 0 }
-        }
+        .size   = TPM2_SHA256_DIGEST_SIZE,
+        .buffer = { 0 }
     };
     TPM2B_ENCRYPTED_SECRET encrypted_salt = { 0 };
-    TPMT_SYM_DEF           symmetric      = { .algorithm = TPM_ALG_NULL };
+    TPMT_SYM_DEF           symmetric      = { .algorithm = TPM2_ALG_NULL };
 
     g_debug ("StartAuthSession for TPM_SE_POLICY (policy session)");
     rc = Tss2_Sys_StartAuthSession (sapi_context,
-                                    TPM_RH_NULL,     /* tpmKey */
-                                    TPM_RH_NULL,     /* bind */
+                                    TPM2_RH_NULL,     /* tpmKey */
+                                    TPM2_RH_NULL,     /* bind */
                                     0,               /* cmdAuthsArray */
                                     &nonce_caller,   /* nonceCaller */
                                     &encrypted_salt, /* encryptedSalt */
-                                    TPM_SE_POLICY,   /* sessionType */
+                                    TPM2_SE_POLICY,   /* sessionType */
                                     &symmetric,      /* symmetric */
-                                    TPM_ALG_SHA256,  /* authHash */
+                                    TPM2_ALG_SHA256,  /* authHash */
                                     session_handle,  /* sessionHandle */
                                     &nonce_tpm,      /* nonceTPM */
                                     0                /* rspAuthsArray */
