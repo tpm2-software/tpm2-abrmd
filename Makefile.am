@@ -135,8 +135,8 @@ EXTRA_DIST = \
     man/tss2-tcti-tabrmd.7.in \
     man/tpm2-abrmd.8.in \
     dist/tpm2-abrmd.conf \
+    dist/tpm2-abrmd.preset.in \
     dist/tss2-tcti-tabrmd.pc.in \
-    dist/tpm2-abrmd.preset \
     dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
     dist/com.intel.tss2.Tabrmd.service \
@@ -162,6 +162,7 @@ CLEANFILES = \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
     $(pkgconfig_DATA) \
+    $(systemdpreset_DATA) \
     $(systemdsystemunit_DATA) \
     test/integration/*.log \
     _tabrmd.log
@@ -173,11 +174,11 @@ pkgconfig_DATA   = dist/tss2-tcti-tabrmd.pc
 dbuspolicy_DATA  = dist/tpm2-abrmd.conf
 udevrules_DATA   = dist/tpm-udev.rules
 if HAVE_SYSTEMD
+systemdpreset_DATA = dist/tpm2-abrmd.preset
 systemdsystemunit_DATA = dist/tpm2-abrmd.service
 dbusservicedir   = $(datadir)/dbus-1/system-services
 dbusservice_DATA = dist/com.intel.tss2.Tabrmd.service
 endif # HAVE_SYSTEMD
-systemdpreset_DATA = dist/tpm2-abrmd.preset
 
 @CODE_COVERAGE_RULES@
 @VALGRIND_CHECK_RULES@
