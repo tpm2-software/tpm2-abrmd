@@ -25,15 +25,15 @@ addons:
       name: 01org/tpm2-abrmd
       description: Build submitted via Travis-CI
     notification_email: flihp@twobit.us
-    build_command_prepend: "./configure; make clean"
-    build_command: "make -j$(nproc)"
+    build_command_prepend: "mkdir cov-build && pushd cov-build && ../configure && popd"
+    build_command: "make --directory=cov-build --jobs=$(($(nproc)*3/2))"
     branch_pattern: coverity_scan
 
 env:
   global:
     # COVERITY_SCAN_TOKEN created by coverity using 'travis encrypt' using
     # project repo public key
-    - secure: "hWep+zj8S3ahEGUpOaFbsHVqJ/1Gpf7+4Vos0Op1jyCF0Iw3r/MRxC1AABhxOjPhlNNf9q19b0IjVzVWh+owiFItK/NCgNG+daSuCk945F5tREYKFui+b9JrLMGx8+zfrL+KAy3BVDUUobLrh7vBTdbr9Wg4Kbryt6lBh0wpPnbMqCuUKEwAYw8K9YpoviqGdW1AWwWEpApoXtjukiF3Virc+sfRN/3xpDpHyc7LESzREE/xkZe879e1pFGLys7perOf2JhgKdj0B0otQXPcPuoB8ppFsxTQwbZbcfpZW/l7Vo6aUjmoXw6+DTZK+skne2K9uCP2gjuVwLnkzgBhX8OYVyHscmA+xl0wLIwkTkPcW76bfOVZPkgaKGdKBW7mdl2Tk8DBZfF10XZ0zSLAOEwUeYkIr4vc4ybGRcw9xS6ixXeENzW9BR1NUktSdQBrMSYnrRvDQkEKiUpd7f4uFOKQT0evvjvAI8rXEcC5eo8ODJYHni0Zep/c/rKEPduUsZgZQ18F86q/G3DtIl+69/gDEEUKnDXSFejFfzO+NGWp+jL5aybE0pjzXsiLmwklDiY6po+dgkiTbL3SKlMl8a+miteNu2fgar8D443afGiHABUpiRwNYN/47WombgYst5ZcnnDFmUIYa7SYoxZAeCsCTySdyTso02POFAKYz5U="
+    - secure: "obb9XbzVIj7P/wBKXG6GIRlGSXFcQhTvAa6LX8wU279wt3t0uGakofOmw5SpFX9wnxCu6xd3yHaiUqAuFotf5Bb/ROfeqZGdBFUVSwmxEohzrxPH3KbYhd3lzACUSMNYBVwu+WZhzPK3cQRf8KtQw7V9qNP5qV+RfgXizo+r04w6g2hP8xeYIrJ86PUtLjFrvtd/OxXhWWb7i+dTDSSmUvdYi18XSyvtz+7H2OXJLZSO7Ns2WUAplkwre1pCgv2sg0pkxHQjjeIYEcvYZskiKsyyXT2AXZFTNa7KN51/N4lpk/Hb7ffjFMM9T6/NZ1JVY3UVpGOGYH4TM49macyws9b0RiwGpzW2qe2EKoiXLOEYk5erW/PoIM8PiNcvAgvQaU25/cZSDQaEn/S9DTLkC8AJHVmqY9tp9XVmesCrBhpeAnyDTAfiZ1t05HiFOqw7ByP1LM49ysvQk1cdlt28AvB90t6rttGUP8CUtwnasHOVASlZ/No7xRGFHlLLmfKVrZc31jZS4RHxthn4MKATzqkylMZQMVA2/jasRcfYTXiUPGUfuaxZfofSTpJANrGWAMC43FWqKi3jPVJ2/TdqZ2r/wXkK23SiF9Lu9X4QOGuLnbAuQENddqb1A3e2PH+0NC6O0ThWq69BcWmrtbD2ev0UDivbG8OQ1ZsSDm9UqVA="
     # run coverity scan on gcc build to keep from DOSing coverity
     - coverity_scan_run_condition='"$CC" = gcc'
     - PREFIX=/usr
