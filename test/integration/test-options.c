@@ -57,6 +57,7 @@ bus_str_from_type (TCTI_TABRMD_DBUS_TYPE bus_type)
         return NULL;
     }
 }
+
 /*
  * return 0 if sanity test passes
  * return 1 if sanity test fails
@@ -79,23 +80,21 @@ get_test_opts_from_env (test_opts_t          *test_opts)
     if (test_opts == NULL)
         return 1;
     env_str = getenv (ENV_TCTI);
-    if (env_str != NULL)
+    if (env_str != NULL) {
+        g_debug ("%s: %s is \"%s\"", __func__, ENV_TCTI, env_str);
         test_opts->tcti_filename = env_str;
-    env_str = getenv (ENV_TCTI_CONF);
-    if (env_str != NULL)
-        test_opts->tcti_conf = env_str;
-    env_str = getenv (ENV_TABRMD_BUS_TYPE);
-    if (env_str != NULL) {
-        test_opts->tabrmd_bus_type = bus_type_from_str (env_str);
     }
-    env_str = getenv (ENV_TABRMD_BUS_NAME);
+    env_str = getenv (ENV_TCTI_CONF);
     if (env_str != NULL) {
-        test_opts->tabrmd_bus_name = env_str;
+        g_debug ("%s: %s is \"%s\"", __func__, ENV_TCTI_CONF, env_str);
+        test_opts->tcti_conf = env_str;
     }
     env_str = getenv (ENV_TCTI_RETRIES);
     if (env_str != NULL) {
+        g_debug ("%s: %s is \"%s\"", __func__, ENV_TCTI_RETRIES, env_str);
         test_opts->tcti_retries = strtoumax (env_str, NULL, 10);
     }
+
     return 0;
 }
 /*
@@ -105,9 +104,7 @@ void
 dump_test_opts (test_opts_t *opts)
 {
     printf ("test_opts_t:\n");
-    printf ("  tcti_filename:   %s\n", opts->tcti_filename);
-    printf ("  tcti_conf:       %s\n", opts->tcti_conf);
-    printf ("  tabrmd_bus_type: %s\n", bus_str_from_type (opts->tabrmd_bus_type));
-    printf ("  tabrmd_bus_name: %s\n", opts->tabrmd_bus_name);
-    printf ("  retries:         %" PRIuMAX "\n", opts->tcti_retries);
+    printf ("  tcti_filename: %s\n", opts->tcti_filename);
+    printf ("  tcti_conf:     %s\n", opts->tcti_conf);
+    printf ("  retries:       %" PRIuMAX "\n", opts->tcti_retries);
 }

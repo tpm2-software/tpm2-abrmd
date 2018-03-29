@@ -135,7 +135,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # execute the test script and capture exit code
-env G_MESSAGES_DEBUG=all TABRMD_TEST_BUS_TYPE=session TABRMD_TEST_BUS_NAME="${TABRMD_NAME}" TABRMD_TEST_TCTI_RETRIES=10 $@
+env G_MESSAGES_DEBUG=all TABRMD_TEST_TCTI_CONF="bus_name=${TABRMD_NAME},bus_type=session" TABRMD_TEST_TCTI_RETRIES=10 $@
 ret_test=$?
 
 # This sleep is sadly necessary: If we kill the tabrmd w/o sleeping for a

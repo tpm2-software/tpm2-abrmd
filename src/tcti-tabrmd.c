@@ -514,16 +514,6 @@ tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
     return TSS2_RC_SUCCESS;
 }
 
-TSS2_RC
-tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT *context,
-                       size_t            *size)
-{
-    return tss2_tcti_tabrmd_init_full (context,
-                                       size,
-                                       TCTI_TABRMD_DBUS_TYPE_DEFAULT,
-                                       TCTI_TABRMD_DBUS_NAME_DEFAULT);
-}
-
 typedef struct {
     TCTI_TABRMD_DBUS_TYPE type;
     char *name;
@@ -620,7 +610,7 @@ tabrmd_conf_parse (char *conf_str,
  * each another 9 characters for a total of 280.
  */
 #define CONF_STRING_MAX 280
-static TSS2_RC
+TSS2_RC
 Tss2_Tcti_Tabrmd_Init (TSS2_TCTI_CONTEXT *context,
                        size_t            *size,
                        const char        *conf)

@@ -36,23 +36,17 @@
 /* environment variables holding TCTI config */
 #define ENV_TCTI      "TABRMD_TEST_TCTI"
 #define ENV_TCTI_CONF "TABRMD_TEST_TCTI_CONF"
-#define ENV_TABRMD_BUS_TYPE "TABRMD_TEST_BUS_TYPE"
-#define ENV_TABRMD_BUS_NAME "TABRMD_TEST_BUS_NAME"
 #define ENV_TCTI_RETRIES    "TABRMD_TEST_TCTI_RETRIES"
 
 #define TEST_OPTS_DEFAULT_INIT { \
     .tcti_filename = NULL, \
     .tcti_conf = NULL, \
-    .tabrmd_bus_type = TCTI_TABRMD_DBUS_TYPE_DEFAULT, \
-    .tabrmd_bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT, \
     .tcti_retries = TCTI_RETRIES_DEFAULT, \
 }
 
 typedef struct {
     const char *tcti_filename;
     const char *tcti_conf;
-    TCTI_TABRMD_DBUS_TYPE tabrmd_bus_type;
-    const char *tabrmd_bus_name;
     uintmax_t   tcti_retries;
 } test_opts_t;
 

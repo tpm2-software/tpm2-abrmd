@@ -52,14 +52,13 @@
 
 TSS2_RC
 tcti_tabrmd_init (TSS2_TCTI_CONTEXT **tcti_context,
-                  TCTI_TABRMD_DBUS_TYPE bus_type,
-                  const char         *bus_name,
+                  const char         *conf,
                   int                 retries)
 {
     TSS2_RC rc;
     size_t size, i;
 
-    rc = tss2_tcti_tabrmd_init_full (NULL, &size, bus_type, bus_name);
+    rc = Tss2_Tcti_Tabrmd_Init (NULL, &size, NULL);
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr, "Failed to get allocation size for tabrmd TCTI "
                  " context: 0x%" PRIx32 "\n", rc);
@@ -72,10 +71,7 @@ tcti_tabrmd_init (TSS2_TCTI_CONTEXT **tcti_context,
         return rc;
     }
     for (i = 0; i < retries; ++i) {
-        rc = tss2_tcti_tabrmd_init_full (*tcti_context,
-                                         &size,
-                                         bus_type,
-                                         bus_name);
+        rc = Tss2_Tcti_Tabrmd_Init (*tcti_context, &size, conf);
         if (rc == TSS2_RC_SUCCESS) {
             break;
         } else {
@@ -114,8 +110,7 @@ main (int   argc,
     size_t i;
     for (i = 0; i < CONNECTION_COUNT; ++i) {
         rc = tcti_tabrmd_init (&tcti_context [i],
-                               opts.tabrmd_bus_type,
-                               opts.tabrmd_bus_name,
+                               opts.tcti_conf,
                                opts.tcti_retries);
         if (tcti_context [i] == NULL || rc != TSS2_RC_SUCCESS) {
             g_error ("failed to connect to TCTI: 0x%" PRIx32, rc);
