@@ -58,14 +58,14 @@ tcti_dynamic_init (const char *filename,
  * Initialize a TCTI context for the tabrmd. Currently it requires no options.
  */
 TSS2_TCTI_CONTEXT*
-tcti_tabrmd_init (TCTI_TABRMD_DBUS_TYPE    bus_type,
-                  const char              *bus_name)
+tcti_tabrmd_init (const char *conf)
 {
     TSS2_RC rc;
     TSS2_TCTI_CONTEXT *tcti_ctx;
     size_t size;
 
-    rc = tss2_tcti_tabrmd_init_full (NULL, &size, bus_type, bus_name);
+    g_debug ("%s: with conf: \"%s\"", __func__, conf);
+    rc = Tss2_Tcti_Tabrmd_Init (NULL, &size, NULL);
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr, "Failed to get allocation size for tabrmd TCTI "
                  " context: 0x%" PRIx32 "\n", rc);
@@ -77,7 +77,7 @@ tcti_tabrmd_init (TCTI_TABRMD_DBUS_TYPE    bus_type,
                  strerror (errno));
         return NULL;
     }
-    rc = tss2_tcti_tabrmd_init_full (tcti_ctx, &size, bus_type, bus_name);
+    rc = Tss2_Tcti_Tabrmd_Init (tcti_ctx, &size, conf);
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr, "Failed to initialize tabrmd TCTI context: "
                  "0x%" PRIx32 "\n", rc);
@@ -151,8 +151,7 @@ tcti_init_from_opts (test_opts_t *options)
     if (options->tcti_filename != NULL) {
         return tcti_dynamic_init (options->tcti_filename, options->tcti_conf);
     } else {
-        return tcti_tabrmd_init (options->tabrmd_bus_type,
-                                 options->tabrmd_bus_name);
+        return tcti_tabrmd_init (options->tcti_conf);
     }
 }
 /*

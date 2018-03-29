@@ -51,7 +51,7 @@ tcti_tabrmd_init_size_test (void **state)
 {
     size_t tcti_size;
 
-    tss2_tcti_tabrmd_init (NULL, &tcti_size);
+    Tss2_Tcti_Tabrmd_Init (NULL, &tcti_size, NULL);
     assert_int_equal (tcti_size, sizeof (TSS2_TCTI_TABRMD_CONTEXT));
 }
 /*
@@ -64,7 +64,7 @@ tcti_tabrmd_init_success_return_value_test (void **state)
     size_t tcti_size;
     TSS2_RC ret;
 
-    ret = tss2_tcti_tabrmd_init (NULL, &tcti_size);
+    ret = Tss2_Tcti_Tabrmd_Init (NULL, &tcti_size, NULL);
     assert_int_equal (ret, TSS2_RC_SUCCESS);
 }
 /*
@@ -76,7 +76,7 @@ tcti_tabrmd_init_allnull_is_bad_value_test (void **state)
 {
     TSS2_RC ret;
 
-    ret = tss2_tcti_tabrmd_init (NULL, NULL);
+    ret = Tss2_Tcti_Tabrmd_Init (NULL, NULL, NULL);
     assert_int_equal (ret, TSS2_TCTI_RC_BAD_VALUE);
 }
 /*
@@ -382,7 +382,7 @@ tcti_tabrmd_setup (void **state)
     guint64 id = 666;
 
     data = calloc (1, sizeof (data_t));
-    ret = tss2_tcti_tabrmd_init (NULL, &tcti_size);
+    ret = Tss2_Tcti_Tabrmd_Init (NULL, &tcti_size, NULL);
     if (ret != TSS2_RC_SUCCESS) {
         printf ("tss2_tcti_tabrmd_init failed: %d\n", ret);
         return 1;
@@ -400,11 +400,7 @@ tcti_tabrmd_setup (void **state)
                  data->client_fd);
     data->id = id;
     will_return (__wrap_g_dbus_proxy_call_with_unix_fd_list_sync, id);
-    g_debug ("about to call real tss2_tcti_tabrmd_init function");
-    ret = tss2_tcti_tabrmd_init_full (data->context,
-                                      0,
-                                      TCTI_TABRMD_DBUS_TYPE_SESSION,
-                                      TCTI_TABRMD_DBUS_NAME_DEFAULT);
+    ret = Tss2_Tcti_Tabrmd_Init (data->context, &tcti_size, "bus_type=session");
     assert_int_equal (ret, TSS2_RC_SUCCESS);
 
     *state = data;
