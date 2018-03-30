@@ -111,9 +111,14 @@ typedef struct {
     uint8_t                        header_buf [TPM_HEADER_SIZE];
 } TSS2_TCTI_TABRMD_CONTEXT;
 
+#define TABRMD_CONF_INIT_DEFAULT { \
+    .bus_name = TABRMD_DBUS_NAME_DEFAULT, \
+    .bus_type = TABRMD_DBUS_TYPE_DEFAULT, \
+}
+
 typedef struct {
-    TCTI_TABRMD_DBUS_TYPE bus_type;
     const char *bus_name;
+    GBusType bus_type;
 } tabrmd_conf_t;
 
 /*
@@ -122,7 +127,7 @@ typedef struct {
  * private header so that we can invoke it in the test harness.
  */
 const TSS2_TCTI_INFO* Tss2_Tcti_Info (void);
-TCTI_TABRMD_DBUS_TYPE tabrmd_bus_type_from_str (const char* const bus_type);
+GBusType tabrmd_bus_type_from_str (const char* const bus_type);
 TSS2_RC tabrmd_conf_parse_kv (const char *key,
                               const char *value,
                               tabrmd_conf_t * const tabrmd_conf);

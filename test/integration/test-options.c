@@ -30,28 +30,30 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include <gio/gio.h>
+
 #include "test-options.h"
 #include "tss2-tcti-tabrmd.h"
 
-TCTI_TABRMD_DBUS_TYPE
+GBusType
 bus_type_from_str (const char *bus_type_str)
 {
     if (strcmp (bus_type_str, "system") == 0) {
-        return TCTI_TABRMD_DBUS_TYPE_SYSTEM;
+        return G_BUS_TYPE_SYSTEM;
     } else if (strcmp (bus_type_str, "session") == 0) {
-        return TCTI_TABRMD_DBUS_TYPE_SESSION;
+        return G_BUS_TYPE_SESSION;
     } else {
         g_error ("Invalid bus type for %s", bus_type_str);
-        return TCTI_TABRMD_DBUS_TYPE_DEFAULT;
+        return G_BUS_TYPE_NONE;
     }
 }
 const char*
-bus_str_from_type (TCTI_TABRMD_DBUS_TYPE bus_type)
+bus_str_from_type (GBusType bus_type)
 {
     switch (bus_type) {
-    case TCTI_TABRMD_DBUS_TYPE_SESSION:
+    case G_BUS_TYPE_SESSION:
         return "session";
-    case TCTI_TABRMD_DBUS_TYPE_SYSTEM:
+    case G_BUS_TYPE_SYSTEM:
         return "system";
     default:
         return NULL;

@@ -30,14 +30,12 @@
 #include <gio/gio.h>
 
 #include <tss2/tss2_tpm2_types.h>
-
-#include "tss2-tcti-tabrmd.h"
+#include <tss2/tss2_tcti.h>
 
 #define TABRMD_CONNECTIONS_MAX_DEFAULT 27
 #define TABRMD_CONNECTION_MAX 100
-#define TABRMD_DBUS_INTERFACE_DEFAULT        TCTI_TABRMD_DBUS_INTERFACE_DEFAULT
-#define TABRMD_DBUS_NAME_DEFAULT             TCTI_TABRMD_DBUS_NAME_DEFAULT
-#define TABRMD_DBUS_TYPE_DEFAULT             TCTI_TABRMD_DBUS_TYPE_DEFAULT
+#define TABRMD_DBUS_NAME_DEFAULT "com.intel.tss2.Tabrmd"
+#define TABRMD_DBUS_TYPE_DEFAULT G_BUS_TYPE_SYSTEM
 #define TABRMD_DBUS_PATH                     "/com/intel/tss2/Tabrmd/Tcti"
 #define TABRMD_DBUS_METHOD_CREATE_CONNECTION "CreateConnection"
 #define TABRMD_DBUS_METHOD_CANCEL            "Cancel"

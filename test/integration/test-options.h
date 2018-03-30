@@ -52,8 +52,8 @@ typedef struct {
 
 /* functions to get test options from the user and to print helpful stuff */
 
-const char  *bus_name_from_type         (TCTI_TABRMD_DBUS_TYPE bus_type);
-TCTI_TABRMD_DBUS_TYPE bus_type_from_str (const char*           bus_type_str);
+const char  *bus_str_from_type          (GBusType              bus_type);
+GBusType     bus_type_from_str          (const char*           bus_type_str);
 int          get_test_opts_from_env     (test_opts_t          *opts);
 int          sanity_check_test_opts     (test_opts_t          *opts);
 void         dump_test_opts             (test_opts_t          *opts);
