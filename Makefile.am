@@ -76,9 +76,7 @@ if HWTPM
 TESTS_INTEGRATION = $(tests_integration)
 endif
 
-XFAIL_TESTS = \
-    test/integration/start-auth-session.int \
-    test/integration/tcti-sessions-max.int
+XFAIL_TESTS = test/integration/start-auth-session.int
 
 TESTS = $(TESTS_UNIT) $(TESTS_INTEGRATION)
 TEST_EXTENSIONS = .int

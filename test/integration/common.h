@@ -55,17 +55,6 @@
 #define PRIxHANDLE "08" PRIx32
 
 TSS2_RC
-tcti_context_init (
-    TSS2_TCTI_CONTEXT **tcti_context
-    );
-
-TSS2_RC
-sapi_context_init (
-    TSS2_SYS_CONTEXT    **sapi_context,
-    TSS2_TCTI_CONTEXT    *tcti_context
-    );
-
-TSS2_RC
 create_primary (
     TSS2_SYS_CONTEXT *sapi_context,
     TPM2_HANDLE       *handle
