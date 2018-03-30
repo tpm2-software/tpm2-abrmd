@@ -25,9 +25,9 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * This is a test program intended to create a number of TCTI sessions
+ * This is a test program intended to create a number of TCTI connections
  * with the tabrmd. The goal is to hit the upper bound on the number of
- * concurrent sessions and get the TCTI to return an error.
+ * concurrent connections and get the TCTI to return an error.
  */
 #include <inttypes.h>
 #include <stdio.h>
