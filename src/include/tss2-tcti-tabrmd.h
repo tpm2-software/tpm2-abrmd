@@ -33,23 +33,9 @@ extern "C" {
 
 #include <tss2/tss2_tcti.h>
 
-#define TCTI_TABRMD_DBUS_INTERFACE_DEFAULT "com.intel.tss2.TctiTabrmd"
-#define TCTI_TABRMD_DBUS_NAME_DEFAULT      "com.intel.tss2.Tabrmd"
-#define TCTI_TABRMD_DBUS_TYPE_DEFAULT      TCTI_TABRMD_DBUS_TYPE_SYSTEM
-
-typedef enum {
-    TCTI_TABRMD_DBUS_TYPE_NONE,
-    TCTI_TABRMD_DBUS_TYPE_SESSION,
-    TCTI_TABRMD_DBUS_TYPE_SYSTEM,
-} TCTI_TABRMD_DBUS_TYPE;
-
 TSS2_RC Tss2_Tcti_Tabrmd_Init (TSS2_TCTI_CONTEXT *context,
                                size_t *size,
                                const char *conf);
-TSS2_RC tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
-                                    size_t                 *size,
-                                    TCTI_TABRMD_DBUS_TYPE   bus,
-                                    const char             *name);
 
 #ifdef __cplusplus
 }

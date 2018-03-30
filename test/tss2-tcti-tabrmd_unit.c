@@ -38,6 +38,7 @@
 
 #include <tss2/tss2_tpm2_types.h>
 
+#include "tabrmd.h"
 #include "tss2-tcti-tabrmd.h"
 #include "tcti-tabrmd-priv.h"
 #include "tpm2-header.h"
@@ -98,33 +99,33 @@ tcti_tabrmd_info_test (void **state)
 }
 /*
  * Ensure that when we pass the string "session" to the
- * tabrmd_bus_type_from_str returns TCTI_TABRMD_DBUS_TYPE_SESSION.
+ * tabrmd_bus_type_from_str returns G_BUS_TYPE_SESSION.
  */
 static void
 tcti_tabrmd_bus_type_from_str_session_test (void **state)
 {
     assert_int_equal (tabrmd_bus_type_from_str ("session"),
-                      TCTI_TABRMD_DBUS_TYPE_SESSION);
+                      G_BUS_TYPE_SESSION);
 }
 /*
  * Ensure that when we pass the string "system" to the
- * tabrmd_bus_type_from_str returns TCTI_TABRMD_DBUS_TYPE_SYSTEM.
+ * tabrmd_bus_type_from_str returns G_BUS_TYPE_SYSTEM.
  */
 static void
 tcti_tabrmd_bus_type_from_str_system_test (void **state)
 {
     assert_int_equal (tabrmd_bus_type_from_str ("system"),
-                      TCTI_TABRMD_DBUS_TYPE_SYSTEM);
+                      G_BUS_TYPE_SYSTEM);
 }
 /*
  * Ensure that when we pass an unexpected string to the
- * tabrmd_bus_type_from_str returns TCTI_TABRMD_DBUS_TYPE_NONE.
+ * tabrmd_bus_type_from_str returns G_BUS_TYPE_NONE.
  */
 static void
 tcti_tabrmd_bus_type_from_str_bad_test (void **state)
 {
     assert_int_equal (tabrmd_bus_type_from_str ("foobar"),
-                      TCTI_TABRMD_DBUS_TYPE_NONE);
+                      G_BUS_TYPE_NONE);
 }
 /*
  * Ensure that when we pass the key "bus_name" and value "any string"
@@ -144,7 +145,7 @@ tcti_tabrmd_conf_parse_kv_name_test (void **state)
 /*
  * Ensure that when we pass the key "bus_type" and the value "system"
  * to tabrmd_conf_parse_kv that it returns an RC indicating success while
- * the conf structure 'bus_type' field is set to TCTI_TABRMD_DBUS_TYPE_SYSTEM.
+ * the conf structure 'bus_type' field is set to G_BUS_TYPE_SYSTEM.
  */
 static void
 tcti_tabrmd_conf_parse_kv_type_good_test (void **state)
@@ -154,13 +155,13 @@ tcti_tabrmd_conf_parse_kv_type_good_test (void **state)
 
     rc = tabrmd_conf_parse_kv ("bus_type", "system", &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
-    assert_int_equal (conf.bus_type, TCTI_TABRMD_DBUS_TYPE_SYSTEM);
+    assert_int_equal (conf.bus_type, G_BUS_TYPE_SYSTEM);
 }
 /*
  * Ensure that when we pass the key "bus_type" and with an invalid value
  * string (not "system" or "session") that it returns the BAD_VALUE RC and
  * sets the 'bus_type' field of the conf structure to
- * TCTI_TABRMD_DBUS_TYPE_NONE.
+ * G_BUS_TYPE_NONE.
  */
 static void
 tcti_tabrmd_conf_parse_kv_type_bad_test (void **state)
@@ -170,7 +171,7 @@ tcti_tabrmd_conf_parse_kv_type_bad_test (void **state)
 
     rc = tabrmd_conf_parse_kv ("bus_type", "foo", &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
-    assert_int_equal (conf.bus_type, TCTI_TABRMD_DBUS_TYPE_NONE);
+    assert_int_equal (conf.bus_type, G_BUS_TYPE_NONE);
 }
 /*
  * Ensure that when we pass an invalid key (not 'bus_type' or 'bus_name')
@@ -199,7 +200,7 @@ tcti_tabrmd_conf_parse_named_session_test (void **state)
     rc = tabrmd_conf_parse (conf_str, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_string_equal (conf.bus_name, "com.example.Session");
-    assert_int_equal (conf.bus_type, TCTI_TABRMD_DBUS_TYPE_SESSION);
+    assert_int_equal (conf.bus_type, G_BUS_TYPE_SESSION);
 }
 /*
  * Ensure that a common config string selecting the system bus with
@@ -215,7 +216,7 @@ tcti_tabrmd_conf_parse_named_system_test (void **state)
     rc = tabrmd_conf_parse (conf_str, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_string_equal (conf.bus_name, "com.example.System");
-    assert_int_equal (conf.bus_type, TCTI_TABRMD_DBUS_TYPE_SYSTEM);
+    assert_int_equal (conf.bus_type, G_BUS_TYPE_SYSTEM);
 }
 /*
  * Ensure that an unknown bus_type string results in the appropriate RC.
@@ -238,13 +239,13 @@ static void
 tcti_tabrmd_conf_parse_no_name_test (void **state)
 {
     TSS2_RC rc;
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_type=session";
 
     rc = tabrmd_conf_parse (conf_str, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
-    assert_string_equal (conf.bus_name, TCTI_TABRMD_DBUS_NAME_DEFAULT);
-    assert_int_equal (conf.bus_type, TCTI_TABRMD_DBUS_TYPE_SESSION);
+    assert_string_equal (conf.bus_name, TABRMD_DBUS_NAME_DEFAULT);
+    assert_int_equal (conf.bus_type, G_BUS_TYPE_SESSION);
 }
 /*
  * Ensure that a config string that omits the bus_type results in a conf
@@ -254,13 +255,13 @@ static void
 tcti_tabrmd_conf_parse_no_type_test (void **state)
 {
     TSS2_RC rc;
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_name=com.example.FooBar";
 
     rc = tabrmd_conf_parse (conf_str, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_string_equal (conf.bus_name, "com.example.FooBar");
-    assert_int_equal (conf.bus_type, TCTI_TABRMD_DBUS_TYPE_DEFAULT);
+    assert_int_equal (conf.bus_type, TABRMD_DBUS_TYPE_DEFAULT);
 }
 /*
  * Ensure that a missing value results in the appropriate RC.
@@ -269,7 +270,7 @@ static void
 tcti_tabrmd_conf_parse_no_value_test (void **state)
 {
     TSS2_RC rc;
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_name=";
 
     rc = tabrmd_conf_parse (conf_str, &conf);
@@ -282,7 +283,7 @@ static void
 tcti_tabrmd_conf_parse_no_key_test (void **state)
 {
     TSS2_RC rc;
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "=some-string";
 
     rc = tabrmd_conf_parse (conf_str, &conf);

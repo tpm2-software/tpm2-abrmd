@@ -428,109 +428,23 @@ _out:
     return _ret != NULL;
 }
 
-TSS2_RC
-tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT      *context,
-                            size_t                 *size,
-                            TCTI_TABRMD_DBUS_TYPE   bus_type,
-                            const char             *bus_name)
-{
-    GBusType g_bus_type;
-    GError *error = NULL;
-    GSocket *sock;
-    GVariant *fds_variant;
-    guint64 id;
-    GUnixFDList *fd_list;
-    gboolean call_ret;
-
-    if (context == NULL && size == NULL) {
-        return TSS2_TCTI_RC_BAD_VALUE;
-    }
-    if (context == NULL && size != NULL) {
-        *size = sizeof (TSS2_TCTI_TABRMD_CONTEXT);
-        return TSS2_RC_SUCCESS;
-    }
-    if (bus_name == NULL) {
-        return TSS2_TCTI_RC_BAD_VALUE;
-    }
-    switch (bus_type) {
-    case TCTI_TABRMD_DBUS_TYPE_SESSION:
-        g_bus_type = G_BUS_TYPE_SESSION;
-        break;
-    case TCTI_TABRMD_DBUS_TYPE_SYSTEM:
-        g_bus_type = G_BUS_TYPE_SYSTEM;
-        break;
-    default:
-        return TSS2_TCTI_RC_BAD_VALUE;
-    }
-    /* Register dbus error mapping for tabrmd. Gets us RCs from Gerror codes */
-    TABRMD_ERROR;
-    init_tcti_data (context);
-    TSS2_TCTI_TABRMD_PROXY (context) =
-        tcti_tabrmd_proxy_new_for_bus_sync (
-            g_bus_type,
-            G_DBUS_PROXY_FLAGS_NONE,
-            bus_name,
-            TABRMD_DBUS_PATH, /* object */
-            NULL,                          /* GCancellable* */
-            &error);
-    if (TSS2_TCTI_TABRMD_PROXY (context) == NULL) {
-        g_critical ("failed to allocate dbus proxy object: %s", error->message);
-        return TSS2_TCTI_RC_NO_CONNECTION;
-    }
-    call_ret = tcti_tabrmd_call_create_connection_sync_fdlist (
-        TSS2_TCTI_TABRMD_PROXY (context),
-        &fds_variant,
-        &id,
-        &fd_list,
-        NULL,
-        &error);
-    if (call_ret == FALSE) {
-        g_warning ("Failed to create connection with service: %s",
-                 error->message);
-        return TSS2_TCTI_RC_NO_CONNECTION;
-    }
-    if (fd_list == NULL) {
-        g_error ("call to CreateConnection returned a NULL GUnixFDList");
-    }
-    gint num_handles = g_unix_fd_list_get_length (fd_list);
-    if (num_handles != 1) {
-        g_error ("CreateConnection expected to return 1 handles, received %d",
-                 num_handles);
-    }
-    gint fd = g_unix_fd_list_get (fd_list, 0, &error);
-    if (fd == -1) {
-        g_error ("unable to get receive handle from GUnixFDList: %s",
-                 error->message);
-    }
-    sock = g_socket_new_from_fd (fd, NULL);
-    TSS2_TCTI_TABRMD_SOCK_CONNECT (context) = \
-        g_socket_connection_factory_create_connection (sock);
-    g_object_unref (sock);
-    TSS2_TCTI_TABRMD_ID (context) = id;
-    g_debug ("initialized tabrmd TCTI context with id: 0x%" PRIx64,
-             TSS2_TCTI_TABRMD_ID (context));
-    g_object_unref (fd_list);
-
-    return TSS2_RC_SUCCESS;
-}
-
 typedef struct {
-    TCTI_TABRMD_DBUS_TYPE type;
     char *name;
+    GBusType type;
 } bus_name_type_entry_t;
 
 const static bus_name_type_entry_t bus_name_type_map[] = {
     {
-        TCTI_TABRMD_DBUS_TYPE_SESSION,
-        "session",
+        .name = "session",
+        .type = G_BUS_TYPE_SESSION,
     },
     {
-        TCTI_TABRMD_DBUS_TYPE_SYSTEM,
-        "system",
+        .name = "system",
+        .type = G_BUS_TYPE_SYSTEM,
     },
 };
 #define BUS_NAME_TYPE_MAP_LENGTH (sizeof (bus_name_type_map) / sizeof (bus_name_type_entry_t))
-TCTI_TABRMD_DBUS_TYPE
+GBusType
 tabrmd_bus_type_from_str (const char* const bus_type)
 {
     size_t i;
@@ -545,7 +459,7 @@ tabrmd_bus_type_from_str (const char* const bus_type)
         }
     }
     g_debug ("no match for bus_type string %s", bus_type);
-    return TCTI_TABRMD_DBUS_TYPE_NONE;
+    return G_BUS_TYPE_NONE;
 }
 
 TSS2_RC
@@ -560,7 +474,7 @@ tabrmd_conf_parse_kv (const char *key,
     }
     if (strcmp (key, "bus_type") == 0) {
         tabrmd_conf->bus_type = tabrmd_bus_type_from_str (value);
-        if (tabrmd_conf->bus_type == TCTI_TABRMD_DBUS_TYPE_NONE) {
+        if (tabrmd_conf->bus_type == G_BUS_TYPE_NONE) {
             return TSS2_TCTI_RC_BAD_VALUE;
         }
         return TSS2_RC_SUCCESS;
@@ -582,9 +496,6 @@ tabrmd_conf_parse (char *conf_str,
     char *key_value, *key, *value;
     char *tok_kv_ctx = NULL;
 
-    tabrmd_conf->bus_name = TCTI_TABRMD_DBUS_NAME_DEFAULT;
-    tabrmd_conf->bus_type = TCTI_TABRMD_DBUS_TYPE_SYSTEM;
-
     while ((key_value = strtok_r (conf_str, ",", &conf_str)) != NULL) {
         key = strtok_r (key_value, "=", &tok_kv_ctx);
         if (key == NULL) {
@@ -602,7 +513,69 @@ tabrmd_conf_parse (char *conf_str,
 
     return TSS2_RC_SUCCESS;
 }
+/*
+ * Establish a connection with the daemon. This includes calling the
+ * CreateConnection dbus method, extracting the file descriptor used for
+ * sending commands and receiving responses, and extracting the connection
+ * ID used when sending commands over the dbus interface.
+ *
+ * The proxy object in the context structure must be created / valid before
+ * calling this function.
+ */
+TSS2_RC
+tcti_tabrmd_connect (TSS2_TCTI_CONTEXT *context)
+{
+    GError *error = NULL;
+    GSocket *sock = NULL;
+    GUnixFDList *fd_list = NULL;
+    GVariant *fds_variant = NULL;
+    gboolean call_ret;
+    guint64 id;
+    TSS2_RC rc = TSS2_RC_SUCCESS;
 
+    call_ret = tcti_tabrmd_call_create_connection_sync_fdlist (
+        TSS2_TCTI_TABRMD_PROXY (context),
+        &fds_variant,
+        &id,
+        &fd_list,
+        NULL,
+        &error);
+    if (call_ret == FALSE) {
+        g_warning ("Failed to create connection with service: %s",
+                 error->message);
+        rc = TSS2_TCTI_RC_NO_CONNECTION;
+        goto out;
+    }
+    if (fd_list == NULL) {
+        g_critical ("call to CreateConnection returned a NULL GUnixFDList");
+        rc = TSS2_TCTI_RC_NO_CONNECTION;
+        goto out;
+    }
+    gint num_handles = g_unix_fd_list_get_length (fd_list);
+    if (num_handles != 1) {
+        g_critical ("CreateConnection expected to return 1 handles, received %d",
+                    num_handles);
+        rc = TSS2_TCTI_RC_GENERAL_FAILURE;
+        goto out;
+    }
+    gint fd = g_unix_fd_list_get (fd_list, 0, &error);
+    if (fd == -1) {
+        g_critical ("unable to get receive handle from GUnixFDList: %s",
+                    error->message);
+        rc = TSS2_TCTI_RC_GENERAL_FAILURE;
+        goto out;
+    }
+    sock = g_socket_new_from_fd (fd, NULL);
+    TSS2_TCTI_TABRMD_SOCK_CONNECT (context) = \
+        g_socket_connection_factory_create_connection (sock);
+    TSS2_TCTI_TABRMD_ID (context) = id;
+out:
+    g_clear_pointer (&fds_variant, g_variant_unref);
+    g_clear_error (&error);
+    g_clear_object (&sock);
+    g_clear_object (&fd_list);
+    return rc;
+}
 /*
  * The longest configuration string we'll take. Each dbus name can be 255
  * characters long (see dbus spec). The bus_types that we support are
@@ -615,33 +588,60 @@ Tss2_Tcti_Tabrmd_Init (TSS2_TCTI_CONTEXT *context,
                        size_t            *size,
                        const char        *conf)
 {
-    TSS2_RC ret;
+    GError *error = NULL;
     size_t conf_len;
-    char *conf_copy;
-    tabrmd_conf_t tabrmd_conf = {
-        TCTI_TABRMD_DBUS_TYPE_DEFAULT,
-        TCTI_TABRMD_DBUS_NAME_DEFAULT,
-    };
+    char *conf_copy = NULL;
+    TSS2_RC rc;
+    tabrmd_conf_t tabrmd_conf = TABRMD_CONF_INIT_DEFAULT;
 
+    if (context == NULL && size != NULL) {
+        *size = sizeof (TSS2_TCTI_TABRMD_CONTEXT);
+        return TSS2_RC_SUCCESS;
+    }
+    if (size == NULL) {
+        return TSS2_TCTI_RC_BAD_VALUE;
+    }
     if (conf != NULL) {
         conf_len = strlen (conf);
         if (conf_len > CONF_STRING_MAX) {
             return TSS2_TCTI_RC_BAD_VALUE;
         }
-        conf_copy = strdup (conf);
+        conf_copy = g_strdup (conf);
         if (conf_copy == NULL) {
             g_critical ("Failed to duplicate config string: %s", strerror (errno));
             return TSS2_TCTI_RC_GENERAL_FAILURE;
         }
 
-        ret = tabrmd_conf_parse (conf_copy, &tabrmd_conf);
-        if (ret != TSS2_RC_SUCCESS)
-            return ret;
+        rc = tabrmd_conf_parse (conf_copy, &tabrmd_conf);
+        if (rc != TSS2_RC_SUCCESS) {
+            goto out;
+        }
     }
-    return tss2_tcti_tabrmd_init_full (context,
-                                       size,
-                                       tabrmd_conf.bus_type,
-                                       tabrmd_conf.bus_name);
+    /* Register dbus error mapping for tabrmd. Gets us RCs from Gerror codes */
+    TABRMD_ERROR;
+    init_tcti_data (context);
+    TSS2_TCTI_TABRMD_PROXY (context) =
+        tcti_tabrmd_proxy_new_for_bus_sync (tabrmd_conf.bus_type,
+                                            G_DBUS_PROXY_FLAGS_NONE,
+                                            tabrmd_conf.bus_name,
+                                            TABRMD_DBUS_PATH,
+                                            NULL,
+                                            &error);
+    if (TSS2_TCTI_TABRMD_PROXY (context) == NULL) {
+        g_critical ("failed to allocate dbus proxy object: %s", error->message);
+        rc = TSS2_TCTI_RC_NO_CONNECTION;
+        goto out;
+    }
+    rc = tcti_tabrmd_connect (context);
+    if (rc == TSS2_RC_SUCCESS) {
+        g_debug ("initialized tabrmd TCTI context with id: 0x%" PRIx64,
+                 TSS2_TCTI_TABRMD_ID (context));
+    }
+out:
+    g_clear_pointer (&conf_copy, g_free);
+    g_clear_error (&error);
+
+    return TSS2_RC_SUCCESS;
 }
 
 /* public info structure */
