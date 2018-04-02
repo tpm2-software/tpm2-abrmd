@@ -105,20 +105,17 @@ noinst_LTLIBRARIES = \
     $(libtss2_tcti_echo) \
     $(libtest) \
     $(libutil)
-man3_MANS = man/man3/tss2_tcti_tabrmd_init.3
+man3_MANS = man/man3/Tss2_Tcti_Tabrmd_Init.3
 man7_MANS = man/man7/tss2-tcti-tabrmd.7
 man8_MANS = man/man8/tpm2-abrmd.8
 
-install-data-hook:
-	$(LN_S) -f tss2_tcti_tabrmd_init.3 \
-                $(DESTDIR)$(mandir)/man3/tss2_tcti_tabrmd_init_full.3
 if WITH_UDEVRULESPREFIX
+install-data-hook:
 	mv $(DESTDIR)$(udevrulesdir)/tpm-udev.rules $(DESTDIR)$(udevrulesdir)/$(udevrulesprefix)tpm-udev.rules
-endif
 
 uninstall-local:
-	-rm $(DESTDIR)$(mandir)/man3/tss2_tcti_tabrmd_init_full.3
 	-rm $(DESTDIR)$(udevrulesdir)/$(udevrulesprefix)tpm-udev.rules
+endif
 
 libtss2_tcti_tabrmddir      = $(includedir)/tcti
 libtss2_tcti_tabrmd_HEADERS = $(srcdir)/src/include/tss2-tcti-tabrmd.h
@@ -129,7 +126,7 @@ EXTRA_DIST = \
     test/integration/tpm2-struct-init.h \
     src/tcti-tabrmd.map \
     man/colophon.in \
-    man/tss2_tcti_tabrmd_init.3.in \
+    man/Tss2_Tcti_Tabrmd_Init.3.in \
     man/tss2-tcti-tabrmd.7.in \
     man/tpm2-abrmd.8.in \
     dist/tpm2-abrmd.conf \
