@@ -1,30 +1,28 @@
 .\" Process this file with
 .\" groff -man -Tascii foo.1
 .\"
-.TH TSS2_TCTI_TABRMD_INIT 3 "MAY 2017" Intel "TPM2 Software Stack"
+.TH TSS2_TCTI_TABRMD_INIT 3 "APRIL 2018" Intel "TPM2 Software Stack"
 .SH NAME
-tss2_tcti_tabrmd_init, tss2_tcti_tabrmd_init_full \- Initialization functions
-for the tpm2-abrmd TCTI library.
+Tss2_Tcti_Tabrmd_Init \- Initialization function for the tpm2-abrmd TCTI
+library.
 .SH SYNOPSIS
 The
-.BR tss2_tcti_tabrmd_init ()
-and
-.BR tss2_tcti_tabrmd_init_full ()
-functions are used to initialize a TCTI context for communication with the
+.BR Tss2_Tcti_Tabrmd_Init ()
+function is used to initialize a TCTI context for communication with the
 .BR tpm2-abrmd (8).
 .sp
 .B #include <tcti/tcti-tabrmd.h>
 .sp
-.BI "TSS2_RC tss2_tcti_tabrmd_init (TSS2_TCTI_CONTEXT " "*tcti_context" ", size_t " "*size" );
-.sp
-.BI "TSS2_RC tss2_tcti_tabrmd_init_full (TSS2_TCTI_CONTEXT " "*tcti_context" ", size_t " "*size" ", GBusType" "bus_type" ", const char" "*bus_name" );
+.BI "TSS2_RC Tss2_Tcti_Tabrmd_Init (TSS2_TCTI_CONTEXT " "*tcti_context" ", size_t " "*size" ", const char " "*conf" );
 .sp
 .SH DESCRIPTION
-.BR tss2_tcti_tabrmd_init ()
+.BR Tss2_Tcti_Tabrmd_Init ()
 attempts to initialize a caller allocated
 .I tcti_context
 of size
 .I size
+with configuration specified in the configuration string
+.I conf.
 \&. Since the
 .I tcti_context
 must be a caller allocated buffer, the caller needs to know the size required
@@ -42,18 +40,38 @@ parameter with the minimum size of the
 .I tcti_context
 buffer. The caller my then allocate a buffer of this size (or larger) and
 call
-.B tss2_tcti_tabrmd_init ()
+.B tss2_Tcti_Tabrmd_Init ()
 again providing the newly allocated
 .I tcti_context
 and the size of this context in the
 .I size
-parameter.
-.sp
-This pattern is common to all TCTI initialization functions. We provide an
-example of this pattern using the
-.BR tss2_tcti_tabrmd_init ()
+parameter. This pattern is common to all TCTI initialization functions. We
+provide an example of this pattern using the
+.BR Tss2_Tcti_Tabrmd_Init ()
 function in the section titled
 .B EXAMPLE.
+.sp
+The
+.I conf
+parameter is a string of key / value pairs describing the desired connection
+properties for the TCTI. If the caller provides a NULL
+.I conf
+string then defaults that correspond to the defaults for the tpm2-abrmd (8)
+will be used. This is the same as providing the
+.I conf
+string: "bus_name=com.intel.tss2.Tabrmd,bus_type=system". Keys and values
+are separated by the '=' character while each key / value pair is separated by
+the ',' character. The supported keys and values are:
+.IP \[bu] 2
+.B bus_name
+- the dbus name owned by the daemon. See the tpm2-abrmd (8)
+.I --dbus-name
+option.
+.IP \[bu]
+.B bus_type
+- the bus type used for the connection with the daemon. The value associated
+with this key may be either "system" or "session".
+.RE
 .sp
 Once initialized, the TCTI context returned exposes the Trusted Computing
 Group (TCG) defined API for the lowest level communication with the TPM.
@@ -69,42 +87,25 @@ API and TPM Command Transmission Interface Specification\*(rq specification
 as published by the TCG:
 \%https://trustedcomputinggroup.org/tss-system-level-api-tpm-command-transmission-interface-specification/
 .sp
-.B tss2_tcti_tabrmd_init_full ()
-behaves in the same way as
-.B tss2_tcti_tabrmd_init ()
-but allows for greater flexibility through two additional parameters: The
-.I bus_type
-and
-.I bus_name
-parameters may be used to select which D-Bus bus type and name used to connect
-to an instance of the
-.B tpm2-abrmd (8)
-daemon.
 
 .SH RETURN VALUE
 A successful call to
-.BR tss2_tcti_tabrmd_init ()
-and
-.BR tss2_tcti_tabrmd_init_full ()
+.BR Tss2_Tcti_Tabrmd_Init ()
 will return
 .B TSS2_RC_SUCCESS.
 An unsuccessful call will produce a response code described in section
 .B ERRORS.
 .SH ERRORS
 .B TSS2_TCTI_RC_BAD_VALUE
-is returned if both the
-.I tcti_context
-and the
+is returned if the
 .I size
-parameters are NULL, or the
-.I bus_name
-is NULL, or the
-.I bus_type
-is not a supported type (G_BUS_TYPE_SYSTEM OR G_BUS_TYPE_SESSION).
+parameter is NULL.
 .sp
-All errors caused by communication failures with the
-.B tpm2-abrmd (8)
-are treated as fatal errors and will call the calling application to terminate.
+.B TSS2_TCTI_RC_NO_CONNECTION
+is returned when communication with the tpm2-abrmd (8) fails.
+.sp
+.B TSS2_TCTI_RC_GENERAL_FAILURE
+is returned for all other errors.
 
 .SH EXAMPLE
 .nf
@@ -117,7 +118,7 @@ TSS2_RC rc;
 TSS2_TCTI_CONTEXT *tcti_context;
 size_t size;
 
-rc = tss2_tcti_tabrmd_init (NULL, &size);
+rc = tss2_tcti_tabrmd_init (NULL, &size, NULL,
 if (rc != TSS2_RC_SUCCESS) {
     fprintf (stderr, "Failed to get allocation size for tabrmd TCTI "
              " context: 0x%" PRIx32 "\n", rc);
@@ -129,7 +130,7 @@ if (tcti_context == NULL) {
              strerror (errno));
     exit (EXIT_FAILURE);
 }
-rc = tss2_tcti_tabrmd_init (tcti_context, &size);
+rc = tss2_tcti_tabrmd_init (tcti_context, &size, NULL);
 if (rc != TSS2_RC_SUCCESS) {
     fprintf (stderr, "Failed to initialize tabrmd TCTI context: "
              "0x%" PRIx32 "\n", rc);
