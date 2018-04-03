@@ -641,7 +641,7 @@ out:
     g_clear_pointer (&conf_copy, g_free);
     g_clear_error (&error);
 
-    return TSS2_RC_SUCCESS;
+    return rc;
 }
 
 /* public info structure */
