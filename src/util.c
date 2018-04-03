@@ -340,3 +340,69 @@ g_debug_tpma_cc (TPMA_CC tpma_cc)
     g_debug ("  V:            %s", prop_str (tpma_cc & TPMA_CC_V));
     g_debug ("  Res:          0x%" PRIx8, (tpma_cc & TPMA_CC_RES_MASK) >> TPMA_CC_RES_SHIFT);
 }
+/*
+ * Parse the provided string containing a key / value pair separated by the
+ * '=' character.
+ * NOTE: The 'kv_str' parameter is not 'const' and this function will modify
+ * it as part of the parsing process.
+ */
+gboolean
+parse_key_value (char *key_value_str,
+                 key_value_t *key_value)
+{
+    const char *delim = "=";
+    char *tok, *state;
+
+    g_debug ("%s: with key_value_str: \"%s\" and key_value_t: 0x%" PRIxPTR, __func__, key_value_str, (uintptr_t)key_value);
+    tok = strtok_r (key_value_str, delim, &state);
+    if (tok == NULL) {
+        g_warning ("key / value string is null.");
+        return FALSE;
+    }
+    key_value->key = tok;
+
+    tok = strtok_r (NULL, delim, &state);
+    if (tok == NULL) {
+        g_warning ("key / value string is invalid");
+        return FALSE;
+    }
+    key_value->value = tok;
+
+    return TRUE;
+}
+/*
+ * This function parses the provided configuration string extracting the
+ * key/value pairs, and then passing the provided provided callback function
+ * for processing.
+ * NOTE: The 'kv_str' parameter is not 'const' and this function will modify
+ * it as part of the parsing process.
+ */
+TSS2_RC
+parse_key_value_string (char *kv_str,
+                        KeyValueFunc callback,
+                        gpointer user_data)
+{
+    const char *delim = ",";
+    char *state, *tok;
+    key_value_t key_value = { 0 };
+    gboolean ret;
+    TSS2_RC rc = TSS2_RC_SUCCESS;
+
+    g_debug ("%s: kv_str: \"%s\", callback: 0x%" PRIxPTR ", user_data: 0x%"
+             PRIxPTR, __func__, kv_str, (uintptr_t)callback,
+             (uintptr_t)user_data);
+    for (tok = strtok_r (kv_str, delim, &state);
+         tok;
+         tok = strtok_r (NULL, delim, &state)) {
+        ret = parse_key_value (tok, &key_value);
+        if (ret != TRUE) {
+            return TSS2_TCTI_RC_BAD_VALUE;
+        }
+        rc = callback (&key_value, user_data);
+        if (rc != TSS2_RC_SUCCESS) {
+            goto out;
+        }
+    }
+out:
+    return rc;
+}

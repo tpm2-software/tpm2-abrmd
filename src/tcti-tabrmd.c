@@ -463,56 +463,32 @@ tabrmd_bus_type_from_str (const char* const bus_type)
 }
 
 TSS2_RC
-tabrmd_conf_parse_kv (const char *key,
-                      const char *value,
-                      tabrmd_conf_t * const tabrmd_conf)
+tabrmd_kv_callback (const key_value_t *key_value,
+                    gpointer user_data)
 {
-    g_debug ("key: %s / value: %s\n", key, value);
-    if (strcmp (key, "bus_name") == 0) {
-        tabrmd_conf->bus_name = value;
-        return TSS2_RC_SUCCESS;
+    tabrmd_conf_t *tabrmd_conf = (tabrmd_conf_t*)user_data;
+
+    g_debug ("%s with key_value: 0x%" PRIxPTR " and user_data: 0x%" PRIxPTR,
+             __func__, (uintptr_t)key_value, (uintptr_t)user_data);
+    if (key_value == NULL || user_data == NULL) {
+        g_warning ("%s passed NULL parameter", __func__);
+        return TSS2_TCTI_RC_GENERAL_FAILURE;
     }
-    if (strcmp (key, "bus_type") == 0) {
-        tabrmd_conf->bus_type = tabrmd_bus_type_from_str (value);
+    g_debug ("key: %s / value: %s\n", key_value->key, key_value->value);
+    if (strcmp (key_value->key, "bus_name") == 0) {
+        tabrmd_conf->bus_name = key_value->value;
+        return TSS2_RC_SUCCESS;
+    } else if (strcmp (key_value->key, "bus_type") == 0) {
+        tabrmd_conf->bus_type = tabrmd_bus_type_from_str (key_value->value);
         if (tabrmd_conf->bus_type == G_BUS_TYPE_NONE) {
             return TSS2_TCTI_RC_BAD_VALUE;
         }
         return TSS2_RC_SUCCESS;
+    } else {
+        return TSS2_TCTI_RC_BAD_VALUE;
     }
-
-    return TSS2_TCTI_RC_BAD_VALUE;
 }
 
-/*
- * This function parses the provided configuration string extracting the
- * key/value pairs, validating them and populating the provided
- * tabrmd_conf_t structure with the results.
- */
-TSS2_RC
-tabrmd_conf_parse (char *conf_str,
-                   tabrmd_conf_t * const tabrmd_conf)
-{
-    TSS2_RC ret = TSS2_RC_SUCCESS;
-    char *key_value, *key, *value;
-    char *tok_kv_ctx = NULL;
-
-    while ((key_value = strtok_r (conf_str, ",", &conf_str)) != NULL) {
-        key = strtok_r (key_value, "=", &tok_kv_ctx);
-        if (key == NULL) {
-            return TSS2_TCTI_RC_BAD_VALUE;
-        }
-        value = strtok_r (NULL, "=", &tok_kv_ctx);
-        if (value == NULL) {
-            return TSS2_TCTI_RC_BAD_VALUE;
-        }
-        ret = tabrmd_conf_parse_kv (key, value, tabrmd_conf);
-        if (ret != TSS2_RC_SUCCESS) {
-            return ret;
-        }
-    }
-
-    return TSS2_RC_SUCCESS;
-}
 /*
  * Establish a connection with the daemon. This includes calling the
  * CreateConnection dbus method, extracting the file descriptor used for
@@ -576,6 +552,7 @@ out:
     g_clear_object (&fd_list);
     return rc;
 }
+
 /*
  * The longest configuration string we'll take. Each dbus name can be 255
  * characters long (see dbus spec). The bus_types that we support are
@@ -611,8 +588,9 @@ Tss2_Tcti_Tabrmd_Init (TSS2_TCTI_CONTEXT *context,
             g_critical ("Failed to duplicate config string: %s", strerror (errno));
             return TSS2_TCTI_RC_GENERAL_FAILURE;
         }
-
-        rc = tabrmd_conf_parse (conf_copy, &tabrmd_conf);
+        rc = parse_key_value_string (conf_copy,
+                                     tabrmd_kv_callback,
+                                     &tabrmd_conf);
         if (rc != TSS2_RC_SUCCESS) {
             goto out;
         }
