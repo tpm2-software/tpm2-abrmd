@@ -42,6 +42,14 @@
 #define UTIL_BUF_MAX  8*UTIL_BUF_SIZE
 
 #define prop_str(val) val ? "set" : "clear"
+
+typedef struct {
+    char *key;
+    char *value;
+} key_value_t;
+
+typedef TSS2_RC (*KeyValueFunc) (const key_value_t* key_value,
+                                 gpointer user_data);
 /*
 #define TPM2_CC_FROM_TPMA_CC(attrs) (attrs.val & 0x0000ffff)
 #define TPMA_CC_RESERVED(attrs)    (attrs.val & 0x003f0000)
@@ -76,4 +84,8 @@ int         create_socket_pair              (int              *fd_a,
                                              int              *fd_b,
                                              int               flags);
 void        g_debug_tpma_cc                 (TPMA_CC           tpma_cc);
+TSS2_RC     parse_key_value_string (char *kv_str,
+                                    KeyValueFunc callback,
+                                    gpointer user_data);
+
 #endif /* UTIL_H */

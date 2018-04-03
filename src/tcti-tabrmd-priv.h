@@ -33,6 +33,7 @@
 
 #include "tabrmd-generated.h"
 #include "tpm2-header.h"
+#include "util.h"
 
 #define TSS2_TCTI_TABRMD_MAGIC 0x1c8e03ff00db0f92
 #define TSS2_TCTI_TABRMD_VERSION 1
@@ -128,10 +129,7 @@ typedef struct {
  */
 const TSS2_TCTI_INFO* Tss2_Tcti_Info (void);
 GBusType tabrmd_bus_type_from_str (const char* const bus_type);
-TSS2_RC tabrmd_conf_parse_kv (const char *key,
-                              const char *value,
-                              tabrmd_conf_t * const tabrmd_conf);
-TSS2_RC tabrmd_conf_parse (char *conf_str,
-                           tabrmd_conf_t * const tabrmd_conf);
+TSS2_RC tabrmd_kv_callback (const key_value_t *key_value,
+                            gpointer user_data);
 
 #endif /* TSS2TCTI_TABRMD_PRIV_H */

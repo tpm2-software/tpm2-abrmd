@@ -42,6 +42,7 @@
 #include "tss2-tcti-tabrmd.h"
 #include "tcti-tabrmd-priv.h"
 #include "tpm2-header.h"
+#include "util.h"
 
 /*
  * when given an NULL context and a pointer to a size_t, set the size_t
@@ -129,31 +130,39 @@ tcti_tabrmd_bus_type_from_str_bad_test (void **state)
 }
 /*
  * Ensure that when we pass the key "bus_name" and value "any string"
- * to tabrmd_conf_parse_kv that it returns an RC indicating success while
+ * to tabrmd_kv_callback that it returns an RC indicating success while
  * the conf structure 'bus_name' field is set to the value string.
  */
 static void
-tcti_tabrmd_conf_parse_kv_name_test (void **state)
+tcti_tabrmd_kv_callback_name_test (void **state)
 {
     tabrmd_conf_t conf = { 0 };
+    key_value_t key_value = { 
+        .key = "bus_name",
+        .value = "foo.bar",
+    };
     TSS2_RC rc;
 
-    rc = tabrmd_conf_parse_kv ("bus_name", "foo.bar", &conf);
+    rc = tabrmd_kv_callback (&key_value, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_string_equal ("foo.bar", conf.bus_name);
 }
 /*
  * Ensure that when we pass the key "bus_type" and the value "system"
- * to tabrmd_conf_parse_kv that it returns an RC indicating success while
+ * to tabrmd_kv_callback that it returns an RC indicating success while
  * the conf structure 'bus_type' field is set to G_BUS_TYPE_SYSTEM.
  */
 static void
-tcti_tabrmd_conf_parse_kv_type_good_test (void **state)
+tcti_tabrmd_kv_callback_type_good_test (void **state)
 {
     tabrmd_conf_t conf = { 0 };
+    key_value_t key_value = { 
+        .key = "bus_type",
+        .value = "system",
+    };
     TSS2_RC rc;
 
-    rc = tabrmd_conf_parse_kv ("bus_type", "system", &conf);
+    rc = tabrmd_kv_callback (&key_value, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_int_equal (conf.bus_type, G_BUS_TYPE_SYSTEM);
 }
@@ -164,12 +173,16 @@ tcti_tabrmd_conf_parse_kv_type_good_test (void **state)
  * G_BUS_TYPE_NONE.
  */
 static void
-tcti_tabrmd_conf_parse_kv_type_bad_test (void **state)
+tcti_tabrmd_kv_callback_type_bad_test (void **state)
 {
     tabrmd_conf_t conf = { 0 };
+    key_value_t key_value = { 
+        .key = "bus_type",
+        .value = "foo",
+    };
     TSS2_RC rc;
 
-    rc = tabrmd_conf_parse_kv ("bus_type", "foo", &conf);
+    rc = tabrmd_kv_callback (&key_value, &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
     assert_int_equal (conf.bus_type, G_BUS_TYPE_NONE);
 }
@@ -178,12 +191,16 @@ tcti_tabrmd_conf_parse_kv_type_bad_test (void **state)
  * that it returns an RC indicating BAD_VALUE.
  */
 static void
-tcti_tabrmd_conf_parse_kv_bad_key_test (void **state)
+tcti_tabrmd_kv_callback_bad_key_test (void **state)
 {
     tabrmd_conf_t conf = { 0 };
+    key_value_t key_value = { 
+        .key = "foo",
+        .value = "bar",
+    };
     TSS2_RC rc;
 
-    rc = tabrmd_conf_parse_kv ("foo", "bar", &conf);
+    rc = tabrmd_kv_callback (&key_value, &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /*
@@ -197,7 +214,7 @@ tcti_tabrmd_conf_parse_named_session_test (void **state)
     tabrmd_conf_t conf = { 0 };
     char conf_str[] = "bus_type=session,bus_name=com.example.Session";
 
-    rc = tabrmd_conf_parse (conf_str, &conf);
+    rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_string_equal (conf.bus_name, "com.example.Session");
     assert_int_equal (conf.bus_type, G_BUS_TYPE_SESSION);
@@ -213,7 +230,7 @@ tcti_tabrmd_conf_parse_named_system_test (void **state)
     tabrmd_conf_t conf = { 0 };
     char conf_str[] = "bus_type=system,bus_name=com.example.System";
 
-    rc = tabrmd_conf_parse (conf_str, &conf);
+    rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_string_equal (conf.bus_name, "com.example.System");
     assert_int_equal (conf.bus_type, G_BUS_TYPE_SYSTEM);
@@ -228,7 +245,7 @@ tcti_tabrmd_conf_parse_bad_type_test (void **state)
     tabrmd_conf_t conf = { 0 };
     char conf_str[] = "bus_type=foobar";
 
-    rc = tabrmd_conf_parse (conf_str, &conf);
+    rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /*
@@ -242,7 +259,7 @@ tcti_tabrmd_conf_parse_no_name_test (void **state)
     tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_type=session";
 
-    rc = tabrmd_conf_parse (conf_str, &conf);
+    rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_string_equal (conf.bus_name, TABRMD_DBUS_NAME_DEFAULT);
     assert_int_equal (conf.bus_type, G_BUS_TYPE_SESSION);
@@ -258,7 +275,7 @@ tcti_tabrmd_conf_parse_no_type_test (void **state)
     tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_name=com.example.FooBar";
 
-    rc = tabrmd_conf_parse (conf_str, &conf);
+    rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_string_equal (conf.bus_name, "com.example.FooBar");
     assert_int_equal (conf.bus_type, TABRMD_DBUS_TYPE_DEFAULT);
@@ -273,7 +290,7 @@ tcti_tabrmd_conf_parse_no_value_test (void **state)
     tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_name=";
 
-    rc = tabrmd_conf_parse (conf_str, &conf);
+    rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /*
@@ -286,7 +303,7 @@ tcti_tabrmd_conf_parse_no_key_test (void **state)
     tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "=some-string";
 
-    rc = tabrmd_conf_parse (conf_str, &conf);
+    rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
 }
 /*
@@ -1337,10 +1354,10 @@ main(int argc, char* argv[])
         cmocka_unit_test (tcti_tabrmd_bus_type_from_str_session_test),
         cmocka_unit_test (tcti_tabrmd_bus_type_from_str_system_test),
         cmocka_unit_test (tcti_tabrmd_bus_type_from_str_bad_test),
-        cmocka_unit_test (tcti_tabrmd_conf_parse_kv_name_test),
-        cmocka_unit_test (tcti_tabrmd_conf_parse_kv_type_good_test),
-        cmocka_unit_test (tcti_tabrmd_conf_parse_kv_type_bad_test),
-        cmocka_unit_test (tcti_tabrmd_conf_parse_kv_bad_key_test),
+        cmocka_unit_test (tcti_tabrmd_kv_callback_name_test),
+        cmocka_unit_test (tcti_tabrmd_kv_callback_type_good_test),
+        cmocka_unit_test (tcti_tabrmd_kv_callback_type_bad_test),
+        cmocka_unit_test (tcti_tabrmd_kv_callback_bad_key_test),
         cmocka_unit_test (tcti_tabrmd_conf_parse_named_session_test),
         cmocka_unit_test (tcti_tabrmd_conf_parse_named_system_test),
         cmocka_unit_test (tcti_tabrmd_conf_parse_bad_type_test),
