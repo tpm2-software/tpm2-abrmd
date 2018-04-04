@@ -19,8 +19,10 @@ consider this the window for comments.
 
 ## Patch requirements
 * All tests must pass on Travis CI for the merge to occur.
-* All changes must not introduce superfluous changes or whitespace errors.
 * All changes should adhere to the coding standard.
+* All commits must be accurately described by the associated commit message
+and be limited to a single "unit" of change as described in:
+http://www.ericbmerritt.com/2011/09/21/commit-hygiene-and-git.html
 * All commits should adhere to the git commit message guidlines described
 here: https://chris.beams.io/posts/git-commit/ with the following exceptions.
  * We allow commit subject lines up to 80 characters.
