@@ -175,7 +175,7 @@ tcti_tabrmd_poll (int        fd,
                  errno_tmp, strerror (errno_tmp));
         return errno_tmp;
     case 0:
-        g_debug ("poll timed out after %" PRId32 " miniseconds", timeout);
+        g_debug ("poll timed out after %" PRId32 " milliseconds", timeout);
         return -1;
     default:
         g_debug ("poll has %d fds ready", ret);

@@ -362,9 +362,9 @@ tss2_tcti_echo_receive_null_size_unit (void **state)
  * A test: Call the receive function while passing it a 'size' parameter that
  * indicates the buffer passed in is only 5 bytes in size. We trick the
  * echo tcti into thinking it has TCTI_ECHO_MAX_BUF bytes to return to the
- * caller so it should reply indicating that the callers resonse buffer is
+ * caller so it should reply indicating that the caller's response buffer is
  * too small. It should also set the size to the buffer size required to
- * hold the resonse.
+ * hold the response.
  */
 static void
 tss2_tcti_echo_receive_insufficient_size_unit (void **state)

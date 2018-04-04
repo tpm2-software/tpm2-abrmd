@@ -38,7 +38,7 @@
 /*
  * This is a test program that creates and loads a configurable number of
  * transient objects in the NULL hierarchy. The number of keys created
- * undert the NULL primary key can be provided as a base 10 integer on
+ * under the NULL primary key can be provided as a base 10 integer on
  * the command line. This is the only parameter the program takes.
  */
 int

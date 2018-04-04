@@ -71,7 +71,7 @@ main (int argc,
 		}
 		g_info ("Got SAPI context: 0x%" PRIxPTR, (uintptr_t)sapi_context);
 		/* create an auth session */
-		g_info ("Starting unbound, unsaulted auth session");
+		g_info ("Starting unbound, unsalted auth session");
 		rc = start_auth_session (sapi_context, &session_handle);
 		if (rc != TSS2_RC_SUCCESS) {
 			g_error ("Tss2_Sys_StartAuthSession failed: 0x%" PRIxHANDLE, rc);
@@ -86,7 +86,7 @@ main (int argc,
 			g_error ("Tss2_Sys_ContextSave failed: 0x%" PRIxHANDLE, rc);
 		}
 		prettyprint_context (&context);
-		g_info ("Tearding down SAPI connection 0x%" PRIxPTR,
+		g_info ("Tearing down SAPI connection 0x%" PRIxPTR,
 				(uintptr_t)sapi_context);
 		sapi_teardown_full (sapi_context);
 

@@ -104,7 +104,7 @@ create_connection_and_save_sessions (test_opts_t *opts,
         g_info ("Successfully saved context for session: 0x%" PRIxHANDLE,
                 data [i].handle);
         prettyprint_context (&data [i].context);
-        g_info ("Tearding down SAPI connection 0x%" PRIxPTR,
+        g_info ("Tearing down SAPI connection 0x%" PRIxPTR,
                 (uintptr_t)sapi_context);
         sapi_teardown_full (sapi_context);
     }

@@ -46,7 +46,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     TPMS_CONTEXT          context = { 0, };
 
     /* create an auth session */
-    g_info ("Starting unbound, unsaulted auth session");
+    g_info ("Starting unbound, unsalted auth session");
     rc = start_auth_session (sapi_context, &session_handle);
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("Tss2_Sys_StartAuthSession failed: 0x%" PRIxHANDLE, rc);

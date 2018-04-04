@@ -41,7 +41,7 @@
  * the TPM for the active handles. The only session handle we've created is
  * still loaded so we should receive no handles back.
  *
- * We then save the context of the session. This should trasition it's state
+ * We then save the context of the session. This should transition its state
  * from 'loaded' to 'active'. Now when we query the TPM for loaded and active
  * handles again. Since we've saved the context of our session there should
  * be no loaded sessions and one active session (the one we just saved).
@@ -161,7 +161,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     UINT32                count = 0;
 
     /* create an auth session */
-    g_info ("Starting unbound, unsaulted auth session");
+    g_info ("Starting unbound, unsalted auth session");
     rc = start_auth_session (sapi_context, &session_handle);
     if (rc != TSS2_RC_SUCCESS) {
         g_error ("Tss2_Sys_StartAuthSession failed: 0x%" PRIxHANDLE, rc);

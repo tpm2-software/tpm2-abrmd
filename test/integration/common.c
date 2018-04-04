@@ -361,7 +361,7 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
                                      NULL);
         if (rc != TSS2_RC_SUCCESS) {
              g_warning ("Tss2_Sys_GetCapability: failed to get capability for "
-                        "handles propery: 0x%" PRIx32 " count: 0x%" PRIx32
+                        "handles property: 0x%" PRIx32 " count: 0x%" PRIx32
                         " TSS2_RC: 0x%" PRIx32, properties[i].property,
                         properties[i].count, rc);
              continue;
@@ -388,7 +388,7 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
     }
 }
 /*
- * This fucntion is a very simple wrapper around the TPM2_StartAuthSession
+ * This function is a very simple wrapper around the TPM2_StartAuthSession
  * function. It uses the most simple / default values to create an unsalted,
  * unbound session.
  */
