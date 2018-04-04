@@ -372,7 +372,7 @@ static void
 tpm2_command_get_handles_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
-    TPM2_HANDLE handles [3] = { 0, };
+    TPM2_HANDLE handles [3] = { 0, 0, 0 };
     size_t count = 3;
     gboolean ret;
 
@@ -390,7 +390,7 @@ tpm2_command_set_handles_test (void **state)
         TPM2_HT_TRANSIENT + 0x1,
         TPM2_HT_TRANSIENT + 0x2,
     };
-    TPM2_HANDLE handles_out [2] = { 0, };
+    TPM2_HANDLE handles_out [2] = { 0, 0 };
     size_t handle_count = 2;
 
     ret = tpm2_command_set_handles (data->command, handles_in, handle_count);
@@ -647,8 +647,7 @@ tpm2_command_get_cap_no_count (void **state)
 }
 
 gint
-main (gint    argc,
-      gchar  *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (tpm2_command_type_test,

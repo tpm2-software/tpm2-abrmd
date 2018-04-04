@@ -222,7 +222,10 @@ tpm2_command_finalize (GObject *obj)
 }
 static void
 tpm2_command_init (Tpm2Command *command)
-{ /* noop */ }
+{
+    UNUSED_PARAM(command);
+    /* noop */
+}
 /**
  * Boilerplate GObject initialization. Get a pointer to the parent class,
  * setup a finalize function.

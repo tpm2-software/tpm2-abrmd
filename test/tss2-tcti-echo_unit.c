@@ -30,8 +30,15 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include "util.h"
 #include "tss2-tcti-echo.h"
 #include "tss2-tcti-echo-priv.h"
+
+#if defined(__linux__) || defined(__unix__) || defined(__APPLE__)
+#define TSS2_TCTI_POLL_HANDLE_ZERO_INIT { .fd = 0, .events = 0, .revents = 0 }
+#else
+#define TSS2_TCTI_POLL_HANDLE_ZERO_INIT { 0 }
+#endif
 
 typedef struct test_data {
     TSS2_TCTI_CONTEXT *tcti_context;
@@ -72,6 +79,7 @@ tss2_tcti_echo_get_size_unit (void **state)
 {
     TSS2_RC rc;
     size_t  size = 0;
+    UNUSED_PARAM(state);
 
     rc = tss2_tcti_echo_init (NULL, &size, TSS2_TCTI_ECHO_MAX_BUF);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
@@ -85,6 +93,7 @@ static void
 tss2_tcti_echo_null_ctx_and_size_unit (void **state)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = tss2_tcti_echo_init (NULL, NULL, TSS2_TCTI_ECHO_MAX_BUF);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
@@ -98,6 +107,7 @@ tss2_tcti_echo_init_buf_lt_min_unit (void **state)
 {
     TSS2_RC rc;
     size_t size = 0;
+    UNUSED_PARAM(state);
 
     rc = tss2_tcti_echo_init (NULL, &size, TSS2_TCTI_ECHO_MIN_BUF - 1);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
@@ -111,6 +121,7 @@ tss2_tcti_echo_init_buf_gt_max_unit (void **state)
 {
     TSS2_RC rc;
     size_t size = 0;
+    UNUSED_PARAM(state);
 
     rc = tss2_tcti_echo_init (NULL, &size, TSS2_TCTI_ECHO_MAX_BUF + 1);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
@@ -206,7 +217,10 @@ tss2_tcti_echo_get_poll_handles_unit (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
-    TSS2_TCTI_POLL_HANDLE handles[3] = { 0, };
+    TSS2_TCTI_POLL_HANDLE handles[3] = {
+        TSS2_TCTI_POLL_HANDLE_ZERO_INIT, TSS2_TCTI_POLL_HANDLE_ZERO_INIT,
+        TSS2_TCTI_POLL_HANDLE_ZERO_INIT
+    };
     size_t  num_handles = 3;
 
     rc = Tss2_Tcti_GetPollHandles (data->tcti_context,
@@ -239,6 +253,7 @@ static void
 tss2_tcti_echo_transmit_null_context_unit (void **state)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = Tss2_Tcti_Transmit (NULL, 0, NULL);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
@@ -339,6 +354,7 @@ static void
 tss2_tcti_echo_receive_null_context_unit (void **state)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = Tss2_Tcti_Receive (NULL, NULL, NULL, 0);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
@@ -448,8 +464,7 @@ tss2_tcti_echo_receive_success_unit (void **state)
  * Test driver.
  */
 int
-main (int     argc,
-      char   *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (tss2_tcti_echo_get_size_unit,

@@ -70,7 +70,7 @@ tcti_tabrmd_init (TSS2_TCTI_CONTEXT **tcti_context,
                  strerror (errno));
         return rc;
     }
-    for (i = 0; i < retries; ++i) {
+    for (i = 0; i < (size_t) retries; ++i) {
         rc = Tss2_Tcti_Tabrmd_Init (*tcti_context, &size, conf);
         if (rc == TSS2_RC_SUCCESS) {
             break;
@@ -103,6 +103,9 @@ main (int   argc,
     };
 
     g_info ("Executing test: %s", argv[0]);
+    if (argc > 1) {
+        g_error ("Unexpected argument count %d", argc);
+    }
     get_test_opts_from_env (&opts);
     if (sanity_check_test_opts (&opts) != 0) {
         g_error ("option sanity test failed");

@@ -62,6 +62,8 @@ __wrap_access_broker_send_command (AccessBroker *access_broker,
                                    TSS2_RC      *rc)
 {
     Tpm2Response *response;
+    UNUSED_PARAM(access_broker);
+    UNUSED_PARAM(command);
 
     *rc      = mock_type (TSS2_RC);
     response = TPM2_RESPONSE (mock_ptr_type (GObject*));
@@ -87,6 +89,7 @@ void
 __wrap_sink_enqueue (Sink      *self,
                      GObject   *obj)
 {
+    UNUSED_PARAM(self);
     test_data_t *data = mock_ptr_type (test_data_t*);
     data->response = TPM2_RESPONSE (obj);
 }
@@ -95,6 +98,9 @@ __wrap_access_broker_context_saveflush (AccessBroker *broker,
                                         TPM2_HANDLE    handle,
                                         TPMS_CONTEXT *context)
 {
+    UNUSED_PARAM(broker);
+    UNUSED_PARAM(handle);
+    UNUSED_PARAM(context);
    return mock_type (TSS2_RC);
 }
 /*
@@ -110,6 +116,8 @@ __wrap_access_broker_context_load (AccessBroker *access_broker,
 {
     TSS2_RC    rc      = mock_type (TSS2_RC);
     TPM2_HANDLE phandle = mock_type (TPM2_HANDLE);
+    UNUSED_PARAM(access_broker);
+    UNUSED_PARAM(context);
 
     assert_non_null (handle);
     *handle = phandle;
@@ -390,8 +398,7 @@ resource_manager_load_contexts_test (void **state)
     g_object_unref (loaded_sessions);
 }
 int
-main (int   argc,
-      char *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (resource_manager_type_test,

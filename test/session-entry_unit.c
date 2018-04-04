@@ -127,8 +127,7 @@ session_entry_get_handle_test (void **state)
 }
 
 gint
-main (gint argc,
-      gchar *arvg[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (session_entry_type_test,

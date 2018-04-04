@@ -33,6 +33,9 @@
 
 #include "control-message.h"
 
+/* Use to suppress "unused parameter" warnings: */
+#define UNUSED_PARAM(p) ((void)(p))
+
 /* set the layer / component to indicate the RC comes from the RM */
 #define RM_RC(rc) TSS2_RESMGR_RC_LAYER + rc
 

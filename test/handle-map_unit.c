@@ -156,7 +156,7 @@ handle_map_next_vhandle_test (void **state)
     assert_true (handle2 != handle1);
 }
 int
-main(int argc, char* argv[])
+main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (handle_map_type_test,

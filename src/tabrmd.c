@@ -262,6 +262,11 @@ show_version (const gchar  *option_name,
               gpointer      data,
               GError      **error)
 {
+    UNUSED_PARAM(option_name);
+    UNUSED_PARAM(value);
+    UNUSED_PARAM(data);
+    UNUSED_PARAM(error);
+
     g_print ("tpm2-abrmd version %s\n", VERSION);
     exit (0);
 }
@@ -350,26 +355,27 @@ parse_opts (gint            argc,
         { "logger", 'l', 0, G_OPTION_ARG_STRING, &logger_name,
           "The name of desired logger, stdout is default.", "[stdout|syslog]"},
         { "session", 's', 0, G_OPTION_ARG_NONE, &session_bus,
-          "Connect to the session bus (system bus is default)." },
+          "Connect to the session bus (system bus is default).", NULL },
         { "flush-all", 'f', G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE,
           &options->flush_all,
-          "Flush all objects and sessions from TPM on startup." },
+          "Flush all objects and sessions from TPM on startup.", NULL },
         { "max-connections", 'm', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
-          &options->max_connections, "Maximum number of client connections." },
+          &options->max_connections, "Maximum number of client connections.",
+          NULL },
         { "max-sessions", 'e', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_sessions,
-          "Maximum number of sessions per connection." },
+          "Maximum number of sessions per connection.", NULL },
         { "max-transient-objects", 'r', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_transient_objects,
-          "Maximum number of loaded transient objects per client." },
+          "Maximum number of loaded transient objects per client.", NULL },
         { "prng-seed-file", 'g', G_OPTION_FLAG_NONE, G_OPTION_ARG_STRING,
           &options->prng_seed_file, "File to read seed value for PRNG",
           options->prng_seed_file },
         { "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK,
-          show_version, "Show version string" },
+          show_version, "Show version string", NULL },
         { "allow-root", 'o', 0, G_OPTION_ARG_NONE,
           &options->allow_root,
-          "Allow the daemon to run as root, which is not recommended" },
+          "Allow the daemon to run as root, which is not recommended", NULL },
         {
             .long_name       = "tcti",
             .short_name      = 't',
@@ -379,7 +385,7 @@ parse_opts (gint            argc,
             .description     = "TCTI configuration string. See tpm2-abrmd (8) for search rules.",
             .arg_description = "tcti-conf",
         },
-        { NULL },
+        { NULL, '\0', 0, 0, NULL, NULL, NULL },
     };
 
     ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabrmd)");

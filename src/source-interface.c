@@ -24,6 +24,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include "util.h"
 #include "source-interface.h"
 
 G_DEFINE_INTERFACE (Source, source, G_TYPE_INVALID);
@@ -31,6 +33,7 @@ G_DEFINE_INTERFACE (Source, source, G_TYPE_INVALID);
 static void
 source_default_init (SourceInterface *iface)
 {
+    UNUSED_PARAM(iface);
     /* noop, required by G_DEFINE_INTERFACE */
 }
 

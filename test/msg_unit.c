@@ -53,7 +53,7 @@ data_msg_allocate_allnull_test (void **state)
 }
 
 gint
-main(gint argc, gchar* argv[])
+main(void)
 {
     const UnitTest tests[] = {
         unit_test (check_cancel_msg_allocate_test),

@@ -430,8 +430,7 @@ tpm2_response_set_handle_no_handle_test (void **state)
     assert_int_equal (handle_out, 0);
 }
 gint
-main (gint    argc,
-      gchar  *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (tpm2_response_type_test,

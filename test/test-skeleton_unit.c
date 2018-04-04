@@ -78,8 +78,7 @@ test_unit (void **state)
  * Test driver.
  */
 int
-main (int     argc,
-      char   *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (test_unit,

@@ -106,8 +106,7 @@ tab_add_no_remove_test (void **state)
     g_object_unref (msg);
 }
 gint
-main (gint   argc,
-      gchar *argv[])
+main (void)
 {
     const UnitTest tests[] = {
         unit_test (tab_allocate_deallocate_test),

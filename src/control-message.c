@@ -24,6 +24,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include "util.h"
 #include "control-message.h"
 
 G_DEFINE_TYPE (ControlMessage, control_message, G_TYPE_OBJECT);
@@ -32,7 +33,10 @@ G_DEFINE_TYPE (ControlMessage, control_message, G_TYPE_OBJECT);
  */
 static void
 control_message_init (ControlMessage *obj)
-{ /* noop */ }
+{
+    UNUSED_PARAM(obj);
+    /* noop */
+}
 /* Boiler-plate gobject code.
  */
 static void

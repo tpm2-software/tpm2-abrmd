@@ -31,6 +31,7 @@
 #include <tss2/tss2_sys.h>
 
 #include "common.h"
+#include "tpm2-struct-init.h"
 #include "test.h"
 #define PRIxHANDLE "08" PRIx32
 /*
@@ -67,7 +68,7 @@ handles_count (TSS2_SYS_CONTEXT *sapi_context,
     TSS2_RC              rc         = TSS2_RC_SUCCESS;
     TPM2_CAP              capability = TPM2_CAP_HANDLES;
     TPMI_YES_NO          more_data  = 0;
-    TPMS_CAPABILITY_DATA cap_data   = { 0, };
+    TPMS_CAPABILITY_DATA cap_data   = TPMS_CAPABILITY_DATA_ZERO_INIT;
 
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
@@ -98,7 +99,7 @@ prettyprint_getcap_handles (TSS2_SYS_CONTEXT *sapi_context,
     TSS2_RC              rc         = TSS2_RC_SUCCESS;
     TPM2_CAP              capability = TPM2_CAP_HANDLES;
     TPMI_YES_NO          more_data  = 0;
-    TPMS_CAPABILITY_DATA cap_data   = { 0, };
+    TPMS_CAPABILITY_DATA cap_data   = TPMS_CAPABILITY_DATA_ZERO_INIT;
     size_t               count      = 100;
     size_t               i;
 
@@ -157,7 +158,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
     TSS2_RC               rc;
     TPMI_SH_AUTH_SESSION  session_handle = 0, session_handle_load = 0;
-    TPMS_CONTEXT          context = { 0, };
+    TPMS_CONTEXT          context = TPMS_CONTEXT_ZERO_INIT;
     UINT32                count = 0;
 
     /* create an auth session */

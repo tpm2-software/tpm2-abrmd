@@ -180,6 +180,8 @@ VALGRIND_memcheck_FLAGS = --leak-check=full --show-leak-kinds=definite,indirect 
 src/ipc-frontend-dbus.c : $(BUILT_SOURCES)
 
 # utility library with most of the code that makes up the daemon
+# -Wno-unused-parameter for automatically-generated tabrmd-generated.c:
+src_libutil_la_CFLAGS  = $(AM_CFLAGS) -Wno-unused-parameter
 src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(TSS2_SYS_LIBS) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
 src_libutil_la_SOURCES = \

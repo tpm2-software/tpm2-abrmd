@@ -31,6 +31,7 @@
 #include <string.h>
 #include <cmocka.h>
 
+#include "util.h"
 #include "random.h"
 
 #define ENTROPY_SRC "/dev/urandom"
@@ -83,12 +84,16 @@ __wrap_read (int     fd,
              void   *buf,
              size_t  count)
 {
+    UNUSED_PARAM(fd);
+    UNUSED_PARAM(buf);
+    UNUSED_PARAM(count);
     return mock_type (ssize_t);
 }
 /* wrap function for the 'close' system call */
 int
 __wrap_close (int fd)
 {
+    UNUSED_PARAM(fd);
     return mock_type (int);
 }
 
@@ -236,7 +241,11 @@ random_get_bytes_success_test (void **state)
     ret = random_get_bytes (data->random, dest, sizeof (dest));
     assert_int_equal (ret, sizeof (long int) * 3 - 3);
 }
-/* Test case to execute a successful call to random_get_uint64. */
+
+/*
+ * Test case to execute a successful call to random_get_uint64.
+ * If 0 or UINT64_MAX, it's very likely the data is not random.
+ */
 static void
 random_get_uint64_success_test (void **state)
 {
@@ -244,9 +253,13 @@ random_get_uint64_success_test (void **state)
     uint64_t dest = 0;
 
     dest = random_get_uint64 (data->random);
-    assert_true (dest >= 0 && dest <= UINT64_MAX);
+    assert_true (dest != 0 && dest != UINT64_MAX);
 }
-/* Test case to execute a successful call to random_get_uint32. */
+
+/*
+ * Test case to execute a successful call to random_get_uint32.
+ * If 0 or UINT32_MAX, it's very likely the data is not random.
+ */
 static void
 random_get_uint32_success_test (void **state)
 {
@@ -254,9 +267,10 @@ random_get_uint32_success_test (void **state)
     uint32_t dest;
 
     dest = random_get_uint32 (data->random);
-    assert_true (dest >= 0 && dest <= UINT32_MAX);
+    assert_true (dest != 0 && dest != UINT32_MAX);
 }
-/**/
+
+/* Test case to check that a random number is within the given range. */
 static void
 random_get_uint32_range_success_test (void **state)
 {
@@ -268,8 +282,7 @@ random_get_uint32_range_success_test (void **state)
     assert_true (dest < high);
 }
 gint
-main (gint    argc,
-      gchar  *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (random_type_test,

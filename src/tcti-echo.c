@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <string.h>
 
+#include "util.h"
 #include "tcti-echo.h"
 #include "tss2-tcti-echo.h"
 
@@ -96,7 +97,10 @@ tcti_echo_finalize (GObject *obj)
 }
 static void
 tcti_echo_init (TctiEcho *tcti)
-{ /* noop */ }
+{
+    UNUSED_PARAM(tcti);
+    /* noop */
+}
 /* When the class is initialized we set the pointer to our finalize function.
  */
 static void

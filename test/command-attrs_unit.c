@@ -31,6 +31,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include "util.h"
 #include "access-broker.h"
 #include "command-attrs.h"
 #include "tcti-echo.h"
@@ -104,6 +105,7 @@ command_attrs_type_test (void **state)
 TSS2_SYS_CONTEXT*
 __wrap_access_broker_lock_sapi (AccessBroker *access_broker)
 {
+    UNUSED_PARAM(access_broker);
     return mock_ptr_type (TSS2_SYS_CONTEXT*);
 }
 /* */
@@ -112,6 +114,7 @@ __wrap_access_broker_get_max_command (AccessBroker *access_broker,
                                       guint        *value)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(access_broker);
 
     *value = mock_type (guint);
     g_debug ("value: 0x%" PRIx32, *value);
@@ -132,7 +135,13 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
                                TSS2L_SYS_AUTH_RESPONSE  *rspAuthsArray)
 {
     TPMA_CC *command_attrs;
-    gint i;
+    unsigned int i;
+    UNUSED_PARAM(sysContext);
+    UNUSED_PARAM(cmdAuthsArray);
+    UNUSED_PARAM(capability);
+    UNUSED_PARAM(property);
+    UNUSED_PARAM(moreData);
+    UNUSED_PARAM(rspAuthsArray);
 
     capabilityData->data.command.count = propertyCount;
     command_attrs = mock_ptr_type (TPMA_CC*);
@@ -274,8 +283,7 @@ command_attrs_from_cc_fail_test (void **state)
     assert_int_equal (ret_attrs, 0);
 }
 gint
-main (gint    argc,
-      gchar  *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (command_attrs_type_test,
@@ -302,7 +310,8 @@ main (gint    argc,
         cmocka_unit_test_setup_teardown (command_attrs_from_cc_fail_test,
                                          command_attrs_init_tpm_setup,
                                          command_attrs_teardown),
-        NULL,
+        { NULL, NULL, NULL, NULL, NULL }
+
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
 }

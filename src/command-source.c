@@ -266,6 +266,7 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
     GIOStream *iostream;
     GPollableInputStream *istream;
     source_data_t *data;
+    UNUSED_PARAM(connection_manager);
 
     g_info ("%s: adding new connection: 0x%" PRIxPTR, __func__, (uintptr_t)connection);
     /*
@@ -306,6 +307,8 @@ command_source_source_cancel (gpointer key,
                               gpointer value,
                               gpointer user_data)
 {
+    UNUSED_PARAM(key);
+    UNUSED_PARAM(user_data);
     g_debug ("%s", __func__);
     source_data_t *data = (source_data_t*)value;
 

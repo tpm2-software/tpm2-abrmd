@@ -384,7 +384,7 @@ parse_key_value_string (char *kv_str,
 {
     const char *delim = ",";
     char *state, *tok;
-    key_value_t key_value = { 0 };
+    key_value_t key_value = { .key = 0, .value = 0 };
     gboolean ret;
     TSS2_RC rc = TSS2_RC_SUCCESS;
 

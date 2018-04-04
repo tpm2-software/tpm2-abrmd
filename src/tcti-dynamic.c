@@ -28,6 +28,7 @@
 #include <dlfcn.h>
 #include <inttypes.h>
 
+#include "util.h"
 #include "tabrmd.h"
 #include "tcti-dynamic.h"
 #include "tcti-util.h"
@@ -112,7 +113,10 @@ tcti_dynamic_finalize (GObject *obj)
 }
 static void
 tcti_dynamic_init (TctiDynamic *tcti)
-{ /* noop */ }
+{
+    UNUSED_PARAM(tcti);
+    /* noop */
+}
 /*
  * When the class is initialized we set the pointer to our finalize function.
  */

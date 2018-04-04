@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "util.h"
 #include "command-attrs.h"
 
 G_DEFINE_TYPE (CommandAttrs, command_attrs, G_TYPE_OBJECT);
@@ -38,7 +39,10 @@ G_DEFINE_TYPE (CommandAttrs, command_attrs, G_TYPE_OBJECT);
  */
 static void
 command_attrs_init (CommandAttrs *attrs)
-{ /* noop */ }
+{
+    UNUSED_PARAM(attrs);
+    /* noop */
+}
 
 static void
 command_attrs_finalize (GObject *obj)
@@ -82,7 +86,7 @@ command_attrs_init_tpm (CommandAttrs *attrs,
     TPMS_CAPABILITY_DATA  capability_data;
     TSS2_SYS_CONTEXT     *sapi_context;
     TPMI_YES_NO           more;
-    int                   i;
+    unsigned int          i;
 
     rc = access_broker_get_max_command (broker, &attrs->count);
     if (rc != TSS2_RC_SUCCESS || attrs->count == 0) {
@@ -131,7 +135,7 @@ TPMA_CC
 command_attrs_from_cc (CommandAttrs *attrs,
                        TPM2_CC        command_code)
 {
-    int i;
+    unsigned int i;
 
     for (i = 0; i < attrs->count; ++i)
         if (TPM2_CC_FROM_TPMA_CC (attrs->command_attrs[i]) == command_code)

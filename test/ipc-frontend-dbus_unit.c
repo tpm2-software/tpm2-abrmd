@@ -83,8 +83,7 @@ ipc_frontend_dbus_type_test (void **state)
     assert_true (IS_IPC_FRONTEND_DBUS (*state));
 }
 gint
-main (gint     argc,
-      gchar   *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (ipc_frontend_dbus_type_test,

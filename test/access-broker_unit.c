@@ -56,6 +56,8 @@ __wrap_Tss2_Sys_Startup (TSS2_SYS_CONTEXT *sapi_context,
                          TPM2_SU           startup_type)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(sapi_context);
+    UNUSED_PARAM(startup_type);
 
     rc = mock_type (TSS2_RC);
     g_debug ("__wrap_Tss2_Sys_Startup returning: 0x%x", rc);
@@ -78,6 +80,13 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
 
 {
     TSS2_RC rc;
+    UNUSED_PARAM(sysContext);
+    UNUSED_PARAM(cmdAuthsArray);
+    UNUSED_PARAM(capability);
+    UNUSED_PARAM(property);
+    UNUSED_PARAM(propertyCount);
+    UNUSED_PARAM(moreData);
+    UNUSED_PARAM(rspAuthsArray);
 
     capabilityData->capability = TPM2_CAP_TPM_PROPERTIES;
     capabilityData->data.tpmProperties.tpmProperty[0].property = TPM2_PT_MAX_COMMAND_SIZE;
@@ -96,6 +105,9 @@ __wrap_tcti_echo_transmit (TSS2_TCTI_CONTEXT *tcti_context,
                            const uint8_t      *command)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(tcti_context);
+    UNUSED_PARAM(size);
+    UNUSED_PARAM(command);
 
     rc = mock_type (TSS2_RC);
     g_debug ("__wrap_tcti_echo_transmit returning: 0x%x", rc);
@@ -109,6 +121,10 @@ __wrap_tcti_echo_receive (TSS2_TCTI_CONTEXT *tcti_context,
                           int32_t            timeout)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(tcti_context);
+    UNUSED_PARAM(size);
+    UNUSED_PARAM(response);
+    UNUSED_PARAM(timeout);
 
     rc = mock_type (TSS2_RC);
     g_debug ("__wrap_tcti_echo_receive returning: 0x%x", rc);
@@ -371,8 +387,7 @@ access_broker_send_command_success (void **state)
 }
 
 int
-main (int   argc,
-      char *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (access_broker_type_test,

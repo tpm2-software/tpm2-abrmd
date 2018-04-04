@@ -26,6 +26,7 @@
  */
 #include <stdlib.h>
 #include <syslog.h>
+#include "util.h"
 #include "logging.h"
 
 /**
@@ -38,6 +39,9 @@ syslog_log_handler (const char     *log_domain,
                     const char     *message,
                     gpointer        log_config_list)
 {
+    UNUSED_PARAM(log_domain);
+    UNUSED_PARAM(log_config_list);
+
     switch (log_level) {
     case G_LOG_FLAG_FATAL:
         syslog (LOG_ALERT, "%s", message);

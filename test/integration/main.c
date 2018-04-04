@@ -41,8 +41,7 @@
  * which TCTI to use for the test.
  */
 int
-main (int   argc,
-      char *argv[])
+main ()
 {
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context;
