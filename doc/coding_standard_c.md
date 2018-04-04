@@ -179,7 +179,8 @@ of the associated control flow statement on a line by itself.
 Function definitions specify the return type on a line, followed by the
 function name followed by the first parameter. Each additional parameter is
 listed on a separate line aligned with the line above. The opening brace
-defning the functions scope must be on the following line at column position 0.
+defining the function's scope must be on the following line at column
+position 0.
 
 A space must separate a control flow statement or function and the opening
 parenthesis.

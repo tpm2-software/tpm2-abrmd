@@ -23,7 +23,7 @@ consider this the window for comments.
 * All commits must be accurately described by the associated commit message
 and be limited to a single "unit" of change as described in:
 http://www.ericbmerritt.com/2011/09/21/commit-hygiene-and-git.html
-* All commits should adhere to the git commit message guidlines described
+* All commits should adhere to the git commit message guidelines described
 here: https://chris.beams.io/posts/git-commit/ with the following exceptions.
  * We allow commit subject lines up to 80 characters.
  * Commit subject lines should be prefixed with a string identifying the

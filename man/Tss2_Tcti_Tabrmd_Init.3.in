@@ -79,7 +79,7 @@ Using this API the caller can exchange (send / receive) TPM2 command and
 response buffers with the
 .B tpm2-abrmd (8).
 In nearly all cases however, the caller
-will initialize a context using this funnction before passing the context to
+will initialize a context using this function before passing the context to
 a higher level API like the System API (SAPI), and then never touch it again.
 .sp
 For a more thorough discussion of the TCTI API see the \*(lqTSS System Level
