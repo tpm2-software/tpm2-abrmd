@@ -26,6 +26,7 @@
  */
 #include <inttypes.h>
 
+#include "util.h"
 #include "session-entry.h"
 
 G_DEFINE_TYPE (SessionEntry, session_entry, G_TYPE_OBJECT);
@@ -101,7 +102,10 @@ session_entry_set_property (GObject        *object,
  */
 static void
 session_entry_init (SessionEntry *entry)
-{ /* noop */ }
+{
+    UNUSED_PARAM(entry);
+    /* noop */
+}
 /*
  * Deallocate all associated resources. All are static so we just chain
  * up to the parent like a good GObject.

@@ -184,8 +184,7 @@ test_thread_lifecycle_test (void **state)
     assert_true (test_thread->cleaned_up);
 }
 int
-main (int   argc,
-      char *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (test_thread_type_test,

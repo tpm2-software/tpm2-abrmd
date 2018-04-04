@@ -27,6 +27,7 @@
 
 #include <inttypes.h>
 
+#include "util.h"
 #include "ipc-frontend.h"
 
 G_DEFINE_ABSTRACT_TYPE (IpcFrontend, ipc_frontend, G_TYPE_OBJECT);
@@ -41,6 +42,7 @@ static guint signals [N_SIGNALS] = { 0 };
 static void
 ipc_frontend_init (IpcFrontend *ipc_frontend)
 {
+    UNUSED_PARAM(ipc_frontend);
     /* noop, required by G_DEFINE_ABSTRACT_TYPE */
 }
 static void

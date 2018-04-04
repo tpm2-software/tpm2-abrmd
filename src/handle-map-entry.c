@@ -26,6 +26,7 @@
  */
 #include <inttypes.h>
 
+#include "util.h"
 #include "handle-map-entry.h"
 
 G_DEFINE_TYPE (HandleMapEntry, handle_map_entry, G_TYPE_OBJECT);
@@ -93,7 +94,10 @@ handle_map_entry_set_property (GObject        *object,
  */
 static void
 handle_map_entry_init (HandleMapEntry *entry)
-{ /* noop */ }
+{
+    UNUSED_PARAM(entry);
+    /* noop */
+}
 /*
  * Deallocate all associated resources. All are static so we just chain
  * up to the parent like a good GObject.

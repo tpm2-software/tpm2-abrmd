@@ -48,6 +48,7 @@ static void
 connection_manager_allocate_test (void **state)
 {
     ConnectionManager *manager = NULL;
+    UNUSED_PARAM(state);
 
     manager = connection_manager_new (TABRMD_CONNECTIONS_MAX_DEFAULT);
     assert_non_null (manager);
@@ -156,7 +157,7 @@ connection_manager_remove_test (void **state)
 }
 
 int
-main(int argc, char* argv[])
+main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (connection_manager_allocate_test),

@@ -149,7 +149,10 @@ tpm2_response_finalize (GObject *obj)
 }
 static void
 tpm2_response_init (Tpm2Response *response)
-{ /* noop */ }
+{
+    UNUSED_PARAM(response);
+    /* noop */
+}
 /**
  * Boilerplate GObject initialization. Get a pointer to the parent class,
  * setup a finalize function.

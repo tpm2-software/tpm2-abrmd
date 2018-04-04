@@ -895,6 +895,7 @@ create_context_mapping_transient (ResourceManager  *resmgr,
     HandleMapEntry *handle_entry;
     TPM2_HANDLE      phandle, vhandle;
     Connection     *connection;
+    UNUSED_PARAM(resmgr);
 
     g_debug ("create_context_mapping_transient");
     phandle = tpm2_response_get_handle (response);
@@ -1435,6 +1436,7 @@ resource_manager_on_connection_removed (ConnectionManager *connection_manager,
     TSS2_RC          rc;
     SessionEntry    *session_entry;
     TPM2_HANDLE       handle;
+    UNUSED_PARAM(connection_manager);
 
     g_info ("resource_manager_on_connection_removed: flushing session "
             "contexts associated with connection 0x%" PRIxPTR,

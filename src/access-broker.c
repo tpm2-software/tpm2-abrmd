@@ -37,6 +37,24 @@
 #include "tpm2-response.h"
 #include "util.h"
 
+#define TPMS_CAPABILITY_DATA_ZERO_INIT { 0, { 0, { \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } } }
+
 G_DEFINE_TYPE (AccessBroker, access_broker, G_TYPE_OBJECT);
 
 enum {
@@ -123,7 +141,10 @@ access_broker_dispose (GObject *obj)
  */
 static void
 access_broker_init (AccessBroker *broker)
-{ /* noop */ }
+{
+    UNUSED_PARAM(broker);
+    /* noop */
+}
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.
@@ -316,7 +337,7 @@ access_broker_get_fixed_property (AccessBroker           *broker,
                                   TPM2_PT                  property,
                                   guint32                *value)
 {
-    gint i;
+    unsigned int i;
 
     if (broker->properties_fixed.data.tpmProperties.count == 0) {
         return TSS2_RESMGR_RC_INTERNAL_ERROR;
@@ -548,7 +569,7 @@ access_broker_get_trans_object_count (AccessBroker *broker,
     TSS2_RC rc = TSS2_RC_SUCCESS;
     TSS2_SYS_CONTEXT *sapi_context;
     TPMI_YES_NO more_data;
-    TPMS_CAPABILITY_DATA capability_data = { 0, };
+    TPMS_CAPABILITY_DATA capability_data = TPMS_CAPABILITY_DATA_ZERO_INIT;
 
     g_assert_nonnull (broker);
     g_assert_nonnull (count);
@@ -683,7 +704,7 @@ access_broker_flush_all_unlocked (AccessBroker     *broker,
 {
     TSS2_RC rc = TSS2_RC_SUCCESS;
     TPMI_YES_NO more_data;
-    TPMS_CAPABILITY_DATA capability_data = { 0, };
+    TPMS_CAPABILITY_DATA capability_data = TPMS_CAPABILITY_DATA_ZERO_INIT;
     TPM2_HANDLE handle;
     size_t i;
 

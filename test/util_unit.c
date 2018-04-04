@@ -57,6 +57,11 @@ __wrap_g_output_stream_write (GOutputStream *ostream,
                               GError       **error)
 {
     GError *error_tmp = mock_type (GError*);
+    UNUSED_PARAM(ostream);
+    UNUSED_PARAM(buf);
+    UNUSED_PARAM(count);
+    UNUSED_PARAM(cancellable);
+
     if (error_tmp != NULL && error != NULL) {
         *error = error_tmp;
     }
@@ -67,6 +72,7 @@ void
 write_in_one (void **state)
 {
     ssize_t written;
+    UNUSED_PARAM(state);
 
     will_return (__wrap_g_output_stream_write, NULL);
     will_return (__wrap_g_output_stream_write, WRITE_SIZE);
@@ -78,6 +84,7 @@ void
 write_in_two (void **state)
 {
     ssize_t written;
+    UNUSED_PARAM(state);
 
     will_return (__wrap_g_output_stream_write, NULL);
     will_return (__wrap_g_output_stream_write, 5);
@@ -91,6 +98,7 @@ void
 write_in_three (void **state)
 {
     ssize_t written;
+    UNUSED_PARAM(state);
 
     will_return (__wrap_g_output_stream_write, NULL);
     will_return (__wrap_g_output_stream_write, 3);
@@ -107,6 +115,7 @@ write_error (void **state)
 {
     ssize_t written;
     GError *error;
+    UNUSED_PARAM(state);
 
     /* this is free'd by the 'write_all' function */
     error = g_error_new (UTIL_UNIT_ERROR,
@@ -122,6 +131,7 @@ void
 write_zero (void **state)
 {
     ssize_t written;
+    UNUSED_PARAM(state);
 
     will_return (__wrap_g_output_stream_write, NULL);
     will_return (__wrap_g_output_stream_write, 0);
@@ -147,6 +157,8 @@ __wrap_g_input_stream_read (GInputStream  *istream,
     size_t   buf_index = mock_type (size_t);
     GError  *error_in  = mock_type (GError*);
     ssize_t  ret       = mock_type (ssize_t);
+    UNUSED_PARAM(istream);
+    UNUSED_PARAM(cancellable);
 
     g_debug ("%s", __func__);
     if (error_in != NULL && error != NULL) {
@@ -208,6 +220,7 @@ static void
 create_socket_pair_success_test (void **state)
 {
     int ret, client_fd, server_fd;
+    UNUSED_PARAM(state);
 
     ret = create_socket_pair (&client_fd, &server_fd, O_CLOEXEC);
     if (ret == -1)
@@ -661,6 +674,7 @@ read_tpm_buf_alloc_eof_test (void **state)
 {
     uint8_t *buf;
     size_t   buf_size;
+    UNUSED_PARAM(state);
 
     /* prime read to successfully produce the header */
     will_return (__wrap_g_input_stream_read, buf_in);
@@ -673,8 +687,7 @@ read_tpm_buf_alloc_eof_test (void **state)
 }
 
 gint
-main (gint    argc,
-      gchar  *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (write_in_one),

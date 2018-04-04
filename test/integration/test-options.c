@@ -32,6 +32,7 @@
 
 #include <gio/gio.h>
 
+#include "util.h"
 #include "test-options.h"
 #include "tss2-tcti-tabrmd.h"
 
@@ -67,6 +68,7 @@ bus_str_from_type (GBusType bus_type)
 int
 sanity_check_test_opts (test_opts_t  *opts)
 {
+    UNUSED_PARAM(opts);
     return 0;
 }
 

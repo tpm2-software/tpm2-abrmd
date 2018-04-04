@@ -28,6 +28,7 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "util.h"
 #include "session-list.h"
 
 G_DEFINE_TYPE (SessionList, session_list, G_TYPE_OBJECT);
@@ -520,6 +521,7 @@ session_list_dump_entry (gpointer data,
                          gpointer user_data)
 {
     SessionEntry *entry = SESSION_ENTRY (data);
+    UNUSED_PARAM(user_data);
 
     session_entry_prettyprint (entry);
 }

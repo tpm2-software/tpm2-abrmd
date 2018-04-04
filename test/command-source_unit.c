@@ -63,12 +63,16 @@ TPMA_CC
 __wrap_command_attrs_from_cc (CommandAttrs *attrs,
                               TPM2_CC        command_code)
 {
+    UNUSED_PARAM(attrs);
+    UNUSED_PARAM(command_code);
     return (TPMA_CC)mock_type (UINT32);
 }
 Connection*
 __wrap_connection_manager_lookup_istream (ConnectionManager *manager,
                                           GInputStream      *istream)
 {
+    UNUSED_PARAM(manager);
+    UNUSED_PARAM(istream);
     g_debug ("%s", __func__);
     return CONNECTION (mock_ptr_type (GObject*));
 }
@@ -76,6 +80,8 @@ gint
 __wrap_connection_manager_remove      (ConnectionManager  *manager,
                                        Connection         *connection)
 {
+    UNUSED_PARAM(manager);
+    UNUSED_PARAM(connection);
     return mock_type (int);
 }
 uint8_t*
@@ -85,6 +91,7 @@ __wrap_read_tpm_buffer_alloc (GSocket   *socket,
     uint8_t *buf_src = mock_type (uint8_t*);
     uint8_t *buf_dst = NULL;
     size_t   size = mock_type (size_t);
+    UNUSED_PARAM(socket);
 
     g_debug ("%s", __func__);
     buf_dst = g_malloc0 (size);
@@ -98,6 +105,7 @@ __wrap_sink_enqueue (Sink     *sink,
                      GObject  *obj)
 {
     Tpm2Command **command;
+    UNUSED_PARAM(sink);
 
     g_debug ("%s", __func__);
     command = mock_ptr_type (Tpm2Command**);
@@ -120,6 +128,9 @@ __wrap_g_source_set_callback (GSource *source,
 {
     source_data_t *source_data = (source_data_t*)data;
     source_data_t **source_data_param = mock_type (source_data_t**);
+    UNUSED_PARAM(source);
+    UNUSED_PARAM(func);
+    UNUSED_PARAM(notify);
 
     *source_data_param = source_data;
 }
@@ -349,8 +360,7 @@ command_source_on_io_ready_eof_test (void **state)
 }
 /* command_source_connection_test end */
 int
-main (int argc,
-      char* argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (command_source_allocate_test,

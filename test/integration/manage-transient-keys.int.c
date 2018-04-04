@@ -38,10 +38,10 @@
 int
 test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
-    TPM2_HANDLE         primary_handle, out_handle;
-    TPMS_CONTEXT       context     = { 0 };
+    TPM2_HANDLE        primary_handle, out_handle;
+    TPMS_CONTEXT       context = TPMS_CONTEXT_ZERO_INIT;
     TPM2B_PRIVATE      out_private = TPM2B_PRIVATE_STATIC_INIT;
-    TPM2B_PUBLIC       out_public  = { 0 };
+    TPM2B_PUBLIC       out_public  = TPM2B_PUBLIC_ZERO_INIT;
     TSS2_RC            rc;
 
     rc = create_primary (sapi_context, &primary_handle);

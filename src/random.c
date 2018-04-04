@@ -32,6 +32,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "util.h"
 #include "random.h"
 
 G_DEFINE_TYPE (Random, random, G_TYPE_OBJECT);
@@ -41,7 +42,10 @@ G_DEFINE_TYPE (Random, random, G_TYPE_OBJECT);
  */
 static void
 random_init (Random *obj)
-{ /* noop */ }
+{
+    UNUSED_PARAM(obj);
+    /* noop */
+}
 /*
  * Chain up to parent class finalize.
  */
@@ -109,7 +113,7 @@ random_seed_from_file (Random *random,
                    strerror (errno));
         ret = -1;
         goto close_out;
-    } else if (read_ret < sizeof (rand_seed)) {
+    } else if (read_ret < (ssize_t) sizeof (rand_seed)) {
         g_warning ("short read on entropy source %s: got %zu bytes, expecting %zu",
                    fname, read_ret, sizeof (rand_seed));
         ret = -1;
@@ -150,9 +154,8 @@ random_get_bytes (Random    *random,
     return i;
 }
 /*
- * Get 64 bits of random data from the parameter 'random' object. If
- * we successfully fill in the supplied 'dest' parameter with random
- * data we return 0. On error return -1.
+ * Get 64 bits of random data from the parameter 'random' object.
+ * On error, return 0 instead of random data.
  */
 uint64_t
 random_get_uint64 (Random      *random)
@@ -172,9 +175,8 @@ random_get_uint64 (Random      *random)
     return dest;
 }
 /*
- * Get 32 bits of random data from the parameter 'random' object. If
- * we successfully fill in the supplied 'dest' parameter with random
- * data we return 0, on error return -1.
+ * Get 32 bits of random data from the parameter 'random' object.
+ * On error, return 0 instead of random data.
  */
 uint32_t
 random_get_uint32 (Random       *random)

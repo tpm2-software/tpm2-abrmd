@@ -31,6 +31,7 @@
 #include <tss2/tss2_sys.h>
 
 #include "common.h"
+#include "tpm2-struct-init.h"
 #include "test.h"
 #define PRIxHANDLE "08" PRIx32
 /*
@@ -43,7 +44,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 {
     TSS2_RC               rc;
     TPMI_SH_AUTH_SESSION  session_handle = 0;
-    TPMS_CONTEXT          context = { 0, };
+    TPMS_CONTEXT          context = TPMS_CONTEXT_ZERO_INIT;
 
     /* create an auth session */
     g_info ("Starting unbound, unsalted auth session");

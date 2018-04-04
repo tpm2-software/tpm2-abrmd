@@ -44,6 +44,12 @@
 #include "tpm2-header.h"
 #include "util.h"
 
+#if defined(__linux__) || defined(__unix__) || defined(__APPLE__)
+#define TSS2_TCTI_POLL_HANDLE_ZERO_INIT { .fd = 0, .events = 0, .revents = 0 }
+#else
+#define TSS2_TCTI_POLL_HANDLE_ZERO_INIT { 0 }
+#endif
+
 /*
  * when given an NULL context and a pointer to a size_t, set the size_t
  * parameter to the size of the TSS2_TCTI_TABRMD_CONTEXT structure.
@@ -52,6 +58,7 @@ static void
 tcti_tabrmd_init_size_test (void **state)
 {
     size_t tcti_size;
+    UNUSED_PARAM(state);
 
     Tss2_Tcti_Tabrmd_Init (NULL, &tcti_size, NULL);
     assert_int_equal (tcti_size, sizeof (TSS2_TCTI_TABRMD_CONTEXT));
@@ -65,6 +72,7 @@ tcti_tabrmd_init_success_return_value_test (void **state)
 {
     size_t tcti_size;
     TSS2_RC ret;
+    UNUSED_PARAM(state);
 
     ret = Tss2_Tcti_Tabrmd_Init (NULL, &tcti_size, NULL);
     assert_int_equal (ret, TSS2_RC_SUCCESS);
@@ -77,6 +85,7 @@ static void
 tcti_tabrmd_init_allnull_is_bad_value_test (void **state)
 {
     TSS2_RC ret;
+    UNUSED_PARAM(state);
 
     ret = Tss2_Tcti_Tabrmd_Init (NULL, NULL, NULL);
     assert_int_equal (ret, TSS2_TCTI_RC_BAD_VALUE);
@@ -89,6 +98,7 @@ static void
 tcti_tabrmd_info_test (void **state)
 {
     const TSS2_TCTI_INFO *tcti_info;
+    UNUSED_PARAM(state);
 
     /*
      * This function isn't meant to be called directly. We do it here for the
@@ -105,6 +115,7 @@ tcti_tabrmd_info_test (void **state)
 static void
 tcti_tabrmd_bus_type_from_str_session_test (void **state)
 {
+    UNUSED_PARAM(state);
     assert_int_equal (tabrmd_bus_type_from_str ("session"),
                       G_BUS_TYPE_SESSION);
 }
@@ -115,6 +126,7 @@ tcti_tabrmd_bus_type_from_str_session_test (void **state)
 static void
 tcti_tabrmd_bus_type_from_str_system_test (void **state)
 {
+    UNUSED_PARAM(state);
     assert_int_equal (tabrmd_bus_type_from_str ("system"),
                       G_BUS_TYPE_SYSTEM);
 }
@@ -125,6 +137,7 @@ tcti_tabrmd_bus_type_from_str_system_test (void **state)
 static void
 tcti_tabrmd_bus_type_from_str_bad_test (void **state)
 {
+    UNUSED_PARAM(state);
     assert_int_equal (tabrmd_bus_type_from_str ("foobar"),
                       G_BUS_TYPE_NONE);
 }
@@ -136,12 +149,13 @@ tcti_tabrmd_bus_type_from_str_bad_test (void **state)
 static void
 tcti_tabrmd_kv_callback_name_test (void **state)
 {
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     key_value_t key_value = { 
         .key = "bus_name",
         .value = "foo.bar",
     };
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = tabrmd_kv_callback (&key_value, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
@@ -155,12 +169,13 @@ tcti_tabrmd_kv_callback_name_test (void **state)
 static void
 tcti_tabrmd_kv_callback_type_good_test (void **state)
 {
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     key_value_t key_value = { 
         .key = "bus_type",
         .value = "system",
     };
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = tabrmd_kv_callback (&key_value, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
@@ -175,12 +190,13 @@ tcti_tabrmd_kv_callback_type_good_test (void **state)
 static void
 tcti_tabrmd_kv_callback_type_bad_test (void **state)
 {
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     key_value_t key_value = { 
         .key = "bus_type",
         .value = "foo",
     };
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = tabrmd_kv_callback (&key_value, &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
@@ -193,12 +209,13 @@ tcti_tabrmd_kv_callback_type_bad_test (void **state)
 static void
 tcti_tabrmd_kv_callback_bad_key_test (void **state)
 {
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     key_value_t key_value = { 
         .key = "foo",
         .value = "bar",
     };
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = tabrmd_kv_callback (&key_value, &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
@@ -211,8 +228,9 @@ static void
 tcti_tabrmd_conf_parse_named_session_test (void **state)
 {
     TSS2_RC rc;
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_type=session,bus_name=com.example.Session";
+    UNUSED_PARAM(state);
 
     rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
@@ -227,8 +245,9 @@ static void
 tcti_tabrmd_conf_parse_named_system_test (void **state)
 {
     TSS2_RC rc;
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_type=system,bus_name=com.example.System";
+    UNUSED_PARAM(state);
 
     rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
@@ -242,8 +261,9 @@ static void
 tcti_tabrmd_conf_parse_bad_type_test (void **state)
 {
     TSS2_RC rc;
-    tabrmd_conf_t conf = { 0 };
+    tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_type=foobar";
+    UNUSED_PARAM(state);
 
     rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
@@ -258,6 +278,7 @@ tcti_tabrmd_conf_parse_no_name_test (void **state)
     TSS2_RC rc;
     tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_type=session";
+    UNUSED_PARAM(state);
 
     rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
@@ -274,6 +295,7 @@ tcti_tabrmd_conf_parse_no_type_test (void **state)
     TSS2_RC rc;
     tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_name=com.example.FooBar";
+    UNUSED_PARAM(state);
 
     rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
@@ -289,6 +311,7 @@ tcti_tabrmd_conf_parse_no_value_test (void **state)
     TSS2_RC rc;
     tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "bus_name=";
+    UNUSED_PARAM(state);
 
     rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
@@ -302,6 +325,7 @@ tcti_tabrmd_conf_parse_no_key_test (void **state)
     TSS2_RC rc;
     tabrmd_conf_t conf = TABRMD_CONF_INIT_DEFAULT;
     char conf_str[] = "=some-string";
+    UNUSED_PARAM(state);
 
     rc = parse_key_value_string (conf_str, tabrmd_kv_callback, &conf);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_VALUE);
@@ -329,6 +353,14 @@ __wrap_g_dbus_proxy_call_with_unix_fd_list_sync (
     GVariant *variant_array[2] = { 0 }, *variant_tuple;
     gint client_fd;
     guint64 id;
+    UNUSED_PARAM(proxy);
+    UNUSED_PARAM(method_name);
+    UNUSED_PARAM(parameters);
+    UNUSED_PARAM(flags);
+    UNUSED_PARAM(timeout_msec);
+    UNUSED_PARAM(fd_list);
+    UNUSED_PARAM(cancellable);
+    UNUSED_PARAM(error);
 
     client_fd = mock_type (gint);
     id = mock_type (guint64);
@@ -356,6 +388,11 @@ __wrap_tcti_tabrmd_call_cancel_sync (
     GCancellable *cancellable,
     GError **error)
 {
+    UNUSED_PARAM(proxy);
+    UNUSED_PARAM(arg_id);
+    UNUSED_PARAM(cancellable);
+    UNUSED_PARAM(error);
+
     *out_return_code = mock_type (guint);
     return mock_type (gboolean);
 }
@@ -373,6 +410,12 @@ __wrap_tcti_tabrmd_call_set_locality_sync (
     GCancellable *cancellable,
     GError **error)
 {
+    UNUSED_PARAM(proxy);
+    UNUSED_PARAM(arg_id);
+    UNUSED_PARAM(arg_locality);
+    UNUSED_PARAM(cancellable);
+    UNUSED_PARAM(error);
+
     *out_return_code = mock_type (guint);
     return mock_type (gboolean);
 }
@@ -491,6 +534,7 @@ static void
 tcti_tabrmd_transmit_null_context_test (void **state)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = Tss2_Tcti_Transmit (NULL, 5, NULL);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
@@ -499,6 +543,7 @@ static void
 tcti_tabrmd_receive_null_context_test (void **state)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = Tss2_Tcti_Receive (NULL, NULL, NULL, TSS2_TCTI_TIMEOUT_BLOCK);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
@@ -507,6 +552,7 @@ static void
 tcti_tabrmd_cancel_null_context_test (void **state)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = Tss2_Tcti_Cancel (NULL);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
@@ -515,6 +561,7 @@ static void
 tcti_tabrmd_get_poll_handles_null_context_test (void **state)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = Tss2_Tcti_GetPollHandles (NULL, NULL, NULL);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
@@ -523,6 +570,7 @@ static void
 tcti_tabrmd_set_locality_null_context_test (void **state)
 {
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     rc = Tss2_Tcti_SetLocality (NULL, 5);
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_CONTEXT);
@@ -662,6 +710,7 @@ __wrap_read_data (int       fd,
     uint8_t *buf_in;
     size_t count_in;
     int ret;
+    UNUSED_PARAM(fd);
 
     buf_in   = mock_type (uint8_t*);
     count_in = mock_type (size_t);
@@ -693,6 +742,7 @@ __wrap_poll (struct pollfd *fds,
              nfds_t         nfds,
              int            timeout)
 {
+    UNUSED_PARAM(timeout);
     assert_int_equal (nfds, 1);
     fds [0].revents = mock_type (short);
     errno = mock_type (int);
@@ -1282,7 +1332,11 @@ static void
 tcti_tabrmd_get_poll_handles_bad_handles_count_test (void **state)
 {
     data_t *data = *state;
-    TSS2_TCTI_POLL_HANDLE handles[5] = { 0 };
+    TSS2_TCTI_POLL_HANDLE handles[5] = {
+        TSS2_TCTI_POLL_HANDLE_ZERO_INIT, TSS2_TCTI_POLL_HANDLE_ZERO_INIT,
+        TSS2_TCTI_POLL_HANDLE_ZERO_INIT, TSS2_TCTI_POLL_HANDLE_ZERO_INIT,
+        TSS2_TCTI_POLL_HANDLE_ZERO_INIT
+    };
     size_t num_handles = 0;
     TSS2_RC rc;
 
@@ -1299,7 +1353,11 @@ static void
 tcti_tabrmd_get_poll_handles_handles_test (void **state)
 {
     data_t *data = *state;
-    TSS2_TCTI_POLL_HANDLE handles[5] = { 0 };
+    TSS2_TCTI_POLL_HANDLE handles[5] = {
+        TSS2_TCTI_POLL_HANDLE_ZERO_INIT, TSS2_TCTI_POLL_HANDLE_ZERO_INIT,
+        TSS2_TCTI_POLL_HANDLE_ZERO_INIT, TSS2_TCTI_POLL_HANDLE_ZERO_INIT,
+        TSS2_TCTI_POLL_HANDLE_ZERO_INIT
+    };
     size_t num_handles = 5;
     TSS2_RC rc;
     int fd;
@@ -1343,7 +1401,7 @@ tcti_tabrmd_set_locality_bad_sequence_test (void **state)
     assert_int_equal (rc, TSS2_TCTI_RC_BAD_SEQUENCE);
 }
 int
-main(int argc, char* argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (tcti_tabrmd_init_size_test),

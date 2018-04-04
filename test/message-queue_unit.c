@@ -168,7 +168,7 @@ message_queue_thread_unblock_test (void **state)
 }
 
 int
-main(int argc, char* argv[])
+main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (message_queue_allocate_test),

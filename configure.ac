@@ -152,6 +152,7 @@ AS_IF([test \( "x$with_simulatorbin_set" = "xno" \) -a \( "x$enable_hwtpm" = "xn
 # preprocessor / compiler / linker flags
 #   these macros are defined in m4/flags.m4
 AX_ADD_COMPILER_FLAG([-Wall])
+AX_ADD_COMPILER_FLAG([-Wextra])
 AX_ADD_COMPILER_FLAG([-Werror])
 AX_ADD_COMPILER_FLAG([-std=gnu99])
 AX_ADD_COMPILER_FLAG([-Wformat])

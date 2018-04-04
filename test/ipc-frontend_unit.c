@@ -31,6 +31,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include "util.h"
 #include "handle-map.h"
 #include "ipc-frontend.h"
 /*
@@ -163,6 +164,8 @@ static void
 ipc_frontend_on_disconnected (IpcFrontend *ipc_frontend,
                               bool        *called_flag)
 {
+    UNUSED_PARAM(ipc_frontend);
+
     *called_flag = true;
 }
 /*
@@ -216,8 +219,7 @@ ipc_frontend_disconnect_test (void **state)
 }
 
 gint
-main (gint     argc,
-      gchar   *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (ipc_frontend_type_test,

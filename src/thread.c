@@ -24,6 +24,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include "util.h"
 #include "thread.h"
 
 G_DEFINE_ABSTRACT_TYPE (Thread, thread, G_TYPE_OBJECT);
@@ -31,6 +33,7 @@ G_DEFINE_ABSTRACT_TYPE (Thread, thread, G_TYPE_OBJECT);
 static void
 thread_init (Thread *iface)
 {
+    UNUSED_PARAM(iface);
 /* noop, required by G_DEFINE_INTERFACE */
 }
 static void

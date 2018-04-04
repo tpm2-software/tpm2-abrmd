@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "util.h"
 #include "tcti-dynamic.h"
 #include "tabrmd.h"
 
@@ -108,6 +109,9 @@ tcti_dynamic_init_fail (TSS2_TCTI_CONTEXT *context,
                         size_t *size,
                         const char *conf_str)
 {
+    UNUSED_PARAM(context);
+    UNUSED_PARAM(size);
+    UNUSED_PARAM(conf_str);
     return TCTI_DYNAMIC_UNIT_INIT_1_FAIL_RC;
 }
 /*
@@ -137,6 +141,8 @@ tcti_dynamic_init_2_fail (TSS2_TCTI_CONTEXT *context,
                           size_t *size,
                           const char *conf_str)
 {
+    UNUSED_PARAM(conf_str);
+
     if (context == NULL) {
         *size = TCTI_DYNAMIC_UNIT_INIT_SIZE;
         return TSS2_RC_SUCCESS;
@@ -250,8 +256,7 @@ tcti_dynamic_initialize_init_2_fail_test (void **state)
     assert_int_equal (rc, TCTI_DYNAMIC_UNIT_INIT_2_FAIL_RC);
 }
 gint
-main (gint     argc,
-      gchar   *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (tcti_dynamic_new_unref_test,

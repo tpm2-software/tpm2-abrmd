@@ -369,6 +369,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     GUnixFDList *fd_list = NULL;
     guint64 id = 0, id_pid_mix = 0;
     gboolean id_ret = FALSE;
+    UNUSED_PARAM(skeleton);
 
     self = IPC_FRONTEND_DBUS (user_data);
     ipc_frontend_init_guard (IPC_FRONTEND (user_data));
@@ -458,6 +459,7 @@ on_handle_cancel (TctiTabrmd            *skeleton,
     Connection *connection = NULL;
     guint64   id_pid_mix = 0;
     gboolean mix_ret = FALSE;
+    UNUSED_PARAM(skeleton);
 
     g_info ("on_handle_cancel for id 0x%" PRIx64, id);
     ipc_frontend_init_guard (IPC_FRONTEND (self));
@@ -511,6 +513,7 @@ on_handle_set_locality (TctiTabrmd            *skeleton,
     Connection *connection = NULL;
     guint64   id_pid_mix = 0;
     gboolean mix_ret = FALSE;
+    UNUSED_PARAM(skeleton);
 
     g_info ("on_handle_set_locality for id 0x%" PRIx64, id);
     ipc_frontend_init_guard (IPC_FRONTEND (self));
@@ -556,6 +559,8 @@ on_bus_acquired (GDBusConnection *connection,
                  const gchar     *name,
                  gpointer         user_data)
 {
+    UNUSED_PARAM(connection);
+    UNUSED_PARAM(user_data);
     g_info ("on_bus_acquired: %s", name);
 }
 /*
@@ -619,6 +624,7 @@ on_name_lost (GDBusConnection *connection,
     g_debug ("%s: %s", __func__, name);
     IpcFrontend *ipc_frontend = IPC_FRONTEND (user_data);
     IpcFrontendDbus *self = IPC_FRONTEND_DBUS (user_data);
+    UNUSED_PARAM(connection);
 
     if (self->dbus_name_acquired == FALSE) {
         g_critical ("Failed to acquire DBus name %s. UID %d must be "
@@ -643,6 +649,7 @@ on_get_dbus_daemon_proxy (GObject      *source_object,
 {
     GError *error = NULL;
     IpcFrontendDbus *self = IPC_FRONTEND_DBUS (user_data);
+    UNUSED_PARAM(source_object);
 
     self->dbus_daemon_proxy = g_dbus_proxy_new_finish (result, &error);
     if (error) {

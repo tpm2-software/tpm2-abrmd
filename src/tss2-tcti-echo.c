@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <string.h>
 
+#include "util.h"
 #include "tss2-tcti-echo.h"
 #include "tss2-tcti-echo-priv.h"
 
@@ -87,12 +88,14 @@ tss2_tcti_echo_receive (TSS2_TCTI_CONTEXT *tcti_context,
 void
 tss2_tcti_echo_finalize (TSS2_TCTI_CONTEXT *tcti_context)
 {
-    /* n00p */
+    UNUSED_PARAM(tcti_context);
+    /* noop */
 }
 
 TSS2_RC
 tss2_tcti_echo_cancel (TSS2_TCTI_CONTEXT *tcti_context)
 {
+    UNUSED_PARAM(tcti_context);
     return TSS2_TCTI_RC_NOT_IMPLEMENTED;
 }
 
@@ -101,6 +104,9 @@ tss2_tcti_echo_get_poll_handles (TSS2_TCTI_CONTEXT     *tcti_context,
                                  TSS2_TCTI_POLL_HANDLE *handles,
                                  size_t                *num_handles)
 {
+    UNUSED_PARAM(tcti_context);
+    UNUSED_PARAM(handles);
+    UNUSED_PARAM(num_handles);
     return TSS2_TCTI_RC_NOT_IMPLEMENTED;
 }
 
@@ -108,6 +114,8 @@ TSS2_RC
 tss2_tcti_echo_set_locality (TSS2_TCTI_CONTEXT *tcti_context,
                              uint8_t            locality)
 {
+    UNUSED_PARAM(tcti_context);
+    UNUSED_PARAM(locality);
     return TSS2_TCTI_RC_NOT_IMPLEMENTED;
 }
 /**

@@ -108,7 +108,10 @@ connection_get_property (GObject     *object,
  */
 static void
 connection_init (Connection *connection)
-{ /* noop */ }
+{
+    UNUSED_PARAM(connection);
+    /* noop */
+}
 
 static void
 connection_dispose (GObject *obj)

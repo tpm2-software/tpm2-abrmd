@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "util.h"
 #include "tcti-util.h"
 #include "tabrmd.h"
 
@@ -110,6 +111,9 @@ tcti_util_init_fail (TSS2_TCTI_CONTEXT *context,
                       size_t *size,
                       const char *conf_str)
 {
+    UNUSED_PARAM(context);
+    UNUSED_PARAM(size);
+    UNUSED_PARAM(conf_str);
     return TCTI_UTIL_UNIT_INIT_1_FAIL_RC;
 }
 /*
@@ -139,6 +143,7 @@ tcti_util_init_2_fail (TSS2_TCTI_CONTEXT *context,
                        size_t *size,
                        const char *conf_str)
 {
+    UNUSED_PARAM(conf_str);
     if (context == NULL) {
         *size = TCTI_UTIL_UNIT_INIT_SIZE;
         return TSS2_RC_SUCCESS;
@@ -164,6 +169,7 @@ tcti_util_discover_info_dlopen_fail_test (void **state)
     void *tcti_dl_handle;
     const TSS2_TCTI_INFO *info;
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     will_return (__wrap_dlopen, NULL);
     rc = tcti_util_discover_info (TCTI_UTIL_UNIT_FILE_NAME,
@@ -181,6 +187,7 @@ tcti_util_discover_info_dlsym_fail_test (void **state)
     void *tcti_dl_handle;
     const TSS2_TCTI_INFO *info;
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     will_return (__wrap_dlopen, TCTI_UTIL_UNIT_HANDLE);
     will_return (__wrap_dlsym, NULL);
@@ -207,6 +214,7 @@ tcti_util_discover_info_func_success_test (void **state)
     void *tcti_dl_handle;
     const TSS2_TCTI_INFO *info;
     TSS2_RC rc;
+    UNUSED_PARAM(state);
 
     will_return (__wrap_dlopen, TCTI_UTIL_UNIT_HANDLE);
     will_return (__wrap_dlsym, tcti_util_get_info_empty);
@@ -339,8 +347,7 @@ tcti_util_initialize_init_2_fail_test (void **state)
     assert_int_equal (rc, TCTI_UTIL_UNIT_INIT_2_FAIL_RC);
 }
 gint
-main (gint     argc,
-      gchar   *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (tcti_util_discover_info_dlopen_fail_test),

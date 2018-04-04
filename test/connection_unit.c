@@ -53,7 +53,7 @@ static int
 write_read (GIOStream  *iostream_in,
             GIOStream  *iostream_out,
             const char *buf,
-            size_t      length)
+            ssize_t      length)
 {
     char out_buf[256] = { 0 };
     ssize_t ret;
@@ -79,6 +79,7 @@ connection_allocate_test (void **state)
     Connection *connection = NULL;
     gint client_fd;
     GIOStream *iostream;
+    UNUSED_PARAM(state);
 
     handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     iostream = create_connection_iostream (&client_fd);
@@ -185,7 +186,7 @@ connection_server_to_client_test (void **state)
 /* connection_server_to_client_test end */
 
 int
-main(int argc, char* argv[])
+main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (connection_allocate_test),

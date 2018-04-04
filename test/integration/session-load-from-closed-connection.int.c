@@ -32,6 +32,7 @@
 #include <tss2/tss2_tpm2_types.h>
 
 #include "common.h"
+#include "tpm2-struct-init.h"
 #include "test-options.h"
 #include "context-util.h"
 
@@ -46,8 +47,7 @@
  * beyond the session that created it.
  */
 int
-main (int argc,
-      char *argv[])
+main ()
 {
 
 	unsigned i;
@@ -58,8 +58,8 @@ main (int argc,
 		TSS2_RC rc;
 		TSS2_SYS_CONTEXT *sapi_context;
 		TPMI_SH_AUTH_SESSION  session_handle = 0, session_handle_load = 0;
-		TPMS_CONTEXT          context = { 0, };
-		test_opts_t opts = TEST_OPTS_DEFAULT_INIT;
+        TPMS_CONTEXT          context = TPMS_CONTEXT_ZERO_INIT;
+		test_opts_t           opts = TEST_OPTS_DEFAULT_INIT;
 
 		get_test_opts_from_env (&opts);
 		if (sanity_check_test_opts (&opts) != 0)

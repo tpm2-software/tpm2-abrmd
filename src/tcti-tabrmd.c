@@ -81,7 +81,7 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
         tss2_ret = TSS2_TCTI_RC_NO_CONNECTION;
         break;
     default:
-        if (write_ret == size) {
+        if (write_ret == (ssize_t) size) {
             TSS2_TCTI_TABRMD_STATE (context) = TABRMD_STATE_RECEIVE;
         } else {
             g_debug ("tss2_tcti_tabrmd_transmit: short write");
@@ -433,7 +433,7 @@ typedef struct {
     GBusType type;
 } bus_name_type_entry_t;
 
-const static bus_name_type_entry_t bus_name_type_map[] = {
+static const bus_name_type_entry_t bus_name_type_map[] = {
     {
         .name = "session",
         .type = G_BUS_TYPE_SESSION,
@@ -623,7 +623,7 @@ out:
 }
 
 /* public info structure */
-const static TSS2_TCTI_INFO tss2_tcti_info = {
+static const TSS2_TCTI_INFO tss2_tcti_info = {
     .name = "tcti-abrmd",
     .description = "TCTI module for communication with tabrmd.",
     .config_help = "This module takes NO arguments.",

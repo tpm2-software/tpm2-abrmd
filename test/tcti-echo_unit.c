@@ -159,8 +159,7 @@ tcti_echo_receive_test (void **state)
 }
 
 gint
-main (gint     argc,
-      gchar   *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (tcti_echo_new_unref_test,

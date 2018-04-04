@@ -31,6 +31,7 @@
 #include <string.h>
 #include <cmocka.h>
 
+#include "util.h"
 #include "logging.h"
 
 static const char *env_str_all = "all";
@@ -50,6 +51,7 @@ static void
 logging_get_enabled_log_levels_default_test (void **state)
 {
     int levels;
+    UNUSED_PARAM(state);
 
     will_return (__wrap_getenv, NULL);
     levels = get_enabled_log_levels ();
@@ -60,6 +62,7 @@ static void
 logging_get_enabled_log_levels_all_test (void **state)
 {
     int levels;
+    UNUSED_PARAM(state);
 
     will_return (__wrap_getenv, env_str_all);
     levels = get_enabled_log_levels ();
@@ -70,6 +73,7 @@ static void
 logging_get_enabled_log_levels_foo_test (void **state)
 {
     int levels;
+    UNUSED_PARAM(state);
 
     will_return (__wrap_getenv, env_str_foo);
     levels = get_enabled_log_levels ();
@@ -79,18 +83,21 @@ logging_get_enabled_log_levels_foo_test (void **state)
 static void
 logging_set_logger_foo_test (void **state)
 {
+    UNUSED_PARAM(state);
     assert_int_equal (set_logger ("foo"), -1);
 }
 
 static void
 logging_set_logger_stdout_test (void **state)
 {
+    UNUSED_PARAM(state);
     assert_int_equal (set_logger ("stdout"), 0);
 }
 
 static void
 logging_set_logger_syslog_test (void **state)
 {
+    UNUSED_PARAM(state);
     will_return (__wrap_getenv, NULL);
     assert_int_equal (set_logger ("syslog"), 0);
 }
@@ -100,12 +107,15 @@ __wrap_syslog (int priority,
                const char *format,
                ...)
 {
+    UNUSED_PARAM(priority);
+    UNUSED_PARAM(format);
     return;
 }
 
 static void
 logging_syslog_log_handler_fatal_test (void **state)
 {
+    UNUSED_PARAM(state);
     syslog_log_handler ("domain",
                         G_LOG_FLAG_FATAL,
                         "foo",
@@ -115,6 +125,7 @@ logging_syslog_log_handler_fatal_test (void **state)
 static void
 logging_syslog_log_handler_error_test (void **state)
 {
+    UNUSED_PARAM(state);
     syslog_log_handler ("domain",
                         G_LOG_LEVEL_ERROR,
                         "foo",
@@ -124,6 +135,7 @@ logging_syslog_log_handler_error_test (void **state)
 static void
 logging_syslog_log_handler_critical_test (void **state)
 {
+    UNUSED_PARAM(state);
     syslog_log_handler ("domain",
                         G_LOG_LEVEL_CRITICAL,
                         "foo",
@@ -133,6 +145,7 @@ logging_syslog_log_handler_critical_test (void **state)
 static void
 logging_syslog_log_handler_warning_test (void **state)
 {
+    UNUSED_PARAM(state);
     syslog_log_handler ("domain",
                         G_LOG_LEVEL_WARNING,
                         "foo",
@@ -142,6 +155,7 @@ logging_syslog_log_handler_warning_test (void **state)
 static void
 logging_syslog_log_handler_message_test (void **state)
 {
+    UNUSED_PARAM(state);
     syslog_log_handler ("domain",
                         G_LOG_LEVEL_MESSAGE,
                         "foo",
@@ -151,6 +165,7 @@ logging_syslog_log_handler_message_test (void **state)
 static void
 logging_syslog_log_handler_info_test (void **state)
 {
+    UNUSED_PARAM(state);
     syslog_log_handler ("domain",
                         G_LOG_LEVEL_INFO,
                         "foo",
@@ -160,6 +175,7 @@ logging_syslog_log_handler_info_test (void **state)
 static void
 logging_syslog_log_handler_debug_test (void **state)
 {
+    UNUSED_PARAM(state);
     syslog_log_handler ("domain",
                         G_LOG_LEVEL_DEBUG,
                         "foo",
@@ -169,14 +185,14 @@ logging_syslog_log_handler_debug_test (void **state)
 static void
 logging_syslog_log_handler_default_test (void **state)
 {
+    UNUSED_PARAM(state);
     syslog_log_handler ("domain",
                         G_LOG_LEVEL_DEBUG|G_LOG_LEVEL_MESSAGE,
                         "foo",
                         NULL);
 }
 int
-main (int    argc,
-      char  *argv[])
+main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (logging_get_enabled_log_levels_default_test),

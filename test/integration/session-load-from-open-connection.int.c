@@ -32,6 +32,7 @@
 #include <tss2/tss2_sys.h>
 
 #include "common.h"
+#include "tpm2-struct-init.h"
 #include "test-options.h"
 #include "context-util.h"
 
@@ -43,13 +44,12 @@
  * loads it from "connection1" *before* "connection0" is closed.
  */
 int
-main (int argc,
-      char *argv[])
+main ()
 {
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context0, *sapi_context1;
     TPMI_SH_AUTH_SESSION  session_handle = 0, session_handle_load = 0;
-    TPMS_CONTEXT          context = { 0, };
+    TPMS_CONTEXT          context = TPMS_CONTEXT_ZERO_INIT;
     test_opts_t opts = TEST_OPTS_DEFAULT_INIT;
 
     get_test_opts_from_env (&opts);

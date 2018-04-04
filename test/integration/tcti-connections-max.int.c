@@ -42,12 +42,11 @@
 #define TCTI_COUNT_MAX 100
 
 int
-main (int    argc,
-      char  *argv[])
+main ()
 {
     TSS2_TCTI_CONTEXT *tcti_context[TCTI_COUNT_MAX] = { NULL };
     uint8_t            tcti_count = TABRMD_CONNECTIONS_MAX_DEFAULT, i;
-    test_opts_t test_opts = { 0 };
+    test_opts_t test_opts = TEST_OPTS_DEFAULT_INIT;
 
     if (tcti_count > TCTI_COUNT_MAX) {
         printf ("Cannot create more than %" PRIx8 " connections\n",

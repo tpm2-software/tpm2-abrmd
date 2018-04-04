@@ -41,14 +41,14 @@ create_primary (TSS2_SYS_CONTEXT *sapi_context,
                 TPM2_HANDLE       *handle)
 {
     TSS2_RC rc;
-    TPM2B_SENSITIVE_CREATE in_sensitive    = { 0 };
-    TPM2B_PUBLIC           in_public       = { 0 };
-    TPM2B_DATA             outside_info    = { 0 };
-    TPML_PCR_SELECTION     creation_pcr    = { 0 };
-    TPM2B_PUBLIC           out_public      = { 0 };
-    TPM2B_CREATION_DATA    creation_data   = { 0 };
+    TPM2B_SENSITIVE_CREATE in_sensitive    = TPM2B_SENSITIVE_CREATE_ZERO_INIT;
+    TPM2B_PUBLIC           in_public       = TPM2B_PUBLIC_ZERO_INIT;
+    TPM2B_DATA             outside_info    = TPM2B_DATA_ZERO_INIT;
+    TPML_PCR_SELECTION     creation_pcr    = TPML_PCR_SELECTION_ZERO_INIT;
+    TPM2B_PUBLIC           out_public      = TPM2B_PUBLIC_ZERO_INIT;
+    TPM2B_CREATION_DATA    creation_data   = TPM2B_CREATION_DATA_ZERO_INIT;
     TPM2B_DIGEST           creation_digest = TPM2B_DIGEST_STATIC_INIT;
-    TPMT_TK_CREATION       creation_ticket = { 0 };
+    TPMT_TK_CREATION       creation_ticket = TPMT_TK_CREATION_ZERO_INIT;
     TPM2B_NAME             name            = TPM2B_NAME_STATIC_INIT;
     /* command auth stuff */
     TSS2L_SYS_AUTH_COMMAND cmd_auths = {
@@ -116,13 +116,13 @@ create_key (TSS2_SYS_CONTEXT *sapi_context,
 {
     TSS2_RC rc;
 
-    TPM2B_SENSITIVE_CREATE  in_sensitive     = { 0 };
-    TPM2B_PUBLIC	    in_public        = { 0 };
-    TPM2B_DATA	            outside_info     = { 0 };
-    TPML_PCR_SELECTION	    creation_pcr     = { 0 };
-    TPM2B_CREATION_DATA	    creation_data    = { 0 };
-    TPM2B_DIGEST	    creation_hash    = TPM2B_DIGEST_STATIC_INIT;
-    TPMT_TK_CREATION	    creation_ticket  = { 0 };
+    TPM2B_SENSITIVE_CREATE in_sensitive    = TPM2B_SENSITIVE_CREATE_ZERO_INIT;
+    TPM2B_PUBLIC           in_public       = TPM2B_PUBLIC_ZERO_INIT;
+    TPM2B_DATA             outside_info    = TPM2B_DATA_ZERO_INIT;
+    TPML_PCR_SELECTION     creation_pcr    = TPML_PCR_SELECTION_ZERO_INIT;
+    TPM2B_CREATION_DATA    creation_data   = TPM2B_CREATION_DATA_ZERO_INIT;
+    TPM2B_DIGEST           creation_hash   = TPM2B_DIGEST_STATIC_INIT;
+    TPMT_TK_CREATION       creation_ticket = TPMT_TK_CREATION_ZERO_INIT;
     TSS2L_SYS_AUTH_COMMAND cmd_auths = {
         .count = 1,
         .auths = {{
@@ -320,7 +320,7 @@ void
 clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
 {
     TSS2_RC rc;
-    int i, j;
+    unsigned int i, j;
     TPMI_YES_NO more_data;
     TPMS_CAPABILITY_DATA capability_data;
     TPML_HANDLE *handles = &capability_data.data.handles;
@@ -368,7 +368,7 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
         }
 
         for (j = 0; j < handles->count; ++j) {
-            if (properties[i].property == TPM2_NV_INDEX_FIRST) {
+            if (properties[i].property == (UINT32) TPM2_NV_INDEX_FIRST) {
                 undefine_nv_index (sapi_context, handles->handle[j]);
                 continue;
             }
@@ -378,7 +378,7 @@ clean_up_all (TSS2_SYS_CONTEXT *sapi_context)
              * objects from the TPM. So we always handle persistent handles
              * prior to transient handles to allow evicting them on next round.
              */
-            if (properties[i].property == TPM2_PERSISTENT_FIRST) {
+            if (properties[i].property == (UINT32) TPM2_PERSISTENT_FIRST) {
                 evict_persistent_objs (sapi_context, handles->handle[j]);
                 continue;
             }
@@ -410,7 +410,7 @@ start_auth_session (TSS2_SYS_CONTEXT      *sapi_context,
         .size   = TPM2_SHA256_DIGEST_SIZE,
         .buffer = { 0 }
     };
-    TPM2B_ENCRYPTED_SECRET encrypted_salt = { 0 };
+    TPM2B_ENCRYPTED_SECRET encrypted_salt = TPM2B_ENCRYPTED_SECRET_ZERO_INIT;
     TPMT_SYM_DEF           symmetric      = { .algorithm = TPM2_ALG_NULL };
 
     g_debug ("StartAuthSession for TPM_SE_POLICY (policy session)");

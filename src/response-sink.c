@@ -133,7 +133,10 @@ response_sink_dispose (GObject *obj)
 void* response_sink_thread (void *data);
 static void
 response_sink_init (ResponseSink *response)
-{ /* noop */ }
+{
+    UNUSED_PARAM(response);
+    /* noop */
+}
 static void
 response_sink_unblock (Thread *self)
 {
