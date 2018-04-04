@@ -28,7 +28,7 @@
 set -u
 set +o nounset
 
-# default int-test-funcs script, overriden in TEST_FUNCTIONS env variable
+# default int-test-funcs script, overridden in TEST_FUNCTIONS env variable
 TEST_FUNC_LIB=${TEST_FUNC_LIB:-scripts/int-test-funcs.sh}
 if [ -e ${TEST_FUNC_LIB} ]; then
     . ${TEST_FUNC_LIB}
