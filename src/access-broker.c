@@ -102,7 +102,7 @@ access_broker_get_property (GObject     *object,
     }
 }
 /*
- * Dispose function: relese references to gobjects. We also free the SAPI
+ * Dispose function: release references to gobjects. We also free the SAPI
  * context here as well. Typically freeing this data would be done in the
  * finalize function but it can't be used w/o the underlying TCTI.
  */
@@ -231,7 +231,7 @@ access_broker_lock (AccessBroker *broker)
             g_error ("AccessBroker: attempted to lock uninitialized mutex");
             break;
         default:
-            g_error ("AccessBroker: unkonwn error attempting to lock SAPI "
+            g_error ("AccessBroker: unknown error attempting to lock SAPI "
                      "mutex: 0x%x", error);
             break;
         }
@@ -434,7 +434,7 @@ access_broker_get_response (AccessBroker *broker,
 /**
  * In the most simple case the caller will want to send just a single
  * command represented by a Tpm2Command object. The response is passed
- * back as the return value. The resonse code is returend through the
+ * back as the return value. The response code is returned through the
  * 'rc' out parameter.
  * The caller MUST NOT hold the lock when calling. This function will take
  * the lock for itself.
@@ -511,7 +511,7 @@ access_broker_new (Tcti *tcti)
  * Initialize the AccessBroker. This is all about initializing internal data
  * that normally we would want to do in a constructor. But since this
  * initialization requires reaching out to the TPM and could fail we don't
- * want to do it in the constructur / _new function. So we put it here in
+ * want to do it in the constructor / _new function. So we put it here in
  * an explicit _init function that must be executed after the object has
  * been instantiated.
  */

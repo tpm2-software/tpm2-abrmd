@@ -134,7 +134,7 @@ get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
 }
 /*
  * Query the TPM for transient object handles and dump them to stdout. 'count'
- * handles are retrieved for each call to GetCapability untill we've obtained
+ * handles are retrieved for each call to GetCapability until we've obtained
  * all handles.
  */
 TSS2_RC
@@ -180,7 +180,7 @@ get_cap_trans_dump (TSS2_SYS_CONTEXT *sapi_context,
 /*
  * This is a test program that creates and loads a configurable number of
  * transient objects in the NULL hierarchy. The number of keys created
- * undert the NULL primary key can be provided as a base 10 integer on
+ * under the NULL primary key can be provided as a base 10 integer on
  * the command line. This is the only parameter the program takes.
  */
 int
@@ -212,7 +212,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     for (i = 0; i < loops; ++i) {
         g_print ("handle [%zu]: 0x%" PRIx32 "\n", i, handles_load [i]);
     }
-    g_print ("quering handles with GetCapability in increments of 2\n");
+    g_print ("querying handles with GetCapability in increments of 2\n");
 
     rc = get_cap_trans_dump (sapi_context, 2);
     if (rc != TSS2_RC_SUCCESS) {

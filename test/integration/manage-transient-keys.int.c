@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * This is an integration test that is intended to be run directly agianst
+ * This is an integration test that is intended to be run directly against
  * the tpm2-abrmd. It creates transient objects (RSA keys), loads them, then
  * saves the context and flushes it. This is intended to exercise the special
  * handling of the TPM2_FlushContext function that is required in the daemon.

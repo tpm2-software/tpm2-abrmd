@@ -100,7 +100,7 @@ tcti_util_dynamic_init (const TSS2_TCTI_INFO *info,
     }
     rc = info->init (NULL, &ctx_size, NULL);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("failed to get size for device TCTI contexxt structure: "
+        g_warning ("failed to get size for device TCTI context structure: "
                    "0x%x", rc);
         goto out;
     }
