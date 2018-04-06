@@ -69,7 +69,7 @@ __wrap_access_broker_send_command (AccessBroker *access_broker,
     return response;
 }
 /**
- * Mock function for testing the resoruce_manager_process_tpm2_command
+ * Mock function for testing the resource_manager_process_tpm2_command
  * function. When the AccessBroker returns a Tpm2Response object the
  * ResourceManager passes this object to whatever sink has been provided
  * to it. For the purposes of testing we don't provide a valid Sink.
@@ -93,7 +93,7 @@ __wrap_sink_enqueue (Sink      *self,
 TSS2_RC
 __wrap_access_broker_context_saveflush (AccessBroker *broker,
                                         TPM2_HANDLE    handle,
-                                        TPMS_CONTEXT *contedt)
+                                        TPMS_CONTEXT *context)
 {
    return mock_type (TSS2_RC);
 }
@@ -246,7 +246,7 @@ resource_manager_sink_enqueue_test (void **state)
 }
 /**
  * A test: exercise the resource_manager_process_tpm2_command function.
- * This function is normally invoked by the ResoruceManager internal
+ * This function is normally invoked by the ResourceManager internal
  * thread. We invoke it directly here to control variables and timing
  * issues with the thread.
  */

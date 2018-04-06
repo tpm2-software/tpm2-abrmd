@@ -168,7 +168,7 @@ tpm2_response_get_buffer_test (void **state)
     assert_int_equal (data->buffer, tpm2_response_get_buffer (data->response));
 }
 /**
- * Here we retrieve the data buffer from the Tpm2Resposne and manually set
+ * Here we retrieve the data buffer from the Tpm2Response and manually set
  * the tag part of the response buffer to TPM2_ST_SESSIONS in network byte
  * order (aka big endian). We then use the tpm2_response_get_tag function
  * to retrieve this data and we compare it to TPM2_ST_SESSIONS to be sure we
@@ -189,7 +189,7 @@ tpm2_response_get_tag_test (void **state)
     assert_int_equal (tag_ret, TPM2_ST_SESSIONS);
 }
 /**
- * Again we're getting the response buffer from the Tpm2Resposne object
+ * Again we're getting the response buffer from the Tpm2Response object
  * but this time we're setting the additional size field (uint32) to 0x6
  * in big endian format. We then use the tpm2_response_get_size function
  * to get this value back and we compare it to 0x6 to be sure it's returned
@@ -285,7 +285,7 @@ tpm2_response_new_rc_tag_test (void **state)
 }
 /**
  * The tpm2_response_new_rc sets the size to the appropriate
- * TPM_RESONSE_HEADER size (which is 10 bytes) for us since the resonse
+ * TPM_RESPONSE_HEADER size (which is 10 bytes) for us since the response
  * buffer is just a header. Here we check to be sure that we get this value
  * back in the proper host byte order.
  */
@@ -300,7 +300,7 @@ tpm2_response_new_rc_size_test (void **state)
 }
 /**
  * The tpm2_response_new_rc sets the response code to whatever RC is passed
- * as a parameter. In the paried setup function we passed it TPM2_RC_BINDING.
+ * as a parameter. In the paired setup function we passed it TPM2_RC_BINDING.
  * This function ensures that we get the same value back from the
  * tpm2_response_get_code function in the proper host byte order.
  */
@@ -314,7 +314,7 @@ tpm2_response_new_rc_code_test (void **state)
     assert_int_equal (rc, TPM2_RC_BINDING);
 }
 /**
- * The tpm2_resonse_new_rc takes a connection as a parameter. We save a
+ * The tpm2_response_new_rc takes a connection as a parameter. We save a
  * reference to this in the test_data_t structure. Here we ensure that the
  * tpm2_response_get_connection function returns the same connection to us.
  */

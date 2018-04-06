@@ -33,7 +33,7 @@
 #include "response-sink.h"
 
 /**
- * Test to allcoate and destroy a ResponseSink.
+ * Test to allocate and destroy a ResponseSink.
  */
 static void
 response_sink_allocate_test (void **state)

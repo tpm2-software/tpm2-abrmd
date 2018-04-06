@@ -82,7 +82,7 @@ handle_map_entry_type_test (void **state)
     assert_true (IS_HANDLE_MAP_ENTRY (data->handle_map_entry));
 }
 /*
- * This test assures us that the physical handle presteted to the constructor
+ * This test assures us that the physical handle presented to the constructor
  * is the same one returned to us by the 'get_phandle' accessor function.
  */
 static void

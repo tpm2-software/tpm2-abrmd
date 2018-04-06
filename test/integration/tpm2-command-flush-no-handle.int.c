@@ -34,7 +34,7 @@
 #include "test.h"
 
 /*
- * This test sends the tabrmd a malformed ContextFlush command. The comand
+ * This test sends the tabrmd a malformed ContextFlush command. The command
  * size is set to the size of the header which omits the handle being flushed.
  * This is designed to get the tabrmd to attempt to access the handle
  * parameter that will be outside of the buffer allocated by the

@@ -63,11 +63,11 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     g_info ("invoking tss2_tcti_tabrmd_cancel");
     rc = Tss2_Tcti_Cancel (tcti_context);
     if (rc == TSS2_RESMGR_RC_NOT_IMPLEMENTED) {
-        g_warning ("tss2_tcti_tabrmd_cancel failed as expected: 0x%" PRIx32,
+        g_warning ("Tss2_Tcti_Cancel failed as expected: 0x%" PRIx32,
                    rc);
         return 0;
     } else {
-        g_critical ("tss2_tcti_tabrd_cacel returned unexpected rc: 0x%"
+        g_critical ("Tss2_Tcti_Cancel returned unexpected rc: 0x%"
                     PRIx32, rc);
         return 1;
     }
