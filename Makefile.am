@@ -15,7 +15,6 @@ AM_CFLAGS = $(EXTRA_CFLAGS) \
 AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
 UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 
-if UNIT
 TESTS_UNIT = \
     test/access-broker_unit \
     test/command-attrs_unit \
@@ -42,9 +41,8 @@ TESTS_UNIT = \
     test/tss2-tcti-tabrmd_unit \
     test/tss2-tcti-echo_unit \
     test/util_unit
-endif #UNIT
 
-tests_integration = \
+TESTS_INTEGRATION = \
     test/integration/auth-session-max.int \
     test/integration/auth-session-start-flush.int \
     test/integration/auth-session-start-save.int \
@@ -66,29 +64,26 @@ tests_integration = \
     test/integration/tpm2-command-flush-no-handle.int \
     test/integration/util-buf-max-upper-bound.int
 
-tests_integration_nohw = test/integration/tcti-connect-multiple.int
+TESTS_INTEGRATION_NOHW = test/integration/tcti-connect-multiple.int
 
-if SIMULATOR_BIN
-TESTS_INTEGRATION = $(tests_integration) $(tests_integration_nohw)
-endif
-
-if HWTPM
-TESTS_INTEGRATION = $(tests_integration)
-endif
-
+TESTS = $(TESTS_INTEGRATION)
 XFAIL_TESTS = test/integration/start-auth-session.int
-
-TESTS = $(TESTS_UNIT) $(TESTS_INTEGRATION)
 TEST_EXTENSIONS = .int
 AM_TESTS_ENVIRONMENT = TEST_FUNC_LIB=$(srcdir)/scripts/int-test-funcs.sh
+INT_LOG_FLAGS = --tabrmd-bin=$(sbin_PROGRAMS)
+
 if HWTPM
 INT_LOG_COMPILER = $(srcdir)/scripts/int-hardware-setup.sh
-else
-INT_LOG_COMPILER = $(srcdir)/scripts/int-simulator-setup.sh
 endif
-INT_LOG_FLAGS = --tabrmd-bin=$(sbin_PROGRAMS)
+
 if SIMULATOR_BIN
+INT_LOG_COMPILER = $(srcdir)/scripts/int-simulator-setup.sh
 INT_LOG_FLAGS += --simulator-bin=$(SIMULATOR_BIN)
+TESTS += $(TESTS_INTEGRATION_NOHW)
+endif
+
+if UNIT
+TESTS += $(TESTS_UNIT)
 endif
 
 sbin_PROGRAMS   = src/tpm2-abrmd
