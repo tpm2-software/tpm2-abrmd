@@ -555,7 +555,7 @@ UINT32
 tpm2_command_get_prop_count (Tpm2Command *command)
 {
     if (command == NULL) {
-        g_warning ("tpm2_command_get_prop_count assed NULL parameter");
+        g_warning ("tpm2_command_get_prop_count passed NULL parameter");
         return 0;
     }
     if (tpm2_command_get_code (command) != TPM2_CC_GetCapability) {
@@ -570,7 +570,7 @@ tpm2_command_get_prop_count (Tpm2Command *command)
     return (UINT32)be32toh (PROPERTY_COUNT_GET (tpm2_command_get_buffer (command)));
 }
 /*
- * This is a convencience function to keep from having to compare the tag
+ * This is a convenience function to keep from having to compare the tag
  * value to TPM2_ST_(NO_)?_SESSIONS repeatedly.
  */
 gboolean

@@ -438,7 +438,7 @@ resource_manager_save_context (ResourceManager *resmgr,
             session_entry_set_state (entry, SESSION_ENTRY_SAVED_CLIENT);
             g_object_unref (entry);
         } else {
-            g_warning ("Client attempting to save unkonwn session.");
+            g_warning ("Client attempting to save unknown session.");
         }
         break;
     default:
@@ -755,7 +755,7 @@ get_cap_handles (HandleMap            *map,
 /*
  * These macros are used to set fields in a Tpm2Response buffer that we
  * create in response to the TPM2 GetCapability command. They are very
- * specifically taylored and should not be used elsewhere.
+ * specifically tailored and should not be used elsewhere.
  */
 #define YES_NO_OFFSET TPM_HEADER_SIZE
 #define YES_NO_SET(buffer, value) \
@@ -1102,7 +1102,8 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     }
     /* load session contexts */
     /* Do any special processing of the command. This could be as simple as 
-     * command requires any special processingis virtualized by the ResourceManager, get the response
+     * command requires any special processing is virtualized by the
+     * ResourceManager, get the response.
      */
     response = command_special_processing (resmgr, command);
     if (response != NULL) {

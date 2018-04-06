@@ -69,7 +69,7 @@ connection_set_property (GObject       *object,
     case PROP_TRANSIENT_HANDLE_MAP:
         self->transient_handle_map = g_value_get_object (value);
         g_object_ref (self->transient_handle_map);
-        g_debug ("Connection 0x%" PRIxPTR " set trans_handel_map to 0x%"
+        g_debug ("Connection 0x%" PRIxPTR " set transient_handle_map to 0x%"
                   PRIxPTR, (uintptr_t)self,
                   (uintptr_t)self->transient_handle_map);
         break;

@@ -301,7 +301,7 @@ tpm2_response_has_handle (Tpm2Response  *response)
  * Return the handle from the response handle area. Always check to be sure
  * the response has a handle in it before calling this function. If the
  * Tpm2Response has no handle in the handle area the return value from this
- * function will be indetermanent.
+ * function will be indeterminate.
  */
 TPM2_HANDLE
 tpm2_response_get_handle (Tpm2Response *response)

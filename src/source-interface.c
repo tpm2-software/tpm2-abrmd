@@ -31,7 +31,7 @@ G_DEFINE_INTERFACE (Source, source, G_TYPE_INVALID);
 static void
 source_default_init (SourceInterface *iface)
 {
-    /* noop, requied by G_DEFINE_INTERFACE */
+    /* noop, required by G_DEFINE_INTERFACE */
 }
 
 /**
