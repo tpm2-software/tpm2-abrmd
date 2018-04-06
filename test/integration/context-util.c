@@ -155,7 +155,7 @@ tcti_init_from_opts (test_opts_t *options)
     }
 }
 /*
- * Teardown and free the resoruces associted with a SAPI context structure.
+ * Teardown and free the resources associated with a SAPI context structure.
  * This includes tearing down the TCTI as well.
  */
 void

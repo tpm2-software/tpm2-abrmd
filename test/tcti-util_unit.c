@@ -223,7 +223,7 @@ typedef struct {
 } tcti_util_t;
 
 /*
- * This setup function shouldn't be used directy. Instead it should be
+ * This setup function shouldn't be used directly. Instead it should be
  * called from another setup function after the dlsym stack has been
  * set so there's a function to return the info structure to the
  * discover_info function.

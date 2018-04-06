@@ -124,7 +124,7 @@ __wrap_g_source_set_callback (GSource *source,
     *source_data_param = source_data;
 }
 /* command_source_allocate_test begin
- * Test to allcoate and destroy a CommandSource.
+ * Test to allocate and destroy a CommandSource.
  */
 static void
 command_source_allocate_test (void **state)
@@ -255,7 +255,7 @@ command_source_connection_insert_test (void **state)
     thread_join (THREAD (source));
     g_object_unref (connection);
 }
-/* command_source_sesion_insert_test end */
+/* command_source_session_insert_test end */
 
 /**
  * A test: Test the command_source_connection_responder function. We do this
@@ -312,7 +312,7 @@ command_source_on_io_ready_success_test (void **state)
 }
 /*
  * This tests the CommandSource on_io_ready function for situations where
- * the GSocket assocaited with a client connection is closed. This causes
+ * the GSocket associated with a client connection is closed. This causes
  * the attempt to read data from the socket to return an error indicating
  * that the socket was closed. In this case the function should return a
  * value telling GLib to remove the GSource from the main loop. Additionally

@@ -222,7 +222,7 @@ access_broker_type_test (void **state)
 }
 /**
  * Test the initialization route for the AccessBroker. A successful call
- * to the init functhion should return TSS2_RC_SUCCESS and the 'initialized'
+ * to the init function should return TSS2_RC_SUCCESS and the 'initialized'
  * flag should be set to 'true'.
  */
 static void
@@ -291,7 +291,7 @@ access_broker_lock_test (void **state)
  * Here we're testing the internals of the 'access_broker_send_command'
  * function. We're wrapping the tcti_transmit command in the TCTI that
  * the access broker is using. This test causes the TCTI transmit
- * function to return an arbitrary respose code. In this case we should
+ * function to return an arbitrary response code. In this case we should
  * receive a NULL pointer back in place of the Tpm2Response and the
  * out parameter RC is set to the RC value.
  */

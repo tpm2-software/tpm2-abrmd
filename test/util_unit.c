@@ -152,7 +152,7 @@ __wrap_g_input_stream_read (GInputStream  *istream,
     if (error_in != NULL && error != NULL) {
         *error = error_in;
     }
-    /* be careful comparint signed to unsigned values */
+    /* be careful comparing signed to unsigned values */
     if (ret > 0) {
         assert_true (ret <= (ssize_t)count);
         memcpy (buf, &buf_in [buf_index], ret);

@@ -94,7 +94,7 @@ test_thread_run (void *data)
 /*
  * This function is invoked as part of canceling ('thread_cancel') the Thread.
  * It is used to unblock the thread in case it is blocked on something that
- * isn't a cencelation point. The TestThread just sleeps in a loop and sleep
+ * isn't a cancelation point. The TestThread just sleeps in a loop and sleep
  * is a pthread cancelation point so we just set a flag so we know this was
  * called.
  */
