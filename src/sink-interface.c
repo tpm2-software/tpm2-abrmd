@@ -31,7 +31,7 @@ G_DEFINE_INTERFACE (Sink, sink, G_TYPE_INVALID);
 static void
 sink_default_init (SinkInterface *iface)
 {
-    /* noop, requied by G_DEFINE_INTERFACE */
+    /* noop, required by G_DEFINE_INTERFACE */
 }
 
 /**

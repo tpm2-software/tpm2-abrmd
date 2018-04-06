@@ -70,7 +70,7 @@
  *   TRANSMIT:
  *     transmit:    success transitions the state machine to RECEIVE
  *                  failure leaves the state unchanged
- *     receieve:    produces TSS2_TCTI_RC_BAD_SEQUENCE
+ *     receive:     produces TSS2_TCTI_RC_BAD_SEQUENCE
  *     finalize:    transitions state machine to FINAL state
  *     cancel:      produces TSS2_TCTI_RC_BAD_SEQUENCE
  *     setLocality: success or failure leaves state unchanged

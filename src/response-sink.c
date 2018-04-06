@@ -170,7 +170,7 @@ response_sink_class_init (ResponseSinkClass *klass)
 
     obj_properties [PROP_IN_QUEUE] =
         g_param_spec_object ("in-queue",
-                             "MessageQueeu",
+                             "MessageQueue",
                              "Input MessageQueue.",
                              G_TYPE_OBJECT,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);

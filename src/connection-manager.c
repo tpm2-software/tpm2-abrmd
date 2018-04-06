@@ -119,8 +119,8 @@ connection_manager_init (ConnectionManager *mgr)
         g_error ("Failed to initialize connection _manager mutex: %s",
                  strerror (errno));
     /* These two data structures must be kept in sync. When the
-     * connection-manager object is destoryed the Connection objects in these
-     * hash tables will be free'd by the g_object_unref function. We only
+     * connection-manager object is destroyed the Connection objects in these
+     * hash tables will be freed by the g_object_unref function. We only
      * set this for one of the hash tables because we only want to free
      * each Connection object once.
      */
@@ -214,7 +214,7 @@ connection_manager_class_init (ConnectionManagerClass *klass)
     obj_properties [PROP_MAX_CONNECTIONS] =
         g_param_spec_uint ("max-connections",
                            "max connections",
-                           "Maximum nunmber of concurrent client connections",
+                           "Maximum number of concurrent client connections",
                            0,
                            MAX_CONNECTIONS,
                            MAX_CONNECTIONS_DEFAULT,
