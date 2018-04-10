@@ -133,7 +133,7 @@ in
         BACKOFF_FACTOR=2
         BACKOFF=1
         for i in $(seq 10); do
-            SIM_PORT_DATA=$(od -A n -N 2 -t u2 /dev/urandom | awk -v min=${PORT_MIN} -v max=${PORT_MAX} '{print ($1 % (max - min)) + min}')
+            SIM_PORT_DATA=`shuf -i ${PORT_MIN}-${PORT_MAX} -n 1`
             SIM_PORT_CMD=$((${SIM_PORT_DATA}+1))
             echo "Starting simulator on port ${SIM_PORT_DATA}"
             simulator_start ${SIM_BIN} ${SIM_PORT_DATA} ${SIM_LOG_FILE} ${SIM_PID_FILE} ${SIM_TMP_DIR}
