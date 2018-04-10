@@ -56,6 +56,7 @@ daemon_start ()
     local valgrind_bin="$6"
     local valgrind_flags="$7"
 
+    printf "starting daemon: %s\n  environment: %s\n  options: %s\n" "${daemon_bin}" "${daemon_env}" "${daemon_opts}"
     env ${daemon_env} ${valgrind_bin} ${valgrind_flags} ${daemon_bin} ${daemon_opts} > ${daemon_log_file} 2>&1 &
     local ret=$?
     local pid=$!
@@ -101,19 +102,10 @@ simulator_start ()
 tabrmd_start ()
 {
     local tabrmd_bin=$1
-    local tabrmd_port=$2
-    local tabrmd_name=$3
-    local tabrmd_log_file=$4
-    local tabrmd_pid_file=$5
-
+    local tabrmd_log_file=$2
+    local tabrmd_pid_file=$3
+    local tabrmd_opts="$4"
     local tabrmd_env="G_MESSAGES_DEBUG=all"
-    local tabrmd_opts="--session --dbus-name=${tabrmd_name}"
-
-    if [ $tabrmd_port -ne 0 ]; then
-        tabrmd_opts="$tabrmd_opts --tcti=mssim:tcp://127.0.0.1:${tabrmd_port}/"
-    else
-        tabrmd_opts="$tabrmd_opts --tcti=device --allow-root"
-    fi
 
     daemon_start "${tabrmd_bin}" "${tabrmd_opts}" "${tabrmd_log_file}" \
         "${tabrmd_pid_file}" "${tabrmd_env}" "${VALGRIND}" "${LOG_FLAGS}"
