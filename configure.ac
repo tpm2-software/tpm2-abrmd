@@ -143,7 +143,7 @@ AC_ARG_ENABLE([test-hwtpm],
               [enable_hwtpm=$enableval],
               [enable_hwtpm=no])
 AS_IF([test \( "x$with_simulatorbin_set" = "xyes" \) -a \( "x$enable_hwtpm" = "xyes" \) ],
-      AC_MSG_ERROR([Simulator binary and real tpm hardware cannot be both enabled.]))
+      AC_MSG_ERROR([--with-simulatorbin cannot be provided with --enable-test-hwtpm.]))
 AM_CONDITIONAL([HWTPM], [test "x$enable_hwtpm" != xno])
 
 AS_IF([test \( "x$with_simulatorbin_set" = "xno" \) -a \( "x$enable_hwtpm" = "xno" \) ],

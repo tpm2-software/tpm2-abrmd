@@ -70,15 +70,16 @@ TESTS = $(TESTS_INTEGRATION)
 XFAIL_TESTS = test/integration/start-auth-session.int
 TEST_EXTENSIONS = .int
 AM_TESTS_ENVIRONMENT = TEST_FUNC_LIB=$(srcdir)/scripts/int-test-funcs.sh
-INT_LOG_FLAGS = --tabrmd-bin=$(sbin_PROGRAMS)
+INT_LOG_COMPILER = $(srcdir)/scripts/int-test-setup.sh
+INT_LOG_FLAGS = --tabrmd-bin=$(sbin_PROGRAMS) --tabrmd-tcti=$(TABRMD_TCTI)
 
 if HWTPM
-INT_LOG_COMPILER = $(srcdir)/scripts/int-hardware-setup.sh
+TABRMD_TCTI = device
 endif
 
 if SIMULATOR_BIN
-INT_LOG_COMPILER = $(srcdir)/scripts/int-simulator-setup.sh
 INT_LOG_FLAGS += --simulator-bin=$(SIMULATOR_BIN)
+TABRMD_TCTI = mssim
 TESTS += $(TESTS_INTEGRATION_NOHW)
 endif
 
@@ -130,9 +131,8 @@ EXTRA_DIST = \
     dist/tpm2-abrmd.service.in \
     dist/tpm-udev.rules \
     dist/com.intel.tss2.Tabrmd.service \
-    scripts/int-simulator-setup.sh \
-    scripts/int-hardware-setup.sh \
     scripts/int-test-funcs.sh \
+    scripts/int-test-setup.sh \
     selinux/Makefile \
     selinux/tabrmd.fc \
     selinux/tabrmd.if \
