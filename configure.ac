@@ -106,19 +106,6 @@ AC_ARG_WITH([dbuspolicydir],
 AX_NORMALIZE_PATH([with_dbuspolicydir])
 AC_SUBST([dbuspolicydir], [$with_dbuspolicydir])
 #
-# udev
-#
-AC_ARG_WITH([udevrulesdir],
-            [AS_HELP_STRING([--with-udevrulesdir=DIR],[udev rules directory])],
-            [],
-            [with_udevrulesdir=${libdir}/udev/rules.d])
-AX_NORMALIZE_PATH([with_udevrulesdir])
-AC_SUBST([udevrulesdir], [$with_udevrulesdir])
-AC_ARG_WITH([udevrulesprefix],
-            [AS_HELP_STRING([--with-udevrulesprefix=XY],[prefix for udev rules file])],
-            [AC_SUBST([udevrulesprefix],[$with_udevrulesprefix])])
-AM_CONDITIONAL(WITH_UDEVRULESPREFIX, [test -n "$with_udevrulesprefix"])
-#
 # simulator binary
 #
 AC_MSG_CHECKING([for simulator binary: $with_simulatorbin])
