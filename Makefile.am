@@ -105,14 +105,6 @@ man3_MANS = man/man3/Tss2_Tcti_Tabrmd_Init.3
 man7_MANS = man/man7/tss2-tcti-tabrmd.7
 man8_MANS = man/man8/tpm2-abrmd.8
 
-if WITH_UDEVRULESPREFIX
-install-data-hook:
-	mv $(DESTDIR)$(udevrulesdir)/tpm-udev.rules $(DESTDIR)$(udevrulesdir)/$(udevrulesprefix)tpm-udev.rules
-
-uninstall-local:
-	-rm $(DESTDIR)$(udevrulesdir)/$(udevrulesprefix)tpm-udev.rules
-endif
-
 libtss2_tcti_tabrmddir      = $(includedir)/tcti
 libtss2_tcti_tabrmd_HEADERS = $(srcdir)/src/include/tss2-tcti-tabrmd.h
 
@@ -129,7 +121,6 @@ EXTRA_DIST = \
     dist/tpm2-abrmd.preset.in \
     dist/tss2-tcti-tabrmd.pc.in \
     dist/tpm2-abrmd.service.in \
-    dist/tpm-udev.rules \
     dist/com.intel.tss2.Tabrmd.service \
     scripts/int-test-funcs.sh \
     scripts/int-test-setup.sh \
@@ -162,7 +153,6 @@ BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 pkgconfigdir     = $(libdir)/pkgconfig
 pkgconfig_DATA   = dist/tss2-tcti-tabrmd.pc
 dbuspolicy_DATA  = dist/tpm2-abrmd.conf
-udevrules_DATA   = dist/tpm-udev.rules
 if HAVE_SYSTEMD
 systemdpreset_DATA = dist/tpm2-abrmd.preset
 systemdsystemunit_DATA = dist/tpm2-abrmd.service

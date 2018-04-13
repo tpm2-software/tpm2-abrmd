@@ -145,30 +145,6 @@ started by systemd on boot. If you wish for the daemon to be disabled by
 default some reason you may use this option to the `configure` script to do
 so.
 
-### udev Rules
-The typical operation for the `tpm2-abrmd` is for it to communicate directly
-with the Linux TPM driver using `libtcti-device` from the TPM2.0-TSS project.
-This requires that the user account that's running the `tpm2-abrmd` have both
-read and write access to the TPM device node `/dev/tpm[0-9]`.
-
-#### `--with-udevrulesdir`
-This requires that `udev` be instructed to set the owner and group for this
-device node when its created. We provide such a udev rule that is installed to
-`${libdir}/udev/rules.d`. If your distro stores these rules elsewhere you will
-need to tell the build about this location.
-
-Using Debian as an example we can instruct the build to install the udev
-rules in the right location with the following configure option:
-```
---with-udevrulesdir=/etc/udev/rules.d
-```
-
-#### `--with-udevrulesprefix`
-It is common for Linux distros to prefix udev rules files with a numeric
-string (e.g. "70-"). This allows for the rules to be applied in a predictable
-order. This option allows for the name of the installed udev rules file to
-have a string prepended to the file name when it is installed.
-
 
 #### `--datarootdir`
 To override the system data directory, used for
@@ -280,23 +256,12 @@ $ sudo ldconfig
 
 # Post-install
 After installing the compiled software and configuration all components with
-new configuration (Systemd, D-Bus and udev) must be prompted to reload their
-configs. This can be accomplished by restarting your system but this isn't
-strictly necessary and is generally considered bad form.
+new configuration (Systemd and D-Bus) must be prompted to reload their configs.
+This can be accomplished by restarting your system but this isn't strictly
+necessary and is generally considered bad form.
 
 Instead each component can be instructed to reload its config manually. The
 following sections describe this process for each.
-
-## udev
-Once you have this udev rule installed in the right place for your distro
-you'll need to instruct udev to reload its rules and apply the new rule.
-Typically this can be accomplished with the following command:
-```
-$ sudo udevadm control --reload-rules && sudo udevadm trigger
-```
-
-If this doesn't work on your distro please consult your distro's
-documentation for UDEVADM(8).
 
 ## D-Bus
 The dbus-daemon will also need to be instructed to read this configuration
