@@ -86,6 +86,11 @@ random_seed_from_file (Random *random,
     long int rand_seed = 0;
     ssize_t read_ret;
 
+    if (random == NULL) {
+        g_error ("NULL random pointer passed to random_seed_from_file");
+        return -1;
+    }
+
     g_debug ("opening entropy source: %s", fname);
     g_assert_nonnull (random);
     rand_fd = open (fname, O_RDONLY);
@@ -155,6 +160,12 @@ random_get_uint64 (Random      *random)
     size_t ret;
     uint64_t dest;
 
+    if (random == NULL) {
+        g_error ("NULL random pointer passed to random_get_uint64");
+        return -1;
+    }
+
+
     ret = random_get_bytes (random, (uint8_t*)&dest, sizeof (uint64_t));
     g_assert_true (ret == sizeof (uint64_t));
 
@@ -170,6 +181,12 @@ random_get_uint32 (Random       *random)
 {
     size_t ret;
     uint32_t dest;
+
+    if (random == NULL) {
+        g_error ("NULL random pointer passed to random_get_uint32");
+        return -1;
+    }
+
 
     ret = random_get_bytes (random, (uint8_t*)&dest, sizeof (uint32_t));
     g_assert_true (ret == sizeof (uint32_t));
