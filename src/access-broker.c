@@ -219,6 +219,11 @@ access_broker_lock (AccessBroker *broker)
 {
     gint error;
 
+    if (broker == NULL) {
+        g_error ("AccessBroker: NULL pointer passed to access_broker_lock");
+        return;
+    }
+
     error = pthread_mutex_lock (&broker->sapi_mutex);
     if (error != 0) {
         switch (error) {
@@ -243,6 +248,11 @@ void
 access_broker_unlock (AccessBroker *broker)
 {
     gint error;
+
+    if (broker == NULL) {
+        g_error ("AccessBroker: NULL pointer passed to access_broker_unlock");
+        return;
+    }
 
     error= pthread_mutex_unlock (&broker->sapi_mutex);
     if (error != 0) {
@@ -329,6 +339,12 @@ access_broker_get_fixed_property (AccessBroker           *broker,
 TSS2_SYS_CONTEXT*
 access_broker_lock_sapi (AccessBroker *broker)
 {
+    if (broker == NULL) {
+        g_error (
+            "AccessBroker: NULL pointer passed to access_broker_lock_sapi");
+        return NULL;
+    }
+
     access_broker_lock (broker);
     g_assert_nonnull (broker->sapi_context);
     return broker->sapi_context;
