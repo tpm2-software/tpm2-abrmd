@@ -89,11 +89,18 @@ script :
     CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --enable-integration"
     if [ "$CC" = "gcc" ]; then
         CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-code-coverage"
+        ./configure ${CONFIGURE_OPTIONS}
+    elif [ "$CC" == "clang" ]; then
+        export CFLAGS="-D_REENTRANT" # scan-build kludge so -pthread test works
+        scan-build ./configure ${CONFIGURE_OPTIONS}
+        SCANBUILD="scan-build --status-bugs"
+    else
+        echo "Unsupported CC=$CC"
+        exit 1
     fi
-    ./configure ${CONFIGURE_OPTIONS}
   - echo -en 'travis_fold:end:tabrmd-configure\\r'
   - echo "Running make 'distcheck' target..." && echo -en 'travis_fold:start:tabrmd-distcheck\\r'
-  - dbus-launch make -j$(nproc) distcheck
+  - dbus-launch $SCANBUILD make -j$(nproc) distcheck
   - echo -en 'travis_fold:end:tabrmd-distcheck\\r'
   - echo "Running make 'check-code-coverage' target..." && echo -en 'travis_fold:start:tabrmd-check-code-coverage\\r'
   - dbus-launch make -j$(nproc) check-code-coverage
