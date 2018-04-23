@@ -310,8 +310,6 @@ main (void)
         cmocka_unit_test_setup_teardown (command_attrs_from_cc_fail_test,
                                          command_attrs_init_tpm_setup,
                                          command_attrs_teardown),
-        { NULL, NULL, NULL, NULL, NULL }
-
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
 }
