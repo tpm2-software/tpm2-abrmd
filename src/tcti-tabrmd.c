@@ -624,9 +624,13 @@ out:
 
 /* public info structure */
 static const TSS2_TCTI_INFO tss2_tcti_info = {
+    .version = TSS2_TCTI_TABRMD_VERSION,
     .name = "tcti-abrmd",
     .description = "TCTI module for communication with tabrmd.",
-    .config_help = "This module takes NO arguments.",
+    .config_help = "This conf string is a series of key / value pairs " \
+        "where keys and values are separated by the '=' character and " \
+        "each pair is separated by the ',' character. Valid keys are " \
+        "\"bus_name\" and \"bus_type\".",
     .init = Tss2_Tcti_Tabrmd_Init,
 };
 

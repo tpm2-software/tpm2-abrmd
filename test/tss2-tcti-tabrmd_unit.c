@@ -505,7 +505,7 @@ tcti_tabrmd_version_test (void **state)
 {
     data_t *data = *state;
 
-    assert_int_equal (TSS2_TCTI_VERSION (data->context), 1);
+    assert_int_equal (TSS2_TCTI_VERSION (data->context), TSS2_TCTI_TABRMD_VERSION);
 }
 /*
  * Ensure that after initialization the 'id' value set for the connection is

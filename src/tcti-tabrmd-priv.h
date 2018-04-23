@@ -36,7 +36,7 @@
 #include "util.h"
 
 #define TSS2_TCTI_TABRMD_MAGIC 0x1c8e03ff00db0f92
-#define TSS2_TCTI_TABRMD_VERSION 1
+#define TSS2_TCTI_TABRMD_VERSION 2
 
 #define TSS2_TCTI_TABRMD_ID(context) \
     ((TSS2_TCTI_TABRMD_CONTEXT*)context)->id
