@@ -162,7 +162,7 @@ in
         done
         TABRMD_NAME="com.intel.tss2.Tabrmd${SIM_PORT_DATA}"
         TABRMD_OPTS="${TABRMD_OPTS} --dbus-name=${TABRMD_NAME}"
-        TABRMD_OPTS="${TABRMD_OPTS} --tcti=${TABRMD_TCTI}:tcp://127.0.0.1:${SIM_PORT_DATA}"
+        TABRMD_OPTS="${TABRMD_OPTS} --tcti=${TABRMD_TCTI}:port=${SIM_PORT_DATA}"
         TABRMD_TEST_TCTI_CONF="${TABRMD_TEST_TCTI_CONF},bus_name=${TABRMD_NAME}"
         ;;
     "device")
