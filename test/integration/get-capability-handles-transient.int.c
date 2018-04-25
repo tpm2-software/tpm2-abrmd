@@ -128,7 +128,7 @@ get_transient_handles (TSS2_SYS_CONTEXT *sapi_context,
         more_data == 1 ? g_print ("more data\n") : g_print ("no more data\n");
     } while (more_data == 1);
 
-    *handle_count = handles_got + 1;
+    *handle_count = handles_got;
 
     return TSS2_RC_SUCCESS;
 }
