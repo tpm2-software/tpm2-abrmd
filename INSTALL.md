@@ -286,3 +286,86 @@ $ systemctl daemon-reload
 Once systemd has loaded the unit file you should be able to use `systemctl`
 to perform the start / stop / status operations as expected. Systemd should
 also now start the daemon when the system boots.
+
+## Sanity Tests
+Once the `tpm2-abrmd` installed and running it's possible to query the
+dbus-daemon to see evidence of its presence. The following command will list
+all names on the system bus. We filter for the expected name to keep the
+output manageable:
+```
+dbus-send --system --dest=org.freedesktop.DBus --type=method_call --print-reply /org/freedesktop/DBus org.freedesktop.DBus.ListNames
+```
+that should return output like:
+```
+method return time=1524690245.245721 sender=org.freedesktop.DBus -> destination=:1.190 serial=3 reply_serial=2
+   array [
+      ...
+      string "com.intel.tss2.Tabrmd"
+      ...
+   ]
+```
+This lets us know that the daemon has claimed the expected name on the system
+bus, but for many this isn't enough. How do we know that the daemon isn't hung
+/ unresponsive? The most simple way to do this is to use the 'introspection'
+interface to query the daemon for the functions / methods that it supports.
+Every dbus daemon supports this interface:
+```
+dbus-send --system --dest=com.intel.tss2.Tabrmd --type=method_call --print-reply /com/intel/tss2/Tabrmd/Tcti org.freedesktop.DBus.Introspectable.Introspect
+```
+that should return output like:
+```
+method return time=1524690897.749245 sender=:1.192 -> destination=:1.193 serial=7 reply_serial=2
+   string "<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+                      "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- GDBus 2.50.3 -->
+<node>
+  <interface name="org.freedesktop.DBus.Properties">
+    <method name="Get">
+      <arg type="s" name="interface_name" direction="in"/>
+      <arg type="s" name="property_name" direction="in"/>
+      <arg type="v" name="value" direction="out"/>
+    </method>
+    <method name="GetAll">
+      <arg type="s" name="interface_name" direction="in"/>
+      <arg type="a{sv}" name="properties" direction="out"/>
+    </method>
+    <method name="Set">
+      <arg type="s" name="interface_name" direction="in"/>
+      <arg type="s" name="property_name" direction="in"/>
+      <arg type="v" name="value" direction="in"/>
+    </method>
+    <signal name="PropertiesChanged">
+      <arg type="s" name="interface_name"/>
+      <arg type="a{sv}" name="changed_properties"/>
+      <arg type="as" name="invalidated_properties"/>
+    </signal>
+  </interface>
+  <interface name="org.freedesktop.DBus.Introspectable">
+    <method name="Introspect">
+      <arg type="s" name="xml_data" direction="out"/>
+    </method>
+  </interface>
+  <interface name="org.freedesktop.DBus.Peer">
+    <method name="Ping"/>
+    <method name="GetMachineId">
+      <arg type="s" name="machine_uuid" direction="out"/>
+    </method>
+  </interface>
+  <interface name="com.intel.tss2.TctiTabrmd">
+    <method name="CreateConnection">
+      <arg type="ah" name="fds" direction="out"/>
+      <arg type="t" name="id" direction="out"/>
+    </method>
+    <method name="Cancel">
+      <arg type="t" name="id" direction="in"/>
+      <arg type="u" name="return_code" direction="out"/>
+    </method>
+    <method name="SetLocality">
+      <arg type="t" name="id" direction="in"/>
+      <arg type="y" name="locality" direction="in"/>
+      <arg type="u" name="return_code" direction="out"/>
+    </method>
+  </interface>
+</node>
+"
+```
