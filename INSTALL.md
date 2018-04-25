@@ -213,11 +213,11 @@ To run tpm2-abrmd with the simulator, use:
 $ sudo -u tss /usr/local/sbin/tpm2-abrmd --tcti=mssim
 ```
 
-### Run Integration Tests with hardware TPM2: `--test-hwtpm`
+### Run Integration Tests with hardware TPM2: `--enable-test-hwtpm`
 Once you have a TPM hardware, configure the `./configure` script through the
-`--test-hwtpm` option:
+`--enable-test-hwtpm` option:
 ```
-$ ./configure --test-hwtpm
+$ ./configure --enable-test-hwtpm
 ```
 
 The integration tests are executed on a real TPM2 hardware through running
