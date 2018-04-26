@@ -44,6 +44,7 @@ env:
     - LD_LIBRARY_PATH="${DESTDIR}${PREFIX}/lib:${LD_LIBRARY_PATH}"
     - CFLAGS="-I${DESTDIR}${PREFIX}/include"
     - CMOCKA_LIBS="-L${DESTDIR}${PREFIX}/lib -lcmocka"
+    - PATH="${DEPS}/ibmtpm/src:${PATH}"
 
 install:
   - pip install --user cpp-coveralls
@@ -85,7 +86,7 @@ script :
     fi
   - echo 'Configuring source code...' && echo -en 'travis_fold:start:tabrmd-configure\\r'
   - |
-    CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --with-simulatorbin=${DEPS}/ibmtpm/src/tpm_server"
+    CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --enable-integration"
     if [ "$CC" = "gcc" ]; then
         CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-code-coverage"
     fi
