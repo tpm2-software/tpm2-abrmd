@@ -69,16 +69,17 @@ TESTS_INTEGRATION_NOHW = test/integration/tcti-connect-multiple.int
 TESTS = $(TESTS_INTEGRATION)
 XFAIL_TESTS = test/integration/start-auth-session.int
 TEST_EXTENSIONS = .int
-AM_TESTS_ENVIRONMENT = TEST_FUNC_LIB=$(srcdir)/scripts/int-test-funcs.sh
+AM_TESTS_ENVIRONMENT = \
+    TEST_FUNC_LIB=$(srcdir)/scripts/int-test-funcs.sh \
+    PATH=./src:$(PATH)
 INT_LOG_COMPILER = $(srcdir)/scripts/int-test-setup.sh
-INT_LOG_FLAGS = --tabrmd-bin=$(sbin_PROGRAMS) --tabrmd-tcti=$(TABRMD_TCTI)
+INT_LOG_FLAGS = --tabrmd-tcti=$(TABRMD_TCTI)
 
 if HWTPM
 TABRMD_TCTI = device
 endif
 
-if SIMULATOR_BIN
-INT_LOG_FLAGS += --simulator-bin=$(SIMULATOR_BIN)
+if ENABLE_INTEGRATION
 TABRMD_TCTI = mssim
 TESTS += $(TESTS_INTEGRATION_NOHW)
 endif

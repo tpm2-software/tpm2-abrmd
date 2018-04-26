@@ -188,23 +188,19 @@ warned.
 
 The next two subsections describe these two configurations:
 
-### Run Integration Tests with TPM2 simulator: `--with-simulatorbin`
+### Run Integration Tests: `--enable-integration`
+If the configure script is passed the `--enable-integration` option then the
+test harness will execute the integration tests against the software TPM2
+simulator. The configure script will check for the existance of the software
+TPM2 simulator executable `tpm_server` on the PATH. An instance of the
+simulator will be created for each test executable to allow the parallel
+execution of test cases.
+
 This is the recommended integration test configuration. It requires that you
 first download and compile the TPM2 software simulator as documented by the
-simulators maintainers.
-
-Once you have the `tpm_server` built you can inform the tpm2-abrmd build of
-its location by passing an absolute path to the `./configure` script through
-the `--with-simulatorbin` option:
-```
-$ ./configure --with-simulatorbin=/path/to/tpm_server
-```
-
-If the configure script is able to find the executable you provide through this
-option then executing `make check` will cause the integration tests to be built
-and executed. The test harness in the build system will run a `tpm_server` and
-`tpm2-abrmd` for each test executable. This allows the test harness to execute
-integration tests in parallel.
+simulators maintainers. Once you have the `tpm_server` built, you must ensure
+that it is discoverable via the PATH environment variable when the
+`./configure` script is run.
 
 **NOTE**: The `--with-simulatorbin` option does not change the default for
 tpm2-abrmd, which is to use TPM hardware.
@@ -227,6 +223,9 @@ run the integration tests against the TPM2 device by passing the
 ```
 $ ./configure --enable-test-hwtpm
 ```
+Providing this option will enable the integration tests much like the
+`--enable-integration` but the configure script will not check for the
+simulator executable.
 
 The test harness can then be run with the typical `make check` though there
 are some limitations due to the use of the hardware TPM:

@@ -106,35 +106,31 @@ AC_ARG_WITH([dbuspolicydir],
 AX_NORMALIZE_PATH([with_dbuspolicydir])
 AC_SUBST([dbuspolicydir], [$with_dbuspolicydir])
 #
-# simulator binary
-#
-AC_MSG_CHECKING([for simulator binary: $with_simulatorbin])
-AC_ARG_WITH([simulatorbin],
-            [AS_HELP_STRING([--with-simulatorbin=tpm_server],[simulator executable])],
-            [AS_IF([test \( -f "$with_simulatorbin" \) -a \( -x "$with_simulatorbin" \)],
-                   [AC_MSG_RESULT([yes])
-                    AC_SUBST([SIMULATOR_BIN],[$with_simulatorbin])
-                    AX_NORMALIZE_PATH([with_simulatorbin])
-                    with_simulatorbin_set=yes],
-                   [AC_MSG_RESULT([no])
-                    AC_MSG_ERROR([Simulator binary provided does not exist or not executable. Check path: $with_simulatorbin])])],
-            [AC_MSG_RESULT([no])
-             with_simulatorbin_set=no])
-AM_CONDITIONAL([SIMULATOR_BIN],[test "x$with_simulatorbin_set" = "xyes"])
-#
 # Real TPM hardware
 #
 AC_ARG_ENABLE([test-hwtpm],
               [AS_HELP_STRING([--enable-test-hwtpm],
                   [enable the integration test on a real tpm hardware (default is no)])],
-              [enable_hwtpm=$enableval],
+              [enable_hwtpm=$enableval
+               enable_integration=$enableval],
               [enable_hwtpm=no])
-AS_IF([test \( "x$with_simulatorbin_set" = "xyes" \) -a \( "x$enable_hwtpm" = "xyes" \) ],
-      AC_MSG_ERROR([--with-simulatorbin cannot be provided with --enable-test-hwtpm.]))
 AM_CONDITIONAL([HWTPM], [test "x$enable_hwtpm" != xno])
-
-AS_IF([test \( "x$with_simulatorbin_set" = "xno" \) -a \( "x$enable_hwtpm" = "xno" \) ],
-      AC_MSG_WARN([No simulator binary or tpm hardware provided. Integration tests disabled.]))
+#
+# enable integration tests and check for simulator binary
+#
+AC_ARG_ENABLE([integration],
+    [AS_HELP_STRING([--enable-integration],
+        [build and execute integration tests (default is no)])],
+    [enable_integration=$enableval],
+    [enable_integration=no])
+AS_IF([test \( "x$enable_integration" = "xyes" \) -a \( "x$enable_hwtpm" = "xno" \)],
+    [AC_CHECK_PROG([tpm_server], [tpm_server], [yes], [no])
+     AS_IF([test "x$tpm_server" != "xyes"],
+         [AC_MSG_ERROR([Integration tests enabled but tpm_server not found, try setting PATH])])
+     AC_SUBST([ENABLE_INTEGRATION],[$enable_integration])
+     AC_MSG_NOTICE([Integration tests will be executed against the TPM2 simulator.])],
+    [AC_MSG_NOTICE([Integration tests will be executed against the TPM device.])])
+AM_CONDITIONAL([ENABLE_INTEGRATION],[test "x$enable_integration" = "xyes"])
 
 # preprocessor / compiler / linker flags
 #   these macros are defined in m4/flags.m4
@@ -158,5 +154,7 @@ AX_ADD_LINK_FLAG([-Wl,--no-undefined])
 AX_ADD_LINK_FLAG([-Wl,-z,noexecstack])
 AX_ADD_LINK_FLAG([-Wl,-z,now])
 AX_ADD_LINK_FLAG([-Wl,-z,relro])
+
+AC_SUBST([PATH])
 
 AC_OUTPUT

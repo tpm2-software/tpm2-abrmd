@@ -48,11 +48,9 @@ print_usage ()
 {
     cat <<END
 Usage:
-    int-simulator-setup.sh --simulator-bin=FILE --tabrmd-bin=FILE
-        --tabrmd-tcti=[mssim|device] TEST-SCRIPT [TEST-SCRIPT-ARGUMENTS]
-The '--tabrmd-bin' option is mandatory.
-The '--tabrmd-tcti' option defaults to 'mssim' and requires the
-    --simulator-bin option be provided.
+    int-simulator-setup.sh --tabrmd-tcti=[mssim|device] TEST-SCRIPT
+        [TEST-SCRIPT-ARGUMENTS]
+The '--tabrmd-tcti' option defaults to 'mssim'.
 END
 }
 SIM_BIN=""
@@ -61,10 +59,6 @@ TABRMD_TCTI="mssim"
 while test $# -gt 0; do
     case $1 in
     --help) print_usage; exit $?;;
-    -s|--simulator-bin) SIM_BIN=$2; shift;;
-    -s=*|--simulator-bin=*) SIM_BIN="${1#*=}";;
-    -r|--tabrmd-bin) TABRMD_BIN=$2; shift;;
-    -r=*|--tabrmd-bin=*) TABRMD_BIN="${1#*=}";;
     -t|--tabrmd-tcti) TABRMD_TCTI=$2; shift;;
     -t=*|--tabrmd-tcti=*) TABRMD_TCTI="${1#*=}";;
     --) shift; break;;
@@ -79,7 +73,8 @@ done
 TEST_BIN=$(realpath "$1")
 TEST_DIR=$(dirname "$1")
 TEST_NAME=$(basename "${TEST_BIN}")
-
+SIM_BIN=$(which tpm_server)
+TABRMD_BIN=$(which tpm2-abrmd)
 
 # If run against the simulator we need min and max values when generating port
 # numbers. We select random port values to enable parallel test execution.
@@ -87,7 +82,7 @@ PORT_MIN=1024
 PORT_MAX=65534
 
 # sanity tests
-if [ ! -x "${TABRMD_BIN}" ]; then
+if [ -z "${TABRMD_BIN}" ]; then
     echo "no tarbmd binary provided or not executable"
     exit 1
 fi
@@ -98,7 +93,7 @@ fi
 case "${TABRMD_TCTI}"
 in
     "mssim")
-        if [ ! -x "${SIM_BIN}" ]; then
+        if [ -z "${SIM_BIN}" ]; then
             echo "mssim TCTI requires simulator binary / executable"
             exit 1
         fi
@@ -106,11 +101,6 @@ in
     "device")
         if [ `id -u` != "0" ]; then
             echo "device TCTI requires root privileges"
-            exit 1
-        fi
-        if [ ! -z "${SIM_BIN}" ]; then
-            echo "--simulator-bin and --tcti=device options are incompatible, " \
-                 "chose one or the other"
             exit 1
         fi
         ;;
