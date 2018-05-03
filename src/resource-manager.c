@@ -961,6 +961,8 @@ session_entry_compare_on_handle (gconstpointer a,
  * If this is not a new session and it was previously abandoned by the
  * connection that created it then we transfer ownership to the connection
  * that just loaded it.
+ * NOTE: If the response doesn't indicate 'success' then we just ignore it
+ * since there's nothing useful that we can do.
  */
 void
 create_context_mapping_session (ResourceManager *resmgr,
@@ -972,7 +974,17 @@ create_context_mapping_session (ResourceManager *resmgr,
     TPM2_HANDLE    handle;
     Connection   *connection;
 
+    if (tpm2_response_get_code (response) != TSS2_RC_SUCCESS) {
+        g_debug ("%s: response 0x%" PRIxPTR " indicates failure, no session "
+                 "contexts to map", __func__, (uintptr_t)response);
+        return;
+    }
     handle = tpm2_response_get_handle (response);
+    if (handle == 0) {
+        g_debug ("%s: response 0x%" PRIxPTR " has no handles, no session "
+                 "contexts to map", __func__, (uintptr_t)response);
+        return;
+    }
     session_entry = session_list_lookup_handle (resmgr->session_list, handle);
     abandoned_link = g_queue_find_custom (resmgr->abandoned_session_queue,
                                           &handle,
