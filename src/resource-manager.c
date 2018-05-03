@@ -958,6 +958,9 @@ session_entry_compare_on_handle (gconstpointer a,
  * that the session will be saved at the end of processing the command.
  * If this is not a new session we only add it to the list of sessions
  * currently loaded.
+ * If this is not a new session and it was previously abandoned by the
+ * connection that created it then we transfer ownership to the connection
+ * that just loaded it.
  */
 void
 create_context_mapping_session (ResourceManager *resmgr,
@@ -983,16 +986,15 @@ create_context_mapping_session (ResourceManager *resmgr,
                  "adding to ResourceManager session list");
         session_entry = session_entry_new (connection, handle);
         session_list_insert (resmgr->session_list, session_entry);
-        g_debug ("dumping resmgr->session_list:");
-        session_list_prettyprint (resmgr->session_list);
-    } else if (session_entry != NULL) {
+        session_list_insert (loaded_session_list, session_entry);
+    } else if (session_entry != NULL && abandoned_entry == NULL) {
         g_debug ("%s: session_entry 0x%08" PRIxPTR " for handle 0x%08" PRIx32
                  " exists. Adding to list of loaded sessions",
                  __func__, (uintptr_t)session_entry, handle);
         session_entry_set_connection (session_entry, connection);
         session_entry_set_state (session_entry, SESSION_ENTRY_SAVED_RM);
         session_list_insert (loaded_session_list, session_entry);
-    } else if (abandoned_entry != NULL) {
+    } else if (session_entry == NULL && abandoned_entry != NULL) {
         g_debug ("%s: session_entry 0x%08" PRIxPTR " for handle 0x%08" PRIx32
                  " exists and was abandoned. Removing from abandoned list, "
                  "adding to list of sessions & loaded ones.",
@@ -1002,10 +1004,16 @@ create_context_mapping_session (ResourceManager *resmgr,
         session_list_insert (loaded_session_list, abandoned_entry);
         session_list_insert (resmgr->session_list, abandoned_entry);
         g_queue_remove (resmgr->abandoned_session_queue, abandoned_entry);
+    } else {
+        g_warning ("%s: got session that's in the session_list and in the "
+                   "but has also been abandoned. This should never happen.",
+                   __func__);
     }
     g_clear_object (&connection);
     g_clear_object (&session_entry);
     g_clear_object (&abandoned_entry);
+    g_debug ("dumping resmgr->session_list:");
+    session_list_prettyprint (resmgr->session_list);
     g_debug ("dumping loaded_session_list:");
     session_list_prettyprint (loaded_session_list);
 }
