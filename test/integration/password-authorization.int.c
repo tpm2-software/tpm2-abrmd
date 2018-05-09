@@ -69,10 +69,10 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
     publicInfo.nvPublic.nvIndex = nvIndex;
     publicInfo.nvPublic.nameAlg = TPM2_ALG_SHA1;
 
-    // First zero out attributes.
+    /* First zero out attributes. */
     *(UINT32 *)&( publicInfo.nvPublic.attributes ) = 0;
 
-    // Now set the attributes.
+    /* Now set the attributes. */
     publicInfo.nvPublic.attributes |= TPMA_NV_AUTHREAD;
     publicInfo.nvPublic.attributes |= TPMA_NV_AUTHWRITE;
     publicInfo.nvPublic.attributes |= TPMA_NV_ORDERLY;
@@ -121,17 +121,17 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                                 TPM20_INDEX_PASSWORD_TEST,
                                 PASSWORD);
     if (ret != 1) {
-	// Error message already printed in CreatePasswordTestNV()
+	    /* Error message already printed in CreatePasswordTestNV() */
         return 1;
     }
 
-    // Initialize write data.
+    /* Initialize write data. */
     nvWriteData.size = 4;
     for (i = 0; i < nvWriteData.size; i++) {
         nvWriteData.buffer[i] = 0xff - i;
     }
 
-    // Attempt write with the correct password. It should pass.
+    /* Attempt write with the correct password. It should pass. */
     rval = TSS2_RETRY_EXP (Tss2_Sys_NV_Write (sapi_context,
                               TPM20_INDEX_PASSWORD_TEST,
                               TPM20_INDEX_PASSWORD_TEST,
@@ -139,13 +139,13 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                               &nvWriteData,
                               0,
                               &rsp_auths));
-    // Check that the function passed as expected.  Otherwise, exit.
+    /* Check that the function passed as expected.  Otherwise, exit. */
     if (rval != TSS2_RC_SUCCESS) {
 	g_warning("Failed to write in NV with correct password. RC = 0x%x", rval);
 	return 1;
     }
 
-    // Alter the password so it's incorrect.
+    /* Alter the password so it's incorrect. */
     cmd_auths.auths[0].hmac.buffer[4] = 0xff;
     rval = Tss2_Sys_NV_Write (sapi_context,
                               TPM20_INDEX_PASSWORD_TEST,
@@ -164,10 +164,12 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 	return 1;
     }
 
-    // Change hmac to null one, since null auth is used to undefine the index.
+    /*
+     * Change hmac to null one, since null auth is used to undefine the index.
+     */
     cmd_auths.auths[0].hmac.size = 0;
 
-    // Now undefine the index.
+    /* Now undefine the index. */
     rval = Tss2_Sys_NV_UndefineSpace (sapi_context,
                                       TPM2_RH_OWNER,
                                       TPM20_INDEX_PASSWORD_TEST,

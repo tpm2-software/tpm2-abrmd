@@ -425,7 +425,7 @@ tpm2_command_get_handles (Tpm2Command *command,
         handles[i] = tpm2_command_get_handle (command, i);
 
         if (handles[i] == 0) {
-            // no more handle could be extracted
+            /* no more handles could be extracted */
             break;
         }
     }
