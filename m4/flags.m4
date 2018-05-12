@@ -11,7 +11,8 @@ AC_DEFUN([AX_ADD_COMPILER_FLAG],[
         AS_IF([test x$2 != xrequired],[
             AC_MSG_WARN([Optional CFLAG "$1" not supported by your compiler, continuing.])],[
             AC_MSG_ERROR([Required CFLAG "$1" not supported by your compiler, aborting.])]
-        )]
+        )],[
+        -Werror]
     )]
 )
 dnl AX_ADD_PREPROC_FLAG:
@@ -29,7 +30,8 @@ AC_DEFUN([AX_ADD_PREPROC_FLAG],[
         AS_IF([test x$2 != xrequired],[
             AC_MSG_WARN([Optional preprocessor flag "$1" not supported by your compiler, continuing.])],[
             AC_MSG_ERROR([Required preprocessor flag "$1" not supported by your compiler, aborting.])]
-        )]
+        )],[
+        -Werror]
     )]
 )
 dnl AX_ADD_LINK_FLAG:
@@ -45,6 +47,7 @@ AC_DEFUN([AX_ADD_LINK_FLAG],[
         AS_IF([test x$2 != xrequired],[
             AC_MSG_WARN([Optional LDFLAG "$1" not supported by your linker, continuing.])],[
             AC_MSG_ERROR([Required LDFLAG "$1" not supported by your linker, aborting.])]
-        )]
+        )],[
+        -Werror]
     )]
 )
