@@ -84,9 +84,16 @@ script :
         echo "COVERITY_SCAN_BRANCH set, not running normal build."
         exit 0
     fi
+  - echo 'Running scan-build analysis...' && echo -en 'travis_fold:start:tabrmd-scan-build\\r'
+    CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --enable-integration"
+    if [[ "$CC" == clang* ]]; then
+        # CFLAGS kludge so -pthread test works
+        scan-build ./configure CFLAGS="$CFLAGS -D_REENTRANT" $CONFIGURE_OPTIONS
+        dbus-launch scan-build --status-bugs make -j$(nproc) distcheck
+    fi
+  - echo -en 'travis_fold:end:tabrmd-scan-build\\r'
   - echo 'Configuring source code...' && echo -en 'travis_fold:start:tabrmd-configure\\r'
   - |
-    CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --enable-integration"
     if [ "$CC" = "gcc" ]; then
         CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-code-coverage"
     fi
