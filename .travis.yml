@@ -49,12 +49,12 @@ env:
 install:
   - pip install --user cpp-coveralls
   - mkdir ${DESTDIR} ${DEPS} && pushd ${DEPS}
-  - wget http://ftpmirror.gnu.org/autoconf-archive/autoconf-archive-2017.09.28.tar.xz
+  - wget https://download.01.org/tpm2/autoconf-archive-2017.09.28.tar.xz
   - sha256sum autoconf-archive-2017.09.28.tar.xz | grep -q 5c9fb5845b38b28982a3ef12836f76b35f46799ef4a2e46b48e2bd3c6182fa01
   - tar xJf autoconf-archive-2017.09.28.tar.xz && pushd autoconf-archive-2017.09.28
   - ./configure --prefix=${PREFIX} && make && make install
   - popd # autoconf-archive
-  - wget http://mirror.twobit.us/tpm2-deps/cmocka-1.1.1.tar.xz
+  - wget https://download.01.org/tpm2/cmocka-1.1.1.tar.xz
   - tar -Jxvf cmocka-1.1.1.tar.xz
   - mkdir cmocka-1.1.1/build && pushd cmocka-1.1.1/build
   - cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release
@@ -67,7 +67,7 @@ install:
   - make -j$(nproc) install
   - popd # tpm2-tss
   - sed -i -e "s&\(\/usr\/lib\/lib.*\.la\)&${DESTDIR}\1&" ${DESTDIR}${PREFIX}/lib/*.la
-  - wget http://mirror.twobit.us/tpm2-deps/ibmtpm974.tar.gz
+  - wget https://download.01.org/tpm2/ibmtpm974.tar.gz
   - sha256sum ibmtpm974.tar.gz | grep -q ^8e45d86129a0adb95fee4cee51f4b1e5b2d81ed3e55af875df53f98f39eb7ad7
   - mkdir ibmtpm
   - tar axf ibmtpm974.tar.gz -C ibmtpm
