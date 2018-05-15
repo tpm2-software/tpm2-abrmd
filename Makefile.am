@@ -108,7 +108,7 @@ man3_MANS = man/man3/Tss2_Tcti_Tabrmd_Init.3
 man7_MANS = man/man7/tss2-tcti-tabrmd.7
 man8_MANS = man/man8/tpm2-abrmd.8
 
-libtss2_tcti_tabrmddir      = $(includedir)/tcti
+libtss2_tcti_tabrmddir      = $(includedir)/tss2
 libtss2_tcti_tabrmd_HEADERS = $(srcdir)/src/include/tss2-tcti-tabrmd.h
 
 EXTRA_DIST = \
