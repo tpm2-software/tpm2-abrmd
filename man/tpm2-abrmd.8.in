@@ -60,7 +60,7 @@ default is \fBstdout\fR.
 Set and upper bound on the number of sessions that each client connection
 is allowed to create (loaded or active) at any one time.
 .TP
-\fB\-r,\ \-\-max-transient-objects\fR
+\fB\-r,\ \-\-max-transients\fR
 Set an upper bound on the number of transient objects that each client
 connection allowed to load. Once this number of objects is reached attempts
 to load new transient objects will produce an error.

@@ -158,7 +158,7 @@ init_thread_func (gpointer user_data)
         IPC_FRONTEND (ipc_frontend_dbus_new (data->options.bus,
                                              data->options.dbus_name,
                                              connection_manager,
-                                             data->options.max_transient_objects,
+                                             data->options.max_transients,
                                              data->random));
     if (data->ipc_frontend == NULL) {
         g_error ("failed to allocate IpcFrontend object");
@@ -365,8 +365,8 @@ parse_opts (gint            argc,
         { "max-sessions", 'e', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
           &options->max_sessions,
           "Maximum number of sessions per connection.", NULL },
-        { "max-transient-objects", 'r', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
-          &options->max_transient_objects,
+        { "max-transients", 'r', G_OPTION_FLAG_NONE, G_OPTION_ARG_INT,
+          &options->max_transients,
           "Maximum number of loaded transient objects per client.", NULL },
         { "prng-seed-file", 'g', G_OPTION_FLAG_NONE, G_OPTION_ARG_STRING,
           &options->prng_seed_file, "File to read seed value for PRNG",
@@ -410,8 +410,8 @@ parse_opts (gint            argc,
         tabrmd_critical ("max-sessions must be between 1 and %d",
                          TABRMD_SESSIONS_MAX_DEFAULT);
     }
-    if (options->max_transient_objects < 1 ||
-        options->max_transient_objects > TABRMD_TRANSIENT_MAX)
+    if (options->max_transients < 1 ||
+        options->max_transients > TABRMD_TRANSIENT_MAX)
     {
         tabrmd_critical ("max-trans-obj parameter must be between 1 and %d",
                          TABRMD_TRANSIENT_MAX);
