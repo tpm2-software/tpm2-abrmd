@@ -7,6 +7,8 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 ### Added
 - Integration test script and build support to execute integration tests
 against a physical TPM2 device on the build platform.
+### Changed
+- 'max-transient-objects' command line option renamted to 'max-transients'.
 ### Removed
 - Command line option --fail-on-loaded-trans.
 

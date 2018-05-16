@@ -66,7 +66,7 @@
     .bus = (GBusType)TABRMD_DBUS_TYPE_DEFAULT, \
     .flush_all = FALSE, \
     .max_connections = TABRMD_CONNECTIONS_MAX_DEFAULT, \
-    .max_transient_objects = TABRMD_TRANSIENT_MAX_DEFAULT, \
+    .max_transients = TABRMD_TRANSIENT_MAX_DEFAULT, \
     .max_sessions = TABRMD_SESSIONS_MAX_DEFAULT, \
     .dbus_name = TABRMD_DBUS_NAME_DEFAULT, \
     .prng_seed_file = TABRMD_ENTROPY_SRC_DEFAULT, \
@@ -79,7 +79,7 @@ typedef struct tabrmd_options {
     GBusType        bus;
     gboolean        flush_all;
     guint           max_connections;
-    guint           max_transient_objects;
+    guint           max_transients;
     guint           max_sessions;
     gchar          *dbus_name;
     const gchar    *prng_seed_file;
