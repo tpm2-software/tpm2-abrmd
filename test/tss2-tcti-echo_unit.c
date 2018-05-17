@@ -335,12 +335,16 @@ tss2_tcti_echo_transmit_success_unit (void **state)
     TCTI_ECHO_CONTEXT *echo_context = (TCTI_ECHO_CONTEXT*)data->tcti_context;
     uint8_t buffer [TSS2_TCTI_ECHO_MAX_BUF] = { 0xde, 0xad, 0xbe, 0xef, 0x0 };
     TSS2_RC rc;
+    size_t  buf_size;
+
+    ASSERT_NON_NULL(echo_context);
+    buf_size = echo_context->buf_size;
 
     rc = Tss2_Tcti_Transmit (data->tcti_context,
                              TSS2_TCTI_ECHO_MAX_BUF,
                              buffer);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
-    assert_memory_equal (buffer, echo_context->buf, echo_context->buf_size);
+    assert_memory_equal (buffer, echo_context->buf, buf_size);
     assert_int_equal (echo_context->data_size, TSS2_TCTI_ECHO_MAX_BUF);
     assert_int_equal (echo_context->state, CAN_RECEIVE);
 }

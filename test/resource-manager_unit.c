@@ -362,11 +362,12 @@ resource_manager_load_contexts_test (void **state)
     GSList         *entry_slist;
     HandleMap      *map;
     SessionList    *loaded_sessions;
-    TPM2_HANDLE      phandles [2] = {
+    TPM2_HANDLE      phandles [3] = {
         TPM2_HR_TRANSIENT + 0xeb,
         TPM2_HR_TRANSIENT + 0xbe,
+        0
     };
-    TPM2_HANDLE      vhandles [3] = { 0 };
+    TPM2_HANDLE      vhandles [3] = { 0, 0, 0 };
     TPM2_HANDLE      handle_ret;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     size_t          handle_count = 2, i;
@@ -378,6 +379,7 @@ resource_manager_load_contexts_test (void **state)
 
     tpm2_command_get_handles (data->command, vhandles, &handle_count);
     map = connection_get_trans_map (data->connection);
+    assert_true (handle_count <= 2);
     for (i = 0; i < handle_count; ++i) {
         entry = handle_map_entry_new (phandles [i], vhandles [i]);
         handle_map_insert (map, vhandles [i], entry);
@@ -391,6 +393,7 @@ resource_manager_load_contexts_test (void **state)
                                          loaded_sessions);
     g_debug ("after resource_manager_load_contexts");
     assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_true (handle_count <= 2);
     for (i = 0; i < handle_count; ++i) {
         handle_ret = tpm2_command_get_handle (data->command, i);
         assert_int_equal (phandles [i], handle_ret);
