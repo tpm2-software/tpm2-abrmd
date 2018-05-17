@@ -211,7 +211,7 @@ handle_map_is_full (HandleMap *map)
     guint table_size;
 
     table_size = g_hash_table_size (map->vhandle_to_entry_table);
-    if (table_size < map->max_entries) {
+    if (table_size < map->max_entries + 1) {
         return FALSE;
     } else {
         return TRUE;
