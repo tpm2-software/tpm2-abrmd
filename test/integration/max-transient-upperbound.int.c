@@ -31,8 +31,9 @@
 #include "tss2-tcti-tabrmd.h"
 #include "tpm2-struct-init.h"
 #include "common.h"
+#include "tabrmd.h"
 
-#define NUM_KEYS 5
+#define NUM_KEYS (TABRMD_TRANSIENT_MAX_DEFAULT + 1)
 #define ENV_NUM_KEYS "TABRMD_TEST_NUM_KEYS"
 
 /*
@@ -66,17 +67,30 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                          parent_handle,
                          &out_private,
                          &out_public);
-        if (rc != TSS2_RC_SUCCESS)
-            g_error ("Failed to create_key: 0x%" PRIx32, rc);
+        if (rc != TSS2_RC_SUCCESS) {
+            /* creation of the key won't fail, loading it will */
+            g_critical ("Failed to create_key number %d: 0x%" PRIx32, i, rc);
+            return -1;
+        }
         rc = load_key (sapi_context,
                        parent_handle,
                        &out_handle,
                        &out_private,
                        &out_public);
-        if (rc != TSS2_RC_SUCCESS)
-            g_error ("Failed to create_key: 0x%" PRIx32, rc);
+        if (rc != TSS2_RC_SUCCESS) {
+            g_info ("Failed to load_key number %d: 0x%" PRIx32, i, rc);
+            if (rc == TSS2_RESMGR_RC_OBJECT_MEMORY &&
+                i == TABRMD_TRANSIENT_MAX_DEFAULT) {
+                return 0;
+            }
+            return rc;
+        }
         out_public.size = 0;
     }
-
-    return rc;
+    /*
+     * tpm2-abrmd running with default max-transient should have failed by now.
+     * If we've made it this far the daemon isn't enforcing the upper bound
+     * correctly.
+     */
+    return -1;
 }

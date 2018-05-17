@@ -47,7 +47,7 @@ TESTS_INTEGRATION = \
     test/integration/auth-session-start-flush.int \
     test/integration/auth-session-start-save.int \
     test/integration/auth-session-start-save-load.int \
-    test/integration/create-keys.int \
+    test/integration/max-transient-upperbound.int \
     test/integration/get-capability-handles-transient.int \
     test/integration/manage-transient-keys.int \
     test/integration/session-load-from-closed-connection.int \
@@ -450,8 +450,9 @@ test_integration_auth_session_start_save_load_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_start_save_load_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-start-save-load.int.c
 
-test_integration_create_keys_int_LDADD = $(TEST_INT_LIBS)
-test_integration_create_keys_int_SOURCES = test/integration/main.c test/integration/create-keys.int.c
+test_integration_max_transient_upperbound_int_LDADD = $(TEST_INT_LIBS)
+test_integration_max_transient_upperbound_int_SOURCES = test/integration/main.c \
+    test/integration/max-transient-upperbound.int.c
 
 test_integration_get_capability_handles_transient_int_LDADD = $(TEST_INT_LIBS)
 test_integration_get_capability_handles_transient_int_SOURCES = \
