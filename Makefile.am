@@ -68,8 +68,7 @@ TESTS_INTEGRATION_NOHW = test/integration/tcti-connect-multiple.int
 
 TESTS = $(TESTS_INTEGRATION)
 XFAIL_TESTS = \
-    test/integration/start-auth-session.int \
-    test/integration/auth-session-max.int
+    test/integration/start-auth-session.int
 TEST_EXTENSIONS = .int
 AM_TESTS_ENVIRONMENT = \
     TEST_FUNC_LIB=$(srcdir)/scripts/int-test-funcs.sh \
