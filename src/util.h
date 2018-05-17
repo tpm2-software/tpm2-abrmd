@@ -35,6 +35,16 @@
 
 /* Use to suppress "unused parameter" warnings: */
 #define UNUSED_PARAM(p) ((void)(p))
+/* Use to suppress "unused variable" warnings: */
+#define UNUSED_VAR(p) ((void)(p))
+
+/* Used to suppress scan-build NULL dereference warnings: */
+#ifdef SCANBUILD
+#define ASSERT_NON_NULL(x) assert_non_null(x); \
+            if ((x) == NULL) return
+#else
+#define ASSERT_NON_NULL(x) assert_non_null(x)
+#endif
 
 /* set the layer / component to indicate the RC comes from the RM */
 #define RM_RC(rc) TSS2_RESMGR_RC_LAYER + rc

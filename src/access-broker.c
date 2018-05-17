@@ -589,7 +589,8 @@ access_broker_get_trans_object_count (AccessBroker *broker,
                                  NULL);
     if (rc != TSS2_RC_SUCCESS)
         goto out;
-    *count = capability_data.data.handles.count;
+    if (count != NULL)
+        *count = capability_data.data.handles.count;
 out:
     access_broker_unlock (broker);
     return rc;
