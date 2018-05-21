@@ -192,6 +192,7 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     char                *env_str         = NULL, *end_ptr = NULL;
     uint8_t              loops           = NUM_KEYS;
     TSS2_RC              rc              = TSS2_RC_SUCCESS;
+    int                  ret             = 0;
 
     env_str = getenv (ENV_NUM_KEYS);
     if (env_str != NULL)
@@ -205,7 +206,8 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
 
     rc = create_keys (sapi_context, &handles_load, handles_count);
     if (rc != TSS2_RC_SUCCESS) {
-        return rc;
+        ret = rc;
+        goto out;
     }
     g_debug ("iterating over handles:");
     size_t i;
@@ -217,18 +219,21 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     rc = get_cap_trans_dump (sapi_context, 2);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("get_cap_trans_dump returned 0x%" PRIx32, rc);
-        return rc;
+        ret = rc;
+        goto out;
     }
 
     rc = get_transient_handles (sapi_context, handles_query, &handles_count);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("get_transient_handles returned 0x%" PRIx32, rc);
-        return rc;
+        ret = rc;
+        goto out;
     }
     if (handles_count != loops) {
         g_warning ("GetCapabilities returned %zu handles, expecting %" PRIu16,
                    handles_count, loops);
-        return -1;
+        ret = -1;
+        goto out;
     }
 
     g_debug ("loaded handle count: %zu", handles_count);
@@ -237,9 +242,15 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                  " handles_query [%zu]: 0x%" PRIx32,
                  i, handles_load [i], i, handles_query [i]);
         if (handles_load [i] != handles_query [i]) {
-            return -1;
+            ret = -1;
+            goto out;
         }
     }
 
-    return 0;
+    ret = 0;
+
+out:
+    free (handles_load);
+    free (handles_query);
+    return ret;
 }
