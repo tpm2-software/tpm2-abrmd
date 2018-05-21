@@ -445,11 +445,13 @@ tcti_tabrmd_setup (void **state)
     data = calloc (1, sizeof (data_t));
     ret = Tss2_Tcti_Tabrmd_Init (NULL, &tcti_size, NULL);
     if (ret != TSS2_RC_SUCCESS) {
+        free (data);
         printf ("tss2_tcti_tabrmd_init failed: %d\n", ret);
         return 1;
     }
     data->context = calloc (1, tcti_size);
     if (data->context == NULL) {
+        free (data);
         perror ("calloc");
         return 1;
     }
@@ -1360,7 +1362,7 @@ tcti_tabrmd_get_poll_handles_handles_test (void **state)
     };
     size_t num_handles = 5;
     TSS2_RC rc;
-    int fd;
+    int fd = -1;
 
     rc = Tss2_Tcti_GetPollHandles (data->context, handles, &num_handles);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
