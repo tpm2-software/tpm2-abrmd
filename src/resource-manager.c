@@ -1331,7 +1331,7 @@ resource_manager_dispose (GObject *obj)
     g_clear_object (&resmgr->sink);
     g_clear_object (&resmgr->access_broker);
     g_clear_object (&resmgr->session_list);
-    g_clear_object (&resmgr->abandoned_session_queue);
+    g_queue_free_full (resmgr->abandoned_session_queue, g_object_unref);
     G_OBJECT_CLASS (resource_manager_parent_class)->dispose (obj);
 }
 static void
