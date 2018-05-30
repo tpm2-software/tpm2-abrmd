@@ -991,6 +991,7 @@ create_context_mapping_session (ResourceManager *resmgr,
                                           session_entry_compare_on_handle);
     if (abandoned_link != NULL) {
         abandoned_entry = SESSION_ENTRY (abandoned_link->data);
+        g_queue_delete_link (resmgr->abandoned_session_queue, abandoned_link);
     }
     connection = tpm2_response_get_connection (response);
     if (session_entry == NULL && abandoned_entry == NULL) {
