@@ -7,10 +7,24 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 ### Added
 - Integration test script and build support to execute integration tests
 against a physical TPM2 device on the build platform.
+- Implementation of dynamic TCTI initialization mechanism.
+- configure option `--enable-integration` to enable integration tests.
+The simulator executable must be on PATH.
+- Support for version 2.0 of tpm2-tss libraries.
 ### Changed
 - 'max-transient-objects' command line option renamted to 'max-transients'.
+- Added -Wextra for more strict checks at compile time.
+- Install location of headers to $(includedir)/tss2.
+### Fixed
+- Added missing checks for NULL parameters identified by the check-build.
+- Bug in session continuation logic.
+- Off by one error in HandleMap.
+- Memory leak and uninitialized variable issues in unit tests.
 ### Removed
 - Command line option --fail-on-loaded-trans.
+- udev rules for TPM device node. This now lives in the tpm2-tss repo.
+- Remove legacy TCTI initialization functions.
+- configure option `--with-simulatorbin`.
 
 ## 1.3.1 - 2018-03-18
 ### Fixed
