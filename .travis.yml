@@ -87,6 +87,12 @@ script :
   - echo 'Configuring source code...' && echo -en 'travis_fold:start:tabrmd-configure\\r'
   - |
     CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --enable-integration"
+    if [[ "$CC" == clang* ]]; then
+        # Use -D_REENTRANT kludge so -pthread test works with scan-build:
+        scan-build ./configure CFLAGS="$CFLAGS -D_REENTRANT" $CONFIGURE_OPTIONS
+        dbus-launch scan-build --status-bugs make -j$(nproc) distcheck
+        make clean
+    fi
     if [ "$CC" = "gcc" ]; then
         CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-code-coverage"
     fi
