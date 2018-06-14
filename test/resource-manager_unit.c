@@ -355,7 +355,7 @@ resource_manager_virt_to_phys_test (void **state)
 /*
  */
 static void
-resource_manager_load_contexts_test (void **state)
+resource_manager_load_handles_test(void **state)
 {
     test_data_t    *data = (test_data_t*)*state;
     HandleMapEntry *entry;
@@ -386,12 +386,10 @@ resource_manager_load_contexts_test (void **state)
         g_object_unref (entry);
     }
     loaded_sessions = session_list_new (50);
-    g_debug ("before resource_manager_load_contexts");
-    rc = resource_manager_load_contexts (data->resource_manager,
-                                         data->command,
-                                         &entry_slist,
-                                         loaded_sessions);
-    g_debug ("after resource_manager_load_contexts");
+    rc = resource_manager_load_handles (data->resource_manager,
+                                        data->command,
+                                        &entry_slist,
+                                        loaded_sessions);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_true (handle_count <= 2);
     for (i = 0; i < handle_count; ++i) {
@@ -422,7 +420,7 @@ main (void)
         cmocka_unit_test_setup_teardown (resource_manager_virt_to_phys_test,
                                          resource_manager_setup_two_transient_handles,
                                          resource_manager_teardown),
-        cmocka_unit_test_setup_teardown (resource_manager_load_contexts_test,
+        cmocka_unit_test_setup_teardown (resource_manager_load_handles_test,
                                          resource_manager_setup_two_transient_handles,
                                          resource_manager_teardown),
     };
