@@ -247,7 +247,7 @@ resource_manager_load_auth_callback (gpointer auth_offset_ptr,
 TSS2_RC
 resource_manager_load_contexts (ResourceManager *resmgr,
                                 Tpm2Command     *command,
-                                GSList         **entry_slist,
+                                GSList         **loaded_transients,
                                 SessionList     *loaded_sessions)
 {
     TSS2_RC       rc = TSS2_RC_SUCCESS;
@@ -278,7 +278,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
             g_debug ("processing TPM2_HT_TRANSIENT: 0x%" PRIx32, handles [i]);
             rc = resource_manager_load_transient (resmgr,
                                                   command,
-                                                  entry_slist,
+                                                  loaded_transients,
                                                   handles [i],
                                                   i);
             break;
