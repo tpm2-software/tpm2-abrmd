@@ -245,24 +245,19 @@ resource_manager_load_auth_callback (gpointer auth_offset_ptr,
  * the related context and fixes up the handles in the command.
  */
 TSS2_RC
-resource_manager_load_contexts (ResourceManager *resmgr,
-                                Tpm2Command     *command,
-                                GSList         **loaded_transients,
-                                SessionList     *loaded_sessions)
+resource_manager_load_handles (ResourceManager *resmgr,
+                               Tpm2Command     *command,
+                               GSList         **loaded_transients,
+                               SessionList     *loaded_sessions)
 {
     TSS2_RC       rc = TSS2_RC_SUCCESS;
     TPM2_HANDLE    handles[TPM2_COMMAND_MAX_HANDLES] = { 0, };
     size_t        i, handle_count = TPM2_COMMAND_MAX_HANDLES;
     gboolean      handle_ret;
-    auth_callback_data_t auth_callback_data = {
-        .resmgr = resmgr,
-        .command = command,
-        .loaded_sessions = loaded_sessions,
-    };
 
-    g_debug ("resource_manager_load_contexts");
+    g_debug ("%s", __func__);
     if (!resmgr || !command) {
-        g_warning ("resource_manager_load_contexts received NULL parameter.");
+        g_warning ("%s: received NULL parameter.", __func__);
         return RM_RC (TSS2_BASE_RC_GENERAL_FAILURE);
     }
     handle_ret = tpm2_command_get_handles (command, handles, &handle_count);
@@ -270,8 +265,8 @@ resource_manager_load_contexts (ResourceManager *resmgr,
         g_error ("Unable to get handles from command 0x%" PRIxPTR,
                  (uintptr_t)command);
     }
-    g_debug ("loading contexts for %zu handles in command handle area",
-             handle_count);
+    g_debug ("%s: for %zu handles in command handle area",
+             __func__, handle_count);
     for (i = 0; i < handle_count; ++i) {
         switch (handles [i] >> TPM2_HR_SHIFT) {
         case TPM2_HT_TRANSIENT:
@@ -296,13 +291,7 @@ resource_manager_load_contexts (ResourceManager *resmgr,
             break;
         }
     }
-    g_debug ("loading contexts for handles in auth area");
-    if (tpm2_command_has_auths (command)) {
-        tpm2_command_foreach_auth (command,
-                                   resource_manager_load_auth_callback,
-                                   &auth_callback_data);
-    }
-    g_debug ("resource_manager_load_contexts end");
+    g_debug ("%s: end", __func__);
 
     return rc;
 }
@@ -1115,12 +1104,25 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         response = tpm2_response_new_rc (connection, rc);
         goto send_response;
     }
-    /* Load transient object contexts, switch virtual to physical handles */
+    /* Load objects associated with the handles in the command handle area. */
     if (tpm2_command_get_handle_count (command) > 0) {
-        resource_manager_load_contexts (resmgr,
-                                        command,
-                                        &entry_slist,
-                                        session_list_tmp);
+        resource_manager_load_handles (resmgr,
+                                       command,
+                                       &entry_slist,
+                                       session_list_tmp);
+    }
+    /* Load objets associated with the authorizations in the command. */
+    if (tpm2_command_has_auths (command)) {
+        g_info ("%s, Processing auths for command: 0x%" PRIxPTR, __func__,
+                (uintptr_t)command);
+        auth_callback_data_t auth_callback_data = {
+            .resmgr = resmgr,
+            .command = command,
+            .loaded_sessions = session_list_tmp,
+        };
+        tpm2_command_foreach_auth (command,
+                                   resource_manager_load_auth_callback,
+                                   &auth_callback_data);
     }
     /* load session contexts */
     /* Do any special processing of the command. This could be as simple as 
