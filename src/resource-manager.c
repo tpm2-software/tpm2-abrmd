@@ -1124,15 +1124,12 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                    resource_manager_load_auth_callback,
                                    &auth_callback_data);
     }
-    /* load session contexts */
-    /* Do any special processing of the command. This could be as simple as 
-     * command requires any special processing is virtualized by the
-     * ResourceManager, get the response.
-     */
+    /* Do any command-specific pre-processing required for the command. */
     response = command_special_processing (resmgr, command);
     if (response != NULL) {
         goto send_response;
     }
+    /* Send command and create response object. */
     response = access_broker_send_command (resmgr->access_broker,
                                            command,
                                            &rc);
@@ -1150,7 +1147,7 @@ send_response:
     /* send response to next processing stage */
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
-    /* save contexts that were previously loaded by 'load_contexts */
+    /* save contexts that were previously loaded */
     post_process_entry_list (resmgr, &entry_slist, connection, command_attrs);
     g_object_unref (connection);
     post_process_loaded_sessions (resmgr, session_list_tmp);
