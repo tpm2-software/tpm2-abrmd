@@ -597,26 +597,29 @@ remove_entry_from_handle_map (gpointer data_entry,
  * executing a command.
  */
 void
-post_process_entry_list (ResourceManager  *resmgr,
-                         GSList          **entry_slist,
-                         Connection       *connection,
-                         TPMA_CC           command_attrs)
+post_process_loaded_transients (ResourceManager  *resmgr,
+                                GSList          **transient_slist,
+                                Connection       *connection,
+                                TPMA_CC           command_attrs)
 {
     /* if flushed bit is clear we need to flush & save contexts */
     if (!(command_attrs & TPMA_CC_FLUSHED)) {
         g_debug ("flushsave_context for %" PRIu32 " entries",
-                 g_slist_length (*entry_slist));
-        g_slist_foreach (*entry_slist,
+                 g_slist_length (*transient_slist));
+        g_slist_foreach (*transient_slist,
                         resource_manager_flushsave_context,
                         resmgr);
     } else {
-        /* if flushed bit is set the entry has been flushed, remove it */
+        /*
+         * if flushed bit is set the transient object entry has been flushed
+         * and so we just remove it
+         */
         g_debug ("TPMA_CC flushed bit set");
-        g_slist_foreach (*entry_slist,
+        g_slist_foreach (*transient_slist,
                          remove_entry_from_handle_map,
                          connection);
     }
-    g_slist_free_full (*entry_slist, g_object_unref);
+    g_slist_free_full (*transient_slist, g_object_unref);
 }
 /*
  * This function handles the required post-processing of the session_entry_t
@@ -1088,7 +1091,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     Connection    *connection;
     Tpm2Response   *response;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
-    GSList         *entry_slist = NULL;
+    GSList         *transient_slist = NULL;
     SessionList    *session_list_tmp;
     TPMA_CC         command_attrs;
 
@@ -1108,7 +1111,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     if (tpm2_command_get_handle_count (command) > 0) {
         resource_manager_load_handles (resmgr,
                                        command,
-                                       &entry_slist,
+                                       &transient_slist,
                                        session_list_tmp);
     }
     /* Load objets associated with the authorizations in the command. */
@@ -1141,14 +1144,14 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     /* transform virtualized handles in Tpm2Response if necessary */
     resource_manager_create_context_mapping (resmgr,
                                              response,
-                                             &entry_slist,
+                                             &transient_slist,
                                              session_list_tmp);
 send_response:
     /* send response to next processing stage */
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
     /* save contexts that were previously loaded */
-    post_process_entry_list (resmgr, &entry_slist, connection, command_attrs);
+    post_process_loaded_transients (resmgr, &transient_slist, connection, command_attrs);
     g_object_unref (connection);
     post_process_loaded_sessions (resmgr, session_list_tmp);
     g_debug ("unreffing session_list_tmp");
