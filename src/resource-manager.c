@@ -942,17 +942,31 @@ session_entry_compare_on_handle (gconstpointer a,
 }
 
 /*
- * This function is invoked after the session has been created so it
- * is loaded in the TPM. If this is a new session (one that hasn't
- * been previously loaded) then the entry we create must be added to
- * both the session_list maintained by the resource manager as well
- * as the list of sessions currently loaded (loaded_session_list) so
- * that the session will be saved at the end of processing the command.
- * If this is not a new session we only add it to the list of sessions
- * currently loaded.
- * If this is not a new session and it was previously abandoned by the
- * connection that created it then we transfer ownership to the connection
- * that just loaded it.
+ * This function after a Tpm2Command is sent to the TPM and:
+ * - we receive a Tpm2Response object with a handle in the response buffers
+ *   handle area
+ * - the handle is a session handle
+ * Since there's a handle in the response handle area the caller is being
+ * returned a new handle after a context was successfully created or loaded.
+ * So we know that the response is to one of two possible commands:
+ * - a session being loaded by a call to LoadContext
+ * - a session was newly created by a call to StartAuthSession
+ * We differentiate between these two situations as follows:
+ * - A call to 'LoadContext' implies that the session already exists and so
+ *   it must already be in the session_list.
+ *   - If it's in the session_list *AND NOT* in the abandoned_session_queue
+ *     then the caller is just loading a context they already own and so we
+ *     set the session state to SAVED_RM and add the session to the list of
+ *     loaded sessions.
+ *   - If it's *NOT* in the session_list *AND* in the abandoned_session_queue
+ *     then the caller is loading a context saved by a different connection
+ *     and so we make the current connection the owner of the session, set
+ *     the session state to SAVED_RM and add the session to the list of loaded
+ *     sessions.
+ * - A call to 'StartAuthSession' will return a handle for a session object
+ *   that is not in either the session_list or the abandoned_session_queue.
+ *   In this case we just create a new SessionEntry and add it to the
+ *   session_list and the list of loaded sessions.
  * NOTE: If the response doesn't indicate 'success' then we just ignore it
  * since there's nothing useful that we can do.
  */
