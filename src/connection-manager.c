@@ -25,7 +25,6 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <errno.h>
-#include <error.h>
 #include <glib.h>
 #include <inttypes.h>
 #include <pthread.h>
