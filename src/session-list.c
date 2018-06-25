@@ -383,30 +383,6 @@ session_list_remove_last (SessionList *list)
 /*
  * This is a lookup function to find an entry in the SessionList given
  * handle. The caller *must* hold the lock on the SessionList. Further they
- * must hold this lock until they are done with the SessionEntry
- * returned. This function increases the reference count on the SessionEntry
- * returned. The caller must decrement the reference count when it is done
- * with the entry.
- */
-SessionEntry*
-session_list_lookup_connection (SessionList   *list,
-                                Connection    *connection)
-{
-    GList *list_entry;
-
-    list_entry = g_list_find_custom (list->session_entry_list,
-                                      connection,
-                                      session_entry_compare_on_connection);
-    if (list_entry != NULL) {
-        g_object_ref (list_entry->data);
-        return SESSION_ENTRY (list_entry->data);
-    } else {
-        return NULL;
-    }
-}
-/*
- * This is a lookup function to find an entry in the SessionList given
- * handle. The caller *must* hold the lock on the SessionList. Further they
  * must hold this lock until they are done with the SessionListEntry
  * returned. This function increases the reference count on the
  * SessionEntry returned. The caller must decrement the reference count
