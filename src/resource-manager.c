@@ -1460,6 +1460,87 @@ resource_manager_prune_abandoned (ResourceManager *resource_manager)
     return;
 }
 /*
+ * This structure is used to pass required data into the
+ * connection_close_session_callback function.
+ */
+typedef struct {
+    Connection *connection;
+    ResourceManager *resource_manager;
+} connection_close_data_t;
+/*
+ * This is a callback function invoked foreach SessionEntry in the SessionList
+ * when a client Connection is closed. As it iterates over each SessionEntry,
+ * it identifies sessions associated with the connection being closed and,
+ * performs some task depending on its state.
+ *
+ * If session is in state SESSION_ENTRY_SAVED_CLIENT:
+ * - take a reference to the SessionEntry
+ * - remove SessionEntry from session list
+ * - change state to SESSION_ENTRY_SAVED_CLIENT_CLOSED
+ * - "prune" other abandoned sessions
+ * - add SessionEntry to queue of abandoned sessions
+ * If session is in state SESSION_ENTRY_SAVED_RM:
+ * - flush session from TPM
+ * - remove SessionEntry from session list
+ * If session is in any other state
+ * - panic
+ */
+void
+connection_close_session_callback (gpointer data,
+                                   gpointer user_data)
+{
+    SessionEntry *session_entry = SESSION_ENTRY (data);
+    connection_close_data_t *callback_data = (connection_close_data_t*)user_data;
+    Connection *connection = callback_data->connection;
+    ResourceManager *resource_manager = callback_data->resource_manager;
+    TPM2_HANDLE handle;
+    TSS2_RC rc;
+
+    g_debug ("%s", __func__);
+    if (session_entry->connection != connection) {
+        g_debug ("%s: connection mismatch", __func__);
+        return;
+    }
+    g_debug ("%s: processing SessionEntry 0x%" PRIxPTR " associated with "
+             "Connection 0x%" PRIxPTR, __func__, (uintptr_t)session_entry,
+             (uintptr_t)connection);
+    switch (session_entry_get_state (session_entry)) {
+    case SESSION_ENTRY_SAVED_CLIENT:
+        g_debug ("%s: SessionEntry 0x%" PRIxPTR " is in state "
+                 "SESSION_ENTRY_SAVED_CLIENT, transitioning to state: "
+                 "SESSION_ENTRY_SAVED_CLIENT_CLOSED", __func__,
+                 (uintptr_t)session_entry);
+        g_object_ref (session_entry);
+        session_list_remove (resource_manager->session_list,
+                             session_entry);
+        session_entry_set_state (session_entry,
+                                 SESSION_ENTRY_SAVED_CLIENT_CLOSED);
+        /* reference for SessionEntry is now "held" by GQueue */
+        resource_manager_prune_abandoned (resource_manager);
+        g_queue_push_head (resource_manager->abandoned_session_queue,
+                           session_entry);
+        break;
+    case SESSION_ENTRY_SAVED_RM:
+        g_debug ("%s: SessionEntry 0x%" PRIxPTR " is in state "
+                 "SESSION_ENTRY_SAVED_RM: flushing.", __func__,
+                 (uintptr_t)session_entry);
+        handle = session_entry_get_handle (session_entry);
+        rc = access_broker_context_flush (resource_manager->access_broker,
+                                          handle);
+        if (rc != TSS2_RC_SUCCESS) {
+            g_warning ("failed to flush context associated with "
+                       "connection: 0x%" PRIxPTR, (uintptr_t)connection);
+        }
+        session_list_remove (resource_manager->session_list,
+                             session_entry);
+        break;
+    default:
+        /* This is a situation that should never happen */
+        g_error ("Connection closed with session in unexpected state");
+        break;
+    }
+}
+/*
  * This function is invoked when a connection is removed from the
  * ConnectionManager. This is if how we know a connection has been closed.
  * When a connection is removed, we need to remove all associated sessions
@@ -1470,57 +1551,18 @@ resource_manager_on_connection_removed (ConnectionManager *connection_manager,
                                         Connection        *connection,
                                         ResourceManager   *resource_manager)
 {
-    TSS2_RC          rc;
-    SessionEntry    *session_entry;
-    TPM2_HANDLE       handle;
     UNUSED_PARAM(connection_manager);
+    connection_close_data_t connection_close_data = {
+        .connection = connection,
+        .resource_manager = resource_manager,
+    };
 
-    g_info ("resource_manager_on_connection_removed: flushing session "
-            "contexts associated with connection 0x%" PRIxPTR,
-            (uintptr_t)connection);
+    g_info ("%s: flushing session contexts associated with connection 0x%"
+            PRIxPTR, __func__, (uintptr_t)connection);
     session_list_lock (resource_manager->session_list);
-    while ((session_entry =
-                session_list_lookup_connection (resource_manager->session_list,
-                                                connection)) != NULL) {
-        g_debug ("removing SessionEntry 0x%" PRIxPTR " from the "
-                 "session_list", (uintptr_t)session_entry);
-        handle = session_entry_get_handle (session_entry);
-        /* if session has been saved, don't flush, abandon the session */
-        switch (session_entry_get_state (session_entry)) {
-        case SESSION_ENTRY_SAVED_CLIENT:
-            g_debug ("%s: SessionEntry 0x%" PRIxPTR " last saved by "
-                     "client, transitioning to state: "
-                     "SESSION_ENTRY_SAVED_CLIENT_CLOSED",
-                     __func__, (uintptr_t)session_entry);
-            session_list_remove (resource_manager->session_list,
-                                 session_entry);
-            session_entry_set_state (session_entry,
-                                     SESSION_ENTRY_SAVED_CLIENT_CLOSED);
-            /* reference for SessionEntry is now "held" by GQueue */
-            resource_manager_prune_abandoned (resource_manager);
-            g_queue_push_head (resource_manager->abandoned_session_queue,
-                               session_entry);
-            break;
-        case SESSION_ENTRY_SAVED_CLIENT_CLOSED:
-            /* This is a situation that should never happen */
-            g_error ("Connection closed with session in SAVED_CLIENT_CLOSED "
-                     "state.");
-            break;
-        default: /* SESSION_ENTRY_SAVED_RM */
-            g_debug ("%s: SessionEntry 0x%" PRIxPTR " was last saved by "
-                     "RM: flushing.", __func__, (uintptr_t)session_entry);
-            rc = access_broker_context_flush (resource_manager->access_broker,
-                                              handle);
-            if (rc != TSS2_RC_SUCCESS) {
-                g_warning ("failed to flush context associated with "
-                           "connection: 0x%" PRIxPTR, (uintptr_t)connection);
-            }
-            session_list_remove (resource_manager->session_list,
-                                 session_entry);
-            g_object_unref (session_entry);
-            break;
-        }
-    }
+    session_list_foreach (resource_manager->session_list,
+                          connection_close_session_callback,
+                          &connection_close_data);
     g_debug ("resource_manager_on_connection_removed done");
     session_list_unlock (resource_manager->session_list);
 }
