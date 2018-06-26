@@ -1460,6 +1460,28 @@ resource_manager_prune_abandoned (ResourceManager *resource_manager)
     return;
 }
 /*
+ * This function sets a session entry to the
+ * SESSION_ENTRY_SAVED_CLIENT_CLOSED state.
+ */
+void
+abandon_session (ResourceManager *resource_manager,
+                 SessionEntry *session_entry)
+{
+    g_debug ("%s: SessionEntry 0x%" PRIxPTR " is in state "
+             "SESSION_ENTRY_SAVED_CLIENT, transitioning to state: "
+             "SESSION_ENTRY_SAVED_CLIENT_CLOSED", __func__,
+             (uintptr_t)session_entry);
+    g_object_ref (session_entry);
+    session_list_remove (resource_manager->session_list,
+                         session_entry);
+    session_entry_set_state (session_entry,
+                             SESSION_ENTRY_SAVED_CLIENT_CLOSED);
+    /* reference for SessionEntry is now "held" by GQueue */
+    resource_manager_prune_abandoned (resource_manager);
+    g_queue_push_head (resource_manager->abandoned_session_queue,
+                       session_entry);
+}
+/*
  * This structure is used to pass required data into the
  * connection_close_session_callback function.
  */
@@ -1506,19 +1528,7 @@ connection_close_session_callback (gpointer data,
              (uintptr_t)connection);
     switch (session_entry_get_state (session_entry)) {
     case SESSION_ENTRY_SAVED_CLIENT:
-        g_debug ("%s: SessionEntry 0x%" PRIxPTR " is in state "
-                 "SESSION_ENTRY_SAVED_CLIENT, transitioning to state: "
-                 "SESSION_ENTRY_SAVED_CLIENT_CLOSED", __func__,
-                 (uintptr_t)session_entry);
-        g_object_ref (session_entry);
-        session_list_remove (resource_manager->session_list,
-                             session_entry);
-        session_entry_set_state (session_entry,
-                                 SESSION_ENTRY_SAVED_CLIENT_CLOSED);
-        /* reference for SessionEntry is now "held" by GQueue */
-        resource_manager_prune_abandoned (resource_manager);
-        g_queue_push_head (resource_manager->abandoned_session_queue,
-                           session_entry);
+        abandon_session (resource_manager, session_entry);
         break;
     case SESSION_ENTRY_SAVED_RM:
         g_debug ("%s: SessionEntry 0x%" PRIxPTR " is in state "
