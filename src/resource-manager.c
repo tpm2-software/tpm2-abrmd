@@ -140,7 +140,6 @@ resource_manager_load_session (ResourceManager *resmgr,
                                TPM2_HANDLE       handle,
                                gboolean         will_flush)
 {
-    Connection    *connection;
     SessionEntry  *session_entry;
     TSS2_RC        rc = TSS2_RC_SUCCESS;
     TPM2_HANDLE     handle_tmp;
@@ -156,31 +155,19 @@ resource_manager_load_session (ResourceManager *resmgr,
                  "ResourceManager.", handle);
         goto out;
     }
-    session_entry_state = session_entry_get_state (session_entry);
-    g_debug ("Session with handle 0x%08" PRIx32 " is in state: %s", handle,
-             session_entry_state_to_str (session_entry_state));
-    switch (session_entry_state) {
-    case SESSION_ENTRY_SAVED_CLIENT:
-    case SESSION_ENTRY_SAVED_CLIENT_CLOSED:
-        connection = tpm2_command_get_connection (command);
-        session_entry_set_connection (session_entry, connection);
-        g_debug ("%s: Connection 0x%" PRIxPTR " is claiming SessionEntry "
-                 "0x%" PRIxPTR, __func__, (uintptr_t)connection,
-                 (uintptr_t)session_entry);
-        g_object_unref (connection);
-        session_entry_set_state (session_entry, SESSION_ENTRY_SAVED_RM);
-        session_entry_state = session_entry_get_state (session_entry);
-        g_debug ("Session with handle 0x%08" PRIx32 " is now in state: %s",
-                 handle, session_entry_state_to_str (session_entry_state));
-        goto out_unref_entry;
-    default:
-        break;
-    }
     g_debug ("mapped session handle 0x%08" PRIx32 " to "
              "SessionEntry: 0x%" PRIxPTR, handle,
              (uintptr_t)session_entry);
     session_entry_prettyprint (session_entry);
-
+    session_entry_state = session_entry_get_state (session_entry);
+    if (session_entry_state != SESSION_ENTRY_SAVED_RM) {
+        g_warning ("%s: Handle in handle area references SessionEntry 0x%"
+                   PRIxPTR " for session in state \"%s\". Must be in state: "
+                   "SESSION_ENTRY_SAVED_RM for us manage it, ignorning.",
+                   __func__, (uintptr_t)session_entry,
+                   session_entry_state_to_str (session_entry_state));
+        goto out_unref_entry;
+    }
     context = session_entry_get_context (session_entry);
     rc = access_broker_context_load (resmgr->access_broker,
                                      context,
