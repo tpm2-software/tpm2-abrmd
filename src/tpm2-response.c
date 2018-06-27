@@ -286,19 +286,26 @@ tpm2_response_get_connection (Tpm2Response *response)
     g_object_ref (response->connection);
     return response->connection;
 }
-/* Return the number of handles in the command. */
+/*
+ * Return the number of handles in the response. For a response to contain
+ * a handle it must:
+ * 1) the size of the response must be larger than the headder size
+ * 2) the response code must indicate SUCCESS
+ * 3) the associated attributes must have the TPMA_CC_RHANDLE bit set
+ * If all of these conditions are met then the response has a handle in it.
+ * Otherwise it does now.
+ */
 gboolean
 tpm2_response_has_handle (Tpm2Response  *response)
 {
-    g_debug ("tpm2_response_has_handle");
-    uint32_t tmp;
-
-    if (tpm2_response_get_size (response) < TPM_HEADER_SIZE) {
-        return FALSE;
-    } else {
-        tmp = tpm2_response_get_attributes (response);
-        return tmp & TPMA_CC_RHANDLE ? TRUE : FALSE;
+    g_debug ("%s", __func__);
+    if (tpm2_response_get_size (response) > TPM_HEADER_SIZE &&
+        tpm2_response_get_code (response) == TSS2_RC_SUCCESS &&
+        tpm2_response_get_attributes (response) & TPMA_CC_RHANDLE)
+    {
+        return TRUE;
     }
+    return FALSE;
 }
 /*
  * Return the handle from the response handle area. Always check to be sure

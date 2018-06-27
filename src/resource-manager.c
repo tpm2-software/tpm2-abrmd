@@ -980,11 +980,6 @@ create_context_mapping_session (ResourceManager *resmgr,
     TPM2_HANDLE    handle;
     Connection   *connection;
 
-    if (tpm2_response_get_code (response) != TSS2_RC_SUCCESS) {
-        g_debug ("%s: response 0x%" PRIxPTR " indicates failure, no session "
-                 "contexts to map", __func__, (uintptr_t)response);
-        return;
-    }
     handle = tpm2_response_get_handle (response);
     if (handle == 0) {
         g_debug ("%s: response 0x%" PRIxPTR " has no handles, no session "
