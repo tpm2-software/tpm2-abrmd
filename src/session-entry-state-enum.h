@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,11 +35,10 @@ G_BEGIN_DECLS
  * These define the possible states that a SessionEntry object may be in. The
  * states are defined by some previous action performed over the connection
  * that created the session / SessionEntry object.
- * - SESSION_ENTRY_SAVED_RM: All SessionEntry objects are in this state when
- *   they are first created. SessionEntry objects are created when the
- *   StartAuthSession command comes in over a connection. When the response
- *   comes back from the TPM the ResourceManager extracts the handle and saves
- *   the session.
+ * - LOADED: The session is currently loaded in the TPM2 device. All
+ *   SessionEntry objects are in this state when they are first created.
+ * - SESSION_ENTRY_SAVED_RM:  A SessionEntry transitions to this state when
+ *   the session is saved by the daemon.
  * - SESSION_ENTRY_SAVED_CLIENT: A SessionEntry transitions to this state when
  *   the client saves the session context by way of the TPM_CC_ContextSave
  *   command. Once a SessionEntry is in this state it must be explicitly
@@ -52,6 +51,7 @@ G_BEGIN_DECLS
  *   context blob.
  */
 typedef enum SESSION_ENTRY_STATE {
+    SESSION_ENTRY_LOADED,
     SESSION_ENTRY_SAVED_RM,
     SESSION_ENTRY_SAVED_CLIENT,
     SESSION_ENTRY_SAVED_CLIENT_CLOSED,

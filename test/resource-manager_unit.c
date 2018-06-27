@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -361,7 +361,6 @@ resource_manager_load_handles_test(void **state)
     HandleMapEntry *entry;
     GSList         *entry_slist;
     HandleMap      *map;
-    SessionList    *loaded_sessions;
     TPM2_HANDLE      phandles [3] = {
         TPM2_HR_TRANSIENT + 0xeb,
         TPM2_HR_TRANSIENT + 0xbe,
@@ -385,18 +384,15 @@ resource_manager_load_handles_test(void **state)
         handle_map_insert (map, vhandles [i], entry);
         g_object_unref (entry);
     }
-    loaded_sessions = session_list_new (50);
     rc = resource_manager_load_handles (data->resource_manager,
                                         data->command,
-                                        &entry_slist,
-                                        loaded_sessions);
+                                        &entry_slist);
     assert_int_equal (rc, TSS2_RC_SUCCESS);
     assert_true (handle_count <= 2);
     for (i = 0; i < handle_count; ++i) {
         handle_ret = tpm2_command_get_handle (data->command, i);
         assert_int_equal (phandles [i], handle_ret);
     }
-    g_object_unref (loaded_sessions);
 }
 int
 main (void)
