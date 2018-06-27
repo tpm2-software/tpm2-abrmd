@@ -70,8 +70,7 @@ void                  resource_manager_flushsave_context (gpointer              
                                                           gpointer              resmgr);
 TSS2_RC               resource_manager_load_handles    (ResourceManager *resmgr,
                                                         Tpm2Command     *command,
-                                                        GSList         **slist,
-                                                        SessionList     *session_list);
+                                                        GSList         **slist);
 TSS2_RC               resource_manager_virt_to_phys      (ResourceManager *resmgr,
                                                           Tpm2Command     *command,
                                                           HandleMapEntry  *entry,

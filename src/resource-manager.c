@@ -133,10 +133,13 @@ out:
     g_object_unref (map);
     return rc;
 }
+/*
+ * This is a somewhat generic function used to load session contexts into
+ * the TPM2 device.
+ */
 TSS2_RC
 resource_manager_load_session (ResourceManager *resmgr,
                                Tpm2Command     *command,
-                               SessionList     *loaded_sessions,
                                TPM2_HANDLE       handle,
                                gboolean         will_flush)
 {
@@ -172,18 +175,18 @@ resource_manager_load_session (ResourceManager *resmgr,
     rc = access_broker_context_load (resmgr->access_broker,
                                      context,
                                      &handle_tmp);
-    if (rc == TSS2_RC_SUCCESS) {
-        g_debug ("loaded context for session handle: 0x%08" PRIx32
-                 " got back handle: 0x%08" PRIx32,
-                 context->savedHandle, handle_tmp);
-    } else {
+    if (rc != TSS2_RC_SUCCESS) {
         g_warning ("Failed to load context for session with handle "
                    "0x%08" PRIx32 " RC: 0x%" PRIx32, handle, rc);
+        session_list_remove (resmgr->session_list, session_entry);
         goto out_unref_entry;
+
     }
-    if (will_flush == FALSE) {
-        session_list_insert (loaded_sessions, session_entry);
-    } else {
+    g_debug ("loaded context for session handle: 0x%08" PRIx32
+             " got back handle: 0x%08" PRIx32,
+             context->savedHandle, handle_tmp);
+    session_entry_set_state (session_entry, SESSION_ENTRY_LOADED);
+    if (will_flush) {
         session_list_remove (resmgr->session_list, session_entry);
     }
 out_unref_entry:
@@ -195,7 +198,6 @@ out:
 typedef struct {
     ResourceManager *resmgr;
     Tpm2Command     *command;
-    SessionList     *loaded_sessions;
 } auth_callback_data_t;
 void
 resource_manager_load_auth_callback (gpointer auth_offset_ptr,
@@ -203,20 +205,20 @@ resource_manager_load_auth_callback (gpointer auth_offset_ptr,
 {
     TPM2_HANDLE handle;
     auth_callback_data_t *data = (auth_callback_data_t*)user_data;
-    TPMA_SESSION session_attrs;
-    gboolean will_flush;
+    TPMA_SESSION attrs;
+    gboolean will_flush = TRUE;
     size_t auth_offset = *(size_t*)auth_offset_ptr;
 
     handle = tpm2_command_get_auth_handle (data->command, auth_offset);
-    session_attrs = tpm2_command_get_auth_attrs (data->command,
-                                                 auth_offset);
-    will_flush = session_attrs & TPMA_SESSION_CONTINUESESSION ? FALSE : TRUE;
     switch (handle >> TPM2_HR_SHIFT) {
     case TPM2_HT_HMAC_SESSION:
     case TPM2_HT_POLICY_SESSION:
+        attrs = tpm2_command_get_auth_attrs (data->command, auth_offset);
+        if (attrs & TPMA_SESSION_CONTINUESESSION) {
+            will_flush = FALSE;
+        }
         resource_manager_load_session (data->resmgr,
                                        data->command,
-                                       data->loaded_sessions,
                                        handle,
                                        will_flush);
         break;
@@ -234,8 +236,7 @@ resource_manager_load_auth_callback (gpointer auth_offset_ptr,
 TSS2_RC
 resource_manager_load_handles (ResourceManager *resmgr,
                                Tpm2Command     *command,
-                               GSList         **loaded_transients,
-                               SessionList     *loaded_sessions)
+                               GSList         **loaded_transients)
 {
     TSS2_RC       rc = TSS2_RC_SUCCESS;
     TPM2_HANDLE    handles[TPM2_COMMAND_MAX_HANDLES] = { 0, };
@@ -270,7 +271,6 @@ resource_manager_load_handles (ResourceManager *resmgr,
                      "TPM2_HT_POLICY_SESSION: 0x%" PRIx32, handles [i]);
             rc = resource_manager_load_session (resmgr,
                                                 command,
-                                                loaded_sessions,
                                                 handles [i],
                                                 FALSE);
             break;
@@ -339,8 +339,8 @@ resource_manager_save_session_context (gpointer data_entry,
     if (resmgr == NULL || entry == NULL) {
         g_error ("resource_manager_save_session_context passed NULL parameter");
     }
-    if (session_entry_get_state (entry) == SESSION_ENTRY_SAVED_CLIENT) {
-        g_info ("SessionEntry saved by client, skipping");
+    if (session_entry_get_state (entry) != SESSION_ENTRY_LOADED) {
+        g_info ("SessionEntry not loaded in TPM, skipping");
         return;
     }
     rc = access_broker_context_save (resmgr->access_broker,
@@ -349,6 +349,7 @@ resource_manager_save_session_context (gpointer data_entry,
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("access_broker_context_save returned an error: 0x%" PRIx32, rc);
     }
+    session_entry_set_state (entry, SESSION_ENTRY_SAVED_RM);
 }
 static void
 dump_command (Tpm2Command *command)
@@ -614,15 +615,10 @@ post_process_loaded_transients (ResourceManager  *resmgr,
  * we save the loaded sessions.
  */
 void
-post_process_loaded_sessions (ResourceManager *resmgr,
-                              SessionList     *session_list)
+post_process_loaded_sessions (ResourceManager *resmgr)
 {
-    g_debug ("post_process_loaded_sessions");
-    if (session_list == NULL) {
-        g_warning ("post_process_session_slist passed NULL session_slist");
-        return;
-    }
-    session_list_foreach (session_list,
+    g_debug ("%s", __func__);
+    session_list_foreach (resmgr->session_list,
                           resource_manager_save_session_context,
                           resmgr);
 }
@@ -960,19 +956,12 @@ session_entry_compare_on_handle (gconstpointer a,
 void
 create_context_mapping_session (ResourceManager *resmgr,
                                 Tpm2Response    *response,
-                                SessionList     *loaded_session_list)
+                                TPM2_HANDLE      handle)
 {
     GList *abandoned_link;
     SessionEntry *session_entry = NULL, *abandoned_entry = NULL;
-    TPM2_HANDLE    handle;
     Connection   *connection;
 
-    handle = tpm2_response_get_handle (response);
-    if (handle == 0) {
-        g_debug ("%s: response 0x%" PRIxPTR " has no handles, no session "
-                 "contexts to map", __func__, (uintptr_t)response);
-        return;
-    }
     session_entry = session_list_lookup_handle (resmgr->session_list, handle);
     abandoned_link = g_queue_find_custom (resmgr->abandoned_session_queue,
                                           &handle,
@@ -986,23 +975,21 @@ create_context_mapping_session (ResourceManager *resmgr,
         g_debug ("handle is a session, creating entry for SessionList and "
                  "adding to ResourceManager session list");
         session_entry = session_entry_new (connection, handle);
+        session_entry_set_state (session_entry, SESSION_ENTRY_LOADED);
         session_list_insert (resmgr->session_list, session_entry);
-        session_list_insert (loaded_session_list, session_entry);
     } else if (session_entry != NULL && abandoned_entry == NULL) {
         g_debug ("%s: session_entry 0x%08" PRIxPTR " for handle 0x%08" PRIx32
                  " exists. Adding to list of loaded sessions",
                  __func__, (uintptr_t)session_entry, handle);
         session_entry_set_connection (session_entry, connection);
-        session_entry_set_state (session_entry, SESSION_ENTRY_SAVED_RM);
-        session_list_insert (loaded_session_list, session_entry);
+        session_entry_set_state (session_entry, SESSION_ENTRY_LOADED);
     } else if (session_entry == NULL && abandoned_entry != NULL) {
         g_debug ("%s: session_entry 0x%08" PRIxPTR " for handle 0x%08" PRIx32
                  " exists and was abandoned. Removing from abandoned list, "
                  "adding to list of sessions & loaded ones.",
                  __func__, (uintptr_t)abandoned_entry, handle);
         session_entry_set_connection (abandoned_entry, connection);
-        session_entry_set_state (abandoned_entry, SESSION_ENTRY_SAVED_RM);
-        session_list_insert (loaded_session_list, abandoned_entry);
+        session_entry_set_state (abandoned_entry, SESSION_ENTRY_LOADED);
         session_list_insert (resmgr->session_list, abandoned_entry);
         g_queue_remove (resmgr->abandoned_session_queue, abandoned_entry);
     } else {
@@ -1015,8 +1002,6 @@ create_context_mapping_session (ResourceManager *resmgr,
     g_clear_object (&abandoned_entry);
     g_debug ("dumping resmgr->session_list:");
     session_list_prettyprint (resmgr->session_list);
-    g_debug ("dumping loaded_session_list:");
-    session_list_prettyprint (loaded_session_list);
 }
 /*
  * Each Tpm2Response object can have at most one handle in it.
@@ -1039,8 +1024,7 @@ create_context_mapping_session (ResourceManager *resmgr,
 void
 resource_manager_create_context_mapping (ResourceManager  *resmgr,
                                          Tpm2Response     *response,
-                                         GSList          **loaded_transient_slist,
-                                         SessionList      *loaded_session_list)
+                                         GSList          **loaded_transient_slist)
 {
     TPM2_HANDLE       handle;
 
@@ -1056,7 +1040,7 @@ resource_manager_create_context_mapping (ResourceManager  *resmgr,
         break;
     case TPM2_HT_HMAC_SESSION:
     case TPM2_HT_POLICY_SESSION:
-        create_context_mapping_session (resmgr, response, loaded_session_list);
+        create_context_mapping_session (resmgr, response, handle);
         break;
     default:
         g_debug ("  not creating context for handle: 0x%08" PRIx32, handle);
@@ -1088,10 +1072,8 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     Tpm2Response   *response;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     GSList         *transient_slist = NULL;
-    SessionList    *session_list_tmp;
     TPMA_CC         command_attrs;
 
-    session_list_tmp = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
     command_attrs = tpm2_command_get_attributes (command);
     g_debug ("resource_manager_process_tpm2_command: resmgr: 0x%" PRIxPTR
              ", cmd: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
@@ -1107,8 +1089,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     if (tpm2_command_get_handle_count (command) > 0) {
         resource_manager_load_handles (resmgr,
                                        command,
-                                       &transient_slist,
-                                       session_list_tmp);
+                                       &transient_slist);
     }
     /* Load objets associated with the authorizations in the command. */
     if (tpm2_command_has_auths (command)) {
@@ -1117,7 +1098,6 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         auth_callback_data_t auth_callback_data = {
             .resmgr = resmgr,
             .command = command,
-            .loaded_sessions = session_list_tmp,
         };
         tpm2_command_foreach_auth (command,
                                    resource_manager_load_auth_callback,
@@ -1140,8 +1120,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     /* transform virtualized handles in Tpm2Response if necessary */
     resource_manager_create_context_mapping (resmgr,
                                              response,
-                                             &transient_slist,
-                                             session_list_tmp);
+                                             &transient_slist);
 send_response:
     /* send response to next processing stage */
     sink_enqueue (resmgr->sink, G_OBJECT (response));
@@ -1149,9 +1128,7 @@ send_response:
     /* save contexts that were previously loaded */
     post_process_loaded_transients (resmgr, &transient_slist, connection, command_attrs);
     g_object_unref (connection);
-    post_process_loaded_sessions (resmgr, session_list_tmp);
-    g_debug ("unreffing session_list_tmp");
-    g_object_unref (session_list_tmp);
+    post_process_loaded_sessions (resmgr);
     return;
 }
 /**
@@ -1494,6 +1471,7 @@ connection_close_session_callback (gpointer data,
                                    gpointer user_data)
 {
     SessionEntry *session_entry = SESSION_ENTRY (data);
+    SessionEntryStateEnum session_state = session_entry_get_state (session_entry);
     connection_close_data_t *callback_data = (connection_close_data_t*)user_data;
     Connection *connection = callback_data->connection;
     ResourceManager *resource_manager = callback_data->resource_manager;
@@ -1508,14 +1486,15 @@ connection_close_session_callback (gpointer data,
     g_debug ("%s: processing SessionEntry 0x%" PRIxPTR " associated with "
              "Connection 0x%" PRIxPTR, __func__, (uintptr_t)session_entry,
              (uintptr_t)connection);
-    switch (session_entry_get_state (session_entry)) {
+    switch (session_state) {
     case SESSION_ENTRY_SAVED_CLIENT:
         abandon_session (resource_manager, session_entry);
         break;
+    case SESSION_ENTRY_LOADED:
     case SESSION_ENTRY_SAVED_RM:
         g_debug ("%s: SessionEntry 0x%" PRIxPTR " is in state "
-                 "SESSION_ENTRY_SAVED_RM: flushing.", __func__,
-                 (uintptr_t)session_entry);
+                 "%s: flushing.", __func__, (uintptr_t)session_entry,
+                 session_entry_state_to_str (session_state));
         handle = session_entry_get_handle (session_entry);
         rc = access_broker_context_flush (resource_manager->access_broker,
                                           handle);
@@ -1528,7 +1507,8 @@ connection_close_session_callback (gpointer data,
         break;
     default:
         /* This is a situation that should never happen */
-        g_error ("Connection closed with session in unexpected state");
+        g_error ("Connection closed with session in unexpected state: %s",
+                 session_entry_state_to_str (session_state));
         break;
     }
 }

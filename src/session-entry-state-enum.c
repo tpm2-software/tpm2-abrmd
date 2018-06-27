@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,8 @@ char*
 session_entry_state_to_str (SessionEntryStateEnum state)
 {
     switch (state) {
+    case SESSION_ENTRY_LOADED:
+        return "loaded";
     case SESSION_ENTRY_SAVED_CLIENT:
         return "saved-client";
     case SESSION_ENTRY_SAVED_CLIENT_CLOSED:
@@ -48,6 +50,11 @@ session_entry_state_enum_get_type (void)
 
     if (g_once_init_enter (&g_define_type_id__volatile)) {
         static const GEnumValue my_enum_values[] = {
+            {
+                SESSION_ENTRY_LOADED,
+                "SessionEntry loaded in TPM",
+                "Loaded",
+            },
             {
                 SESSION_ENTRY_SAVED_RM,
                 "SessionEntry populated with latest context saved by RM",
