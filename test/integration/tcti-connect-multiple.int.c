@@ -83,7 +83,7 @@ tcti_tabrmd_init (TSS2_TCTI_CONTEXT **tcti_context,
     if (rc != TSS2_RC_SUCCESS) {
         fprintf (stderr, "Failed to initialize tabrmd TCTI context: "
                  "0x%" PRIx32 "\n", rc);
-        free (tcti_context);
+        free (*tcti_context);
     }
     return rc;
 }
