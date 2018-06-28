@@ -618,9 +618,11 @@ void
 post_process_loaded_sessions (ResourceManager *resmgr)
 {
     g_debug ("%s", __func__);
+    session_list_lock (resmgr->session_list);
     session_list_foreach (resmgr->session_list,
                           resource_manager_save_session_context,
                           resmgr);
+    session_list_unlock (resmgr->session_list);
 }
 /*
  * This structure is used to keep state while iterating over a list of
@@ -1490,7 +1492,6 @@ connection_close_session_callback (gpointer data,
     case SESSION_ENTRY_SAVED_CLIENT:
         abandon_session (resource_manager, session_entry);
         break;
-    case SESSION_ENTRY_LOADED:
     case SESSION_ENTRY_SAVED_RM:
         g_debug ("%s: SessionEntry 0x%" PRIxPTR " is in state "
                  "%s: flushing.", __func__, (uintptr_t)session_entry,
