@@ -256,14 +256,14 @@ src_libtss2_tcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(
 
 src_libtss2_tcti_echo_la_LIBADD  = $(DBUS_LIBS) $(GLIB_LIBS)
 src_libtss2_tcti_echo_la_SOURCES = \
-    src/tcti-echo.c \
-    src/tcti-echo.h \
-    src/tss2-tcti-echo.c \
-    src/tss2-tcti-echo.h \
-    src/tss2-tcti-echo-priv.h
+    test/tcti-echo.c \
+    test/tcti-echo.h \
+    test/tss2-tcti-echo.c \
+    test/tss2-tcti-echo.h \
+    test/tss2-tcti-echo-priv.h
 
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(TSS2_SYS_LIBS) $(libutil) $(libtss2_tcti_echo)
+    $(TSS2_SYS_LIBS) $(libutil)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
 
 AUTHORS :
