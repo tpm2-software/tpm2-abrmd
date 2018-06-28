@@ -84,7 +84,6 @@ script :
         echo "COVERITY_SCAN_BRANCH set, not running normal build."
         exit 0
     fi
-  - echo 'Configuring source code...' && echo -en 'travis_fold:start:tabrmd-configure\\r'
   - |
     CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --enable-integration"
     if [[ "$CC" == clang* ]]; then
@@ -97,23 +96,15 @@ script :
         CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-code-coverage"
     fi
     ./configure ${CONFIGURE_OPTIONS}
-  - echo -en 'travis_fold:end:tabrmd-configure\\r'
-  - echo "Running make 'distcheck' target..." && echo -en 'travis_fold:start:tabrmd-distcheck\\r'
   - dbus-launch make -j$(nproc) distcheck
-  - echo -en 'travis_fold:end:tabrmd-distcheck\\r'
-  - echo "Running make 'check-code-coverage' target..." && echo -en 'travis_fold:start:tabrmd-check-code-coverage\\r'
   - dbus-launch make -j$(nproc) check-code-coverage
   - |
     if [ \( "$CC" = "gcc" \) -a \( ! -z "$COVERALLS_REPO_TOKEN" \) ]; then
-        echo "Uploading test coverage metrics to coveralls."
         coveralls --build-root=./ --exclude=${DEPS} --exclude=${DESTDIR} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
     fi
-  - echo -en 'travis_fold:end:tabrmd-check-code-coverage\\r'
-  - echo 'Dumping unit test logs...' && echo -en 'travis_fold:start:tabrmd-unit-logs\\r'
   - |
     cat test-suite*.log
     for LOG in $(ls -1 test/*.log); do
         echo "${LOG}"
         cat ${LOG}
     done
-  - echo -en 'travis_fold:end:tabrmd-unit-logs\\r'
