@@ -25,7 +25,7 @@ is formatted as "tcti-name:tcti-conf" where:
 .IP 'tcti-name'
 The name of the TCTI library shared object file. Libraries are found using
 the same algorithm as dlopen (3). If the TCTI library file name follows the
-naming convention: \fBlibtss2-tcti-<name>.so\fR where <name> is the name for
+naming convention: \fBlibtss2-tcti-<name>.so.0\fR where <name> is the name for
 the TCTI, the value of \fB<name>\fR may be supplied in place of the full
 library file name. See 'EXAMPLES' below.
 .IP 'tcti-conf'
@@ -89,21 +89,21 @@ Execute daemon with default TCTI and provided config string:
 This is equivalent to:
 .B tpm2-abrmd --tcti="device:/dev/tpm0"
 .br
-.B tpm2-abrmd --tcti="libtss2-tcti-device.so:/dev/tpm0"
+.B tpm2-abrmd --tcti="libtss2-tcti-device.so.0:/dev/tpm0"
 .TP
 Have daemon use Microsoft/IBM TPM2 Simulator tcti library
-'libtss2-tcti-mssim.so'.
+'libtss2-tcti-mssim.so.0'.
 This connects to a TPM2 simulator via a TCP mssim.
 .br
 .B tpm2-abrmd --tcti="mssim"
 .br
-.B tpm2-abrmd --tcti="libtss2-tcti-mssim.so"
+.B tpm2-abrmd --tcti="libtss2-tcti-mssim.so.0"
 .TP
-Have daemon use tcti library 'libtss2-tcti-mssim.so' and config string
+Have daemon use tcti library 'libtss2-tcti-mssim.so.0' and config string
 'host=127.0.0.1,port=5555':
 .B tpm2-abrmd --tcti=mssim:host=127.0.0.1,port=5555"
 .br
-.B tpm2-abrmd --tcti="libtss2-tcti-mssim.so:host=127.0.0.1,port=5555"
+.B tpm2-abrmd --tcti="libtss2-tcti-mssim.so.0:host=127.0.0.1,port=5555"
 .SH AUTHOR
 Philip Tricca <philip.b.tricca@intel.com>
 .SH "SEE ALSO"
