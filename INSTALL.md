@@ -321,6 +321,31 @@ Once systemd has loaded the unit file you should be able to use `systemctl`
 to perform the start / stop / status operations as expected. Systemd should
 also now start the daemon when the system boots.
 
+## SELinux
+On systems using SELinux (for example, check with the `getenforce` utility) the
+default service policy is too restrictive. The repository contains an SELinux
+policy module which, when applied as below, allows the daemon to operate on
+systems with SELinux in enforcing mode.
+
+First, ensure SELinux policy development files are installed (i.e on Fedora they
+can be installed with `dnf install selinux-policy-devel`).
+Then build and install the policy module:
+
+```
+$ pushd selinux
+$ make -f /usr/share/selinux/devel/Makefile tabrmd.pp
+$ sudo semodule -i tabrmd.pp
+$ sudo restorecon /path/to/installed/tpm2-abrmd
+```
+
+Once the module is installed you can ensure the daemon is correctly labelled by
+checking with:
+
+```
+$ ls -Z /path/to/installed/tpm2-abrmd
+system_u:object_r:tabrmd_exec_t:s0 /usr/local/sbin/tpm2-abrmd
+```
+
 ## Sanity Tests
 Once the `tpm2-abrmd` installed and running it's possible to query the
 dbus-daemon to see evidence of its presence. The following command will list
