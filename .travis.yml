@@ -102,9 +102,16 @@ script :
     if [ \( "$CC" = "gcc" \) -a \( ! -z "$COVERALLS_REPO_TOKEN" \) ]; then
         coveralls --build-root=./ --exclude=${DEPS} --exclude=${DESTDIR} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
     fi
+
+after_failure:
   - |
-    cat test-suite*.log
-    for LOG in $(ls -1 test/*.log); do
-        echo "${LOG}"
+    TEST_ROOT=tpm2-abrmd-*/_build
+    # newer versions of automake have distcheck output under a new directory
+    if [ -d ${TEST_ROOT}/sub ]; then
+        TEST_ROOT=${TEST_ROOT}/sub
+    fi
+    cat ${TEST_ROOT}/test-suite.log
+    find ${TEST_ROOT}/test -name '*.log' | while read LOG; do
+        echo "dumping test log: ${LOG}"
         cat ${LOG}
     done
