@@ -610,21 +610,6 @@ post_process_loaded_transients (ResourceManager  *resmgr,
     g_slist_free_full (*transient_slist, g_object_unref);
 }
 /*
- * This function handles the required post-processing of the session_entry_t
- * list representing all of the sessions currently loaded. This requires that
- * we save the loaded sessions.
- */
-void
-post_process_loaded_sessions (ResourceManager *resmgr)
-{
-    g_debug ("%s", __func__);
-    session_list_lock (resmgr->session_list);
-    session_list_foreach (resmgr->session_list,
-                          resource_manager_save_session_context,
-                          resmgr);
-    session_list_unlock (resmgr->session_list);
-}
-/*
  * This structure is used to keep state while iterating over a list of
  * TPM2_HANDLES.
  * 'cap_data'    : this parameter is used to collect the list of handles that
@@ -1124,13 +1109,21 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                              response,
                                              &transient_slist);
 send_response:
-    /* send response to next processing stage */
+    /*
+     * Lock SessionList before passing the response along to prevent
+     * connection removal logic from racing our attempts to save
+     * session contexts.
+     */
+    session_list_lock (resmgr->session_list);
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
     /* save contexts that were previously loaded */
+    session_list_foreach (resmgr->session_list,
+                          resource_manager_save_session_context,
+                          resmgr);
+    session_list_unlock (resmgr->session_list);
     post_process_loaded_transients (resmgr, &transient_slist, connection, command_attrs);
     g_object_unref (connection);
-    post_process_loaded_sessions (resmgr);
     return;
 }
 /**
