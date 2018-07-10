@@ -24,6 +24,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <assert.h>
 #include <glib.h>
 #include <inttypes.h>
 #include <unistd.h>
@@ -378,7 +379,9 @@ resource_manager_load_handles_test(void **state)
 
     tpm2_command_get_handles (data->command, vhandles, &handle_count);
     map = connection_get_trans_map (data->connection);
-    assert_true (handle_count <= 2);
+    if (handle_count > 2) {
+        assert (FALSE);
+    }
     for (i = 0; i < handle_count; ++i) {
         entry = handle_map_entry_new (phandles [i], vhandles [i]);
         handle_map_insert (map, vhandles [i], entry);
