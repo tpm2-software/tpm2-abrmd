@@ -86,18 +86,27 @@ script :
     fi
   - |
     CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --enable-integration"
-    if [[ "$CC" == clang* ]]; then
+    case "$CC" in
+    clang*)
         # Use -D_REENTRANT kludge so -pthread test works with scan-build:
         scan-build ./configure CFLAGS="$CFLAGS -D_REENTRANT" $CONFIGURE_OPTIONS
         dbus-launch scan-build --status-bugs make -j$(nproc) distcheck
-        make clean
-    fi
-    if [ "$CC" = "gcc" ]; then
-        CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-code-coverage"
-    fi
-    ./configure ${CONFIGURE_OPTIONS}
-  - dbus-launch make -j$(nproc) distcheck
-  - dbus-launch make -j$(nproc) check-code-coverage
+        # exit code from scan-build is 0 if no bugs are found, failed tests
+        # will go undetected unless we manually parse the test log for:
+        # '# FAIL:  0'
+        TEST_LOG=$(find ./tpm2-abrmd-*/_build -name 'test-suite.log')
+        if [ -f "${TEST_LOG}" ]; then
+            grep '^#[[:space:]]\+FAIL:[[:space:]]\+0$' ${TEST_LOG}
+        fi
+        ;;
+    gcc)
+        ./configure ${CONFIGURE_OPTIONS} --enable-code-coverage
+        dbus-launch make -j$(nproc) distcheck
+        ;;
+    *)
+        echo "unsupported compiler"
+        exit 1
+    esac
   - |
     if [ \( "$CC" = "gcc" \) -a \( ! -z "$COVERALLS_REPO_TOKEN" \) ]; then
         coveralls --build-root=./ --exclude=${DEPS} --exclude=${DESTDIR} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
