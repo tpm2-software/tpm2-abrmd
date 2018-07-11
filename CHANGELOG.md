@@ -3,6 +3,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## Unreleased
+### Fixed
+- Default shared object name for dynamic TCTI loading now includes major
+version number suffix.
+- Race condition in between session mgmt and connection teardown logic.
+
 ## 2.0.0 - 2018-06-22
 ### Added
 - Integration test script and build support to execute integration tests
