@@ -149,10 +149,8 @@ resource_manager_load_session (ResourceManager *resmgr,
     TPMS_CONTEXT  *context;
     SessionEntryStateEnum session_entry_state;
 
-    session_list_lock (resmgr->session_list);
     session_entry = session_list_lookup_handle (resmgr->session_list,
                                                 handle);
-    session_list_unlock (resmgr->session_list);
     if (session_entry == NULL) {
         g_debug ("no session with handle 0x%08" PRIx32 " known to "
                  "ResourceManager.", handle);
@@ -1109,19 +1107,12 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                              response,
                                              &transient_slist);
 send_response:
-    /*
-     * Lock SessionList before passing the response along to prevent
-     * connection removal logic from racing our attempts to save
-     * session contexts.
-     */
-    session_list_lock (resmgr->session_list);
     sink_enqueue (resmgr->sink, G_OBJECT (response));
     g_object_unref (response);
     /* save contexts that were previously loaded */
     session_list_foreach (resmgr->session_list,
                           resource_manager_save_session_context,
                           resmgr);
-    session_list_unlock (resmgr->session_list);
     post_process_loaded_transients (resmgr, &transient_slist, connection, command_attrs);
     g_object_unref (connection);
     return;
