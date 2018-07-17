@@ -228,11 +228,16 @@ response_sink_process_control (ResponseSink *sink,
     ControlCode code = control_message_get_code (msg);
 
     UNUSED_PARAM (sink);
+    g_debug ("%s", __func__);
     switch (code) {
     case CHECK_CANCEL:
         g_debug ("%s: Received CHECK_CANCEL control code, terminating.",
                  __func__);
         return FALSE;
+    case CONNECTION_REMOVED:
+        g_debug ("%s: Received CONNECTION_REMOVED message, nothing to do.",
+                 __func__);
+        return TRUE;
     default:
         g_warning ("%s: Unknown control code: %d ... ignoring",
                    __func__, code);

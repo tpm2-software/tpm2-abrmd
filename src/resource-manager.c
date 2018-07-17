@@ -1134,11 +1134,20 @@ resource_manager_process_control (ResourceManager *resmgr,
                                   ControlMessage *msg)
 {
     ControlCode code = control_message_get_code (msg);
+    Connection *conn;
 
+    g_debug ("%s", __func__);
     switch (code) {
     case CHECK_CANCEL:
         sink_enqueue (resmgr->sink, G_OBJECT (msg));
         return FALSE;
+    case CONNECTION_REMOVED:
+        conn = CONNECTION (control_message_get_object (msg));
+        g_debug ("%s: received CONNECTION_REMOVED message for connection: 0x%"
+                 PRIxPTR, __func__, (uintptr_t)conn);
+        resource_manager_remove_connection (resmgr, conn);
+        sink_enqueue (resmgr->sink, G_OBJECT (msg));
+        return TRUE;
     default:
         g_warning ("%s: Unknown control code: %d ... ignoring",
                    __func__, code);
@@ -1533,11 +1542,9 @@ connection_close_session_callback (gpointer data,
  * from the TPM.
  */
 void
-resource_manager_on_connection_removed (ConnectionManager *connection_manager,
-                                        Connection        *connection,
-                                        ResourceManager   *resource_manager)
+resource_manager_remove_connection (ResourceManager *resource_manager,
+                                    Connection *connection)
 {
-    UNUSED_PARAM(connection_manager);
     connection_close_data_t connection_close_data = {
         .connection = connection,
         .resource_manager = resource_manager,
@@ -1545,12 +1552,10 @@ resource_manager_on_connection_removed (ConnectionManager *connection_manager,
 
     g_info ("%s: flushing session contexts associated with connection 0x%"
             PRIxPTR, __func__, (uintptr_t)connection);
-    session_list_lock (resource_manager->session_list);
     session_list_foreach (resource_manager->session_list,
                           connection_close_session_callback,
                           &connection_close_data);
-    g_debug ("resource_manager_on_connection_removed done");
-    session_list_unlock (resource_manager->session_list);
+    g_debug ("%s: done", __func__);
 }
 /**
  * Create new ResourceManager object.

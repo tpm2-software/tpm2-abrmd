@@ -35,6 +35,7 @@ G_BEGIN_DECLS
  */
 typedef enum {
     CHECK_CANCEL    = 1 << 0,
+    CONNECTION_REMOVED = 1 << 1,
 } ControlCode;
 
 typedef struct _ControlMessageClass {
@@ -45,6 +46,7 @@ typedef struct _ControlMessage
 {
     GObject          parent_instance;
     ControlCode      code;
+    GObject         *object;
 } ControlMessage;
 
 GType control_message_get_type (void);
@@ -57,7 +59,10 @@ GType control_message_get_type (void);
 #define CONTROL_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_CONTROL_MESSAGE, ControlMessageClass))
 
 ControlMessage*    control_message_new    (ControlCode code);
+ControlMessage*    control_message_new_with_object (ControlCode code,
+                                                    GObject *obj);
 ControlCode        control_message_get_code (ControlMessage *msg);
+GObject*           control_message_get_object (ControlMessage* msg);
 
 G_END_DECLS
 #endif /* CONTROL_MESSAGE_H */
