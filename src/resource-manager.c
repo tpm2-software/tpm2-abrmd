@@ -1126,6 +1126,25 @@ send_response:
     g_object_unref (connection);
     return;
 }
+/*
+ * Return FALSE to terminate main thread.
+ */
+gboolean
+resource_manager_process_control (ResourceManager *resmgr,
+                                  ControlMessage *msg)
+{
+    ControlCode code = control_message_get_code (msg);
+
+    switch (code) {
+    case CHECK_CANCEL:
+        sink_enqueue (resmgr->sink, G_OBJECT (msg));
+        return FALSE;
+    default:
+        g_warning ("%s: Unknown control code: %d ... ignoring",
+                   __func__, code);
+        return TRUE;
+    }
+}
 /**
  * This function acts as a thread. It simply:
  * - Blocks on the in_queue. Then wakes up and
@@ -1138,9 +1157,10 @@ resource_manager_thread (gpointer data)
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (data);
     GObject         *obj = NULL;
+    gboolean done = FALSE;
 
     g_debug ("resource_manager_thread start");
-    while (TRUE) {
+    while (!done) {
         obj = message_queue_dequeue (resmgr->in_queue);
         g_debug ("resource_manager_thread: message_queue_dequeue got obj: "
                  "0x%" PRIxPTR, (uintptr_t)obj);
@@ -1150,14 +1170,14 @@ resource_manager_thread (gpointer data)
         }
         if (IS_TPM2_COMMAND (obj)) {
             resource_manager_process_tpm2_command (resmgr, TPM2_COMMAND (obj));
-            g_object_unref (obj);
         } else if (IS_CONTROL_MESSAGE (obj)) {
-            /* we must unref the message before processing the ControlCode
-             * since the function may cause the thread to exit.
-             */
-            g_object_unref (obj);
-            break;
+            gboolean ret =
+                resource_manager_process_control (resmgr, CONTROL_MESSAGE (obj));
+            if (ret == FALSE) {
+                done = TRUE;
+            }
         }
+        g_object_unref (obj);
     }
 
     return NULL;

@@ -221,26 +221,48 @@ response_sink_process_response (Tpm2Response *response)
     return written;
 }
 
+gboolean
+response_sink_process_control (ResponseSink *sink,
+                               ControlMessage *msg)
+{
+    ControlCode code = control_message_get_code (msg);
+
+    UNUSED_PARAM (sink);
+    switch (code) {
+    case CHECK_CANCEL:
+        g_debug ("%s: Received CHECK_CANCEL control code, terminating.",
+                 __func__);
+        return FALSE;
+    default:
+        g_warning ("%s: Unknown control code: %d ... ignoring",
+                   __func__, code);
+        return TRUE;
+    }
+}
+
 void*
 response_sink_thread (void *data)
 {
     ResponseSink *sink = RESPONSE_SINK (data);
     GObject *obj;
+    gboolean done = FALSE;
 
-    do {
+    while (!done) {
         g_debug ("response_sink_thread blocking on input queue: 0x%" PRIxPTR,
                  (uintptr_t)sink->in_queue);
         obj = message_queue_dequeue (sink->in_queue);
         g_debug ("response_sink_thread got obj: 0x%" PRIxPTR, (uintptr_t)obj);
-        if (IS_CONTROL_MESSAGE (obj)) {
-            g_object_unref (obj);
-            break;
-        }
         if (IS_TPM2_RESPONSE (obj)) {
             response_sink_process_response (TPM2_RESPONSE (obj));
-            g_object_unref (obj);
+        } else if (IS_CONTROL_MESSAGE (obj)) {
+            gboolean ret =
+                response_sink_process_control (sink, CONTROL_MESSAGE (obj));
+            if (ret == FALSE) {
+                done = TRUE;
+            }
         }
-    } while (TRUE);
+        g_object_unref (obj);
+    }
 
     return NULL;
 }
