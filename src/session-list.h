@@ -46,7 +46,6 @@ typedef struct _SessionListClass {
 
 typedef struct _SessionList {
     GObject             parent_instance;
-    pthread_mutex_t     mutex;
     guint               max_per_connection;
     GList              *session_entry_list;
 } SessionList;
@@ -62,8 +61,6 @@ GType          session_list_get_type          (void);
 SessionList*   session_list_new               (guint             max_per_conn);
 gboolean       session_list_insert            (SessionList      *list,
                                                SessionEntry     *entry);
-gint           session_list_lock              (SessionList      *list);
-gint           session_list_unlock            (SessionList      *list);
 SessionEntry*  session_list_lookup_handle     (SessionList      *list,
                                               TPM2_HANDLE        handle);
 gint           session_list_remove_handle     (SessionList      *list,
@@ -74,8 +71,6 @@ void           session_list_remove            (SessionList      *list,
                                                SessionEntry     *entry);
 guint          session_list_size              (SessionList      *list);
 gboolean       session_list_is_full           (SessionList      *list,
-                                               Connection       *connection);
-gboolean       session_list_is_full_unlocked  (SessionList      *session_list,
                                                Connection       *connection);
 void           session_list_prettyprint       (SessionList      *list);
 void           session_list_foreach           (SessionList      *list,

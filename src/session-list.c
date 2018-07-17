@@ -83,19 +83,12 @@ session_list_set_property (GObject        *object,
     }
 }
 /*
- * Initialize object. This requires:
- * 1) initializing the mutex that mediate access to the hash tables
- * 2) creating the hash tables
- * 3) initializing the handle_count
- * The handle_count is currently initialized to start allocating handles
- * @ 0xff. This is an arbitrary way we differentiate them from the handles
- * allocated by the TPM.
+ * Initialize object.
  */
 static void
 session_list_init (SessionList     *list)
 {
     g_debug ("session_list_init");
-    pthread_mutex_init (&list->mutex, NULL);
     list->session_entry_list = NULL;
 }
 /*
@@ -116,11 +109,7 @@ session_list_dispose (GObject *object)
     G_OBJECT_CLASS (session_list_parent_class)->dispose (object);
 }
 /*
- * Deallocate all associated resources. The mutex may be held by another
- * thread. If we attempt to lock / unlock it we may hang a thread in the
- * guts of the GObject system. Better to just destroy it and free all
- * other resources. The call to destroy may fail and if so we just carry
- * on.
+ * Deallocate all associated resources.
  */
 static void
 session_list_finalize (GObject *object)
@@ -130,7 +119,6 @@ session_list_finalize (GObject *object)
     g_debug ("session_list_finalize: SessionList: 0x%" PRIxPTR " with %"
              PRIu32 " entries", (uintptr_t)self,
              g_list_length (self->session_entry_list));
-    pthread_mutex_destroy (&self->mutex);
     g_list_free_full (self->session_entry_list, g_object_unref);
     G_OBJECT_CLASS (session_list_parent_class)->finalize (object);
 }
@@ -175,22 +163,6 @@ session_list_new (guint  max_per_conn)
                                        NULL));
 }
 /*
- * Lock the mutex that protects the hash table object.
- */
-gint
-session_list_lock (SessionList *list)
-{
-    return pthread_mutex_lock (&list->mutex);
-}
-/*
- * Unlock the mutex that protects the list and entry objects.
- */
-gint
-session_list_unlock (SessionList *list)
-{
-    return pthread_mutex_unlock (&list->mutex);
-}
-/*
  * Insert GObject into the session list. We take a reference to the object
  * before we insert the object. When it is removed or if the SessionList
  * object is destroyed the object will be unref'd.
@@ -204,17 +176,14 @@ session_list_insert (SessionList      *list,
     if (list == NULL || entry == NULL) {
         g_error ("session_list_insert passed NULL parameter");
     }
-    session_list_lock (list);
-    if (session_list_is_full_unlocked (list, entry->connection)) {
+    if (session_list_is_full (list, entry->connection)) {
         g_warning ("SessionList: 0x%" PRIxPTR " max_per_connection of %u "
                    "exceeded", (uintptr_t)list, list->max_per_connection);
-        session_list_unlock (list);
         return FALSE;
     }
     g_object_ref (entry);
     list->session_entry_list = g_list_append (list->session_entry_list,
                                                  entry);
-    session_list_unlock (list);
 
     return TRUE;
 }
@@ -302,17 +271,14 @@ session_list_remove_custom (SessionList  *list,
     GList       *list_entry;
     SessionEntry *entry_data;
 
-    session_list_lock (list);
     list_entry = g_list_find_custom (list->session_entry_list, data, func);
     if (list_entry == NULL) {
-        session_list_unlock (list);
         return FALSE;
     }
     entry_data = SESSION_ENTRY (list_entry->data);
     list->session_entry_list = g_list_remove_link (list->session_entry_list,
                                                      list_entry);
     g_object_unref (entry_data);
-    session_list_unlock (list);
 
     return TRUE;
 }
@@ -346,8 +312,7 @@ session_list_remove_connection (SessionList      *list,
  * This function is a thin wrapper around the g_list_remove function. Pass it
  * a SessionEntry. It will find it in the list and remove the associated entry
  * and then unref it (to account for the SessionList no longer holding a
- * reference). This function does not lock the SessionList during this
- * operation so the caller will have to do this themselves.
+ * reference).
  */
 void
 session_list_remove (SessionList   *list,
@@ -367,24 +332,19 @@ session_list_remove_last (SessionList *list)
     GList       *list_entry;
     SessionEntry *entry_data;
 
-    session_list_lock (list);
     list_entry = g_list_last (list->session_entry_list);
     if (list_entry == NULL) {
-        session_list_unlock (list);
         return NULL;
     }
     entry_data = SESSION_ENTRY (list_entry->data);
     list->session_entry_list = g_list_remove_link (list->session_entry_list,
                                                      list_entry);
-    session_list_unlock (list);
 
     return entry_data;
 }
 /*
  * This is a lookup function to find an entry in the SessionList given
- * handle. The caller *must* hold the lock on the SessionList. Further they
- * must hold this lock until they are done with the SessionListEntry
- * returned. This function increases the reference count on the
+ * handle. This function increases the reference count on the
  * SessionEntry returned. The caller must decrement the reference count
  * when it is done with the entry.
  */
@@ -413,9 +373,7 @@ session_list_size (SessionList *list)
 {
     guint ret;
 
-    session_list_lock (list);
     ret = g_list_length (list->session_entry_list);
-    session_list_unlock (list);
 
     return ret;
 }
@@ -464,8 +422,8 @@ session_list_connection_count (SessionList *list,
  * to max_per_connection.
  */
 gboolean
-session_list_is_full_unlocked (SessionList *session_list,
-                               Connection  *connection)
+session_list_is_full (SessionList *session_list,
+                      Connection  *connection)
 {
     size_t session_count;
     gboolean ret;
@@ -479,17 +437,6 @@ session_list_is_full_unlocked (SessionList *session_list,
     } else {
         ret= FALSE;
     }
-    return ret;
-}
-gboolean
-session_list_is_full (SessionList *session_list,
-                      Connection  *connection)
-{
-    gboolean ret;
-
-    session_list_lock (session_list);
-    ret = session_list_is_full_unlocked (session_list, connection);
-    session_list_unlock (session_list);
     return ret;
 }
 /*
@@ -509,11 +456,9 @@ void
 session_list_prettyprint (SessionList *list)
 {
     g_debug ("SessionList: 0x%" PRIxPTR, (uintptr_t)list);
-    session_list_lock (list);
     g_list_foreach (list->session_entry_list,
                      session_list_dump_entry,
                      NULL);
-    session_list_unlock (list);
 }
 /*
  */
