@@ -46,6 +46,22 @@
 #define ASSERT_NON_NULL(x) assert_non_null(x)
 #endif
 
+/*
+ * This macro is like the GNU TEMP_FAILURE_RETRY macro for environments
+ * that don't have the GNU C library. Based on TSS2_RETRY_EXP in:
+ *     https://github.com/tpm2-software/tpm2-tss/blob/d5a36f6bbddab25b408037cf64adb6ce2e411cc1/test/integration/sapi-util.h#L18
+ * consistent with GNU C library manual:
+ *     https://www.gnu.org/software/libc/manual/html_node/Interrupted-Primitives.html
+ */
+#define TABRMD_ERRNO_EINTR_RETRY(exp)                   \
+  ({                                                    \
+    long int __result = 0;                              \
+    do {                                                \
+      __result = (long int)(exp);                       \
+    } while ((__result == -1) && (errno == EINTR));     \
+    __result;                                           \
+  })
+
 /* set the layer / component to indicate the RC comes from the RM */
 #define RM_RC(rc) TSS2_RESMGR_RC_LAYER + rc
 
