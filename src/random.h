@@ -40,7 +40,7 @@ typedef struct _RandomClass {
 
 typedef struct _Random {
     GObject             parent_instance;
-    struct drand48_data rand_state;
+    unsigned short      rand_state[3];
 } Random;
 
 #define TYPE_RANDOM              (random_get_type   ())
