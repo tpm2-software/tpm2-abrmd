@@ -201,6 +201,7 @@ init_thread_func (gpointer user_data)
 
     data->command_source =
         command_source_new (connection_manager, command_attrs);
+    g_object_unref (connection_manager);
     g_debug ("created command source: 0x%" PRIxPTR,
              (uintptr_t)data->command_source);
     session_list = session_list_new (data->options.max_sessions);
@@ -214,15 +215,6 @@ init_thread_func (gpointer user_data)
              (uintptr_t)data->response_sink);
     g_object_unref (command_attrs);
     g_object_unref (data->access_broker);
-    /*
-     * Connect the ResourceManager to the ConnectionManager
-     * 'connection-removed' signal.
-     */
-    g_signal_connect (connection_manager,
-                      "connection-removed",
-                      G_CALLBACK (resource_manager_on_connection_removed),
-                      data->resource_manager);
-    g_object_unref (connection_manager);
     /**
      * Wire up the TPM command processing pipeline. TPM command buffers
      * flow from the CommandSource, to the Tab then finally back to the

@@ -241,7 +241,11 @@ fail_out:
              (uintptr_t)data->self->connection_manager);
     connection_manager_remove (data->self->connection_manager,
                                connection);
-    g_debug ("%s: unref Connection: 0x%" PRIxPTR, __func__, (uintptr_t)connection);
+    ControlMessage *msg =
+        control_message_new_with_object (CONNECTION_REMOVED,
+                                         G_OBJECT (connection));
+    sink_enqueue (data->self->sink, G_OBJECT (msg));
+    g_object_unref (msg);
     g_object_unref (connection);
     /*
      * Remove data from hash table which includes the GCancellable associated

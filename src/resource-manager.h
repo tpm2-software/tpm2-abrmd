@@ -77,9 +77,8 @@ TSS2_RC               resource_manager_virt_to_phys      (ResourceManager *resmg
                                                           guint8           handle_number);
 void                  resource_manager_enqueue           (Sink            *sink,
                                                           GObject         *obj);
-void                  resource_manager_on_connection_removed (ConnectionManager *connection_manager,
-                                                              Connection        *connection,
-                                                              ResourceManager   *resource_manager);
+void                  resource_manager_remove_connection (ResourceManager *resource_manager,
+                                                          Connection      *connection);
 
 G_END_DECLS
 #endif /* RESOURCE_MANAGER_H */

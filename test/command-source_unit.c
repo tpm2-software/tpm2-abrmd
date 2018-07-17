@@ -104,14 +104,14 @@ void
 __wrap_sink_enqueue (Sink     *sink,
                      GObject  *obj)
 {
-    Tpm2Command **command;
+    GObject **object;
     UNUSED_PARAM(sink);
 
     g_debug ("%s", __func__);
-    command = mock_ptr_type (Tpm2Command**);
+    object = mock_ptr_type (GObject**);
 
-    *command = TPM2_COMMAND (obj);
-    g_object_ref (*command);
+    *object = G_OBJECT (obj);
+    g_object_ref (*object);
 }
 /*
  * This wrap function allows us to gain access to the data that will be
@@ -337,6 +337,7 @@ command_source_on_io_ready_eof_test (void **state)
     GIOStream   *iostream;
     HandleMap   *handle_map;
     Connection *connection;
+    ControlMessage *msg;
     gint client_fd, hash_table_size;
     gboolean ret;
 
@@ -350,6 +351,7 @@ command_source_on_io_ready_eof_test (void **state)
     will_return (__wrap_connection_manager_lookup_istream, connection);
     will_return (__wrap_read_tpm_buffer_alloc, NULL);
     will_return (__wrap_read_tpm_buffer_alloc, 0);
+    will_return (__wrap_sink_enqueue, &msg);
     will_return (__wrap_connection_manager_remove, TRUE);
 
     command_source_on_new_connection (data->manager, connection, data->source);
@@ -357,6 +359,7 @@ command_source_on_io_ready_eof_test (void **state)
     assert_int_equal (ret, G_SOURCE_REMOVE);
     hash_table_size = g_hash_table_size (data->source->istream_to_source_data_map);
     assert_int_equal (hash_table_size, 0);
+    g_object_unref (msg);
 }
 /* command_source_connection_test end */
 int
