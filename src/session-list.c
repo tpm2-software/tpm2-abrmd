@@ -436,11 +436,13 @@ session_list_connection_counter (gpointer data,
                                  gpointer user_data)
 {
     SessionEntry *entry = SESSION_ENTRY (data);
+    Connection *conn = session_entry_get_connection (entry);
     connection_count_data_t *count_data = (connection_count_data_t*)user_data;
 
-    if (count_data->connection == session_entry_get_connection (entry)) {
+    if (count_data->connection == conn) {
         ++count_data->count;
     }
+    g_clear_object (&conn);
 }
 /*
  * Returns the number of entries associated with the provided connection.

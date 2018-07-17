@@ -8,6 +8,8 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 - Default shared object name for dynamic TCTI loading now includes major
 version number suffix.
 - Race condition in between session mgmt and connection teardown logic.
+- Leaked references to Connection objects in SessionList when calculating
+the number of sessions belonging to a Connection.
 
 ## 2.0.0 - 2018-06-22
 ### Added
