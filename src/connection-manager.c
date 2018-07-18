@@ -42,7 +42,6 @@ G_DEFINE_TYPE (ConnectionManager, connection_manager, G_TYPE_OBJECT);
 enum {
     SIGNAL_0,
     SIGNAL_NEW_CONNECTION,
-    SIGNAL_CONNECTION_REMOVED,
     N_SIGNALS,
 };
 
@@ -194,22 +193,6 @@ connection_manager_class_init (ConnectionManagerClass *klass)
                       G_TYPE_INT,
                       1,
                       TYPE_CONNECTION);
-    /*
-     * This signal is emitted when a connection is removed from the manager.
-     * This signals to subscribers that a connection is effectively "closed".
-     * It may be better to have this event come from the command source.
-     */
-    signals [SIGNAL_CONNECTION_REMOVED] =
-        g_signal_new ("connection-removed",
-                      G_TYPE_FROM_CLASS (object_class),
-                      G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-                      0,
-                      NULL,
-                      NULL,
-                      NULL,
-                      G_TYPE_NONE,
-                      1,
-                      TYPE_CONNECTION);
     obj_properties [PROP_MAX_CONNECTIONS] =
         g_param_spec_uint ("max-connections",
                            "max connections",
@@ -346,11 +329,6 @@ connection_manager_remove (ConnectionManager   *manager,
                  (uintptr_t)manager->connection_from_istream_table,
                  (uintptr_t)connection_key_id (connection));
     pthread_mutex_unlock (&manager->mutex);
-    g_signal_emit (manager,
-                   signals [SIGNAL_CONNECTION_REMOVED],
-                   0,
-                   connection,
-                   NULL);
 
     return ret;
 }

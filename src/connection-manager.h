@@ -48,11 +48,6 @@ typedef struct _ConnectionManager {
     guint             max_connections;
 } ConnectionManager;
 
-/* type for callbacks registered with the 'new-connection' signal*/
-typedef gint (*new_connection_callback)(ConnectionManager *connection_manager,
-                                        Connection        *connection,
-                                        gpointer          *data);
-
 #define TYPE_CONNECTION_MANAGER              (connection_manager_get_type   ())
 #define CONNECTION_MANAGER(obj)              (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_CONNECTION_MANAGER, ConnectionManager))
 #define CONNECTION_MANAGER_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST    ((klass), TYPE_CONNECTION_MANAGER, ConnectionManagerClass))
