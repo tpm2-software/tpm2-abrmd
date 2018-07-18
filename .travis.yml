@@ -101,16 +101,15 @@ script :
         ;;
     gcc)
         ./configure ${CONFIGURE_OPTIONS} --enable-code-coverage
-        dbus-launch make -j$(nproc) distcheck
+        dbus-launch make -j$(nproc) check
+        if [ ! -z "$COVERALLS_REPO_TOKEN" ]; then
+          coveralls --build-root=./ --exclude=${DEPS} --exclude=${DESTDIR} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
+        fi
         ;;
     *)
         echo "unsupported compiler"
         exit 1
     esac
-  - |
-    if [ \( "$CC" = "gcc" \) -a \( ! -z "$COVERALLS_REPO_TOKEN" \) ]; then
-        coveralls --build-root=./ --exclude=${DEPS} --exclude=${DESTDIR} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
-    fi
 
 after_failure:
   - |
