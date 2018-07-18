@@ -46,6 +46,19 @@
 #define ASSERT_NON_NULL(x) assert_non_null(x)
 #endif
 
+/*
+ * Substitute  for GNU TEMP_FAILURE_RETRY for environments that
+ * don't have the GNU C library.
+ */
+#define TABRMD_ERRNO_EINTR_RETRY(exp)                   \
+  ({                                                    \
+    long int __result = 0;                              \
+    do {                                                \
+      __result = (long int)(exp);                       \
+    } while ((__result == -1) && (errno == EINTR));     \
+    __result;                                           \
+  })
+
 /* set the layer / component to indicate the RC comes from the RM */
 #define RM_RC(rc) TSS2_RESMGR_RC_LAYER + rc
 
