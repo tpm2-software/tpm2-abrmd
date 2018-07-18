@@ -120,7 +120,9 @@ random_seed_from_file (Random *random,
         goto close_out;
     }
     g_debug ("seeding rand with %ld", rand_seed);
-    srand48_r (rand_seed, &random->rand_state);
+    random->rand_state[0] = 0x330E;
+    random->rand_state[1] = rand_seed & 0xffff;
+    random->rand_state[2] = (rand_seed >> 16) & 0xffff;
 
 close_out:
     if (close (rand_fd) != 0)
@@ -148,7 +150,7 @@ random_get_bytes (Random    *random,
     g_debug ("random_get_bytes: %p", random);
     g_assert_nonnull (random);
     for (i = 0; i < count; ++i) {
-        lrand48_r (&random->rand_state, (long int*)&rand[0]);
+        *((long int*)&rand[0]) = nrand48 (random->rand_state);
         memcpy (&dest[i], &rand[0], sizeof (uint8_t));
     }
     return i;
