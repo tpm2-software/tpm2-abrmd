@@ -165,7 +165,7 @@ tcti_tabrmd_poll (int        fd,
     int ret;
     int errno_tmp;
 
-    ret = TEMP_FAILURE_RETRY (poll (pollfds,
+    ret = TABRMD_ERRNO_EINTR_RETRY (poll (pollfds,
                                     sizeof (pollfds) / sizeof (struct pollfd),
                                     timeout));
     errno_tmp = errno;
