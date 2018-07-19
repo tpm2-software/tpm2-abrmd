@@ -10,6 +10,7 @@ version number suffix.
 - Race condition in between session mgmt and connection teardown logic.
 - Leaked references to Connection objects in SessionList when calculating
 the number of sessions belonging to a Connection.
+- Replace old '01org' URLs in configure script.
 
 ## 2.0.0 - 2018-06-22
 ### Added
