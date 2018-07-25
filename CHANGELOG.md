@@ -3,7 +3,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-## Unreleased
+## 2.0.1 - 2018-07-25
 ### Fixed
 - Default shared object name for dynamic TCTI loading now includes major
 version number suffix.
