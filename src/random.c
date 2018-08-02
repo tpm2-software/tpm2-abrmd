@@ -150,7 +150,7 @@ random_get_bytes (Random    *random,
     g_debug ("random_get_bytes: %p", random);
     g_assert_nonnull (random);
     for (i = 0; i < count; ++i) {
-        *((long int*)&rand[0]) = nrand48 (random->rand_state);
+        *(&rand[0]) = nrand48 (random->rand_state);
         memcpy (&dest[i], &rand[0], sizeof (uint8_t));
     }
     return i;
