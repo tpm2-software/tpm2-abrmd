@@ -98,7 +98,7 @@ write_all (GOutputStream *ostream,
         g_debug ("writing %zu bytes starting at 0x%" PRIxPTR " to socket 0x%"
                  PRIxPTR,
                  size - written_total,
-                 (uintptr_t)buf + written_total,
+                 (uintptr_t)(buf + written_total),
                  (uintptr_t)socket);
         written = g_output_stream_write (ostream,
                                          (const gchar*)&buf [written_total],
