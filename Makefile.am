@@ -66,7 +66,9 @@ TESTS_INTEGRATION = \
 
 TESTS_INTEGRATION_NOHW = test/integration/tcti-connect-multiple.int
 
-TESTS = $(TESTS_INTEGRATION)
+# empty init for these since they're manipulated by conditionals
+TESTS =
+noinst_LTLIBRARIES =
 XFAIL_TESTS = \
     test/integration/start-auth-session.int
 TEST_EXTENSIONS = .int
@@ -82,7 +84,8 @@ endif
 
 if ENABLE_INTEGRATION
 TABRMD_TCTI = mssim
-TESTS += $(TESTS_INTEGRATION_NOHW)
+noinst_LTLIBRARIES += $(libtest)
+TESTS += $(TESTS_INTEGRATION) $(TESTS_INTEGRATION_NOHW)
 endif
 
 if UNIT
@@ -99,9 +102,8 @@ libtest        = test/integration/libtest.la
 libutil        = src/libutil.la
 
 lib_LTLIBRARIES = $(libtss2_tcti_tabrmd)
-noinst_LTLIBRARIES = \
+noinst_LTLIBRARIES += \
     $(libtss2_tcti_echo) \
-    $(libtest) \
     $(libutil)
 man3_MANS = man/man3/Tss2_Tcti_Tabrmd_Init.3
 man7_MANS = man/man7/tss2-tcti-tabrmd.7
