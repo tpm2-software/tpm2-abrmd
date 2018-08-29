@@ -78,14 +78,15 @@ AM_TESTS_ENVIRONMENT = \
 INT_LOG_COMPILER = $(srcdir)/scripts/int-test-setup.sh
 INT_LOG_FLAGS = --tabrmd-tcti=$(TABRMD_TCTI)
 
+if ENABLE_INTEGRATION
+noinst_LTLIBRARIES += $(libtest)
+TESTS += $(TESTS_INTEGRATION)
 if HWTPM
 TABRMD_TCTI = device
-endif
-
-if ENABLE_INTEGRATION
+else
 TABRMD_TCTI = mssim
-noinst_LTLIBRARIES += $(libtest)
-TESTS += $(TESTS_INTEGRATION) $(TESTS_INTEGRATION_NOHW)
+TESTS += $(TESTS_INTEGRATION_NOHW)
+endif
 endif
 
 if UNIT
