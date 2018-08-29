@@ -390,6 +390,8 @@ tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *context,
 void
 init_tcti_data (TSS2_TCTI_CONTEXT *context)
 {
+    memset (context, 0, sizeof (TSS2_TCTI_TABRMD_CONTEXT));
+
     TSS2_TCTI_MAGIC (context)            = TSS2_TCTI_TABRMD_MAGIC;
     TSS2_TCTI_VERSION (context)          = TSS2_TCTI_TABRMD_VERSION;
     TSS2_TCTI_TABRMD_STATE (context)     = TABRMD_STATE_TRANSMIT;
