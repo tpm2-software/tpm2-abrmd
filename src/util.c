@@ -153,7 +153,7 @@ read_data (GInputStream  *istream,
 
     g_assert (index != NULL);
     do {
-        g_debug ("reading %zd bytes socket 0x%" PRIxPTR", to 0x%" PRIxPTR,
+        g_debug ("reading %zu bytes socket 0x%" PRIxPTR", to 0x%" PRIxPTR,
                  bytes_left, (uintptr_t)socket, (uintptr_t)&buf [*index]);
         num_read = g_input_stream_read (istream,
                                         (gchar*)&buf [*index],
