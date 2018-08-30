@@ -3,6 +3,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## Unreleased
+### Fixed
+- Format specifier with wrong size in util module.
+- Initialize TCTI context to 0 before setting values. This will cause all
+  members that aren't explicitly initialized by be 0.
+
 ## 1.3.1 - 2018-03-18
 ### Fixed
 - Distribute systemd preset template instead of the generated file.
