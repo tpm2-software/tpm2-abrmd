@@ -55,6 +55,11 @@
 #define PRIxHANDLE "08" PRIx32
 
 TSS2_RC
+get_context_gap_max (
+    TSS2_SYS_CONTEXT *sys_context,
+    UINT32 *value);
+
+TSS2_RC
 create_primary (
     TSS2_SYS_CONTEXT *sapi_context,
     TPM2_HANDLE       *handle
