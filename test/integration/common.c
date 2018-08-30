@@ -34,6 +34,43 @@
 #include "tss2-tcti-tabrmd.h"
 #include "tpm2-struct-init.h"
 
+TSS2_RC
+get_context_gap_max (TSS2_SYS_CONTEXT *sys_context,
+                     UINT32 *value)
+{
+    TPMI_YES_NO more_data = TPM2_NO;
+    TPMS_CAPABILITY_DATA capability_data;
+    TSS2_RC rc;
+
+    g_debug ("%s: GetCapability", __func__);
+    rc = Tss2_Sys_GetCapability (sys_context,
+                                 NULL,
+                                 TPM2_CAP_TPM_PROPERTIES,
+                                 TPM2_PT_CONTEXT_GAP_MAX,
+                                 1,
+                                 &more_data,
+                                 &capability_data,
+                                 NULL);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_error ("%s: GetCapability failed with RC: 0x%" PRIx32, __func__, rc);
+    }
+    if (capability_data.capability != TPM2_CAP_TPM_PROPERTIES) {
+        g_error ("%s: capability returned is unexpected value: 0x%" PRIx32,
+                 __func__, capability_data.capability);
+    }
+    if (capability_data.data.tpmProperties.count != 1) {
+        g_error ("%s: capability returned is unexpected count: 0x%" PRIx32,
+                 __func__, capability_data.data.tpmProperties.count);
+    }
+    if (capability_data.data.tpmProperties.tpmProperty[0].property != TPM2_PT_CONTEXT_GAP_MAX) {
+        g_error ("%s: capability returned wrong property: 0x%" PRIx32,
+                 __func__, capability_data.data.tpmProperties.tpmProperty[0].property);
+    }
+    g_debug ("%s: TPM2_PT_CONTEXT_GAP_MAX value: 0x%" PRIx32, __func__,
+             capability_data.data.tpmProperties.tpmProperty[0].value);
+    *value = capability_data.data.tpmProperties.tpmProperty[0].value;
+    return rc;
+}
 /*
  */
 TSS2_RC
