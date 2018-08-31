@@ -641,6 +641,9 @@ access_broker_context_save (AccessBroker *broker,
     g_debug ("access_broker_context_save: handle 0x%08" PRIx32, handle);
     sapi_context = access_broker_lock_sapi (broker);
     rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s returned an error: 0x%" PRIx32, __func__, rc);
+    }
     access_broker_unlock (broker);
 
     return rc;
@@ -684,15 +687,17 @@ access_broker_context_saveflush (AccessBroker *broker,
     sapi_context = access_broker_lock_sapi (broker);
     rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("Tss2_Sys_ContextSave: failed to save context for "
-                   "handle: 0x%" PRIx32 " TSS2_RC: 0x%" PRIx32, handle, rc);
+        g_warning ("%s: Tss2_Sys_ContextSave failed to save context for "
+                   "handle: 0x%" PRIx32 " TSS2_RC: 0x%" PRIx32, __func__,
+                   handle, rc);
         goto out;
     }
     g_debug ("access_broker_context_saveflush: handle 0x%" PRIx32, handle);
     rc = Tss2_Sys_FlushContext (sapi_context, handle);
-    if (rc != TSS2_RC_SUCCESS)
-        g_warning("Tss2_Sys_FlushContext: failed to flushed context for "
-                  "handle: 0x%" PRIx32 ", TSS2_RC: 0x%" PRIx32, handle, rc);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning("%s: Tss2_Sys_FlushContext failed for handle: 0x%" PRIx32
+                  ", TSS2_RC: 0x%" PRIx32, __func__, handle, rc);
+    }
 out:
     access_broker_unlock (broker);
     return rc;

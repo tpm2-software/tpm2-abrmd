@@ -347,7 +347,6 @@ resource_manager_save_session_context (gpointer data_entry,
     if (rc == TSS2_RC_SUCCESS) {
         session_entry_set_state (entry, SESSION_ENTRY_SAVED_RM);
     } else {
-        g_warning ("access_broker_context_save returned an error: 0x%" PRIx32, rc);
         access_broker_context_flush (resmgr->access_broker,
                                      context->savedHandle);
         session_list_remove (resmgr->session_list, entry);
