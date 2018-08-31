@@ -31,6 +31,7 @@
 #include <tss2/tss2_tpm2_types.h>
 
 #include "connection.h"
+#include "session-entry.h"
 
 G_BEGIN_DECLS
 
@@ -62,6 +63,10 @@ Tpm2Response*       tpm2_response_new           (Connection      *connection,
                                                  TPMA_CC          attributes);
 Tpm2Response*       tpm2_response_new_rc        (Connection      *connection,
                                                  TSS2_RC           rc);
+Tpm2Response* tpm2_response_new_context_save (Connection *connection,
+                                              SessionEntry *entry);
+Tpm2Response* tpm2_response_new_context_load (Connection *connection,
+                                              SessionEntry *entry);
 TPMA_CC             tpm2_response_get_attributes (Tpm2Response   *response);
 guint8*             tpm2_response_get_buffer    (Tpm2Response    *response);
 TSS2_RC              tpm2_response_get_code      (Tpm2Response    *response);

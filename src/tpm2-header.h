@@ -56,5 +56,10 @@ void                   set_response_size      (uint8_t      *response_header,
 TSS2_RC                get_response_code      (uint8_t      *response_header);
 void                   set_response_code      (uint8_t      *response_header,
                                                TSS2_RC       rc);
+TSS2_RC                tpm2_header_init       (uint8_t      *buf,
+                                               size_t        buf_size,
+                                               TPM2_ST       tag,
+                                               UINT32        size,
+                                               TSS2_RC       code);
 
 #endif /* TPM2_HEADER_H */

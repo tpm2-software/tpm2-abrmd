@@ -26,8 +26,10 @@
  */
 #include <inttypes.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <tss2/tss2_tpm2_types.h>
+#include <tss2/tss2_mu.h>
 
 #include "tpm2-command.h"
 #include "tpm2-header.h"
@@ -161,7 +163,9 @@ tpm2_command_set_property (GObject        *object,
             break;
         }
         self->connection = g_value_get_object (value);
-        g_object_ref (self->connection);
+        if (self->connection) {
+            g_object_ref (self->connection);
+        }
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -289,6 +293,58 @@ tpm2_command_new (Connection     *connection,
                                        "connection", connection,
                                        NULL));
 }
+#define CONTEXT_SAVE_CMD_SIZE (TPM_HEADER_SIZE + sizeof (TPM2_HANDLE))
+Tpm2Command*
+tpm2_command_new_context_save (TPM2_HANDLE handle)
+{
+    TSS2_RC rc;
+    uint8_t *buf = g_malloc0 (CONTEXT_SAVE_CMD_SIZE);
+    size_t offset = TPM_HEADER_SIZE;
+
+    rc = tpm2_header_init (buf,
+                           CONTEXT_SAVE_CMD_SIZE,
+                           TPM2_ST_NO_SESSIONS,
+                           CONTEXT_SAVE_CMD_SIZE,
+                           TPM2_CC_ContextSave);
+    if (rc != TSS2_RC_SUCCESS) {
+        goto err_out;
+    }
+    rc = Tss2_MU_TPM2_HANDLE_Marshal (handle,
+                                      buf,
+                                      CONTEXT_SAVE_CMD_SIZE,
+                                      &offset);
+    if (rc != TSS2_RC_SUCCESS) {
+        goto err_out;
+    }
+    /* TPMA_CC here is hard coded to the appropriate value for ContextSave */
+    return tpm2_command_new (NULL, buf, CONTEXT_SAVE_CMD_SIZE, 0x02000162);
+
+err_out:
+    g_warning ("%s: failed", __func__);
+    g_free (buf);
+    return NULL;
+}
+Tpm2Command*
+tpm2_command_new_context_load (uint8_t *buf,
+                               size_t size)
+{
+    TSS2_RC rc;
+    UINT32 size_new = TPM_HEADER_SIZE + size;
+    uint8_t *buf_tmp = g_malloc0 (size_new);
+
+    rc = tpm2_header_init (buf_tmp,
+                           size_new,
+                           TPM2_ST_NO_SESSIONS,
+                           size_new,
+                           TPM2_CC_ContextLoad);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_free (buf_tmp);
+        return NULL;
+    }
+    memcpy (&buf_tmp [TPM_HEADER_SIZE], buf, size);
+    /* TPMA_CC here is hard coded to the appropriate value for ContextLoad */
+    return tpm2_command_new (NULL, buf_tmp, size_new, 0x10000161);
+}
 /* Simple "getter" to expose the attributes associated with the command. */
 TPMA_CC
 tpm2_command_get_attributes (Tpm2Command *command)
@@ -333,7 +389,9 @@ tpm2_command_get_tag (Tpm2Command *command)
 Connection*
 tpm2_command_get_connection (Tpm2Command *command)
 {
-    g_object_ref (command->connection);
+    if (command->connection) {
+        g_object_ref (command->connection);
+    }
     return command->connection;
 }
 /* Return the number of handles in the command. */

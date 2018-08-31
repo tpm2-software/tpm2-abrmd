@@ -312,6 +312,48 @@ session_list_lookup_handle (SessionList   *list,
     }
 }
 /*
+ * This type is used as a container for passing a buffer and its size to the
+ * 'session_list_compare_context' callback. This callback must have the
+ * prototype defined as 'GCompareFunc' which forces us to pass only one
+ * arbitrary parameter.
+ */
+typedef struct size_buf_ptr {
+    uint8_t *buf;
+    size_t size;
+} size_buf_ptr_t;
+static gint
+session_list_compare_context (gconstpointer a,
+                              gconstpointer b)
+{
+    SessionEntry *entry = SESSION_ENTRY (a);
+    size_buf_ptr_t *size_buf_ptr = (size_buf_ptr_t*)b;
+
+    return session_entry_compare_on_context_client (entry,
+                                                    size_buf_ptr->buf,
+                                                    size_buf_ptr->size);
+}
+SessionEntry*
+session_list_lookup_context_client (SessionList *list,
+                                    uint8_t *buf,
+                                    size_t size)
+{
+    GList *list_entry;
+    size_buf_ptr_t size_buf_ptr = {
+        .size = size,
+        .buf = buf,
+    };
+
+    list_entry = g_list_find_custom (list->session_entry_list,
+                                     &size_buf_ptr,
+                                     session_list_compare_context);
+    if (list_entry != NULL) {
+        g_object_ref (list_entry->data);
+        return SESSION_ENTRY (list_entry->data);
+    } else {
+        return NULL;
+    }
+}
+/*
  * Simple wrapper around the function that reports the number of entries in
  * the hash table.
  */

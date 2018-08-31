@@ -24,8 +24,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <assert.h>
 #include <inttypes.h>
+#include <string.h>
 
+#include <tss2/tss2_mu.h>
+
+#include "tpm2-header.h"
 #include "util.h"
 #include "session-entry.h"
 
@@ -59,7 +64,7 @@ session_entry_get_property (GObject        *object,
         g_value_set_pointer (value, &self->context);
         break;
     case PROP_HANDLE:
-        g_value_set_uint (value, (guint)self->context.savedHandle);
+        g_value_set_uint (value, session_entry_get_handle (self));
         break;
     case PROP_STATE:
         g_value_set_enum (value, self->state);
@@ -88,7 +93,7 @@ session_entry_set_property (GObject        *object,
         g_error ("Cannot set context property.");
         break;
     case PROP_HANDLE:
-        self->context.savedHandle = (TPM2_HANDLE)g_value_get_uint (value);
+        self->handle = (TPM2_HANDLE)g_value_get_uint (value);
         break;
     case PROP_STATE:
         self->state = g_value_get_enum (value);
@@ -177,16 +182,21 @@ session_entry_new (Connection *connection,
                                         NULL));
 }
 /*
- * Access the TPMS_CONTEXT member.
+ * Access the 'context' member.
  * NOTE: This directly exposes memory from an object instance. The caller
  * must be sure to hold a reference to this object to keep it from being
  * garbage collected while the caller is accessing the context structure.
  * Further this object provides no thread safety ... yet.
  */
-TPMS_CONTEXT*
+size_buf_t*
 session_entry_get_context (SessionEntry *entry)
 {
     return &entry->context;
+}
+size_buf_t*
+session_entry_get_context_client (SessionEntry *entry)
+{
+    return &entry->context_client;
 }
 /*
  * Access the Connection associated with this SessionEntry. The reference
@@ -196,8 +206,31 @@ session_entry_get_context (SessionEntry *entry)
 Connection*
 session_entry_get_connection (SessionEntry *entry)
 {
-    g_object_ref (entry->connection);
+    if (entry->connection) {
+        g_object_ref (entry->connection);
+    }
     return entry->connection;
+}
+#define SAVED_HANDLE_OFFSET (TPM_HEADER_SIZE + sizeof (UINT64))
+#define SAVED_HANDLE_END (SAVED_HANDLE_OFFSET + sizeof (TPMI_DH_CONTEXT))
+static TPM2_HANDLE
+get_handle (size_buf_t *size_buf)
+{
+    size_t offset = SAVED_HANDLE_OFFSET;
+    TSS2_RC rc;
+    TPM2_HANDLE handle;
+    g_assert (size_buf->size < SAVED_HANDLE_END);
+    rc = Tss2_MU_TPM2_HANDLE_Unmarshal (size_buf->buf,
+                                        size_buf->size,
+                                        &offset,
+                                        &handle);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_debug ("%s: Failed to unmarshal handle from size_buf_t 0x%"
+                   PRIxPTR, __func__, (uintptr_t)size_buf);
+        return 0;
+    }
+    g_debug ("%s: unmarshalled handle 0x08%" PRIx32, __func__, handle);
+    return handle;
 }
 /*
  * Accessor for the savedHandle member of the associated context.
@@ -205,7 +238,16 @@ session_entry_get_connection (SessionEntry *entry)
 TPM2_HANDLE
 session_entry_get_handle (SessionEntry *entry)
 {
-    return session_entry_get_context (entry)->savedHandle;
+    g_assert_nonnull (entry);
+    g_debug ("%s: with SessionEntry 0x%" PRIxPTR, __func__, (uintptr_t)entry);
+    return entry->handle;
+}
+TPM2_HANDLE
+session_entry_get_context_client_handle (SessionEntry *entry)
+{
+    g_assert_nonnull (entry);
+    g_debug ("%s: with SessionEntry 0x%" PRIxPTR, __func__, (uintptr_t)entry);
+    return get_handle (session_entry_get_context_client (entry));
 }
 /*
  * Simple accessor to the state of the SessionEntry.
@@ -224,10 +266,32 @@ void
 session_entry_set_state (SessionEntry *entry,
                          SessionEntryStateEnum state)
 {
+    assert (entry != NULL);
     if (state == SESSION_ENTRY_SAVED_CLIENT_CLOSED) {
         g_clear_object (&entry->connection);
     }
     entry->state = state;
+}
+/*
+ * Set the contents of the 'context' blob. This blob holds the TPMS_CONTEXT
+ * in its marshalled form (ready to be sent to the TPM in the body of a
+ * ContextLoad command). We also copy this same blob to the 'context_client'
+ * blob (the TPMS_CONTEXT that we expose to clients) if it has not yet been
+ * initialized.
+ */
+void
+session_entry_set_context (SessionEntry *entry,
+                           uint8_t *buf,
+                           size_t size)
+{
+    assert (entry != NULL && buf != NULL && size <= SIZE_BUF_MAX);
+
+    memcpy (entry->context.buf, buf, size);
+    entry->context.size = size;
+    if (entry->context_client.size == 0) {
+        memcpy (entry->context_client.buf, buf, size);
+        entry->context_client.size = size;
+    }
 }
 /*
  * When the connection is set the previous connection, if there was one, must
@@ -242,17 +306,20 @@ session_entry_set_connection (SessionEntry *entry,
     entry->connection = connection;
 }
 void
+session_entry_clear_connection (SessionEntry *entry)
+{
+    g_clear_object (&entry->connection);
+}
+void
 session_entry_prettyprint (SessionEntry *entry)
 {
     g_debug ("SessionEntry:    0x%"   PRIxPTR, (uintptr_t)entry);
     g_debug ("  Connection:    0x%"   PRIxPTR, (uintptr_t)entry->connection);
     g_debug ("  State:         %s",   session_entry_state_to_str (entry->state));
-    g_debug ("  TPMS_CONTEXT:  0x%"   PRIxPTR, (uintptr_t)&entry->context);
-    g_debug ("    sequence:    0x%"   PRIx64,  entry->context.sequence);
-    g_debug ("    savedHandle: 0x%08" PRIx32,  entry->context.savedHandle);
-    g_debug ("    hierarchy:   0x%08" PRIx32,  entry->context.hierarchy);
-    g_debug ("    contextBlob: 0x%"   PRIxPTR,
-             (uintptr_t)&entry->context.contextBlob);
+    g_debug ("  context:       0x%"   PRIxPTR,
+             (uintptr_t)session_entry_get_context (entry));
+    g_debug ("  context_client:0x%"   PRIxPTR,
+             (uintptr_t)session_entry_get_context_client (entry));
 }
 /*
  * This function is used with the g_list_find_custom function to find
@@ -335,4 +402,25 @@ session_entry_abandon (SessionEntry *entry)
 {
     g_clear_object (&entry->connection);
     entry->state = SESSION_ENTRY_SAVED_CLIENT_CLOSED;
+}
+/*
+ * This function is used to compare the context_client field the TPMS_CONTEXT
+ * provided by the caller. The result of this function is byte-for-byte
+ * comparison between the two context structures. Both the context_client and
+ * the provided context structure are marshalled to their network
+ * representation before comparison to eliminate possible errors caused by
+ * comparing structure padding.
+ */
+gint
+session_entry_compare_on_context_client (SessionEntry *entry,
+                                         uint8_t *buf,
+                                         size_t size)
+{
+    size_buf_t *size_buf = NULL;
+
+    g_debug ("%s: SessionEntry 0x%" PRIxPTR ", buf 0x%" PRIxPTR " and size "
+             "0x%zx", __func__, (uintptr_t)entry, (uintptr_t)buf, size);
+    g_assert (size <= SIZE_BUF_MAX);
+    size_buf = session_entry_get_context_client (entry);
+    return memcmp (size_buf->buf, buf, size);
 }
