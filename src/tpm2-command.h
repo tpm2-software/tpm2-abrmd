@@ -62,6 +62,9 @@ Tpm2Command*          tpm2_command_new             (Connection      *connection,
                                                     guint8           *buffer,
                                                     size_t            size,
                                                     TPMA_CC           attrs);
+Tpm2Command*          tpm2_command_new_context_save (TPM2_HANDLE);
+Tpm2Command*          tpm2_command_new_context_load (uint8_t *buf,
+                                                     size_t size);
 TPMA_CC               tpm2_command_get_attributes  (Tpm2Command      *command);
 TPMA_SESSION          tpm2_command_get_auth_attrs  (Tpm2Command      *command,
                                                     size_t            auth_offset);

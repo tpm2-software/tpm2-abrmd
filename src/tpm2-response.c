@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <tss2/tss2_tpm2_types.h>
+#include <tss2/tss2_mu.h>
 
 #include "tpm2-header.h"
 #include "tpm2-response.h"
@@ -88,7 +89,9 @@ tpm2_response_set_property (GObject        *object,
             break;
         }
         self->connection = g_value_get_object (value);
-        g_object_ref (self->connection);
+        if (self->connection) {
+            g_object_ref (self->connection);
+        }
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -209,6 +212,8 @@ tpm2_response_new (Connection     *connection,
                    size_t           buffer_size,
                    TPMA_CC          attributes)
 {
+    g_debug ("%s: connection: 0x%" PRIxPTR " buffer: 0x%" PRIxPTR " size: 0x%zx attrs: 0x%" PRIx32,
+             __func__, (uintptr_t)connection, (uintptr_t)buffer, buffer_size, attributes);
     return TPM2_RESPONSE (g_object_new (TYPE_TPM2_RESPONSE,
                                         "attributes", attributes,
                                        "buffer",  buffer,
@@ -237,6 +242,88 @@ tpm2_response_new_rc (Connection *connection,
     TPM_RESPONSE_SIZE (buffer) = htobe32 (TPM_RESPONSE_HEADER_SIZE);
     TPM_RESPONSE_CODE (buffer) = htobe32 (rc);
     return tpm2_response_new (connection, buffer, be32toh (TPM_RESPONSE_SIZE (buffer)), (TPMA_CC){ 0 });
+}
+/*
+ * Create a new Tpm2Response object with a message body / buffer formatted
+ * for the response to the TPM2_ContextLoad command. This command has no
+ * session and the body of the response is set to the parameter TPM2_HANDLE.
+ */
+Tpm2Response*
+tpm2_response_new_context_load (Connection *connection,
+                                SessionEntry *entry)
+{
+    Tpm2Response *response = NULL;
+    size_t offset = TPM_HEADER_SIZE;
+    /* allocate buffer be large enough to hold TPM2_ContextSave response */
+    uint8_t *buf = g_malloc0 (TPM_HEADER_SIZE + sizeof (TPM2_HANDLE));
+    TSS2_RC rc;
+
+    rc = Tss2_MU_TPM2_HANDLE_Marshal (session_entry_get_handle (entry),
+                                      buf,
+                                      TPM_HEADER_SIZE + sizeof (TPM2_HANDLE),
+                                      &offset);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: Failed to write TPMS_CONTEXT to response header: 0x%"
+                   PRIx32, __func__, rc);
+        goto out;
+    }
+    /* offset now has size of response */
+    rc = tpm2_header_init (buf, offset, TPM2_ST_NO_SESSIONS, offset, TSS2_RC_SUCCESS);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: Failed to initialize header: 0x%" PRIx32,
+                   __func__, rc);
+        goto out;
+    }
+    g_debug ("%s: Generating response for SaveContext from connection 0x%" PRIxPTR, __func__, (uintptr_t)connection);
+    response = tpm2_response_new (connection, buf, offset, 0x10000161);
+    g_debug ("%s generated Tpm2Response object: 0x%" PRIxPTR " for connection: 0x%" PRIxPTR,
+             __func__, (uintptr_t)response, (uintptr_t)connection);
+out:
+    if (response == NULL) {
+        g_free (buf);
+    }
+    return response;
+}
+/*
+ * Create a new Tpm2Response object with a message body / buffer formatted
+ * for the response to the TPM2_ContextSave command. This command has no
+ * session and the body of the response is set to the parameter TPMS_CONTEXT
+ * structure. This Tpm2Response will be sent to the client so we ensure that
+ * the 'context_client' field is sent.
+ */
+Tpm2Response*
+tpm2_response_new_context_save (Connection *connection,
+                                SessionEntry *entry)
+{
+    Tpm2Response *response = NULL;
+    size_buf_t *size_buf;
+    /* allocate buffer be large enough to hold TPM2_ContextSave response */
+    uint8_t *buf;
+    TSS2_RC rc;
+
+    size_buf = session_entry_get_context_client (entry);
+    buf = g_malloc0 (TPM_HEADER_SIZE + size_buf->size);
+    memcpy (&buf[TPM_HEADER_SIZE], size_buf->buf, size_buf->size);
+    /* offset now has size of response */
+    rc = tpm2_header_init (buf,
+                           TPM_HEADER_SIZE + size_buf->size,
+                           TPM2_ST_NO_SESSIONS,
+                           TPM_HEADER_SIZE + size_buf->size,
+                           TSS2_RC_SUCCESS);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: Failed to initialize header: 0x%" PRIx32,
+                   __func__, rc);
+        goto out;
+    }
+    g_debug ("%s: Generating response for SaveContext from connection 0x%" PRIxPTR, __func__, (uintptr_t)connection);
+    response = tpm2_response_new (connection, buf, TPM_HEADER_SIZE + size_buf->size, 0x02000162);
+    g_debug ("%s generated Tpm2Response object: 0x%" PRIxPTR " for connection: 0x%" PRIxPTR,
+             __func__, (uintptr_t)response, (uintptr_t)connection);
+out:
+    if (response == NULL) {
+        g_free (buf);
+    }
+    return response;
 }
 /* Simple "getter" to expose the attributes associated with the command. */
 TPMA_CC
@@ -283,7 +370,9 @@ tpm2_response_get_tag (Tpm2Response *response)
 Connection*
 tpm2_response_get_connection (Tpm2Response *response)
 {
-    g_object_ref (response->connection);
+    if (response->connection) {
+        g_object_ref (response->connection);
+    }
     return response->connection;
 }
 /*

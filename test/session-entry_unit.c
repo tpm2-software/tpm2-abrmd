@@ -43,7 +43,10 @@ typedef struct {
     SessionEntry *session_entry;
 } test_data_t;
 /*
- * Setup function
+ * Setup function:
+ * Creates a structure to hold test data.
+ * Creates supporting objects for tests: HandleMap, IOStream, Connection.
+ * Creates a SessionEntry (the object under test).
  */
 static int
 session_entry_setup (void **state)
@@ -99,10 +102,10 @@ static void
 session_entry_get_context_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
+    size_buf_t *size_buf;
 
-    TPMS_CONTEXT *context = NULL;
-    context = session_entry_get_context (data->session_entry);
-    assert_non_null (context);
+    size_buf = session_entry_get_context (data->session_entry);
+    assert_non_null (size_buf);
 }
 
 static void

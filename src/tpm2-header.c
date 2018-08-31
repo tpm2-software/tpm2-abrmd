@@ -24,8 +24,16 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <assert.h>
 #include <endian.h>
+#include <glib.h>
+#include <inttypes.h>
+#include <stddef.h>
+
+#include <tss2/tss2_mu.h>
 #include <tss2/tss2_tpm2_types.h>
+
+#include "tpm2-header.h"
 
 /**
  * Extract the 'tag' field from the tpm command header. This is a
@@ -113,4 +121,39 @@ set_response_code (uint8_t *response_header,
 {
     *(TSS2_RC*)(response_header + sizeof (TPM2_ST) + sizeof (UINT32)) = \
         htobe32 (rc);
+}
+/*
+ * create response object, populate with SessionEntry member
+ * 'context_client'
+ */
+TSS2_RC
+tpm2_header_init (uint8_t *buf,
+                  size_t buf_size,
+                  TPM2_ST tag,
+                  UINT32 size,
+                  TSS2_RC code)
+{
+    size_t offset = 0;
+    TSS2_RC rc;
+
+    g_assert (buf_size >= TPM_HEADER_SIZE);
+    rc = Tss2_MU_TPM2_ST_Marshal (tag, buf, buf_size, &offset);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: failed to write TPM2_ST tag to response header: 0x%"
+                   PRIx32, __func__, rc);
+        return rc;
+    }
+    rc = Tss2_MU_UINT32_Marshal (size, buf, buf_size, &offset);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: failed to write UINT32 size to response header: 0x%"
+                   PRIx32, __func__, rc);
+        return rc;
+    }
+    rc = Tss2_MU_UINT32_Marshal (code, buf, buf_size, &offset);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: failed to write UINT32 responseCode to response header: 0x%"
+                   PRIx32, __func__, rc);
+    }
+
+    return rc;
 }

@@ -71,6 +71,9 @@ gboolean       session_list_insert            (SessionList      *list,
                                                SessionEntry     *entry);
 SessionEntry*  session_list_lookup_handle     (SessionList      *list,
                                               TPM2_HANDLE        handle);
+SessionEntry*  session_list_lookup_context_client (SessionList *list,
+                                                   uint8_t     *buf,
+                                                   size_t       size);
 gint           session_list_remove_handle     (SessionList      *list,
                                                TPM2_HANDLE        handle);
 gint           session_list_remove_connection (SessionList      *list,

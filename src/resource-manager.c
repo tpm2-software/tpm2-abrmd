@@ -26,8 +26,11 @@
  */
 #include <errno.h>
 #include <inttypes.h>
+#include <string.h>
 
 #include <glib.h>
+
+#include <tss2/tss2_mu.h>
 
 #include "connection.h"
 #include "connection-manager.h"
@@ -135,19 +138,27 @@ out:
 }
 /*
  * This is a somewhat generic function used to load session contexts into
- * the TPM2 device.
+ * the TPM2 device. The ResourceManager uses this function when loading
+ * sessions in the handle or auth area of a command. It will refuse to load
+ * sessions that:
+ * - aren't tracked by the ResourceManager (must have SessionEntry in
+ *   SessionList)
+ * - that were last saved by the client instead of the RM
+ * - aren't owned by the Connection object associated with the Tpm2Command
  */
 TSS2_RC
-resource_manager_load_session (ResourceManager *resmgr,
-                               Tpm2Command     *command,
-                               TPM2_HANDLE       handle,
-                               gboolean         will_flush)
+resource_manager_load_session_from_handle (ResourceManager *resmgr,
+                                           Connection      *command_conn,
+                                           TPM2_HANDLE       handle,
+                                           gboolean         will_flush)
 {
-    SessionEntry  *session_entry;
-    TSS2_RC        rc = TSS2_RC_SUCCESS;
-    TPM2_HANDLE     handle_tmp;
-    TPMS_CONTEXT  *context;
+    Connection   *entry_conn = NULL;
+    SessionEntry *session_entry = NULL;
+    Tpm2Command *command = NULL;
+    Tpm2Response *response = NULL;
     SessionEntryStateEnum session_entry_state;
+    TSS2_RC        rc = TSS2_RC_SUCCESS;
+    size_buf_t    *size_buf;
 
     session_entry = session_list_lookup_handle (resmgr->session_list,
                                                 handle);
@@ -160,6 +171,12 @@ resource_manager_load_session (ResourceManager *resmgr,
              "SessionEntry: 0x%" PRIxPTR, handle,
              (uintptr_t)session_entry);
     session_entry_prettyprint (session_entry);
+    entry_conn = session_entry_get_connection (session_entry);
+    if (command_conn != entry_conn) {
+        g_warning ("%s: Connection from Tpm2Command and SessionEntry do not "
+                   "match. Refusing to load.", __func__);
+        goto out;
+    }
     session_entry_state = session_entry_get_state (session_entry);
     if (session_entry_state != SESSION_ENTRY_SAVED_RM) {
         g_warning ("%s: Handle in handle area references SessionEntry 0x%"
@@ -167,29 +184,31 @@ resource_manager_load_session (ResourceManager *resmgr,
                    "SESSION_ENTRY_SAVED_RM for us manage it, ignorning.",
                    __func__, (uintptr_t)session_entry,
                    session_entry_state_to_str (session_entry_state));
-        goto out_unref_entry;
+        goto out;
     }
-    context = session_entry_get_context (session_entry);
-    rc = access_broker_context_load (resmgr->access_broker,
-                                     context,
-                                     &handle_tmp);
+    size_buf = session_entry_get_context (session_entry);
+    command = tpm2_command_new_context_load (size_buf->buf, size_buf->size);
+    response = access_broker_send_command (resmgr->access_broker,
+                                           command,
+                                           &rc);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("Failed to load context for session with handle "
                    "0x%08" PRIx32 " RC: 0x%" PRIx32, handle, rc);
         session_list_remove (resmgr->session_list, session_entry);
-        goto out_unref_entry;
+        goto out;
 
     }
-    g_debug ("loaded context for session handle: 0x%08" PRIx32
-             " got back handle: 0x%08" PRIx32,
-             context->savedHandle, handle_tmp);
+    g_debug ("%s: successfully loaded context for session handle: 0x%08"
+             PRIx32, __func__, handle);
     session_entry_set_state (session_entry, SESSION_ENTRY_LOADED);
     if (will_flush) {
         session_list_remove (resmgr->session_list, session_entry);
     }
-out_unref_entry:
-    g_object_unref (session_entry);
 out:
+    g_clear_object (&command);
+    g_clear_object (&entry_conn);
+    g_clear_object (&response);
+    g_clear_object (&session_entry);
 
     return rc;
 }
@@ -201,6 +220,7 @@ void
 resource_manager_load_auth_callback (gpointer auth_offset_ptr,
                                      gpointer user_data)
 {
+    Connection *connection = NULL;
     TPM2_HANDLE handle;
     auth_callback_data_t *data = (auth_callback_data_t*)user_data;
     TPMA_SESSION attrs;
@@ -215,16 +235,18 @@ resource_manager_load_auth_callback (gpointer auth_offset_ptr,
         if (attrs & TPMA_SESSION_CONTINUESESSION) {
             will_flush = FALSE;
         }
-        resource_manager_load_session (data->resmgr,
-                                       data->command,
-                                       handle,
-                                       will_flush);
+        connection = tpm2_command_get_connection (data->command);
+        resource_manager_load_session_from_handle (data->resmgr,
+                                                   connection,
+                                                   handle,
+                                                   will_flush);
         break;
     default:
         g_debug ("not loading object with handle: 0x%08" PRIx32 " from "
                  "command auth area: not a session", handle);
         break;
     }
+    g_clear_object (&connection);
 }
 /*
  * This function operates on the provided command. It iterates over each
@@ -236,6 +258,7 @@ resource_manager_load_handles (ResourceManager *resmgr,
                                Tpm2Command     *command,
                                GSList         **loaded_transients)
 {
+    Connection *connection = NULL;
     TSS2_RC       rc = TSS2_RC_SUCCESS;
     TPM2_HANDLE    handles[TPM2_COMMAND_MAX_HANDLES] = { 0, };
     size_t        i, handle_count = TPM2_COMMAND_MAX_HANDLES;
@@ -267,16 +290,18 @@ resource_manager_load_handles (ResourceManager *resmgr,
         case TPM2_HT_POLICY_SESSION:
             g_debug ("processing TPM2_HT_HMAC_SESSION or "
                      "TPM2_HT_POLICY_SESSION: 0x%" PRIx32, handles [i]);
-            rc = resource_manager_load_session (resmgr,
-                                                command,
-                                                handles [i],
-                                                FALSE);
+            connection = tpm2_command_get_connection (command);
+            rc = resource_manager_load_session_from_handle (resmgr,
+                                                            connection,
+                                                            handles [i],
+                                                            FALSE);
             break;
         default:
             break;
         }
     }
     g_debug ("%s: end", __func__);
+    g_clear_object (&connection);
 
     return rc;
 }
@@ -328,9 +353,10 @@ void
 resource_manager_save_session_context (gpointer data_entry,
                                        gpointer data_resmgr)
 {
+    Tpm2Command *cmd = NULL;
+    Tpm2Response *resp = NULL;
     ResourceManager *resmgr = RESOURCE_MANAGER (data_resmgr);
     SessionEntry    *entry  = SESSION_ENTRY (data_entry);
-    TPMS_CONTEXT    *context = session_entry_get_context (entry);
     TSS2_RC          rc = TSS2_RC_SUCCESS;
 
     g_debug ("resource_manager_save_session_context");
@@ -339,18 +365,28 @@ resource_manager_save_session_context (gpointer data_entry,
     }
     if (session_entry_get_state (entry) != SESSION_ENTRY_LOADED) {
         g_info ("SessionEntry not loaded in TPM, skipping");
-        return;
+        goto out;
     }
-    rc = access_broker_context_save (resmgr->access_broker,
-                                     context->savedHandle,
-                                     context);
-    if (rc == TSS2_RC_SUCCESS) {
-        session_entry_set_state (entry, SESSION_ENTRY_SAVED_RM);
-    } else {
-        access_broker_context_flush (resmgr->access_broker,
-                                     context->savedHandle);
-        session_list_remove (resmgr->session_list, entry);
+    cmd = tpm2_command_new_context_save (session_entry_get_handle (entry));
+    if (cmd == NULL) {
+        goto err_out;
     }
+    resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
+    if (rc != TSS2_RC_SUCCESS) {
+        goto err_out;
+    }
+    session_entry_set_context (entry,
+                               &tpm2_response_get_buffer (resp)[TPM_HEADER_SIZE],
+                               tpm2_response_get_size (resp) - TPM_HEADER_SIZE);
+    session_entry_set_state (entry, SESSION_ENTRY_SAVED_RM);
+    goto out;
+err_out:
+    access_broker_context_flush (resmgr->access_broker,
+                                 session_entry_get_handle (entry));
+    session_list_remove (resmgr->session_list, entry);
+out:
+    g_clear_object (&cmd);
+    g_clear_object (&resp);
 }
 static void
 dump_command (Tpm2Command *command)
@@ -373,6 +409,52 @@ dump_response (Tpm2Response *response)
                    16,
                    4);
     g_debug_tpma_cc (tpm2_response_get_attributes (response));
+}
+/*
+ * This function performs the special processing required when a client
+ * attempts to save a session context. In short: handling the context gap /
+ * contextCounter roll over is the only reason we have to get involved. To do
+ * this we must be able to load and save every active session from oldest to
+ * newest. This is discussed in detail in section 30.5 from part 1 of the TPM2
+ * spec.
+ *
+ * The recommended algorithm for doing this is documented in one of the TSS2 specs.
+ */
+Tpm2Response*
+resource_manager_save_context_session (ResourceManager *resmgr,
+                                       Tpm2Command *command)
+{
+    Connection *conn_cmd = NULL, *conn_entry = NULL;
+    SessionEntry *entry = NULL;
+    Tpm2Response *response = NULL;
+    TPM2_HANDLE handle = 0;
+
+    handle = tpm2_command_get_handle (command, 0);
+    g_debug ("save_context for session handle: 0x%" PRIx32, handle);
+    entry = session_list_lookup_handle (resmgr->session_list, handle);
+    if (entry == NULL) {
+        g_warning ("Client attempting to save unknown session.");
+        goto out;
+    }
+    /* the lookup function should check this for us? */
+    conn_cmd = tpm2_command_get_connection (command);
+    conn_entry = session_entry_get_connection (entry);
+    if (conn_cmd != conn_entry) {
+        g_warning ("%s: session belongs to a different connection", __func__);
+        goto out;
+    }
+    session_entry_set_state (entry, SESSION_ENTRY_SAVED_CLIENT);
+    response = tpm2_response_new_context_save (conn_cmd, entry);
+    g_debug ("%s: Tpm2Response 0x%" PRIxPTR " in reponse to TPM2_ContextSave",
+             __func__, (uintptr_t)response);
+    g_debug_bytes (tpm2_response_get_buffer (response),
+                   tpm2_response_get_size (response),
+                   16, 4);
+out:
+    g_clear_object (&conn_cmd);
+    g_clear_object (&conn_entry);
+    g_clear_object (&entry);
+    return response;
 }
 /*
  * This function performs the special processing associated with the
@@ -402,26 +484,113 @@ Tpm2Response*
 resource_manager_save_context (ResourceManager *resmgr,
                                Tpm2Command     *command)
 {
-    SessionEntry *entry       = NULL;
-    TPM2_HANDLE    handle      = tpm2_command_get_handle (command, 0);
+    TPM2_HANDLE handle = tpm2_command_get_handle (command, 0);
 
     g_debug ("resource_manager_save_context: resmgr: 0x%" PRIxPTR
              " command: 0x%" PRIxPTR, (uintptr_t)resmgr, (uintptr_t)command);
     switch (handle >> TPM2_HR_SHIFT) {
     case TPM2_HT_HMAC_SESSION:
     case TPM2_HT_POLICY_SESSION:
-        g_debug ("save_context for session handle: 0x%" PRIx32, handle);
-        entry = session_list_lookup_handle (resmgr->session_list, handle);
-        if (entry != NULL) {
-            session_entry_set_state (entry, SESSION_ENTRY_SAVED_CLIENT);
-            g_object_unref (entry);
-        } else {
-            g_warning ("Client attempting to save unknown session.");
-        }
-        break;
+        return resource_manager_save_context_session (resmgr, command);
     default:
         g_debug ("save_context: not virtualizing TPM2_CC_ContextSave for "
                  "handles: 0x%08" PRIx32, handle);
+        break;
+    }
+
+    return NULL;
+}
+/*
+ * This function performs the special processing required when handling a
+ * TPM2_CC_ContextLoad command:
+ * - First we look at the TPMS_CONTEXT provided in the command body. If we've
+ *   never see the context then we do nothing and let the command be processed
+ *   in its current form. If the context is valid and the TPM loads it the
+ *   ResourceManager will intercept the response and begin tracking the
+ *   session.
+ * - Second we check to be sure the session can be loaded by the connection
+ *   over which we received the command. This requires that it's either:
+ *   - the same connection associated with the SessionEntry
+ *   or
+ *   - that the SessionEntry has been abandoned
+ * - If the access control check pacsses we return the handle to the caller
+ *   in a Tpm2Response that we craft.
+ */
+Tpm2Response*
+resource_manager_load_context_session (ResourceManager *resmgr,
+                                       Tpm2Command *command)
+{
+    Connection *conn_cmd = NULL, *conn_entry = NULL;
+    SessionEntry *entry = NULL;
+    Tpm2Response *response = NULL;
+
+    g_debug ("%s: ResourceManager: 0x%" PRIxPTR ", Tpm2Command: 0x%" PRIxPTR,
+             __func__, (uintptr_t)resmgr, (uintptr_t)command);
+
+    entry = session_list_lookup_context_client (resmgr->session_list,
+                                                &tpm2_command_get_buffer (command) [TPM_HEADER_SIZE],
+                                                tpm2_command_get_size (command) - TPM_HEADER_SIZE);
+    if (entry == NULL) {
+        g_debug ("%s: Tpm2Command 0x%" PRIxPTR " contains unknown "
+                 "TPMS_CONTEXT.", __func__, (uintptr_t)command);
+        goto out;
+    }
+    conn_cmd = tpm2_command_get_connection (command);
+    conn_entry = session_entry_get_connection (entry);
+    if (conn_cmd != conn_entry) {
+        if (!session_list_claim (resmgr->session_list, entry, conn_cmd)) {
+            g_debug ("%s: Connection 0x%" PRIxPTR " attempting to load context"
+                     " belonging to Connection 0x%" PRIxPTR, __func__,
+                     (uintptr_t)conn_cmd, (uintptr_t)conn_entry);
+            goto out;
+        }
+    }
+    session_entry_set_state (entry, SESSION_ENTRY_SAVED_RM);
+    g_debug ("%s: SessionEntry context savedHandle: 0x%08" PRIx32, __func__,
+             session_entry_get_handle (entry));
+    response = tpm2_response_new_context_load (conn_cmd, entry);
+out:
+    g_debug ("%s: returning Tpm2Response 0x%" PRIxPTR,
+             __func__, (uintptr_t)response);
+    g_clear_object (&conn_cmd);
+    g_clear_object (&conn_entry);
+    g_clear_object (&entry);
+    return response;
+}
+/*
+ * This function performs the special processing associated with the
+ * TPM2_ContextLoad command.
+ */
+Tpm2Response*
+resource_manager_load_context (ResourceManager *resmgr,
+                               Tpm2Command *command)
+{
+    /* why all the marshalling */
+    uint8_t *buf = tpm2_command_get_buffer (command);
+    TPMS_CONTEXT tpms_context;
+    TSS2_RC rc;
+    size_t offset = TPM_HEADER_SIZE;
+
+    g_debug ("%s: resmgr: 0x%" PRIxPTR " command: 0x%" PRIxPTR,
+             __func__, (uintptr_t)resmgr, (uintptr_t)command);
+    /* Need to be able to get handle from Tpm2Command */
+    rc = Tss2_MU_TPMS_CONTEXT_Unmarshal (buf,
+                                         tpm2_command_get_size (command),
+                                         &offset,
+                                         &tpms_context);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: Failed to unmarshal TPMS_CONTEXT from Tpm2Command "
+                   "0x%" PRIxPTR ", rc: 0x%" PRIx32,
+                   __func__, (uintptr_t)command, rc);
+        /* Generate Tpm2Response with "appropriate" RC */
+    }
+    switch (tpms_context.savedHandle >> TPM2_HR_SHIFT) {
+    case TPM2_HT_HMAC_SESSION:
+    case TPM2_HT_POLICY_SESSION:
+        return resource_manager_load_context_session (resmgr, command);
+    default:
+        g_debug ("%s: not virtualizing TPM2_ContextLoad for "
+                 "handles: 0x%08" PRIx32, __func__, tpms_context.savedHandle);
         break;
     }
 
@@ -831,6 +1000,10 @@ command_special_processing (ResourceManager *resmgr,
         g_debug ("processing TPM2_CC_ContextSave");
         response = resource_manager_save_context (resmgr, command);
         break;
+    case TPM2_CC_ContextLoad:
+        g_debug ("%s: processing TPM2_CC_ContextLoad", __func__);
+        response = resource_manager_load_context (resmgr, command);
+        break;
     case TPM2_CC_GetCapability:
         g_debug ("processing TPM2_CC_GetCapability");
         connection = tpm2_command_get_connection (command);
@@ -920,47 +1093,27 @@ create_context_mapping_session (ResourceManager *resmgr,
                                 Tpm2Response    *response,
                                 TPM2_HANDLE      handle)
 {
-    Connection *resp_conn = NULL, *cmd_conn = NULL;
     SessionEntry *entry = NULL;
-    SessionEntryStateEnum state;
-    gboolean ret = FALSE;
+    Connection   *conn_resp = NULL, *conn_entry = NULL;
 
     entry = session_list_lookup_handle (resmgr->session_list, handle);
-    if (entry == NULL) {
-        g_debug ("%s: Creating entry for unknown session with handle 0x%08"
-                 PRIx32, __func__, handle);
-        resp_conn = tpm2_response_get_connection (response);
-        entry = session_entry_new (resp_conn, handle);
+    conn_resp = tpm2_response_get_connection (response);
+    if (entry != NULL) {
+        g_debug ("%s: got SessionEntry 0x%" PRIxPTR " that's in the "
+                 "SessionList", __func__, (uintptr_t)entry);
+        conn_entry = session_entry_get_connection (entry);
+        if (conn_resp != conn_entry) {
+            g_warning ("%s: connections do not match!", __func__);
+        }
+    } else {
+        g_debug ("%s: handle is a session, creating entry for SessionList "
+                 "and SessionList", __func__);
+        entry = session_entry_new (conn_resp, handle);
         session_entry_set_state (entry, SESSION_ENTRY_LOADED);
         session_list_insert (resmgr->session_list, entry);
-        goto out;
     }
-    state = session_entry_get_state (entry);
-    switch (state) {
-    case SESSION_ENTRY_LOADED:
-        g_debug ("%s: session_entry exists: 0x%" PRIxPTR " & is loaded. "
-                 "Doing consistency check.", __func__, (uintptr_t)entry);
-        resp_conn = tpm2_response_get_connection (response);
-        cmd_conn = session_entry_get_connection (entry);
-        g_assert (resp_conn == cmd_conn);
-        break;
-    case SESSION_ENTRY_SAVED_CLIENT:
-    case SESSION_ENTRY_SAVED_CLIENT_CLOSED:
-        resp_conn = tpm2_response_get_connection (response);
-        g_debug ("%s: session_entry 0x%" PRIxPTR " exists and was abandoned. "
-                 "Claiming this SessionEntry for connection 0x%" PRIxPTR,
-                 __func__, (uintptr_t)entry, (uintptr_t)resp_conn);
-        ret = session_list_claim (resmgr->session_list, entry, resp_conn);
-        g_assert (ret == TRUE);
-        break;
-    default:
-        g_error ("%s: session_entry_state: %s should not happen", __func__,
-                 session_entry_state_to_str (state));
-        break;
-    }
-out:
-    g_clear_object (&cmd_conn);
-    g_clear_object (&resp_conn);
+    g_clear_object (&conn_resp);
+    g_clear_object (&conn_entry);
     g_clear_object (&entry);
     g_debug ("dumping resmgr->session_list:");
     session_list_prettyprint (resmgr->session_list);
@@ -1047,6 +1200,11 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         response = tpm2_response_new_rc (connection, rc);
         goto send_response;
     }
+    /* Do command-specific processing. */
+    response = command_special_processing (resmgr, command);
+    if (response != NULL) {
+        goto send_response;
+    }
     /* Load objects associated with the handles in the command handle area. */
     if (tpm2_command_get_handle_count (command) > 0) {
         resource_manager_load_handles (resmgr,
@@ -1064,11 +1222,6 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
         tpm2_command_foreach_auth (command,
                                    resource_manager_load_auth_callback,
                                    &auth_callback_data);
-    }
-    /* Do any command-specific pre-processing required for the command. */
-    response = command_special_processing (resmgr, command);
-    if (response != NULL) {
-        goto send_response;
     }
     /* Send command and create response object. */
     response = access_broker_send_command (resmgr->access_broker,
@@ -1302,7 +1455,9 @@ resource_manager_dispose (GObject *obj)
 }
 static void
 resource_manager_init (ResourceManager *manager)
-{ }
+{
+    UNUSED_PARAM (manager);
+}
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.

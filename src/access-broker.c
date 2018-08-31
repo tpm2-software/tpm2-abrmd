@@ -496,7 +496,7 @@ access_broker_send_command (AccessBroker  *broker,
     g_debug ("access_broker_send_command: AccessBroker: 0x%" PRIxPTR
              " Tpm2Response: 0x%" PRIxPTR " RC: 0x%" PRIx32, (uintptr_t)broker,
              (uintptr_t)response, tpm2_response_get_code (response));
-    g_object_unref (connection);
+    g_clear_object (&connection);
     return response;
 
 unlock_out:
