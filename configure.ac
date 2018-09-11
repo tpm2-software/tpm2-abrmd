@@ -39,7 +39,7 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GOBJECT], [gobject-2.0])
 PKG_CHECK_MODULES([TSS2_SYS],[tss2-sys >= 2.0.0])
 AC_ARG_VAR([GDBUS_CODEGEN],[The gdbus-codegen executable.])
-AC_PATH_PROG([GDBUS_CODEGEN], [`$PKG_CONFIG --variable=gdbus_codegen gio-2.0`])
+AC_PATH_PROG([GDBUS_CODEGEN], [gdbus-codegen])
 if test -z "$GDBUS_CODEGEN"; then
     AC_MSG_ERROR([*** gdbus-codegen is required to build tpm2-abrmd])
 fi
