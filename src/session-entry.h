@@ -66,6 +66,12 @@ void             session_entry_set_connection  (SessionEntry      *entry,
 void             session_entry_set_state       (SessionEntry      *entry,
                                                 SessionEntryStateEnum state);
 void             session_entry_prettyprint     (SessionEntry      *entry);
+gint session_entry_compare (gconstpointer a,
+                            gconstpointer b);
+gint session_entry_compare_on_connection (gconstpointer a,
+                                          gconstpointer b);
+gint session_entry_compare_on_handle (gconstpointer a,
+                                      gconstpointer b);
 
 G_END_DECLS
 #endif /* SESSION_ENTRY_H */

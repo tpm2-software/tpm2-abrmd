@@ -187,82 +187,6 @@ session_list_insert (SessionList      *list,
 
     return TRUE;
 }
-/*
- * This function is used with the g_list_find_custom function to find
- * session_entry_t's in the list with a given handle. The first parameter
- * is a reference to an entry in the list. The second is a reference to the
- * handle we're looking for.
- */
-gint
-session_entry_compare (gconstpointer a,
-                       gconstpointer b)
-{
-    if (a == NULL || b == NULL) {
-        g_error ("session_entry_compare_on_handle received NULL parameter");
-    }
-    SessionEntry *entry_a = SESSION_ENTRY (a);
-    SessionEntry *entry_b = SESSION_ENTRY (b);
-
-    if (entry_a < entry_b) {
-        return -1;
-    } else if (entry_a > entry_b) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-/*
- * This function is used with the g_list_find_custom function to find
- * session_entry_t's in the list with a given handle. The first parameter
- * is a reference to an entry in the list. The second is a reference to the
- * handle we're looking for.
- */
-gint
-session_entry_compare_on_handle (gconstpointer a,
-                                 gconstpointer b)
-{
-    if (a == NULL || b == NULL) {
-        g_error ("session_entry_compare_on_handle received NULL parameter");
-    }
-    SessionEntry *entry_a = SESSION_ENTRY (a);
-    TPM2_HANDLE handle_a = session_entry_get_handle (entry_a);
-    TPM2_HANDLE handle_b = *(TPM2_HANDLE*)b;
-
-    if (handle_a < handle_b) {
-        return -1;
-    } else if (handle_a > handle_b) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-/*
- * GCompareFunc to search list of session_entry_t structures for a match on
- * the connection object.
- */
-gint
-session_entry_compare_on_connection (gconstpointer a,
-                                     gconstpointer b)
-{
-    gint ret;
-
-    if (a == NULL || b == NULL) {
-        g_error ("session_entry_compare_on_connection received NULL parameter");
-    }
-    SessionEntry    *entry_a          = SESSION_ENTRY (a);
-    Connection      *connection_param = CONNECTION (b);
-    Connection      *connection_entry = session_entry_get_connection (entry_a);
-    if (connection_entry < connection_param) {
-        ret = -1;
-    } else if (connection_entry > connection_param) {
-        ret = 1;
-    } else {
-        ret = 0;
-    }
-    g_object_unref (connection_entry);
-
-    return ret;
-}
 static gboolean
 session_list_remove_custom (SessionList  *list,
                             gconstpointer data,
@@ -282,7 +206,6 @@ session_list_remove_custom (SessionList  *list,
 
     return TRUE;
 }
-                          
 /*
  * Remove the entry from the GList. The SessionList assumes that since the
  * entry is in the container it must hold a reference to the object and so

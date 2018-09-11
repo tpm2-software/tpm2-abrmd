@@ -884,32 +884,6 @@ create_context_mapping_transient (ResourceManager  *resmgr,
                                                    handle_entry);
 }
 /*
- * GCompareFunc used to compare SessionEntry objects on their handle members.
- * This was taken directly from the SessionEntry code. My abstractions are
- * leaking and this is a sign that the objects involved in session handling
- * need to be refactored.
- */
-static gint
-session_entry_compare_on_handle (gconstpointer a,
-                                 gconstpointer b)
-{
-    if (a == NULL || b == NULL) {
-        g_error ("session_entry_compare_on_handle received NULL parameter");
-    }
-    SessionEntry *entry_a = SESSION_ENTRY (a);
-    TPM2_HANDLE handle_a = session_entry_get_handle (entry_a);
-    TPM2_HANDLE handle_b = *(TPM2_HANDLE*)b;
-
-    if (handle_a < handle_b) {
-        return -1;
-    } else if (handle_a > handle_b) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-/*
  * This function after a Tpm2Command is sent to the TPM and:
  * - we receive a Tpm2Response object with a handle in the response buffers
  *   handle area
