@@ -3,9 +3,10 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-## Unreleased
+## 2.0.2 - 2018-09-10
 ### Fixed
 - Merge fixes from 1.3.2
+- --enable-integration option to configure script now works as documented.
 
 ## 1.3.2 - 2018-09-10
 ### Fixed
