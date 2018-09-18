@@ -31,6 +31,7 @@ TESTS_UNIT = \
     test/ipc-frontend-dbus_unit \
     test/random_unit \
     test/session-entry_unit \
+    test/session-list_unit \
     test/test-skeleton_unit \
     test/tcti-dynamic_unit \
     test/tcti-echo_unit \
@@ -406,6 +407,10 @@ test_random_unit_SOURCES = test/random_unit.c
 test_session_entry_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_session_entry_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_session_entry_unit_SOURCES = test/session-entry_unit.c
+
+test_session_list_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_session_list_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_session_list_unit_SOURCES = test/session-list_unit.c
 
 test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
