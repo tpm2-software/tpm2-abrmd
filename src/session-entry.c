@@ -330,3 +330,9 @@ session_entry_compare_on_handle (gconstpointer a,
         return 0;
     }
 }
+void
+session_entry_abandon (SessionEntry *entry)
+{
+    g_clear_object (&entry->connection);
+    entry->state = SESSION_ENTRY_SAVED_CLIENT_CLOSED;
+}

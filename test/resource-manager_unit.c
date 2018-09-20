@@ -141,7 +141,8 @@ resource_manager_setup (void **state)
         g_debug ("tcti_echo_initialize FAILED");
     handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
     data->access_broker = access_broker_new (TCTI (data->tcti_echo));
-    session_list = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
+    session_list = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT,
+                                     SESSION_LIST_MAX_ABANDONED_DEFAULT);
     data->resource_manager = resource_manager_new (data->access_broker,
                                                    session_list);
     g_clear_object (&session_list);

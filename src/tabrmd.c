@@ -204,7 +204,8 @@ init_thread_func (gpointer user_data)
     g_object_unref (connection_manager);
     g_debug ("created command source: 0x%" PRIxPTR,
              (uintptr_t)data->command_source);
-    session_list = session_list_new (data->options.max_sessions);
+    session_list = session_list_new (data->options.max_sessions,
+                                     SESSION_LIST_MAX_ABANDONED_DEFAULT);
     data->resource_manager = resource_manager_new (data->access_broker,
                                                    session_list);
     g_clear_object (&session_list);
