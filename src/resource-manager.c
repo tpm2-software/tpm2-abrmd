@@ -920,48 +920,48 @@ create_context_mapping_session (ResourceManager *resmgr,
                                 Tpm2Response    *response,
                                 TPM2_HANDLE      handle)
 {
-    GList *abandoned_link;
-    SessionEntry *session_entry = NULL, *abandoned_entry = NULL;
-    Connection   *connection;
+    Connection *resp_conn = NULL, *cmd_conn = NULL;
+    SessionEntry *entry = NULL;
+    SessionEntryStateEnum state;
+    gboolean ret = FALSE;
 
-    session_entry = session_list_lookup_handle (resmgr->session_list, handle);
-    abandoned_link = g_queue_find_custom (resmgr->abandoned_session_queue,
-                                          &handle,
-                                          session_entry_compare_on_handle);
-    if (abandoned_link != NULL) {
-        abandoned_entry = SESSION_ENTRY (abandoned_link->data);
-        g_queue_delete_link (resmgr->abandoned_session_queue, abandoned_link);
+    entry = session_list_lookup_handle (resmgr->session_list, handle);
+    if (entry == NULL) {
+        g_debug ("%s: Creating entry for unknown session with handle 0x%08"
+                 PRIx32, __func__, handle);
+        resp_conn = tpm2_response_get_connection (response);
+        entry = session_entry_new (resp_conn, handle);
+        session_entry_set_state (entry, SESSION_ENTRY_LOADED);
+        session_list_insert (resmgr->session_list, entry);
+        goto out;
     }
-    connection = tpm2_response_get_connection (response);
-    if (session_entry == NULL && abandoned_entry == NULL) {
-        g_debug ("handle is a session, creating entry for SessionList and "
-                 "adding to ResourceManager session list");
-        session_entry = session_entry_new (connection, handle);
-        session_entry_set_state (session_entry, SESSION_ENTRY_LOADED);
-        session_list_insert (resmgr->session_list, session_entry);
-    } else if (session_entry != NULL && abandoned_entry == NULL) {
-        g_debug ("%s: session_entry 0x%08" PRIxPTR " for handle 0x%08" PRIx32
-                 " exists. Adding to list of loaded sessions",
-                 __func__, (uintptr_t)session_entry, handle);
-        session_entry_set_connection (session_entry, connection);
-        session_entry_set_state (session_entry, SESSION_ENTRY_LOADED);
-    } else if (session_entry == NULL && abandoned_entry != NULL) {
-        g_debug ("%s: session_entry 0x%08" PRIxPTR " for handle 0x%08" PRIx32
-                 " exists and was abandoned. Removing from abandoned list, "
-                 "adding to list of sessions & loaded ones.",
-                 __func__, (uintptr_t)abandoned_entry, handle);
-        session_entry_set_connection (abandoned_entry, connection);
-        session_entry_set_state (abandoned_entry, SESSION_ENTRY_LOADED);
-        session_list_insert (resmgr->session_list, abandoned_entry);
-        g_queue_remove (resmgr->abandoned_session_queue, abandoned_entry);
-    } else {
-        g_warning ("%s: got session that's in the session_list and in the "
-                   "but has also been abandoned. This should never happen.",
-                   __func__);
+    state = session_entry_get_state (entry);
+    switch (state) {
+    case SESSION_ENTRY_LOADED:
+        g_debug ("%s: session_entry exists: 0x%" PRIxPTR " & is loaded. "
+                 "Doing consistency check.", __func__, (uintptr_t)entry);
+        resp_conn = tpm2_response_get_connection (response);
+        cmd_conn = session_entry_get_connection (entry);
+        g_assert (resp_conn == cmd_conn);
+        break;
+    case SESSION_ENTRY_SAVED_CLIENT:
+    case SESSION_ENTRY_SAVED_CLIENT_CLOSED:
+        resp_conn = tpm2_response_get_connection (response);
+        g_debug ("%s: session_entry 0x%" PRIxPTR " exists and was abandoned. "
+                 "Claiming this SessionEntry for connection 0x%" PRIxPTR,
+                 __func__, (uintptr_t)entry, (uintptr_t)resp_conn);
+        ret = session_list_claim (resmgr->session_list, entry, resp_conn);
+        g_assert (ret == TRUE);
+        break;
+    default:
+        g_error ("%s: session_entry_state: %s should not happen", __func__,
+                 session_entry_state_to_str (state));
+        break;
     }
-    g_clear_object (&connection);
-    g_clear_object (&session_entry);
-    g_clear_object (&abandoned_entry);
+out:
+    g_clear_object (&cmd_conn);
+    g_clear_object (&resp_conn);
+    g_clear_object (&entry);
     g_debug ("dumping resmgr->session_list:");
     session_list_prettyprint (resmgr->session_list);
 }
@@ -1298,14 +1298,11 @@ resource_manager_dispose (GObject *obj)
     g_clear_object (&resmgr->sink);
     g_clear_object (&resmgr->access_broker);
     g_clear_object (&resmgr->session_list);
-    g_queue_free_full (resmgr->abandoned_session_queue, g_object_unref);
     G_OBJECT_CLASS (resource_manager_parent_class)->dispose (obj);
 }
 static void
 resource_manager_init (ResourceManager *manager)
-{
-    manager->abandoned_session_queue = g_queue_new ();
-}
+{ }
 /**
  * GObject class initialization function. This function boils down to:
  * - Setting up the parent class.
@@ -1378,59 +1375,25 @@ resource_manager_sink_interface_init (gpointer g_iface)
  * function causes the older sessions to be removed from the internal queue
  * and flushed from the TPM.
  */
-void
-resource_manager_prune_abandoned (ResourceManager *resource_manager)
+gboolean
+flush_session_callback (SessionEntry *entry,
+                        gpointer data)
 {
-    SessionEntry *session_entry;
-    TPM2_HANDLE session_handle;
+    ResourceManager *resmgr = RESOURCE_MANAGER (data);
     TSS2_RC rc;
-    guint length;
+    TPM2_HANDLE handle = session_entry_get_handle (entry);
 
-    length = g_queue_get_length (resource_manager->abandoned_session_queue);
-    if (length < MAX_ABANDONED) {
-        g_debug ("%s: queue size %u max %u, no abandoned sessions to purge",
-                 __func__, length, MAX_ABANDONED);
-        return;
-    }
-
-    /* GQueue owned SessionEntry reference, must unref when done */
-    session_entry =
-        g_queue_pop_tail (resource_manager->abandoned_session_queue);
-    session_handle = session_entry_get_handle (session_entry);
     g_debug ("%s: flushing stale abandoned SessionEntry: 0x%" PRIxPTR " with "
              "handle: 0x%08" PRIx32,
-             __func__, (uintptr_t)session_entry, session_handle);
-    rc = access_broker_context_flush (resource_manager->access_broker,
-                                      session_handle);
+             __func__, (uintptr_t)entry, handle);
+    rc = access_broker_context_flush (resmgr->access_broker, handle);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("%s: failed to flush abandoned session context with "
                    "handle 0x%" PRIx32 ": 0x%" PRIx32,
-                   __func__, session_handle, rc);
+                   __func__, handle, rc);
+        return FALSE;
     }
-    g_object_unref (session_entry);
-    return;
-}
-/*
- * This function sets a session entry to the
- * SESSION_ENTRY_SAVED_CLIENT_CLOSED state.
- */
-void
-abandon_session (ResourceManager *resource_manager,
-                 SessionEntry *session_entry)
-{
-    g_debug ("%s: SessionEntry 0x%" PRIxPTR " is in state "
-             "SESSION_ENTRY_SAVED_CLIENT, transitioning to state: "
-             "SESSION_ENTRY_SAVED_CLIENT_CLOSED", __func__,
-             (uintptr_t)session_entry);
-    g_object_ref (session_entry);
-    session_list_remove (resource_manager->session_list,
-                         session_entry);
-    session_entry_set_state (session_entry,
-                             SESSION_ENTRY_SAVED_CLIENT_CLOSED);
-    /* reference for SessionEntry is now "held" by GQueue */
-    resource_manager_prune_abandoned (resource_manager);
-    g_queue_push_head (resource_manager->abandoned_session_queue,
-                       session_entry);
+    return TRUE;
 }
 /*
  * This structure is used to pass required data into the
@@ -1478,15 +1441,22 @@ connection_close_session_callback (gpointer data,
     g_debug ("%s: processing SessionEntry 0x%" PRIxPTR " associated with "
              "Connection 0x%" PRIxPTR, __func__, (uintptr_t)session_entry,
              (uintptr_t)connection);
+    handle = session_entry_get_handle (session_entry);
     switch (session_state) {
     case SESSION_ENTRY_SAVED_CLIENT:
-        abandon_session (resource_manager, session_entry);
+        g_debug ("%s: Connection 0x%" PRIxPTR ", TPM2_HANDLE 0x%08" PRIx32,
+                 __func__, (uintptr_t)connection, handle);
+        session_list_abandon_handle (resource_manager->session_list,
+                                     connection,
+                                     handle);
+        session_list_prune_abandoned (resource_manager->session_list,
+                                      flush_session_callback,
+                                      resource_manager);
         break;
     case SESSION_ENTRY_SAVED_RM:
         g_debug ("%s: SessionEntry 0x%" PRIxPTR " is in state "
                  "%s: flushing.", __func__, (uintptr_t)session_entry,
                  session_entry_state_to_str (session_state));
-        handle = session_entry_get_handle (session_entry);
         rc = access_broker_context_flush (resource_manager->access_broker,
                                           handle);
         if (rc != TSS2_RC_SUCCESS) {

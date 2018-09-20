@@ -35,6 +35,7 @@ G_DEFINE_TYPE (SessionList, session_list, G_TYPE_OBJECT);
 
 enum {
     PROP_0,
+    PROP_MAX_ABANDONED,
     PROP_MAX_PER_CONNECTION,
     N_PROPERTIES
 };
@@ -51,6 +52,9 @@ session_list_get_property (GObject    *object,
     SessionList *list = SESSION_LIST (object);
 
     switch (property_id) {
+    case PROP_MAX_ABANDONED:
+        g_value_set_uint (value, list->max_abandoned);
+        break;
     case PROP_MAX_PER_CONNECTION:
         g_value_set_uint (value, list->max_per_connection);
         break;
@@ -71,7 +75,12 @@ session_list_set_property (GObject        *object,
     SessionList *list = SESSION_LIST (object);
 
     switch (property_id) {
-    case PROP_MAX_PER_CONNECTION:
+    case PROP_MAX_ABANDONED:
+        list->max_abandoned = g_value_get_uint (value);
+        g_debug ("%s: 0x%" PRIxPTR " max-abandoned: %u",
+                 __func__, (uintptr_t)list, list->max_abandoned);
+        break;
+   case PROP_MAX_PER_CONNECTION:
         list->max_per_connection = g_value_get_uint (value);
         g_debug ("session_list_set_property: 0x%" PRIxPTR
                  " max-per-connection: %u", (intptr_t)list,
@@ -84,11 +93,14 @@ session_list_set_property (GObject        *object,
 }
 /*
  * Initialize object.
+ * GQueue for 'abandoned_queue' must be explicitly created.
+ * GList for 'session_entry_list' does not.
  */
 static void
 session_list_init (SessionList     *list)
 {
     g_debug ("session_list_init");
+    list->abandoned_queue = g_queue_new ();
     list->session_entry_list = NULL;
 }
 /*
@@ -104,6 +116,8 @@ session_list_dispose (GObject *object)
     g_debug ("%s: SessionList: 0x%" PRIxPTR " with %" PRIu32 " entries",
              __func__, (uintptr_t)self,
              g_list_length (self->session_entry_list));
+    g_queue_free (self->abandoned_queue);
+    self->abandoned_queue = NULL;
     g_list_free_full (self->session_entry_list, g_object_unref);
     self->session_entry_list = NULL;
     G_OBJECT_CLASS (session_list_parent_class)->dispose (object);
@@ -138,6 +152,14 @@ session_list_class_init (SessionListClass *klass)
     object_class->get_property = session_list_get_property;
     object_class->set_property = session_list_set_property;
 
+    obj_properties [PROP_MAX_ABANDONED] =
+        g_param_spec_uint ("max-abandoned",
+                           "max abandoned sessions",
+                           "maximum number of entries permitted in the abandoned state",
+                           0,
+                           SESSION_LIST_MAX_ABANDONED_MAX,
+                           SESSION_LIST_MAX_ABANDONED_DEFAULT,
+                           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_MAX_PER_CONNECTION] =
         g_param_spec_uint ("max-per-connection",
                            "max entries per connection",
@@ -155,10 +177,12 @@ session_list_class_init (SessionListClass *klass)
  * and create the instance.
  */
 SessionList*
-session_list_new (guint  max_per_conn)
+session_list_new (guint  max_per_conn,
+                  guint  max_abandoned)
 {
     g_debug ("session_list_new with max-per-connection: 0x%x", max_per_conn);
     return SESSION_LIST (g_object_new (TYPE_SESSION_LIST,
+                                       "max-abandoned", max_abandoned,
                                        "max-per-connection", max_per_conn,
                                        NULL));
 }
@@ -393,4 +417,104 @@ session_list_foreach (SessionList *list,
     g_list_foreach (list->session_entry_list,
                      func,
                      user_data);
+}
+/*
+ * Find the associated SessionEntry in the list.
+ * Check that the SessionEntry has the same
+ */
+gboolean
+session_list_abandon_handle (SessionList *list,
+                             Connection *connection,
+                             TPM2_HANDLE handle)
+{
+    SessionEntry *entry = NULL;
+
+    entry = session_list_lookup_handle (list, handle);
+    if (entry == NULL) {
+        g_debug ("%s: Handle 0x%08" PRIx32 " doesn't exist in SessionList 0x%"
+                 PRIxPTR, __func__, handle, (uintptr_t)list);
+        return FALSE;
+    }
+    if (session_entry_compare_on_connection (entry, connection)) {
+        g_warning ("%s: Connection 0x%" PRIxPTR " attempted to abandon "
+                   "SessionEntry 0x%" PRIxPTR "with handle 0x%08" PRIx32,
+                   __func__, (uintptr_t)connection, (uintptr_t)entry, handle);
+        g_clear_object (&entry);
+        return FALSE;
+    }
+    session_entry_abandon (entry);
+    g_queue_push_head (list->abandoned_queue, entry);
+    g_clear_object (&entry);
+
+    return TRUE;
+}
+/*
+ * SessionEntry objects can be claimed when they're in two states:
+ * - If the SessionEntry has been abandoned by another connection it will be
+ *   in the 'abandoned_queue'. In this case we remove it from the
+ *   'abandoned_queue', set the state to 'LOADED' and associate the provided
+ *   connection with the object.
+ * - If the SessionEntry has been saved BY THE CLIENT then it will *not* be
+ *   in the 'abandoned_queue'. In this case we find the SessionEntry in the
+ *   'session_entry_list' and change the connection.
+ */
+gboolean
+session_list_claim (SessionList *list,
+                    SessionEntry *entry,
+                    Connection  *connection)
+{
+    GList *link = NULL;
+
+    link = g_queue_find (list->abandoned_queue, entry);
+    if (link != NULL) {
+        g_assert (link->data == entry);
+        g_debug ("%s: GQueue of abandoned sessions does not contain "
+                 "SessionEntry: 0x%08" PRIxPTR, __func__, (uintptr_t)entry);
+        session_entry_set_state (entry, SESSION_ENTRY_LOADED);
+        session_entry_set_connection (entry, connection);
+        g_queue_remove (list->abandoned_queue, link->data);
+        return TRUE;
+    }
+    link = g_list_find (list->session_entry_list, entry);
+    if (link != NULL) {
+        g_assert (link->data == entry);
+        g_debug ("%s: SessionEntry object 0x%" PRIxPTR " found in SessionList",
+                 __func__, (uintptr_t)entry);
+        session_entry_set_state (entry, SESSION_ENTRY_LOADED);
+        session_entry_set_connection (entry, connection);
+    } else {
+        return FALSE;
+    }
+    return TRUE;
+}
+/*
+ * Remove oldest from abandoned queue and call the caller provided function
+ * on it.
+ */
+gboolean
+session_list_prune_abandoned (SessionList *list,
+                              PruneFunc func,
+                              gpointer data)
+{
+    SessionEntry *entry = NULL;
+    gboolean ret = FALSE;
+
+    g_debug ("%s: SessionList 0x%" PRIxPTR ", PruneFunc 0x%" PRIxPTR ", "
+             "data 0x%" PRIxPTR, __func__, (uintptr_t)list, (uintptr_t)func,
+             (uintptr_t)data);
+    if (g_queue_get_length (list->abandoned_queue) <= list->max_abandoned) {
+        g_debug ("%s: abandoned_queue has not exceeded 'max_abandoned', "
+                 "nothing to do.", __func__);
+        return TRUE;
+    }
+    entry = g_queue_pop_tail (list->abandoned_queue);
+    if (entry == NULL) {
+        g_debug ("%s: Abandoned queue is empty.", __func__);
+        return TRUE;
+    }
+    g_object_ref (entry);
+    session_list_remove (list, entry);
+    ret = func (entry, data);
+    g_clear_object (&entry);
+    return ret;
 }

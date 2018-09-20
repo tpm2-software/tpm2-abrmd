@@ -72,6 +72,7 @@ gint session_entry_compare_on_connection (gconstpointer a,
                                           gconstpointer b);
 gint session_entry_compare_on_handle (gconstpointer a,
                                       gconstpointer b);
+void session_entry_abandon (SessionEntry *entry);
 
 G_END_DECLS
 #endif /* SESSION_ENTRY_H */
