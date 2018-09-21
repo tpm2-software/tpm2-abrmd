@@ -96,12 +96,11 @@ script :
         # exit code from scan-build is 0 if no bugs are found, failed tests
         # will go undetected unless we manually parse the test log for:
         # '# FAIL:  0'
+        TEST_LOG_DIR=$(find ./tpm2-abrmd-* -name '_build')
+        if [ -d "${TEST_LOG_DIR}" ]; then exit 1; fi
         TEST_LOG=$(find ./tpm2-abrmd-*/_build -name 'test-suite.log')
         if [ -f "${TEST_LOG}" ]; then
             grep '^#[[:space:]]\+FAIL:[[:space:]]\+0$' ${TEST_LOG}
-        else
-            # if there's no 'test-suite.log' file the build failed
-            exit 1
         fi
         ;;
     gcc)
