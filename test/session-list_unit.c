@@ -27,6 +27,7 @@
 #include <glib.h>
 #include <gio/gunixinputstream.h>
 #include <gio/gunixoutputstream.h>
+#include <inttypes.h>
 #include <sys/socket.h>
 #include <stdlib.h>
 
@@ -45,7 +46,6 @@
 #define INSERT_TEST_ID 0x1
 
 typedef struct test_data {
-    Connection *connection;
     SessionList *session_list;
 } test_data_t;
 
@@ -65,6 +65,22 @@ test_iostream_new (void)
     g_object_unref (output);
     return iostream;
 }
+static Connection*
+test_connection_new (guint64 id)
+{
+    Connection *conn = NULL;
+    GIOStream *iostream = NULL;
+    HandleMap *handle_map = NULL;
+
+    iostream = test_iostream_new ();
+    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+    conn = connection_new (iostream, id, handle_map);
+
+    g_clear_object (&iostream);
+    g_clear_object (&handle_map);
+
+    return conn;
+}
 /*
  * Allocate a test_data_t structure to hold test data.
  * Create a SessionList object for use in testing.
@@ -73,17 +89,12 @@ test_iostream_new (void)
 static int
 session_list_setup (void **state)
 {
-    GIOStream *iostream = NULL;
     test_data_t *data = NULL;
-    HandleMap *handle_map = NULL;
 
     data = calloc (1, sizeof (test_data_t));
-    data->session_list = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT);
-    handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    iostream = test_iostream_new ();
-    data->connection = connection_new (iostream, INSERT_TEST_ID, handle_map);
-    g_clear_object (&iostream);
-    g_clear_object (&handle_map);
+    g_debug ("%s: data 0x%" PRIxPTR, __func__, (uintptr_t)data);
+    data->session_list = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT,
+                                           SESSION_LIST_MAX_ABANDONED_DEFAULT);
 
     *state = data;
     return 0;
@@ -94,11 +105,13 @@ session_list_teardown (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
 
+    g_debug ("%s: start", __func__);
     if (data) {
-        g_clear_object (&data->connection);
+        g_debug ("%s: data 0x%" PRIxPTR, __func__, (uintptr_t)data);
         g_clear_object (&data->session_list);
         free (data);
     }
+    g_debug ("%s: end", __func__);
 
     return 0;
 }
@@ -114,21 +127,26 @@ session_list_type_test (void **state)
     assert_true (IS_SESSION_LIST (data->session_list));
 }
 /* Simple test of SessionList insert function */
+#define INSERT_TEST_ID 0x1
 #define INSERT_TEST_HANDLE (TPM2_HR_TRANSIENT + 1)
 static void
 session_list_insert_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
+    Connection *conn = NULL;
     SessionEntry *entry = NULL;
 
-    entry = session_entry_new (data->connection, INSERT_TEST_HANDLE);
+    conn = test_connection_new (INSERT_TEST_ID);
+    entry = session_entry_new (conn, INSERT_TEST_HANDLE);
     assert_true (session_list_insert (data->session_list, entry));
+    g_clear_object (&conn);
     g_clear_object (&entry);
 }
 /*
  * Add 3 SessionEntry objects to a SessionList then verify size is reported
  * correctly.
  */
+#define SIZE_TEST_ID 0x1
 #define SIZE_TEST_HANDLE_1 (TPM2_HR_TRANSIENT + 1)
 #define SIZE_TEST_HANDLE_2 (TPM2_HR_TRANSIENT + 2)
 #define SIZE_TEST_HANDLE_3 (TPM2_HR_TRANSIENT + 3)
@@ -136,15 +154,18 @@ static void
 session_list_size_three_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
+    Connection *conn = NULL;
     SessionEntry *entry = NULL;
 
-    entry = session_entry_new (data->connection, SIZE_TEST_HANDLE_1);
+    conn = test_connection_new (SIZE_TEST_ID);
+    entry = session_entry_new (conn, SIZE_TEST_HANDLE_1);
     session_list_insert (data->session_list, entry);
     g_clear_object (&entry);
-    entry = session_entry_new (data->connection, SIZE_TEST_HANDLE_2);
+    entry = session_entry_new (conn, SIZE_TEST_HANDLE_2);
     session_list_insert (data->session_list, entry);
     g_clear_object (&entry);
-    entry = session_entry_new (data->connection, SIZE_TEST_HANDLE_3);
+    entry = session_entry_new (conn, SIZE_TEST_HANDLE_3);
+    g_clear_object (&conn);
     session_list_insert (data->session_list, entry);
     g_clear_object (&entry);
     assert_int_equal (3, session_list_size (data->session_list));
@@ -166,6 +187,82 @@ session_list_remove_handle_test (void **state)
     assert_true (ret);
     assert_int_equal (session_list_size (data->session_list), 0);
 }
+/*
+ * Test the error handling logic in the remove_handle function. This test
+ * passes in a handle unknown to the SessionList and so the search for the
+ * associated SessionEntry will fail. We should get FALSE back from the call.
+ */
+static void
+session_list_remove_handle_bad_handle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    assert_false (session_list_remove_handle (data->session_list, 0x55));
+}
+
+/*
+ * Test our ability to detect handles for sessions that aren't tracked by the
+ * SessionList while we're abandoning an entry. The code currently evaluates
+ * the handle parameter first so the connection parameter is irrelevant.
+ */
+#define ABANDON_HANDLE_CONN_BAD ((Connection*)0x55)
+#define ABANDON_HANDLE_HANDLE 0x45628376
+static void
+session_list_abandon_handle_bad_handle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    gboolean ret;
+
+    ret = session_list_abandon_handle (data->session_list,
+                                       ABANDON_HANDLE_CONN_BAD,
+                                       ABANDON_HANDLE_HANDLE);
+    assert_false (ret);
+}
+/*
+ */
+#define ABANDON_HANDLE_ID 0x1
+#define ABANDON_HANDLE_ID_2 0x2
+static void
+session_list_abandon_handle_bad_connection_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    Connection *conn = NULL;
+    SessionEntry *entry = NULL;
+    gboolean ret;
+
+    conn = test_connection_new (ABANDON_HANDLE_ID);
+    entry = session_entry_new (conn, ABANDON_HANDLE_HANDLE);
+    session_list_insert (data->session_list, entry);
+    g_clear_object (&conn);
+    g_clear_object (&entry);
+
+    conn = test_connection_new (ABANDON_HANDLE_ID_2);
+    ret = session_list_abandon_handle (data->session_list,
+                                       conn,
+                                       ABANDON_HANDLE_HANDLE);
+    g_clear_object (&conn);
+    assert_false (ret);
+}
+
+static void
+session_list_abandon_handle_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    Connection *conn = NULL;
+    SessionEntry *entry = NULL;
+    gboolean ret;
+
+    conn = test_connection_new (ABANDON_HANDLE_ID);
+    entry = session_entry_new (conn, ABANDON_HANDLE_HANDLE);
+    session_list_insert (data->session_list, entry);
+    g_clear_object (&entry);
+
+    ret = session_list_abandon_handle (data->session_list,
+                                       conn,
+                                       ABANDON_HANDLE_HANDLE);
+    g_clear_object (&conn);
+    assert_true (ret);
+}
 
 gint
 main (void)
@@ -181,6 +278,18 @@ main (void)
                                          session_list_setup,
                                          session_list_teardown),
         cmocka_unit_test_setup_teardown (session_list_remove_handle_test,
+                                         session_list_setup,
+                                         session_list_teardown),
+        cmocka_unit_test_setup_teardown (session_list_remove_handle_bad_handle_test,
+                                         session_list_setup,
+                                         session_list_teardown),
+        cmocka_unit_test_setup_teardown (session_list_abandon_handle_bad_handle_test,
+                                         session_list_setup,
+                                         session_list_teardown),
+        cmocka_unit_test_setup_teardown (session_list_abandon_handle_bad_connection_test,
+                                         session_list_setup,
+                                         session_list_teardown),
+        cmocka_unit_test_setup_teardown (session_list_abandon_handle_test,
                                          session_list_setup,
                                          session_list_teardown),
     };
