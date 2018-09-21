@@ -90,18 +90,25 @@ script :
     clang*)
         # Use -D_REENTRANT kludge so -pthread test works with scan-build:
         scan-build ./configure CFLAGS="$CFLAGS -D_REENTRANT" $CONFIGURE_OPTIONS
+        if [ $? -ne 0 ]; then exit 1; fi
         dbus-launch scan-build --status-bugs make -j$(nproc) distcheck
+        if [ $? -ne 0 ]; then exit 1; fi
         # exit code from scan-build is 0 if no bugs are found, failed tests
         # will go undetected unless we manually parse the test log for:
         # '# FAIL:  0'
         TEST_LOG=$(find ./tpm2-abrmd-*/_build -name 'test-suite.log')
         if [ -f "${TEST_LOG}" ]; then
             grep '^#[[:space:]]\+FAIL:[[:space:]]\+0$' ${TEST_LOG}
+        else
+            # if there's no 'test-suite.log' file the build failed
+            exit 1
         fi
         ;;
     gcc)
         ./configure ${CONFIGURE_OPTIONS} --enable-code-coverage
+        if [ $? -ne 0 ]; then exit 1; fi
         dbus-launch make -j$(nproc) check
+        if [ $? -ne 0 ]; then exit 1; fi
         if [ ! -z "$COVERALLS_REPO_TOKEN" ]; then
           coveralls --build-root=./ --exclude=${DEPS} --exclude=${DESTDIR} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
         fi
