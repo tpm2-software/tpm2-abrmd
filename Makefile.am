@@ -251,7 +251,9 @@ test_integration_libtest_la_SOURCES = \
     test/integration/context-util.c \
     test/integration/context-util.h \
     test/integration/test-options.c \
-    test/integration/test-options.h
+    test/integration/test-options.h \
+    test/mock-io-stream.c \
+    test/mock-io-stream.h
 
 src_libtss2_tcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
     $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(TSS2_SYS_LIBS)
@@ -409,7 +411,7 @@ test_session_entry_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(
 test_session_entry_unit_SOURCES = test/session-entry_unit.c
 
 test_session_list_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_session_list_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_session_list_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtest)
 test_session_list_unit_SOURCES = test/session-list_unit.c
 
 test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)

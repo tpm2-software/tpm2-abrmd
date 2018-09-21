@@ -36,6 +36,7 @@
 
 #include <tss2/tss2_tpm2_types.h>
 
+#include "mock-io-stream.h"
 #include "connection.h"
 #include "session-entry.h"
 #include "session-list.h"
@@ -59,7 +60,7 @@ test_iostream_new (void)
     socketpair (AF_LOCAL, SOCK_STREAM, 0, fds);
     input = g_unix_input_stream_new (fds[0], TRUE);
     output = g_unix_output_stream_new (fds[1], TRUE);
-    iostream = g_simple_io_stream_new (input, output);
+    iostream = mock_io_stream_new (input, output);
     g_object_unref (input);
     g_object_unref (output);
     return iostream;
