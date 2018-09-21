@@ -24,6 +24,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <string.h>
@@ -149,6 +150,7 @@ random_get_bytes (Random    *random,
 
     g_debug ("random_get_bytes: %p", random);
     g_assert_nonnull (random);
+    assert (random->rand_state);
     for (i = 0; i < count; ++i) {
         *(&rand[0]) = nrand48 (random->rand_state);
         memcpy (&dest[i], &rand[0], sizeof (uint8_t));
