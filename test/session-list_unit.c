@@ -264,6 +264,67 @@ session_list_abandon_handle_test (void **state)
     assert_true (ret);
 }
 
+#define CLAIM_CONNECTION_ID_0 0x0
+#define CLAIM_CONNECTION_ID_1 0x1
+#define CLAIM_HANDLE 0xdeadbee0
+static void
+session_list_claim_abandoned_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    Connection *conn = NULL;
+    SessionEntry *entry = NULL;
+    gboolean ret;
+
+    conn = test_connection_new (CLAIM_CONNECTION_ID_0);
+    entry = session_entry_new (conn, CLAIM_HANDLE);
+    session_list_insert (data->session_list, entry);
+
+    ret = session_list_abandon_handle (data->session_list, conn, CLAIM_HANDLE);
+    assert_true (ret);
+    assert_true (session_entry_get_state (entry) == SESSION_ENTRY_SAVED_CLIENT_CLOSED);
+    g_clear_object (&conn);
+
+    /* claim abandoned handle from different connection */
+    conn = test_connection_new (CLAIM_CONNECTION_ID_1);
+    ret = session_list_claim (data->session_list, entry, conn);
+    assert_true (ret);
+}
+
+static void
+session_list_claim_saved_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    Connection *conn = NULL;
+    SessionEntry *entry = NULL;
+    gboolean ret;
+
+    conn = test_connection_new (CLAIM_CONNECTION_ID_0);
+    entry = session_entry_new (conn, CLAIM_HANDLE);
+    session_list_insert (data->session_list, entry);
+    session_entry_set_state (entry, SESSION_ENTRY_SAVED_CLIENT);
+
+    /* claim abandoned handle from different connection */
+    conn = test_connection_new (CLAIM_CONNECTION_ID_1);
+    ret = session_list_claim (data->session_list, entry, conn);
+    assert_true (ret);
+    assert_true (session_entry_get_state (entry) == SESSION_ENTRY_LOADED);
+}
+
+static void
+session_list_claim_fail_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    Connection *conn = NULL;
+    SessionEntry *entry = NULL;
+    gboolean ret;
+
+    conn = test_connection_new (CLAIM_CONNECTION_ID_0);
+    entry = session_entry_new (conn, CLAIM_HANDLE);
+
+    ret = session_list_claim (data->session_list, entry, conn);
+    assert_false (ret);
+}
+
 gint
 main (void)
 {
@@ -290,6 +351,15 @@ main (void)
                                          session_list_setup,
                                          session_list_teardown),
         cmocka_unit_test_setup_teardown (session_list_abandon_handle_test,
+                                         session_list_setup,
+                                         session_list_teardown),
+        cmocka_unit_test_setup_teardown (session_list_claim_abandoned_test,
+                                         session_list_setup,
+                                         session_list_teardown),
+        cmocka_unit_test_setup_teardown (session_list_claim_saved_test,
+                                         session_list_setup,
+                                         session_list_teardown),
+        cmocka_unit_test_setup_teardown (session_list_claim_fail_test,
                                          session_list_setup,
                                          session_list_teardown),
     };
