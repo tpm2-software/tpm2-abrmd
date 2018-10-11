@@ -48,6 +48,7 @@ TESTS_INTEGRATION = \
     test/integration/auth-session-start-flush.int \
     test/integration/auth-session-start-save.int \
     test/integration/auth-session-start-save-load.int \
+    test/integration/fork-tcti-parent-before-child-after.int \
     test/integration/max-transient-upperbound.int \
     test/integration/get-capability-handles-transient.int \
     test/integration/manage-transient-keys.int \
@@ -71,6 +72,7 @@ TESTS_INTEGRATION_NOHW = test/integration/tcti-connect-multiple.int
 TESTS =
 noinst_LTLIBRARIES =
 XFAIL_TESTS = \
+    test/integration/fork-tcti-parent-before-child-after.int \
     test/integration/start-auth-session.int
 TEST_EXTENSIONS = .int
 AM_TESTS_ENVIRONMENT = \
@@ -459,6 +461,10 @@ test_integration_auth_session_start_save_int_SOURCES = test/integration/main.c \
 test_integration_auth_session_start_save_load_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_start_save_load_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-start-save-load.int.c
+
+test_integration_fork_tcti_parent_before_child_after_int_LDADD = $(TEST_INT_LIBS)
+test_integration_fork_tcti_parent_before_child_after_int_SOURCES = \
+    test/integration/fork-tcti-parent-before-child-after.int.c
 
 test_integration_max_transient_upperbound_int_LDADD = $(TEST_INT_LIBS)
 test_integration_max_transient_upperbound_int_SOURCES = test/integration/main.c \
