@@ -34,15 +34,10 @@ AC_SEARCH_LIBS([dlopen], [dl dld], [], [
   AC_MSG_ERROR([unable to find the dlopen() function])
 ])
 PKG_CHECK_MODULES([DBUS], [dbus-1])
-PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
+PKG_CHECK_MODULES([GIO], [gio-2.0 gio-unix-2.0])
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GOBJECT], [gobject-2.0])
 PKG_CHECK_MODULES([TSS2_SYS],[tss2-sys >= 2.0.0])
-AC_ARG_VAR([GDBUS_CODEGEN],[The gdbus-codegen executable.])
-AC_CHECK_PROG([GDBUS_CODEGEN], [gdbus-codegen], [gdbus-codegen])
-if test -z "$GDBUS_CODEGEN"; then
-    AC_MSG_ERROR([*** gdbus-codegen is required to build tpm2-abrmd])
-fi
 
 AX_CODE_COVERAGE
 # disable helgrind and drd, they hate GAsyncQueue

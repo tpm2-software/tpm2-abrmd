@@ -295,7 +295,7 @@ endef # man_tcti_prefix
 
 %-generated.c %-generated.h : src/tabrmd.xml
 	$(AM_V_GEN)$(call make_parent_dir,$@) && \
-	$(GDBUS_CODEGEN) --interface-prefix=com.intel.tss2. \
+	gdbus-codegen --interface-prefix=com.intel.tss2. \
 	    --generate-c-code=src/tabrmd-generated $^
 
 %.preset : %.preset.in
