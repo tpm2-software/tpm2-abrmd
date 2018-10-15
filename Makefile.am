@@ -48,6 +48,9 @@ TESTS_INTEGRATION = \
     test/integration/auth-session-start-flush.int \
     test/integration/auth-session-start-save.int \
     test/integration/auth-session-start-save-load.int \
+    test/integration/fork-proxy.int \
+    test/integration/fork-proxy-new-for-bus.int \
+    test/integration/fork-proxy-connection-unique.int \
     test/integration/fork-tcti-create-after.int \
     test/integration/fork-tcti-parent-before-child-after.int \
     test/integration/max-transient-upperbound.int \
@@ -462,6 +465,18 @@ test_integration_auth_session_start_save_int_SOURCES = test/integration/main.c \
 test_integration_auth_session_start_save_load_int_LDADD = $(TEST_INT_LIBS)
 test_integration_auth_session_start_save_load_int_SOURCES = test/integration/main.c \
     test/integration/auth-session-start-save-load.int.c
+
+test_integration_fork_proxy_int_LDADD = $(TEST_INT_LIBS)
+test_integration_fork_proxy_int_SOURCES = \
+    test/integration/fork-proxy.int.c
+
+test_integration_fork_proxy_new_for_bus_int_LDADD = $(TEST_INT_LIBS)
+test_integration_fork_proxy_new_for_bus_int_SOURCES = \
+    test/integration/fork-proxy-new-for-bus.int.c
+
+test_integration_fork_proxy_connection_unique_int_LDADD = $(TEST_INT_LIBS)
+test_integration_fork_proxy_connection_unique_int_SOURCES = \
+    test/integration/fork-proxy-connection-unique.int.c
 
 test_integration_fork_tcti_create_after_int_LDADD = $(TEST_INT_LIBS)
 test_integration_fork_tcti_create_after_int_SOURCES = \
