@@ -153,7 +153,7 @@ CLEANFILES = \
     $(systemdsystemunit_DATA) \
     test/integration/*.log \
     _tabrmd.log
-DISTCLEANFILES = core
+DISTCLEANFILES = core default.profraw
 
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
