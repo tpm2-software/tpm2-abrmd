@@ -3,6 +3,11 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## Unreleased
+### Fixed
+- Update build to account for upstream change to glib '.pc' files
+described in: https://gitlab.gnome.org/GNOME/glib/issues/1521
+
 ## 2.0.2 - 2018-09-10
 ### Fixed
 - Merge fixes from 1.3.2
