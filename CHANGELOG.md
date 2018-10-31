@@ -3,7 +3,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-## Unreleased
+## 2.0.3 - 2018-10-31
 ### Fixed
 - Update build to account for upstream change to glib '.pc' files
 described in: https://gitlab.gnome.org/GNOME/glib/issues/1521
