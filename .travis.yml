@@ -63,7 +63,7 @@ install:
   - git clone -b master --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
   - ./bootstrap
-  - ./configure --prefix=${PREFIX}
+  - ./configure --prefix=${PREFIX} --with-crypto=gcrypt
   - make -j$(nproc) install
   - popd # tpm2-tss
   - sed -i -e "s&\(\/usr\/lib\/lib.*\.la\)&${DESTDIR}\1&" ${DESTDIR}${PREFIX}/lib/*.la
