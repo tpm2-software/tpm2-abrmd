@@ -16,7 +16,6 @@ addons:
       - doxygen
       - cmake
       - lcov
-      - libgcrypt20-dev
       - libglib2.0-dev
       - libdbus-1-dev
       - liburiparser-dev
@@ -64,7 +63,7 @@ install:
   - git clone -b master --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
   - ./bootstrap
-  - ./configure --prefix=${PREFIX} --with-crypto=gcrypt --disable-doxygen-doc
+  - ./configure --prefix=${PREFIX} --disable-doxygen-doc --disable-tcti-device --disable-esapi
   - make -j$(nproc) install
   - popd # tpm2-tss
   - sed -i -e "s&\(\/usr\/lib\/lib.*\.la\)&${DESTDIR}\1&" ${DESTDIR}${PREFIX}/lib/*.la
