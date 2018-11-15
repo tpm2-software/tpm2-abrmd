@@ -665,14 +665,10 @@ resource_manager_flush_context (ResourceManager *resmgr,
         break;
     case TPM2_HT_HMAC_SESSION:
     case TPM2_HT_POLICY_SESSION:
-        g_debug ("handle is TPM2_HT_HMAC_SESSION or TPM2_HT_POLICY_SESSION");
-        g_info ("f");
+        g_debug ("%s: handle 0x%08" PRIx32 "is a session, removing from "
+                 "SessionList", __func__, handle);
         session_list_remove_handle (resmgr->session_list, handle);
-        /*
-        response = access_broker_send_command (resmgr->access_broker,
-                                               command,
-                                               &rc);
-        */
+        session_list_prettyprint (resmgr->session_list);
         break;
     }
 
