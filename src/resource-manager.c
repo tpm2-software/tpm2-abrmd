@@ -321,15 +321,14 @@ resource_manager_flushsave_context (gpointer data_entry,
     TPM2_HANDLE      phandle;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
 
-    g_debug ("resource_manager_flushsave_context for entry: 0x%" PRIxPTR,
-             (uintptr_t)entry);
+    g_debug ("%s: for entry: 0x%" PRIxPTR, __func__, (uintptr_t)entry);
     if (resmgr == NULL || entry == NULL)
-        g_error ("resource_manager_flushsave_context passed NULL parameter");
+        g_error ("%s: passed NULL parameter", __func__);
     phandle = handle_map_entry_get_phandle (entry);
-    g_debug ("resource_manager_save_context phandle: 0x%" PRIx32, phandle);
+    g_debug ("%s: phandle: 0x%" PRIx32, __func__, phandle);
     switch (phandle >> TPM2_HR_SHIFT) {
     case TPM2_HT_TRANSIENT:
-        g_debug ("handle is transient, saving context");
+        g_debug ("%s: handle is transient, saving context", __func__);
         context = handle_map_entry_get_context (entry);
         rc = access_broker_context_saveflush (resmgr->access_broker,
                                               phandle,
@@ -337,8 +336,9 @@ resource_manager_flushsave_context (gpointer data_entry,
         if (rc == TSS2_RC_SUCCESS) {
             handle_map_entry_set_phandle (entry, 0);
         } else {
-            g_warning ("access_broker_context_save failed for handle: 0x%"
-                       PRIx32 " rc: 0x%" PRIx32, phandle, rc);
+            g_warning ("%s: access_broker_context_saveflush failed for "
+                       "handle: 0x%" PRIx32 " rc: 0x%" PRIx32,
+                       __func__, phandle, rc);
         }
         break;
     default:
