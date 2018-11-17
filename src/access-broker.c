@@ -448,6 +448,11 @@ access_broker_get_response (AccessBroker *broker,
     }
     *buffer_size = max_size;
     rc = tcti_receive (broker->tcti, buffer_size, *buffer, TSS2_TCTI_TIMEOUT_BLOCK);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: tcti_receive failed with RC 0x%" PRIx32, __func__, rc);
+        free (*buffer);
+        return rc;
+    }
     *buffer = realloc (*buffer, *buffer_size);
 
     return rc;
@@ -483,8 +488,6 @@ access_broker_send_command (AccessBroker  *broker,
         goto unlock_out;
     *rc = access_broker_get_response (broker, &buffer, &buffer_size);
     if (*rc != TSS2_RC_SUCCESS) {
-        if (buffer != NULL)
-            free (buffer);
         goto unlock_out;
     }
     access_broker_unlock (broker);
