@@ -460,8 +460,8 @@ access_broker_get_response (AccessBroker *broker,
 /**
  * In the most simple case the caller will want to send just a single
  * command represented by a Tpm2Command object. The response is passed
- * back as the return value. The response code is returned through the
- * 'rc' out parameter.
+ * back as the return value. The response code from the TCTI (not the TPM)
+ * is returned through the 'rc' out parameter.
  * The caller MUST NOT hold the lock when calling. This function will take
  * the lock for itself.
  * Additionally this function *WILL ONLY* return a NULL Tpm2Response
