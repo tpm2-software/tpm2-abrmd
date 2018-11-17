@@ -1223,10 +1223,6 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     response = access_broker_send_command (resmgr->access_broker,
                                            command,
                                            &rc);
-    if (response == NULL) {
-        g_warning ("access_broker_send_command returned error: 0x%x", rc);
-        response = tpm2_response_new_rc (connection, rc);
-    }
     dump_response (response);
     /* transform virtualized handles in Tpm2Response if necessary */
     resource_manager_create_context_mapping (resmgr,
