@@ -373,6 +373,15 @@ resource_manager_save_session_context (gpointer data_entry,
     }
     resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
     if (rc != TSS2_RC_SUCCESS) {
+        g_critical ("%s: TCTI failed while saving session context from "
+                   "SessionEntry 0x%" PRIxPTR ", got RC 0x%" PRIx32,
+                   __func__, (uintptr_t)entry, rc);
+        goto err_out;
+    }
+    if (tpm2_response_get_code (resp) != TSS2_RC_SUCCESS) {
+        g_warning ("%s: failed to ContextSave SessionEntry 0x%" PRIxPTR ", "
+                   "got RC 0x%" PRIx32, __func__, (uintptr_t)entry,
+                   tpm2_response_get_code (resp));
         goto err_out;
     }
     session_entry_set_context (entry,
