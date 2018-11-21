@@ -135,3 +135,49 @@ out:
     g_clear_object (&cmd);
     return resp;
 }
+/*
+ * This function will send the required commands in order to bring a
+ * session back into the gap interval. This means loading and saving
+ * the associated context. If the SessionEntry is not saved then this
+ * function is a no-op.
+ */
+gboolean
+regap_session (ResourceManager *resmgr,
+               SessionEntry *entry)
+{
+    SessionEntryStateEnum state;
+    Tpm2Response *resp = NULL;
+    gboolean ret = TRUE;
+
+    g_assert_nonnull (resmgr);
+    g_assert_nonnull (entry);
+
+    state = session_entry_get_state (entry);
+    g_debug ("%s: swapping SessionEntry 0x%" PRIxPTR " in state \"%s\"",
+             __func__, (uintptr_t)entry, session_entry_state_to_str (state));
+    if (state == SESSION_ENTRY_SAVED_CLIENT ||
+        state == SESSION_ENTRY_SAVED_CLIENT_CLOSED ||
+        state == SESSION_ENTRY_SAVED_RM)
+    {
+        resp = load_session (resmgr, entry);
+        if (tpm2_response_get_code (resp) != TSS2_RC_SUCCESS) {
+            g_critical ("%s: Failed to save SessionEntry 0x%" PRIxPTR "removing "
+                        "from list", __func__, (uintptr_t)entry);
+            flush_session (resmgr, entry);
+            ret = FALSE;
+            goto out;
+        }
+        g_clear_object (&resp);
+        resp = save_session (resmgr, entry);
+        if (tpm2_response_get_code (resp) != TSS2_RC_SUCCESS) {
+            g_critical ("%s: Failed to load SessionEntry 0x%" PRIxPTR ". Got RC "
+                        "0x%" PRIx32 ", removing from list",
+                        __func__, (uintptr_t)entry, tpm2_response_get_code (resp));
+            flush_session (resmgr, entry);
+            ret = FALSE;
+        }
+    }
+out:
+    g_clear_object (&resp);
+    return ret;
+}

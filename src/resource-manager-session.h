@@ -19,4 +19,7 @@ flush_session (ResourceManager *resmgr,
 Tpm2Response*
 save_session (ResourceManager *resmgr,
               SessionEntry *entry);
+gboolean
+regap_session (ResourceManager *resmgr,
+               SessionEntry *entry);
 #endif
