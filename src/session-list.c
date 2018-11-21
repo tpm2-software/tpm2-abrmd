@@ -555,7 +555,6 @@ session_list_prune_abandoned (SessionList *list,
         return TRUE;
     }
     g_object_ref (entry);
-    session_list_remove (list, entry);
     ret = func (entry, data);
     g_clear_object (&entry);
     return ret;

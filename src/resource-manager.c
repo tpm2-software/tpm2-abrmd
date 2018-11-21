@@ -138,6 +138,65 @@ out:
     return rc;
 }
 /*
+ * This structure is used by the regap_session_callback to allow the
+ * response code from the callbacks to be passed to the caller.
+ */
+typedef struct {
+    ResourceManager *resmgr;
+    gboolean ret;
+} regap_session_data_t;
+/*
+ * This is a version of the 'regap_session' function with the with the
+ * appropriate prototype for use with GList 'foreach' iterator.
+ */
+void
+regap_session_callback (gpointer data_entry,
+                        gpointer data_user)
+{
+    regap_session_data_t *data = (regap_session_data_t*)data_user;
+    SessionEntry *entry  = SESSION_ENTRY (data_entry);
+
+    g_debug ("%s: SessionEntry 0x%" PRIxPTR, __func__, (uintptr_t)entry);
+    if (data->ret == TRUE) {
+        data->ret = regap_session (data->resmgr, entry);
+    } else {
+        g_critical ("%s: previous attempt to regap failed, skipping"
+                    " SessionEntry 0x%" PRIxPTR, __func__, (uintptr_t)entry);
+    }
+}
+/*
+ * This function is a handler for response codes that we may get from the
+ * TPM in response to commands. It may result in addtional commands being
+ * sent to the TPM so use it with caution.
+ */
+gboolean
+handle_rc (ResourceManager *resmgr,
+           TSS2_RC rc)
+{
+    regap_session_data_t data = {
+        .resmgr = resmgr,
+        .ret = TRUE,
+    };
+    gboolean ret;
+
+    g_debug ("%s: handling  RC 0x%" PRIx32, __func__, rc);
+    switch (rc) {
+    case TPM2_RC_CONTEXT_GAP:
+        g_debug ("%s: handling TPM2_RC_CONTEXT_GAP", __func__);
+        session_list_foreach (resmgr->session_list,
+                              regap_session_callback,
+                              &data);
+        ret = data.ret;
+        break;
+    default:
+        g_debug ("%s: Unable to recover gracefully from RC 0x%" PRIx32,
+                 __func__, rc);
+        ret = TRUE;
+        break;
+    }
+
+    return ret;
+}/*
  * This is a somewhat generic function used to load session contexts into
  * the TPM2 device. The ResourceManager uses this function when loading
  * sessions in the handle or auth area of a command. It will refuse to load
@@ -186,13 +245,19 @@ resource_manager_load_session_from_handle (ResourceManager *resmgr,
         goto out;
     }
     response = load_session (resmgr, session_entry);
-    if (tpm2_response_get_code (response) != TSS2_RC_SUCCESS) {
-        g_warning ("Failed to load context for session with handle "
-                   "0x%08" PRIx32 " RC: 0x%" PRIx32, handle, rc);
-        flush_session (resmgr, session_entry);
-        session_list_remove (resmgr->session_list, session_entry);
-        goto out;
-
+    rc = tpm2_response_get_code (response);
+    if (rc != TSS2_RC_SUCCESS) {
+        if (handle_rc (resmgr, rc) != TRUE) {
+            g_warning ("Failed to load context for session with handle "
+                       "0x%08" PRIx32 " RC: 0x%" PRIx32, handle, rc);
+            flush_session (resmgr, session_entry);
+            goto out;
+        }
+        response = load_session (resmgr, session_entry);
+        rc = tpm2_response_get_code (response);
+        if (rc != TSS2_RC_SUCCESS) {
+            flush_session (resmgr, session_entry);
+        }
     }
     if (will_flush) {
         g_debug ("%s: will_flush: removing SessionEntry from SessionList",
@@ -350,6 +415,7 @@ save_session_callback (gpointer data_entry,
     ResourceManager *resmgr = RESOURCE_MANAGER (data_resmgr);
     SessionEntry *entry  = SESSION_ENTRY (data_entry);
     Tpm2Response *resp = NULL;
+    TSS2_RC rc;
 
     g_debug ("%s: SessionEntry 0x%" PRIxPTR, __func__, (uintptr_t)entry);
     if (session_entry_get_state (entry) != SESSION_ENTRY_LOADED) {
@@ -357,12 +423,25 @@ save_session_callback (gpointer data_entry,
         return;
     }
     resp = save_session (resmgr, entry);
-    if (tpm2_response_get_code (resp) != TSS2_RC_SUCCESS) {
-        g_critical ("%s: failed to save SessionEntry 0x%" PRIxPTR ", "
-                    "flushing", __func__, (uintptr_t)entry);
-        flush_session (resmgr, entry);
+    rc = tpm2_response_get_code (resp);
+    if (rc != TSS2_RC_SUCCESS) {
+        if (handle_rc (resmgr, rc) != TRUE) {
+            g_warning ("%s: Failed to save SessionEntry 0x%" PRIxPTR,
+                       __func__, (uintptr_t)entry);
+            flush_session (resmgr, entry);
+            goto out;
+
+        }
+        resp = save_session (resmgr, entry);
+        if (tpm2_response_get_code (resp) != TSS2_RC_SUCCESS) {
+            g_critical ("%s: failed to save SessionEntry 0x%" PRIxPTR ", "
+                        "flushing", __func__, (uintptr_t)entry);
+            flush_session (resmgr, entry);
+         }
     }
+out:
     g_clear_object (&resp);
+    return;
 }
 static void
 dump_command (Tpm2Command *command)
@@ -955,6 +1034,10 @@ get_cap_handles_response (Tpm2Command *command,
  * then this function will do so and return a Tpm2Response object that will be
  * returned to the same connection. If the command isn't something that we
  * virtualize then we just return NULL.
+ *
+ * NOTE: Both the ContextSave and ContextLoad commands, when sent by clients,
+ * do not result in the command being executed by the TPM. This makes
+ * handling the context gap unnecessary for these commands.
  */
 Tpm2Response*
 command_special_processing (ResourceManager *resmgr,
@@ -1134,6 +1217,30 @@ resource_manager_create_context_mapping (ResourceManager  *resmgr,
         break;
     }
 }
+Tpm2Response*
+send_command_handle_rc (ResourceManager *resmgr,
+                        Tpm2Command *cmd)
+{
+    regap_session_data_t data = {
+        .resmgr = resmgr,
+        .ret = TRUE,
+    };
+    Tpm2Response *resp = NULL;
+    TSS2_RC rc;
+
+    /* Send command and create response object. */
+    resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
+    rc = tpm2_response_get_code (resp);
+    if (rc == TPM2_RC_CONTEXT_GAP) {
+        g_debug ("%s: handling TPM2_RC_CONTEXT_GAP", __func__);
+        session_list_foreach (resmgr->session_list,
+                              regap_session_callback,
+                              &data);
+        g_clear_object (&resp);
+        resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
+    }
+    return resp;
+}
 /**
  * This function is invoked in response to the receipt of a Tpm2Command.
  * This is the place where we send the command buffer out to the TPM
@@ -1196,9 +1303,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                    &auth_callback_data);
     }
     /* Send command and create response object. */
-    response = access_broker_send_command (resmgr->access_broker,
-                                           command,
-                                           &rc);
+    response = send_command_handle_rc (resmgr, command);
     dump_response (response);
     /* transform virtualized handles in Tpm2Response if necessary */
     resource_manager_create_context_mapping (resmgr,
@@ -1493,10 +1598,8 @@ resource_manager_sink_interface_init (gpointer g_iface)
     sink->enqueue = resource_manager_enqueue;
 }
 /*
- * This function prunes old sessions that have been abandoned by their creator.
- * When the upper bound on the number of abandoned sessions is exceeded this
- * function causes the older sessions to be removed from the internal queue
- * and flushed from the TPM.
+ * A callback function implementing the PruneFunc type for use with the
+ * session_list_prune_abaonded function.
  */
 gboolean
 flush_session_callback (SessionEntry *entry,

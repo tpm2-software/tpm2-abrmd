@@ -71,7 +71,6 @@ TESTS_INTEGRATION_NOHW = test/integration/tcti-connect-multiple.int
 TESTS =
 noinst_LTLIBRARIES =
 XFAIL_TESTS = \
-    test/integration/session-gap.int \
     test/integration/start-auth-session.int
 TEST_EXTENSIONS = .int
 AM_TESTS_ENVIRONMENT = \
