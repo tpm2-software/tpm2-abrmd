@@ -345,19 +345,14 @@ resource_manager_flushsave_context (gpointer data_entry,
         break;
     }
 }
-/*
- * Remove the context associated with the provided SessionEntry from the
- * TPM. Only session objects should be saved by this function.
- */
-void
-resource_manager_save_session_context (gpointer data_entry,
-                                       gpointer data_resmgr)
+gboolean
+save_session_context (ResourceManager *resmgr,
+                      SessionEntry *entry)
 {
     Tpm2Command *cmd = NULL;
     Tpm2Response *resp = NULL;
-    ResourceManager *resmgr = RESOURCE_MANAGER (data_resmgr);
-    SessionEntry    *entry  = SESSION_ENTRY (data_entry);
     TSS2_RC          rc = TSS2_RC_SUCCESS;
+    gboolean ret = TRUE;
 
     g_debug ("resource_manager_save_session_context");
     if (resmgr == NULL || entry == NULL) {
@@ -393,9 +388,26 @@ err_out:
     access_broker_context_flush (resmgr->access_broker,
                                  session_entry_get_handle (entry));
     session_list_remove (resmgr->session_list, entry);
+    ret = FALSE;
 out:
     g_clear_object (&cmd);
     g_clear_object (&resp);
+    return ret;
+}
+/*
+ * Remove the context associated with the provided SessionEntry from the
+ * TPM. Only session objects should be saved by this function.
+ */
+void
+save_session_context_callback (gpointer data_entry,
+                               gpointer data_resmgr)
+{
+    ResourceManager *resmgr = RESOURCE_MANAGER (data_resmgr);
+    SessionEntry *entry  = SESSION_ENTRY (data_entry);
+    gboolean ret;
+
+    ret = save_session_context (resmgr, entry);
+    UNUSED_VAR(ret);
 }
 static void
 dump_command (Tpm2Command *command)
@@ -1242,7 +1254,7 @@ send_response:
     g_object_unref (response);
     /* save contexts that were previously loaded */
     session_list_foreach (resmgr->session_list,
-                          resource_manager_save_session_context,
+                          save_session_context_callback,
                           resmgr);
     post_process_loaded_transients (resmgr, &transient_slist, connection, command_attrs);
     g_object_unref (connection);
