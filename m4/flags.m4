@@ -15,6 +15,23 @@ AC_DEFUN([AX_ADD_COMPILER_FLAG],[
         -Werror]
     )]
 )
+dnl AX_ADD_TOOLCHAIN_FLAG:
+dnl   A macro to add a CFLAG to the EXTRA_CFLAGS variable. This macro will
+dnl   check to be sure the toolchain (compiler + linker + libs) supports the
+dnl   flag. Flags can be made mandatory (configure will fail).
+dnl $1: C compiler flag to add to EXTRA_CFLAGS.
+dnl $2: Set to "required" to cause configure failure if flag not supported..
+AC_DEFUN([AX_ADD_TOOLCHAIN_FLAG],[
+    AX_CHECK_LINK_FLAG([$1],[
+        EXTRA_CFLAGS="$EXTRA_CFLAGS $1"
+        AC_SUBST([EXTRA_CFLAGS])],[
+        AS_IF([test x$2 != xrequired],[
+            AC_MSG_WARN([Optional CFLAG "$1" not supported by your toolchain, continuing.])],[
+            AC_MSG_ERROR([Required CFLAG "$1" not supported by your toolchain, aborting.])]
+        )],[
+        -Werror]
+    )]
+)
 dnl AX_ADD_PREPROC_FLAG:
 dnl   Add the provided preprocessor flag to the EXTRA_CFLAGS variable. This
 dnl   macro will check to be sure the preprocessor supports the flag.
