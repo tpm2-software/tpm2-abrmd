@@ -13,7 +13,6 @@ addons:
       - autoconf-archive
       - dbus
       - dbus-x11
-      - doxygen
       - gnulib
       - cmake
       - lcov
