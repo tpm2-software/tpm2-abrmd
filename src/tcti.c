@@ -1,57 +1,135 @@
+/* SPDX-License-Identifier: BSD-2 */
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <dlfcn.h>
 #include <inttypes.h>
 
 #include "tcti.h"
+#include "util.h"
 
-G_DEFINE_ABSTRACT_TYPE (Tcti, tcti, G_TYPE_OBJECT);
+G_DEFINE_TYPE (Tcti, tcti, G_TYPE_OBJECT);
+
+enum {
+    PROP_0,
+    PROP_CONTEXT,
+    PROP_DL_HANDLE,
+    N_PROPERTIES
+};
+static GParamSpec *obj_properties [N_PROPERTIES] = { NULL };
+/*
+ * GObject property setter.
+ */
+static void
+tcti_set_property (GObject        *object,
+                   guint           property_id,
+                   GValue const   *value,
+                   GParamSpec     *pspec)
+{
+    Tcti *self = TCTI (object);
+
+    g_debug ("%s", __func__);
+    switch (property_id) {
+    case PROP_CONTEXT:
+        self->tcti_context = (TSS2_TCTI_CONTEXT*)g_value_get_pointer (value);
+        break;
+    case PROP_DL_HANDLE:
+        self->tcti_dl_handle = g_value_get_pointer (value);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+/*
+ * GObject property getter.
+ */
+static void
+tcti_get_property (GObject     *object,
+                   guint        property_id,
+                   GValue      *value,
+                   GParamSpec  *pspec)
+{
+    Tcti *self = TCTI (object);
+
+    g_debug ("%s: 0x%" PRIxPTR, __func__, (uintptr_t)self);
+    switch (property_id) {
+    case PROP_CONTEXT:
+        g_value_set_pointer (value, self->tcti_context);
+        break;
+    case PROP_DL_HANDLE:
+        g_value_set_pointer (value, self->tcti_dl_handle);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+tcti_dispose (GObject *object)
+{
+    Tcti *self = TCTI (object);
+
+    g_debug ("%s: Tcti 0x%" PRIxPTR, __func__, (uintptr_t)self);
+    if (self->tcti_context) {
+        Tss2_Tcti_Finalize (self->tcti_context);
+    }
+    G_OBJECT_CLASS (tcti_parent_class)->dispose (object);
+}
+static void
+tcti_finalize (GObject *object)
+{
+    Tcti *self = TCTI (object);
+
+    g_debug ("%s: Tcti 0x%" PRIxPTR, __func__, (uintptr_t)self);
+#if !defined (DISABLE_DLCLOSE)
+    g_clear_pointer (&self->tcti_dl_handle, dlclose);
+#endif
+    g_clear_pointer (&self->tcti_context, g_free);
+    G_OBJECT_CLASS (tcti_parent_class)->finalize (object);
+}
 
 static void
 tcti_init (Tcti *tcti)
 {
-/* noop, required by G_DEFINE_ABSTRACT_TYPE */
-    tcti->tcti_context = NULL;
+    UNUSED_PARAM (tcti);
 }
 static void
 tcti_class_init (TctiClass *klass)
 {
-    klass->initialize   = tcti_initialize;
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    if (tcti_parent_class == NULL)
+        tcti_parent_class = g_type_class_peek_parent (klass);
+    object_class->dispose = tcti_dispose;
+    object_class->finalize = tcti_finalize;
+    object_class->get_property = tcti_get_property;
+    object_class->set_property = tcti_set_property;
+
+    obj_properties [PROP_CONTEXT] =
+        g_param_spec_pointer ("tcti-context",
+                              "TSS2_TCTI_CONTEXT",
+                              "TSS2_TCTI_CONTEXT",
+                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    obj_properties [PROP_DL_HANDLE] =
+        g_param_spec_pointer ("tcti-dl-handle",
+                              "dl handle",
+                              "dl handle",
+                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+    g_object_class_install_properties (object_class,
+                                       N_PROPERTIES,
+                                       obj_properties);
 }
-/**
- * AFAIK this is boilerplate for 'interface' / abstract objects. All we do
- * is get a reference to the interface for the parameter object 'self',
- * check to be sure it's set to something non-NULL, then we call it and
- * return the result.
- */
-TSS2_RC
-tcti_initialize (Tcti *self)
+Tcti*
+tcti_new (TSS2_TCTI_CONTEXT *tcti_context,
+          void *tcti_dl_handle)
 {
-    g_debug ("tcti_initialize: 0x%" PRIxPTR, (uintptr_t)self);
-    return TCTI_GET_CLASS (self)->initialize (self);
+    return TCTI (g_object_new (TYPE_TCTI,
+                               "tcti-context", tcti_context,
+                               "tcti-dl-handle", tcti_dl_handle,
+                               NULL));
 }
 
 TSS2_TCTI_CONTEXT*
@@ -84,15 +162,4 @@ tcti_receive (Tcti      *self,
                               size,
                               response,
                               timeout);
-}
-TSS2_RC
-tcti_cancel (Tcti  *self)
-{
-    return Tss2_Tcti_Cancel (self->tcti_context);
-}
-TSS2_RC
-tcti_set_locality (Tcti     *self,
-                   uint8_t   locality)
-{
-    return Tss2_Tcti_SetLocality (self->tcti_context, locality);
 }

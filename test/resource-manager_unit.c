@@ -1,28 +1,7 @@
+/* SPDX-License-Identifier: BSD-2 */
 /*
  * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <assert.h>
 #include <glib.h>
@@ -33,9 +12,10 @@
 #include <cmocka.h>
 
 #include "resource-manager.h"
-#include "tcti-echo.h"
 #include "sink-interface.h"
 #include "source-interface.h"
+#include "tcti.h"
+#include "tcti-mock.h"
 #include "tpm2-command.h"
 #include "tpm2-header.h"
 #include "util.h"
@@ -44,7 +24,6 @@ typedef struct test_data {
     AccessBroker    *access_broker;
     ResourceManager *resource_manager;
     Connection      *connection;
-    TctiEcho        *tcti_echo;
     Tpm2Command     *command;
     Tpm2Response    *response;
     gint             client_fd;
@@ -132,15 +111,16 @@ resource_manager_setup (void **state)
     GIOStream   *iostream;
     HandleMap   *handle_map;
     SessionList *session_list;
-    TSS2_RC rc;
+    Tcti *tcti = NULL;
+    TSS2_TCTI_CONTEXT *context;
+
+    context = tcti_mock_init_full ();
+    tcti = tcti_new (context, NULL);
 
     data = calloc (1, sizeof (test_data_t));
-    data->tcti_echo = tcti_echo_new (1024);
-    rc = tcti_echo_initialize (data->tcti_echo);
-    if (rc != TSS2_RC_SUCCESS)
-        g_debug ("tcti_echo_initialize FAILED");
     handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->access_broker = access_broker_new (TCTI (data->tcti_echo));
+    data->access_broker = access_broker_new (tcti);
+    g_clear_object (&tcti);
     session_list = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT,
                                      SESSION_LIST_MAX_ABANDONED_DEFAULT);
     data->resource_manager = resource_manager_new (data->access_broker,
@@ -204,10 +184,6 @@ resource_manager_teardown (void **state)
     if (data->access_broker) {
         g_debug ("resource_manager unref access_broker");
         g_object_unref (data->access_broker);
-    }
-    if (data->tcti_echo) {
-        g_debug ("resource_manager unref TctiEcho");
-        g_object_unref (data->tcti_echo);
     }
     if (data->connection) {
         g_debug ("resource_manager unref Connection");

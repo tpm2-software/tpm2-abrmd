@@ -33,14 +33,13 @@ TESTS_UNIT = \
     test/session-entry_unit \
     test/session-list_unit \
     test/test-skeleton_unit \
-    test/tcti-dynamic_unit \
-    test/tcti-echo_unit \
+    test/tcti_unit \
+    test/tcti-factory_unit \
     test/tcti-util_unit \
     test/thread_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
     test/tss2-tcti-tabrmd_unit \
-    test/tss2-tcti-echo_unit \
     test/util_unit
 
 TESTS_INTEGRATION = \
@@ -99,13 +98,11 @@ check_PROGRAMS  = $(sbin_PROGRAMS) $(TESTS)
 
 # libraries
 libtss2_tcti_tabrmd = src/libtss2-tcti-tabrmd.la
-libtss2_tcti_echo = src/libtss2-tcti-echo.la
 libtest        = test/integration/libtest.la
 libutil        = src/libutil.la
 
 lib_LTLIBRARIES = $(libtss2_tcti_tabrmd)
 noinst_LTLIBRARIES += \
-    $(libtss2_tcti_echo) \
     $(libutil)
 man3_MANS = man/man3/Tss2_Tcti_Tabrmd_Init.3
 man7_MANS = man/man7/tss2-tcti-tabrmd.7
@@ -228,8 +225,8 @@ src_libutil_la_SOURCES = \
     src/tabrmd.h \
     src/tcti.c \
     src/tcti.h \
-    src/tcti-dynamic.c \
-    src/tcti-dynamic.h \
+    src/tcti-factory.c \
+    src/tcti-factory.h \
     src/tcti-util.c \
     src/tcti-util.h \
     src/thread.c \
@@ -253,20 +250,14 @@ test_integration_libtest_la_SOURCES = \
     test/integration/test-options.c \
     test/integration/test-options.h \
     test/mock-io-stream.c \
-    test/mock-io-stream.h
+    test/mock-io-stream.h \
+    test/tcti-mock.c \
+    test/tcti-mock.h
 
 src_libtss2_tcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
     $(PTHREAD_LIBS) $(libutil) $(TSS2_SYS_LIBS)
 src_libtss2_tcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
 src_libtss2_tcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(srcdir)/src/tcti-tabrmd.map
-
-src_libtss2_tcti_echo_la_LIBADD  = $(DBUS_LIBS) $(GLIB_LIBS)
-src_libtss2_tcti_echo_la_SOURCES = \
-    test/tcti-echo.c \
-    test/tcti-echo.h \
-    test/tss2-tcti-echo.c \
-    test/tss2-tcti-echo.h \
-    test/tss2-tcti-echo-priv.h
 
 src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(TSS2_SYS_LIBS) $(libutil)
@@ -345,7 +336,7 @@ test_connection_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIB
 test_connection_manager_unit_SOURCES = test/connection-manager_unit.c
 
 test_command_attrs_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtss2_tcti_echo)
+test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtest)
 test_command_attrs_unit_LDFLAGS  = -Wl,--wrap=access_broker_lock_sapi,--wrap=access_broker_get_max_command,--wrap=Tss2_Sys_GetCapability
 test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
@@ -397,8 +388,8 @@ test_message_queue_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(l
 test_message_queue_unit_SOURCES = test/message-queue_unit.c
 
 test_access_broker_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_GetCapability,--wrap=tcti_echo_transmit
-test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtss2_tcti_echo)
+test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_GetCapability
+test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtest)
 test_access_broker_unit_SOURCES = test/access-broker_unit.c
 
 test_random_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
@@ -416,17 +407,17 @@ test_session_list_unit_SOURCES = test/session-list_unit.c
 
 test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
-test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtss2_tcti_echo)
+test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtest)
 test_resource_manager_unit_SOURCES = test/resource-manager_unit.c
 
-test_tcti_dynamic_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_tcti_dynamic_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
-test_tcti_dynamic_unit_LDFLAGS  = -Wl,--wrap=dlopen,--wrap=dlsym,--wrap=dlclose
-test_tcti_dynamic_unit_SOURCES  = test/tcti-dynamic_unit.c
+test_tcti_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
+test_tcti_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtest)
+test_tcti_unit_SOURCES  = test/tcti_unit.c
 
-test_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtss2_tcti_echo)
-test_tcti_echo_unit_SOURCES = test/tcti-echo_unit.c
+test_tcti_factory_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
+test_tcti_factory_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_tcti_factory_unit_LDFLAGS = -Wl,--wrap=tcti_util_discover_info,--wrap=tcti_util_dynamic_init,--wrap=dlclose
+test_tcti_factory_unit_SOURCES  = test/tcti-factory_unit.c
 
 test_tcti_util_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
 test_tcti_util_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
@@ -437,10 +428,6 @@ test_tss2_tcti_tabrmd_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_tss2_tcti_tabrmd_unit_LDFLAGS = -Wl,--wrap=g_dbus_proxy_call_with_unix_fd_list_sync,--wrap=tcti_tabrmd_call_cancel_sync,--wrap=tcti_tabrmd_call_set_locality_sync,--wrap=read_data,--wrap=poll
 test_tss2_tcti_tabrmd_unit_LDADD   = $(CMOCKA_LIBS) $(GIO_LIBS) $(libutil)
 test_tss2_tcti_tabrmd_unit_SOURCES = src/tcti-tabrmd.c test/tss2-tcti-tabrmd_unit.c
-
-test_tss2_tcti_echo_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tss2_tcti_echo_unit_LDADD   = $(CMOCKA_LIBS) $(libtss2_tcti_echo)
-test_tss2_tcti_echo_unit_SOURCES = test/tss2-tcti-echo_unit.c
 endif
 
 TEST_INT_LIBS = $(libtest) $(libutil) $(libtss2_tcti_tabrmd) $(GLIB_LIBS)

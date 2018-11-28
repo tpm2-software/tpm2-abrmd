@@ -1,39 +1,20 @@
+/* SPDX-License-Identifier: BSD-2 */
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <glib.h>
+#include <inttypes.h>
 #include <unistd.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
 
 #include "access-broker.h"
-#include "tcti-echo.h"
 #include "tpm2-header.h"
 #include "tpm2-response.h"
+
+#include "tcti-mock.h"
 #include "util.h"
 
 #define MAX_COMMAND_VALUE 2048
@@ -42,7 +23,6 @@
 typedef struct test_data {
     AccessBroker *broker;
     Connection  *connection;
-    TctiEcho     *tcti;
     Tpm2Command  *command;
     Tpm2Response *response;
     gboolean      acquired_lock;
@@ -99,38 +79,6 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
     g_debug ("__wrap_Tss2_Sys_GetCapability returning: 0x%x", rc);
     return rc;
 }
-TSS2_RC
-__wrap_tcti_echo_transmit (TSS2_TCTI_CONTEXT *tcti_context,
-                           size_t             size,
-                           const uint8_t      *command)
-{
-    TSS2_RC rc;
-    UNUSED_PARAM(tcti_context);
-    UNUSED_PARAM(size);
-    UNUSED_PARAM(command);
-
-    rc = mock_type (TSS2_RC);
-    g_debug ("__wrap_tcti_echo_transmit returning: 0x%x", rc);
-
-    return rc;
-}
-TSS2_RC
-__wrap_tcti_echo_receive (TSS2_TCTI_CONTEXT *tcti_context,
-                          size_t            *size,
-                          uint8_t           *response,
-                          int32_t            timeout)
-{
-    TSS2_RC rc;
-    UNUSED_PARAM(tcti_context);
-    UNUSED_PARAM(size);
-    UNUSED_PARAM(response);
-    UNUSED_PARAM(timeout);
-
-    rc = mock_type (TSS2_RC);
-    g_debug ("__wrap_tcti_echo_receive returning: 0x%x", rc);
-
-    return rc;
-}
 /**
  * Do the minimum setup required by the AccessBroker object. This does not
  * call the access_broker_init_tpm function intentionally. We test that function
@@ -140,15 +88,18 @@ static int
 access_broker_setup (void **state)
 {
     test_data_t *data;
-    TSS2_RC      rc;
+    TSS2_TCTI_CONTEXT *context;
+    Tcti *tcti = NULL;
 
+    context = tcti_mock_init_full ();
+    if (context == NULL) {
+        g_critical ("tcti_mock_init_full failed");
+        return 1;
+    }
     data = calloc (1, sizeof (test_data_t));
-    data->tcti = tcti_echo_new (MAX_COMMAND_VALUE);
-    rc = tcti_echo_initialize (data->tcti);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize the echo TCTI");
-    data->broker = access_broker_new (TCTI (data->tcti));
-
+    tcti = tcti_new (context, 0);
+    data->broker = access_broker_new (tcti);
+    g_clear_object (&tcti);
     *state = data;
     return 0;
 }
@@ -166,9 +117,6 @@ access_broker_setup_with_init (void **state)
 
     access_broker_setup (state);
     data = (test_data_t*)*state;
-    /* can't wrap the tss2_tcti_transmit using linker tricks */
-    TSS2_TCTI_RECEIVE  (tcti_peek_context (TCTI (data->tcti))) = __wrap_tcti_echo_receive;
-    TSS2_TCTI_TRANSMIT (tcti_peek_context (TCTI (data->tcti))) = __wrap_tcti_echo_transmit;
 
     will_return (__wrap_Tss2_Sys_Startup, TSS2_RC_SUCCESS);
     will_return (__wrap_Tss2_Sys_GetCapability, MAX_COMMAND_VALUE);
@@ -318,9 +266,8 @@ access_broker_send_command_tcti_transmit_fail_test (void **state)
     TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = 99;
     Connection *connection;
 
-    will_return (__wrap_tcti_echo_transmit, rc_expected);
+    will_return (tcti_mock_transmit, rc_expected);
     data->response = access_broker_send_command (data->broker, data->command, &rc);
-    /* the response code should be the one we passed to __wrap_tcti_echo_transmit */
     assert_int_equal (rc, rc_expected);
     /* the Tpm2Response object we get back should have the same RC */
     assert_int_equal (tpm2_response_get_code (data->response), rc_expected);
@@ -344,8 +291,10 @@ access_broker_send_command_tcti_receive_fail_test (void **state)
     TSS2_RC rc = TSS2_RC_SUCCESS, rc_expected = 99;
     Connection *connection;
 
-    will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
-    will_return (__wrap_tcti_echo_receive, rc_expected);
+    will_return (tcti_mock_transmit, TSS2_RC_SUCCESS);
+    will_return (tcti_mock_receive, NULL);
+    will_return (tcti_mock_receive, 0);
+    will_return (tcti_mock_receive, rc_expected);
     data->response = access_broker_send_command (data->broker, data->command, &rc);
     /* the response code should be the one we passed to __wrap_tcti_echo_receive */
     assert_int_equal (rc, rc_expected);
@@ -369,9 +318,13 @@ access_broker_send_command_success (void **state)
     test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
     Connection *connection;
+    uint8_t buf [1] = { 0 };
+    size_t size = sizeof (buf);
 
-    will_return (__wrap_tcti_echo_transmit, TSS2_RC_SUCCESS);
-    will_return (__wrap_tcti_echo_receive,  TSS2_RC_SUCCESS);
+    will_return (tcti_mock_transmit, TSS2_RC_SUCCESS);
+    will_return (tcti_mock_receive, buf);
+    will_return (tcti_mock_receive, size);
+    will_return (tcti_mock_receive, TSS2_RC_SUCCESS);
     data->response = access_broker_send_command (data->broker, data->command, &rc);
     /* the response code should be the one we passed to __wrap_tcti_echo_receive */
     assert_int_equal (rc, TSS2_RC_SUCCESS);
