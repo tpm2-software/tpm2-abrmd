@@ -1,28 +1,7 @@
+/* SPDX-License-Identifier: BSD-2 */
 /*
- * Copyright (c) 2017, Intel Corporation
+ * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <glib.h>
 #include <inttypes.h>
@@ -34,12 +13,12 @@
 #include "util.h"
 #include "access-broker.h"
 #include "command-attrs.h"
-#include "tcti-echo.h"
+#include "tcti.h"
+#include "tcti-mock.h"
 
 typedef struct test_data {
     AccessBroker *access_broker;
     CommandAttrs *command_attrs;
-    Tcti         *tcti;
 } test_data_t;
 
 /* Setup function to allocate our Random gobject. */
@@ -47,15 +26,19 @@ static int
 command_attrs_setup (void **state)
 {
     test_data_t *data;
-    TSS2_RC rc;
+    TSS2_TCTI_CONTEXT *context;
+    Tcti *tcti = NULL;
 
+    context = tcti_mock_init_full ();
+    if (context == NULL) {
+        g_critical ("tcti_mock_init_full failed");
+        return 1;
+    }
     data = calloc (1, sizeof (test_data_t));
-    data->tcti = TCTI (tcti_echo_new (1024));
-    rc = tcti_echo_initialize (TCTI_ECHO (data->tcti));
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize the echo TCTI");
-    data->access_broker = access_broker_new (data->tcti);
+    tcti = tcti_new (context, NULL);
+    data->access_broker = access_broker_new (tcti);
     data->command_attrs = command_attrs_new ();
+    g_clear_object (&tcti);
 
     *state = data;
     return 0;

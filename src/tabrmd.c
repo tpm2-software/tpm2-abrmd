@@ -49,7 +49,8 @@
 #include "resource-manager.h"
 #include "response-sink.h"
 #include "source-interface.h"
-#include "tcti-dynamic.h"
+#include "tcti-factory.h"
+#include "tcti.h"
 #include "util.h"
 
 /* work around older glib versions missing this symbol */
@@ -70,7 +71,6 @@ typedef struct gmain_data {
     Random                 *random;
     ResponseSink           *response_sink;
     GMutex                  init_mutex;
-    Tcti                   *tcti;
     IpcFrontend            *ipc_frontend;
 } gmain_data_t;
 
@@ -134,6 +134,8 @@ init_thread_func (gpointer user_data)
     CommandAttrs *command_attrs;
     ConnectionManager *connection_manager = NULL;
     SessionList *session_list;
+    Tcti *tcti = NULL;
+    TctiFactory *tcti_factory = NULL;
 
     g_info ("init_thread_func start");
     g_mutex_lock (&data->init_mutex);
@@ -170,18 +172,19 @@ init_thread_func (gpointer user_data)
     ipc_frontend_connect (data->ipc_frontend,
                           &data->init_mutex);
 
-    /**
-     * this isn't strictly necessary but it allows us to detect a failure in
-     * the TCTI before we start communicating with clients
-     */
-    rc = tcti_initialize (data->tcti);
-    if (rc != TSS2_RC_SUCCESS) {
-        tabrmd_critical ("TCTI initialization failed: 0x%x", rc);
+    tcti_factory = tcti_factory_new (data->options.tcti_filename,
+                                     data->options.tcti_conf);
+    tcti = tcti_factory_create (tcti_factory);
+    if (tcti == NULL) {
+        tabrmd_critical ("%s: failed to create TCTI with name \"%s\" and conf "
+                         "\"%s\"", __func__, data->options.tcti_filename,
+                         data->options.tcti_conf);
     }
-
-    data->access_broker = access_broker_new (data->tcti);
+    g_clear_object (&tcti_factory);
+    data->access_broker = access_broker_new (tcti);
     g_debug ("created AccessBroker: 0x%" PRIxPTR,
              (uintptr_t)data->access_broker);
+    g_clear_object (&tcti);
     rc = access_broker_init_tpm (data->access_broker);
     if (rc != TSS2_RC_SUCCESS)
         g_error ("failed to initialize AccessBroker: 0x%" PRIx32, rc);
@@ -451,8 +454,6 @@ main (int argc, char *argv[])
         return 1;
     }
 
-    gmain_data.tcti = TCTI (tcti_dynamic_new (gmain_data.options.tcti_filename,
-                                              gmain_data.options.tcti_conf));
     g_mutex_init (&gmain_data.init_mutex);
     gmain_data.loop = g_main_loop_new (NULL, FALSE);
     /*
@@ -476,6 +477,5 @@ main (int argc, char *argv[])
     thread_cleanup (THREAD (gmain_data.response_sink));
     /* clean up what remains */
     g_object_unref (gmain_data.random);
-    g_object_unref (gmain_data.tcti);
     return 0;
 }
