@@ -15,6 +15,7 @@ addons:
       - dbus-x11
       - doxygen
       - cmake
+      - gnulib
       - lcov
       - libglib2.0-dev
       - libdbus-1-dev
@@ -62,7 +63,7 @@ install:
   - popd # cmocka
   - git clone -b master --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
-  - ./bootstrap
+  - ./bootstrap --include=/usr/share/gnulib/m4
   - ./configure --prefix=${PREFIX} --disable-doxygen-doc --disable-tcti-device --disable-esapi
   - make -j$(nproc) install
   - popd # tpm2-tss
