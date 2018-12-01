@@ -36,29 +36,22 @@ env:
     - coverity_scan_run_condition='"$CC" = gcc'
     - PREFIX=/usr
     - DEPS="${TRAVIS_BUILD_DIR}/deps"
-    - DESTDIR="${TRAVIS_BUILD_DIR}/destdir"
-    - ACLOCAL_PATH="${DESTDIR}${PREFIX}/share/aclocal:${ACLOCAL_PATH}"
-    - PKG_CONFIG_PATH="${DESTDIR}${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
-    - LD_LIBRARY_PATH="${DESTDIR}${PREFIX}/lib:${LD_LIBRARY_PATH}"
-    - CFLAGS="-I${DESTDIR}${PREFIX}/include"
-    - CMOCKA_LIBS="-L${DESTDIR}${PREFIX}/lib -lcmocka"
     - PATH="${DEPS}/ibmtpm/src:${PATH}"
 
 install:
   - pip install --user cpp-coveralls
-  - mkdir ${DESTDIR} ${DEPS} && pushd ${DEPS}
+  - mkdir ${DEPS} && pushd ${DEPS}
   - wget https://download.01.org/tpm2/autoconf-archive-2017.09.28.tar.xz
   - sha256sum autoconf-archive-2017.09.28.tar.xz | grep -q 5c9fb5845b38b28982a3ef12836f76b35f46799ef4a2e46b48e2bd3c6182fa01
   - tar xJf autoconf-archive-2017.09.28.tar.xz && pushd autoconf-archive-2017.09.28
-  - ./configure --prefix=${PREFIX} && make && make install
+  - ./configure --prefix=${PREFIX} && make && sudo make install
   - popd # autoconf-archive
   - git clone -b master --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
   - ./bootstrap -I /usr/share/gnulib/m4
   - ./configure --prefix=${PREFIX} --disable-doxygen-doc --disable-tcti-device --disable-esapi
-  - make -j$(nproc) install
+  - make -j$(nproc) && sudo make -j$(nproc) install
   - popd # tpm2-tss
-  - sed -i -e "s&\(\/usr\/lib\/lib.*\.la\)&${DESTDIR}\1&" ${DESTDIR}${PREFIX}/lib/*.la
   - wget https://download.01.org/tpm2/ibmtpm974.tar.gz
   - sha256sum ibmtpm974.tar.gz | grep -q ^8e45d86129a0adb95fee4cee51f4b1e5b2d81ed3e55af875df53f98f39eb7ad7
   - mkdir ibmtpm
@@ -101,7 +94,7 @@ script :
         dbus-launch make -j$(nproc) check
         if [ $? -ne 0 ]; then exit 1; fi
         if [ ! -z "$COVERALLS_REPO_TOKEN" ]; then
-          coveralls --build-root=./ --exclude=${DEPS} --exclude=${DESTDIR} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
+          coveralls --build-root=./ --exclude=${DEPS} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
         fi
         ;;
     *)
