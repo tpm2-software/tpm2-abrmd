@@ -1,7 +1,4 @@
 language: c
-compiler:
-  - gcc
-  - clang
 dist: xenial
 
 addons:
@@ -37,6 +34,15 @@ env:
     - PREFIX=/usr
     - DEPS="${TRAVIS_BUILD_DIR}/deps"
     - PATH="${DEPS}/ibmtpm/src:${PATH}"
+    - CONFIG_OPTS="--enable-unit --enable-integration --disable-silent-rules"
+    - MAKE="make --jobs=$(($(nproc)*3/2))"
+
+matrix:
+  include:
+    - compiler: clang
+      env: SCANBUILD="scan-build --status-bugs" CFLAGS=-D_REENTRANT
+    - compiler: gcc
+      env: SCANBUILD= CONFIG_EXTRA=--enable-code-coverage
 
 install:
   - pip install --user cpp-coveralls
@@ -69,48 +75,12 @@ script :
         echo "COVERITY_SCAN_BRANCH set, not running normal build."
         exit 0
     fi
+  - $SCANBUILD ./configure $CONFIG_OPTS $CONFIG_EXTRA
+  - dbus-launch $SCANBUILD $MAKE distcheck
   - |
-    CONFIGURE_OPTIONS="--disable-dlclose --enable-unit --enable-integration"
-    case "$CC" in
-    clang*)
-        # Use -D_REENTRANT kludge so -pthread test works with scan-build:
-        scan-build ./configure CFLAGS="$CFLAGS -D_REENTRANT" $CONFIGURE_OPTIONS
-        if [ $? -ne 0 ]; then exit 1; fi
-        dbus-launch scan-build --status-bugs make -j$(nproc) distcheck
-        if [ $? -ne 0 ]; then exit 1; fi
-        # exit code from scan-build is 0 if no bugs are found, failed tests
-        # will go undetected unless we manually parse the test log for:
-        # '# FAIL:  0'
-        TEST_LOG_DIR=$(find ./tpm2-abrmd-* -name '_build')
-        if [ -d "${TEST_LOG_DIR}" ]; then exit 1; fi
-        TEST_LOG=$(find ./tpm2-abrmd-*/_build -name 'test-suite.log')
-        if [ -f "${TEST_LOG}" ]; then
-            grep '^#[[:space:]]\+FAIL:[[:space:]]\+0$' ${TEST_LOG}
-        fi
-        ;;
-    gcc)
-        ./configure ${CONFIGURE_OPTIONS} --enable-code-coverage
-        if [ $? -ne 0 ]; then exit 1; fi
-        dbus-launch make -j$(nproc) check
-        if [ $? -ne 0 ]; then exit 1; fi
-        if [ ! -z "$COVERALLS_REPO_TOKEN" ]; then
-          coveralls --build-root=./ --exclude=${DEPS} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
-        fi
-        ;;
-    *)
-        echo "unsupported compiler"
-        exit 1
-    esac
+    if [ ! -z "$COVERALLS_REPO_TOKEN" ]; then
+      coveralls --build-root=./tpm2-abrmd-*/ --exclude=${DEPS} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
+    fi
 
 after_failure:
-  - |
-    TEST_ROOT=tpm2-abrmd-*/_build
-    # newer versions of automake have distcheck output under a new directory
-    if [ -d ${TEST_ROOT}/sub ]; then
-        TEST_ROOT=${TEST_ROOT}/sub
-    fi
-    cat ${TEST_ROOT}/test-suite.log
-    find ${TEST_ROOT}/test -name '*.log' | while read LOG; do
-        echo "dumping test log: ${LOG}"
-        cat ${LOG}
-    done
+  - cat tpm2-abrmd-*/_build/sub/test-suite.log
