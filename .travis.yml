@@ -2,10 +2,7 @@ language: c
 compiler:
   - gcc
   - clang
-
-# Requring sudo as a work around for https://github.com/travis-ci/travis-ci/issues/8082
-sudo: false
-dist: trusty
+dist: xenial
 
 addons:
   apt:
@@ -14,8 +11,9 @@ addons:
       - dbus
       - dbus-x11
       - gnulib
-      - cmake
       - lcov
+      - libcmocka-dev
+      - libcmocka0
       - libglib2.0-dev
       - libdbus-1-dev
       - liburiparser-dev
@@ -54,12 +52,6 @@ install:
   - tar xJf autoconf-archive-2017.09.28.tar.xz && pushd autoconf-archive-2017.09.28
   - ./configure --prefix=${PREFIX} && make && make install
   - popd # autoconf-archive
-  - wget https://download.01.org/tpm2/cmocka-1.1.1.tar.xz
-  - tar -Jxvf cmocka-1.1.1.tar.xz
-  - mkdir cmocka-1.1.1/build && pushd cmocka-1.1.1/build
-  - cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release
-  - make -j$(nproc) install
-  - popd # cmocka
   - git clone -b master --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
   - ./bootstrap -I /usr/share/gnulib/m4
