@@ -50,19 +50,19 @@ install:
   - wget https://download.01.org/tpm2/autoconf-archive-2017.09.28.tar.xz
   - sha256sum autoconf-archive-2017.09.28.tar.xz | grep -q 5c9fb5845b38b28982a3ef12836f76b35f46799ef4a2e46b48e2bd3c6182fa01
   - tar xJf autoconf-archive-2017.09.28.tar.xz && pushd autoconf-archive-2017.09.28
-  - ./configure --prefix=${PREFIX} && make && sudo make install
+  - ./configure --prefix=${PREFIX} && $MAKE && sudo $MAKE install
   - popd # autoconf-archive
   - git clone -b master --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
   - ./bootstrap -I /usr/share/gnulib/m4
   - ./configure --prefix=${PREFIX} --disable-doxygen-doc --disable-tcti-device --disable-esapi
-  - make -j$(nproc) && sudo make -j$(nproc) install
+  - $MAKE && sudo $MAKE install
   - popd # tpm2-tss
   - wget https://download.01.org/tpm2/ibmtpm974.tar.gz
   - sha256sum ibmtpm974.tar.gz | grep -q ^8e45d86129a0adb95fee4cee51f4b1e5b2d81ed3e55af875df53f98f39eb7ad7
   - mkdir ibmtpm
   - tar axf ibmtpm974.tar.gz -C ibmtpm
-  - make -C ibmtpm/src -j$(nproc)
+  - $MAKE -C ibmtpm/src
   - popd # ${DEPS}
 
 before_script:
