@@ -37,6 +37,7 @@
 #include "control-message.h"
 #include "logging.h"
 #include "message-queue.h"
+#include "resource-manager-session.h"
 #include "resource-manager.h"
 #include "sink-interface.h"
 #include "source-interface.h"
@@ -154,11 +155,9 @@ resource_manager_load_session_from_handle (ResourceManager *resmgr,
 {
     Connection   *entry_conn = NULL;
     SessionEntry *session_entry = NULL;
-    Tpm2Command *command = NULL;
     Tpm2Response *response = NULL;
     SessionEntryStateEnum session_entry_state;
     TSS2_RC        rc = TSS2_RC_SUCCESS;
-    size_buf_t    *size_buf;
 
     session_entry = session_list_lookup_handle (resmgr->session_list,
                                                 handle);
@@ -186,26 +185,21 @@ resource_manager_load_session_from_handle (ResourceManager *resmgr,
                    session_entry_state_to_str (session_entry_state));
         goto out;
     }
-    size_buf = session_entry_get_context (session_entry);
-    command = tpm2_command_new_context_load (size_buf->buf, size_buf->size);
-    response = access_broker_send_command (resmgr->access_broker,
-                                           command,
-                                           &rc);
-    if (rc != TSS2_RC_SUCCESS) {
+    response = load_session (resmgr, session_entry);
+    if (tpm2_response_get_code (response) != TSS2_RC_SUCCESS) {
         g_warning ("Failed to load context for session with handle "
                    "0x%08" PRIx32 " RC: 0x%" PRIx32, handle, rc);
+        flush_session (resmgr, session_entry);
         session_list_remove (resmgr->session_list, session_entry);
         goto out;
 
     }
-    g_debug ("%s: successfully loaded context for session handle: 0x%08"
-             PRIx32, __func__, handle);
-    session_entry_set_state (session_entry, SESSION_ENTRY_LOADED);
     if (will_flush) {
+        g_debug ("%s: will_flush: removing SessionEntry from SessionList",
+                 __func__);
         session_list_remove (resmgr->session_list, session_entry);
     }
 out:
-    g_clear_object (&command);
     g_clear_object (&entry_conn);
     g_clear_object (&response);
     g_clear_object (&session_entry);
@@ -345,69 +339,30 @@ resource_manager_flushsave_context (gpointer data_entry,
         break;
     }
 }
-gboolean
-save_session_context (ResourceManager *resmgr,
-                      SessionEntry *entry)
-{
-    Tpm2Command *cmd = NULL;
-    Tpm2Response *resp = NULL;
-    TSS2_RC          rc = TSS2_RC_SUCCESS;
-    gboolean ret = TRUE;
-
-    g_debug ("resource_manager_save_session_context");
-    if (resmgr == NULL || entry == NULL) {
-        g_error ("resource_manager_save_session_context passed NULL parameter");
-    }
-    if (session_entry_get_state (entry) != SESSION_ENTRY_LOADED) {
-        g_info ("SessionEntry not loaded in TPM, skipping");
-        goto out;
-    }
-    cmd = tpm2_command_new_context_save (session_entry_get_handle (entry));
-    if (cmd == NULL) {
-        goto err_out;
-    }
-    resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
-    if (rc != TSS2_RC_SUCCESS) {
-        g_critical ("%s: TCTI failed while saving session context from "
-                   "SessionEntry 0x%" PRIxPTR ", got RC 0x%" PRIx32,
-                   __func__, (uintptr_t)entry, rc);
-        goto err_out;
-    }
-    if (tpm2_response_get_code (resp) != TSS2_RC_SUCCESS) {
-        g_warning ("%s: failed to ContextSave SessionEntry 0x%" PRIxPTR ", "
-                   "got RC 0x%" PRIx32, __func__, (uintptr_t)entry,
-                   tpm2_response_get_code (resp));
-        goto err_out;
-    }
-    session_entry_set_context (entry,
-                               &tpm2_response_get_buffer (resp)[TPM_HEADER_SIZE],
-                               tpm2_response_get_size (resp) - TPM_HEADER_SIZE);
-    session_entry_set_state (entry, SESSION_ENTRY_SAVED_RM);
-    goto out;
-err_out:
-    access_broker_context_flush (resmgr->access_broker,
-                                 session_entry_get_handle (entry));
-    session_list_remove (resmgr->session_list, entry);
-    ret = FALSE;
-out:
-    g_clear_object (&cmd);
-    g_clear_object (&resp);
-    return ret;
-}
 /*
  * Remove the context associated with the provided SessionEntry from the
  * TPM. Only session objects should be saved by this function.
  */
 void
-save_session_context_callback (gpointer data_entry,
-                               gpointer data_resmgr)
+save_session_callback (gpointer data_entry,
+                       gpointer data_resmgr)
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (data_resmgr);
     SessionEntry *entry  = SESSION_ENTRY (data_entry);
-    gboolean ret;
+    Tpm2Response *resp = NULL;
 
-    ret = save_session_context (resmgr, entry);
-    UNUSED_VAR(ret);
+    g_debug ("%s: SessionEntry 0x%" PRIxPTR, __func__, (uintptr_t)entry);
+    if (session_entry_get_state (entry) != SESSION_ENTRY_LOADED) {
+        g_debug ("%s: cannot save SessionEntry, not loaded", __func__);
+        return;
+    }
+    resp = save_session (resmgr, entry);
+    if (tpm2_response_get_code (resp) != TSS2_RC_SUCCESS) {
+        g_critical ("%s: failed to save SessionEntry 0x%" PRIxPTR ", "
+                    "flushing", __func__, (uintptr_t)entry);
+        flush_session (resmgr, entry);
+    }
+    g_clear_object (&resp);
 }
 static void
 dump_command (Tpm2Command *command)
@@ -1254,7 +1209,7 @@ send_response:
     g_object_unref (response);
     /* save contexts that were previously loaded */
     session_list_foreach (resmgr->session_list,
-                          save_session_context_callback,
+                          save_session_callback,
                           resmgr);
     post_process_loaded_transients (resmgr, &transient_slist, connection, command_attrs);
     g_object_unref (connection);
@@ -1547,21 +1502,7 @@ gboolean
 flush_session_callback (SessionEntry *entry,
                         gpointer data)
 {
-    ResourceManager *resmgr = RESOURCE_MANAGER (data);
-    TSS2_RC rc;
-    TPM2_HANDLE handle = session_entry_get_handle (entry);
-
-    g_debug ("%s: flushing stale abandoned SessionEntry: 0x%" PRIxPTR " with "
-             "handle: 0x%08" PRIx32,
-             __func__, (uintptr_t)entry, handle);
-    rc = access_broker_context_flush (resmgr->access_broker, handle);
-    if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("%s: failed to flush abandoned session context with "
-                   "handle 0x%" PRIx32 ": 0x%" PRIx32,
-                   __func__, handle, rc);
-        return FALSE;
-    }
-    return TRUE;
+    return flush_session (RESOURCE_MANAGER (data), entry);
 }
 /*
  * This structure is used to pass required data into the

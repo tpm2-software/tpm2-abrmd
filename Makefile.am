@@ -207,6 +207,8 @@ src_libutil_la_SOURCES = \
     src/message-queue.h \
     src/random.c \
     src/random.h \
+    src/resource-manager-session.c \
+    src/resource-manager-session.h \
     src/resource-manager.c \
     src/resource-manager.h \
     src/response-sink.c \
