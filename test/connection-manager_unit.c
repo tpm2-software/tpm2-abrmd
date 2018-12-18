@@ -131,7 +131,7 @@ connection_manager_lookup_id_test (void **state)
     g_object_unref (iostream);
     ret = connection_manager_insert (manager, connection);
     assert_int_equal (ret, TSS2_RC_SUCCESS);
-    connection_lookup = connection_manager_lookup_id (manager, *(int*)connection_key_id (connection));
+    connection_lookup = connection_manager_lookup_id (manager, *(gint64*)connection_key_id (connection));
     assert_int_equal (connection, connection_lookup);
 }
 
