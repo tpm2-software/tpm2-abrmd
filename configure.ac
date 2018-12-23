@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-2
 AC_INIT([tpm2-abrmd],
         [m4_esyscmd_s([cat ./VERSION])],
         [https://github.com/tpm2-software/tpm2-abrmd/issues],

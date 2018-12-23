@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: BSD-2 */
 #include <gio/gio.h>
 #include <glib.h>
 #include "tabrmd.h"

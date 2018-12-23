@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BSD-2
 # we have BUILT_SOURCES so builddir must be in VPATH
 VPATH = $(srcdir) $(builddir)
 ACLOCAL_AMFLAGS = -I m4
