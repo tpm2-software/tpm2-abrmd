@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: BSD-2
 
 git describe --tags --always --dirty > VERSION
 autoreconf --install --sym
