@@ -973,18 +973,20 @@ build_cap_handles_response (TPMS_CAPABILITY_DATA *cap_data,
 }
 /*
  * This function takes a Tpm2Command and the associated connection object
- * as parameters. The Tpm2Command *must* be a GetCapability command. If it's
- * a GetCapability command that we "virtualize" then we'll build a
- * Tpm2Response object and return it. If not we return NULL.
+ * as parameters. The Tpm2Command *must* have the 'code' attribute set to
+ * TPM2_CC_GetCapability. If it's a GetCapability command that we
+ * "virtualize" then we'll build a Tpm2Response object and return it. If
+ * not, then we send the command to the TPM2 device and perform whatever
+ * post-processing is necessary.
  */
 Tpm2Response*
-get_cap_handles_response (Tpm2Command *command,
-                          Connection *connection)
+get_cap_gen_response (Tpm2Command *command,
+                      Connection *connection)
 {
     TPM2_CAP  cap         = tpm2_command_get_cap (command);
     UINT32   prop        = tpm2_command_get_prop (command);
     UINT32   prop_count  = tpm2_command_get_prop_count (command);
-    TPM2_HT   handle_type = prop >> TPM2_HR_SHIFT;
+    TPM2_HT   handle_type;
     HandleMap *map;
     TPMS_CAPABILITY_DATA cap_data = { .capability = cap };
     gboolean more_data = FALSE;
@@ -994,16 +996,30 @@ get_cap_handles_response (Tpm2Command *command,
     g_debug ("processing TPM2_CC_GetCapability with cap: 0x%" PRIx32
              " prop: 0x%" PRIx32 " prop_count: 0x%" PRIx32,
              cap, prop, prop_count);
-    if (cap == TPM2_CAP_HANDLES && handle_type == TPM2_HT_TRANSIENT) {
-        g_debug ("TPM2_CAP_HANDLES && TPM2_HT_TRANSIENT");
-        map = connection_get_trans_map (connection);
-        more_data = get_cap_handles (map,  prop, prop_count, &cap_data);
-        g_object_unref (map);
-        resp_buf = build_cap_handles_response (&cap_data, more_data);
-        response = tpm2_response_new (connection,
-                                      resp_buf,
-                                      CAP_RESP_SIZE (&cap_data),
-                                      tpm2_command_get_attributes (command));
+    switch (cap) {
+    case TPM2_CAP_HANDLES:
+        handle_type = prop >> TPM2_HR_SHIFT;
+        switch (handle_type) {
+        case TPM2_HT_TRANSIENT:
+            g_debug ("%s: TPM2_CAP_HANDLES && TPM2_HT_TRANSIENT", __func__);
+            map = connection_get_trans_map (connection);
+            more_data = get_cap_handles (map,  prop, prop_count, &cap_data);
+            g_object_unref (map);
+            resp_buf = build_cap_handles_response (&cap_data, more_data);
+            response = tpm2_response_new (connection,
+                                          resp_buf,
+                                          CAP_RESP_SIZE (&cap_data),
+                                          tpm2_command_get_attributes (command));
+            break;
+        default:
+            g_debug ("%s: TPM2_CAP_HANDLES not virtualized for handle type: "
+                     "0x%" PRIx32, __func__, handle_type);
+            break;
+        }
+        break;
+    default:
+        g_debug ("%s: cap 0x%" PRIx32 " not handled", __func__, cap);
+        break;
     }
 
     return response;
@@ -1041,7 +1057,7 @@ command_special_processing (ResourceManager *resmgr,
     case TPM2_CC_GetCapability:
         g_debug ("processing TPM2_CC_GetCapability");
         connection = tpm2_command_get_connection (command);
-        response = get_cap_handles_response (command, connection);
+        response = get_cap_gen_response (command, connection);
         g_object_unref (connection);
         break;
     default:
