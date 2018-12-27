@@ -12,6 +12,8 @@
 
 #define FIRST_CONTEXT_SEQUENCE 0x4
 
+#define MS_SIMULATOR_GAP_MAX UINT8_MAX
+
 /*
  * This test exercises the resource manager's handling of the session gap
  * mechanism. Currently the RM does not 'virtualize' the GetCapability
@@ -22,9 +24,14 @@
  *
  * Under normal circumstances (when run against the simulator w/o the RM)
  * we will cause a TPM_RC_CONTEXT_GAP error before the sequence number of
- * the last saved session exceeds that of the first. If we do not, then we
- * consider the test a success.
+ * the last saved session exceeds that of the first + GAP_MAX. If we do not,
+ * then we consider the test a success.
  *
+ * NOTE: The value of GAP_MAX returned by the RM will be UINT32_MAX while
+ * the MS simulator (no RM) will return UINT8_MAX (counter is 1 byte). In
+ * this case we cannot use the GAP_MAX property returned by the RM and
+ * must assume GAP_MAX to be UINT8_MAX. This test will then become invalid
+ * if / when the MS simulator changes the size of their GAP counter.
  */
 int
 test_invoke (TSS2_SYS_CONTEXT *sapi_context)
@@ -41,6 +48,12 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
                  __func__, rc);
     }
     g_info ("%s: GAP_MAX is 0x%" PRIx32, __func__, gap_max);
+    if (gap_max == UINT32_MAX) {
+        g_warning ("%s: GAP_MAX is UINT32_MAX, implies RM implements context "
+                   "gap handling, assuming GAP value is same used by MS "
+                   "smiulator: 0x%" PRIx32, __func__, MS_SIMULATOR_GAP_MAX);
+        gap_max = MS_SIMULATOR_GAP_MAX;
+    }
     g_info ("%s: Starting unbound, unsalted auth session", __func__);
     rc = start_auth_session (sapi_context, &session_handle);
     if (rc != TSS2_RC_SUCCESS) {
