@@ -972,6 +972,70 @@ build_cap_handles_response (TPMS_CAPABILITY_DATA *cap_data,
     return buf;
 }
 /*
+ * In cases where the GetCapability command isn't fully virtualized we may
+ * need to perform some 'post processing' of the results returned from the
+ * TPM2 device. Specifically, in the case of the TPM2_PT_CONTEXT_GAP_MAX
+ * property, we overrite the value in the response body. This function
+ * manually unmarshals the response, iterates over the values modifying
+ * them if necessary and then marshals them back into the Tpm2Response.
+ */
+TSS2_RC
+get_cap_post_process (Tpm2Response *resp)
+{
+    g_assert (resp != NULL);
+    g_assert (tpm2_response_get_code (resp) == TSS2_RC_SUCCESS);
+
+    TPMS_CAPABILITY_DATA cap_data = { 0 };
+    TSS2_RC rc;
+    uint8_t *buf = tpm2_response_get_buffer (resp);
+    size_t buf_size = tpm2_response_get_size (resp);
+    size_t offset = TPM_HEADER_SIZE + sizeof (TPMI_YES_NO);
+    size_t i;
+
+    rc = Tss2_MU_TPMS_CAPABILITY_DATA_Unmarshal (buf,
+                                                 buf_size,
+                                                 &offset,
+                                                 &cap_data);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: Failed to unmarshal TPMS_CAPABILITY_DATA", __func__);
+        return rc;
+    }
+    g_debug ("%s: capability 0x%" PRIx32, __func__, cap_data.capability);
+    switch (cap_data.capability) {
+    case TPM2_CAP_TPM_PROPERTIES:
+        for (i = 0; i < cap_data.data.tpmProperties.count; ++i) {
+            g_debug ("%s: property 0x%" PRIx32 ", value 0x%" PRIx32,
+                     __func__,
+                     cap_data.data.tpmProperties.tpmProperty [i].property,
+                     cap_data.data.tpmProperties.tpmProperty [i].value);
+            switch (cap_data.data.tpmProperties.tpmProperty [i].property) {
+            case TPM2_PT_CONTEXT_GAP_MAX:
+                g_debug ("%s: changing TPM2_PT_CONTEXT_GAP_MAX, from 0x%"
+                         PRIx32 " to UINT32_MAX: 0x%" PRIx32, __func__,
+                         cap_data.data.tpmProperties.tpmProperty [i].value,
+                         UINT32_MAX);
+                cap_data.data.tpmProperties.tpmProperty [i].value = UINT32_MAX;
+                break;
+            default:
+                break;
+            }
+        }
+        break;
+    default:
+        break;
+    }
+    offset = TPM_HEADER_SIZE + sizeof (TPMI_YES_NO);
+    rc = Tss2_MU_TPMS_CAPABILITY_DATA_Marshal (&cap_data,
+                                               buf,
+                                               buf_size,
+                                               &offset);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: Failed to unmarshal TPMS_CAPABILITY_DATA", __func__);
+        return rc;
+    }
+    return rc;
+}
+/*
  * This function takes a Tpm2Command and the associated connection object
  * as parameters. The Tpm2Command *must* have the 'code' attribute set to
  * TPM2_CC_GetCapability. If it's a GetCapability command that we
@@ -980,13 +1044,15 @@ build_cap_handles_response (TPMS_CAPABILITY_DATA *cap_data,
  * post-processing is necessary.
  */
 Tpm2Response*
-get_cap_gen_response (Tpm2Command *command,
-                      Connection *connection)
+get_cap_gen_response (ResourceManager *resmgr,
+                      Tpm2Command *command)
 {
     TPM2_CAP  cap         = tpm2_command_get_cap (command);
     UINT32   prop        = tpm2_command_get_prop (command);
     UINT32   prop_count  = tpm2_command_get_prop_count (command);
     TPM2_HT   handle_type;
+    TSS2_RC rc = TSS2_RC_SUCCESS;
+    Connection *connection = NULL;
     HandleMap *map;
     TPMS_CAPABILITY_DATA cap_data = { .capability = cap };
     gboolean more_data = FALSE;
@@ -1002,6 +1068,7 @@ get_cap_gen_response (Tpm2Command *command,
         switch (handle_type) {
         case TPM2_HT_TRANSIENT:
             g_debug ("%s: TPM2_CAP_HANDLES && TPM2_HT_TRANSIENT", __func__);
+            connection = tpm2_command_get_connection (command);
             map = connection_get_trans_map (connection);
             more_data = get_cap_handles (map,  prop, prop_count, &cap_data);
             g_object_unref (map);
@@ -1022,6 +1089,14 @@ get_cap_gen_response (Tpm2Command *command,
         break;
     }
 
+    if (response == NULL) {
+        response = access_broker_send_command (resmgr->access_broker, command, &rc);
+        if (response != NULL && rc == TSS2_RC_SUCCESS) {
+            get_cap_post_process (response);
+        }
+    }
+
+    g_clear_object (&connection);
     return response;
 }
 /*
@@ -1038,7 +1113,6 @@ Tpm2Response*
 command_special_processing (ResourceManager *resmgr,
                             Tpm2Command     *command)
 {
-    Connection   *connection = NULL;
     Tpm2Response *response   = NULL;
 
     switch (tpm2_command_get_code (command)) {
@@ -1056,9 +1130,7 @@ command_special_processing (ResourceManager *resmgr,
         break;
     case TPM2_CC_GetCapability:
         g_debug ("processing TPM2_CC_GetCapability");
-        connection = tpm2_command_get_connection (command);
-        response = get_cap_gen_response (command, connection);
-        g_object_unref (connection);
+        response = get_cap_gen_response (resmgr, command);
         break;
     default:
         break;

@@ -57,6 +57,6 @@ void                  resource_manager_enqueue           (Sink            *sink,
                                                           GObject         *obj);
 void                  resource_manager_remove_connection (ResourceManager *resource_manager,
                                                           Connection      *connection);
-
+TSS2_RC               get_cap_post_process (Tpm2Response *resp);
 G_END_DECLS
 #endif /* RESOURCE_MANAGER_H */

@@ -4,12 +4,16 @@
  * All rights reserved.
  */
 #include <assert.h>
+#include <errno.h>
 #include <glib.h>
 #include <inttypes.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
+
+#include <tss2/tss2_mu.h>
 
 #include "resource-manager.h"
 #include "sink-interface.h"
@@ -374,6 +378,123 @@ resource_manager_load_handles_test(void **state)
         assert_int_equal (phandles [i], handle_ret);
     }
 }
+/*
+ * This setup function calls the 'resource_manager_setup' function to create
+ * the ResourceManager object etc. It then creates a Tpm2Response object
+ * approprite for use in testing the 'get_cap_post_process' function.
+ */
+int
+resource_manager_setup_getcap (void **state)
+{
+    int setup_ret;
+    test_data_t *data = NULL;
+    size_t offset = 0, buf_size = 0;
+    uint8_t *buf = NULL;
+    TSS2_RC rc;
+    /* structures that define the Tpm2Response object used in GetCap tests */
+    TPMI_YES_NO yes_no = TPM2_NO;
+    TPMS_CAPABILITY_DATA cap_data = {
+        .capability = TPM2_CAP_TPM_PROPERTIES,
+        /* TPMU_CAPABILITIES, union type defined by 'capability' selector */
+        .data = {
+            /* TPML_TAGGED_TPM_PROPERTY */
+            .tpmProperties = {
+                .count = 1,
+                /* TPMS_TAGGED_PROPERTY */
+                .tpmProperty = {
+                    {
+                      .property = TPM2_PT_CONTEXT_GAP_MAX,
+                      .value = 0xff,
+                    }
+                }
+            }
+        }
+    };
+
+    setup_ret = resource_manager_setup (state);
+    if (setup_ret != 0) {
+        g_critical ("%s: resource_manager_setup failed", __func__);
+        return setup_ret;
+    }
+    data = (test_data_t*)*state;
+    buf_size = TPM2_MAX_RESPONSE_SIZE;
+    g_debug ("%s: sizeof buffer required for TPMS_CAPABILITY_DATA: 0x%zx",
+             __func__, offset);
+
+    buf = calloc (1, buf_size);
+    if (buf == NULL) {
+        g_critical ("%s: failed to allocate buffer: %s", __func__,
+                    strerror (errno));
+        return 1;
+    }
+    offset = TPM_HEADER_SIZE;
+    rc = Tss2_MU_BYTE_Marshal (yes_no, buf, buf_size, &offset);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_critical ("%s: failed to marshal TPMI_YES_NO into response body, "
+                    "rc: 0x%" PRIx32, __func__, rc);
+        return 1;
+    }
+    rc = Tss2_MU_TPMS_CAPABILITY_DATA_Marshal (&cap_data, buf, buf_size, &offset);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_critical ("%s: failed to marshal TPMS_CAPABILITY_DATA into response "
+                    "body, rc: 0x%" PRIx32, __func__, rc);
+        return 1;
+    }
+    rc = tpm2_header_init (buf,
+                           buf_size,
+                           TPM2_ST_NO_SESSIONS,
+                           offset,
+                           TSS2_RC_SUCCESS);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_critical ("%s: failed to initialize TPM2 Header, rc: 0x%" PRIx32,
+                    __func__, rc);
+        return 1;
+    }
+    data->response = tpm2_response_new (data->connection, buf, offset, TPM2_CC_GetCapability);
+    return setup_ret;
+}
+/*
+ * Test 'getcap_post_process' function to ensure that TPM2_PT_CONTEXT_GAP_MAX
+ * property is properly modified from its initial value of UINT8_MAX to
+ * UINT32_MAX.
+ */
+void
+resource_manager_getcap_gap_max_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    size_t offset = TPM_HEADER_SIZE, buf_size;
+    uint8_t *buf;
+    TSS2_RC rc;
+    TPMI_YES_NO yes_no = TPM2_NO;
+    TPMS_CAPABILITY_DATA cap_data = { 0 };
+
+    /* get buffer & size from Tpm2Response created in setup function */
+    buf = tpm2_response_get_buffer (data->response);
+    buf_size = tpm2_response_get_size (data->response);
+    assert_non_null (buf);
+    /* verify defaults from setup function */
+    rc = Tss2_MU_BYTE_Unmarshal (buf, buf_size, &offset, &yes_no);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    rc = Tss2_MU_TPMS_CAPABILITY_DATA_Unmarshal (buf,
+                                                 buf_size,
+                                                 &offset,
+                                                 &cap_data);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    assert_int_equal (cap_data.data.tpmProperties.tpmProperty [0].value, UINT8_MAX);
+    offset = TPM_HEADER_SIZE;
+    /* execute function under test */
+    rc = get_cap_post_process (data->response);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    rc = Tss2_MU_BYTE_Unmarshal (buf, buf_size, &offset, &yes_no);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    rc = Tss2_MU_TPMS_CAPABILITY_DATA_Unmarshal (buf,
+                                                 buf_size,
+                                                 &offset,
+                                                 &cap_data);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+    /* verify property was modified by the RM */
+    assert_int_equal (cap_data.data.tpmProperties.tpmProperty [0].value, UINT32_MAX);
+}
 int
 main (void)
 {
@@ -398,6 +519,9 @@ main (void)
                                          resource_manager_teardown),
         cmocka_unit_test_setup_teardown (resource_manager_load_handles_test,
                                          resource_manager_setup_two_transient_handles,
+                                         resource_manager_teardown),
+        cmocka_unit_test_setup_teardown (resource_manager_getcap_gap_max_test,
+                                         resource_manager_setup_getcap,
                                          resource_manager_teardown),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
