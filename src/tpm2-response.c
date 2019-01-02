@@ -88,7 +88,7 @@ tpm2_response_get_property (GObject     *object,
 {
     Tpm2Response *self = TPM2_RESPONSE (object);
 
-    g_debug ("tpm2_response_get_property: 0x%" PRIxPTR, (uintptr_t)self);
+    g_debug ("%s: %p", __func__, objid (self));
     switch (property_id) {
     case PROP_ATTRIBUTES:
         g_value_set_uint (value, self->attributes);
@@ -112,7 +112,7 @@ tpm2_response_dispose (GObject *obj)
 {
     Tpm2Response *self = TPM2_RESPONSE (obj);
 
-    g_debug ("%s: Tpm2Response: 0x%" PRIxPTR, __func__, (uintptr_t)self);
+    g_debug ("%s: Tpm2Response: %p", __func__, objid (self));
     g_clear_object (&self->connection);
     G_OBJECT_CLASS (tpm2_response_parent_class)->dispose (obj);
 }
@@ -191,8 +191,9 @@ tpm2_response_new (Connection     *connection,
                    size_t           buffer_size,
                    TPMA_CC          attributes)
 {
-    g_debug ("%s: connection: 0x%" PRIxPTR " buffer: 0x%" PRIxPTR " size: 0x%zx attrs: 0x%" PRIx32,
-             __func__, (uintptr_t)connection, (uintptr_t)buffer, buffer_size, attributes);
+    g_debug ("%s: connection: %p buffer: %p size: 0x%zx attrs: 0x%" PRIx32,
+             __func__, objid (connection), objid (buffer), buffer_size,
+             attributes);
     return TPM2_RESPONSE (g_object_new (TYPE_TPM2_RESPONSE,
                                         "attributes", attributes,
                                        "buffer",  buffer,
@@ -253,10 +254,11 @@ tpm2_response_new_context_load (Connection *connection,
                    __func__, rc);
         goto out;
     }
-    g_debug ("%s: Generating response for SaveContext from connection 0x%" PRIxPTR, __func__, (uintptr_t)connection);
+    g_debug ("%s: generating response for SaveContext from connection %p",
+             __func__, objid (connection));
     response = tpm2_response_new (connection, buf, offset, 0x10000161);
-    g_debug ("%s generated Tpm2Response object: 0x%" PRIxPTR " for connection: 0x%" PRIxPTR,
-             __func__, (uintptr_t)response, (uintptr_t)connection);
+    g_debug ("%s: generated Tpm2Response object: %p for connection: %p",
+             __func__, objid (response), objid (connection));
 out:
     if (response == NULL) {
         g_free (buf);
@@ -294,10 +296,11 @@ tpm2_response_new_context_save (Connection *connection,
                    __func__, rc);
         goto out;
     }
-    g_debug ("%s: Generating response for SaveContext from connection 0x%" PRIxPTR, __func__, (uintptr_t)connection);
+    g_debug ("%s: generating response for SaveContext from connection %p",
+             __func__, objid (connection));
     response = tpm2_response_new (connection, buf, TPM_HEADER_SIZE + size_buf->size, 0x02000162);
-    g_debug ("%s generated Tpm2Response object: 0x%" PRIxPTR " for connection: 0x%" PRIxPTR,
-             __func__, (uintptr_t)response, (uintptr_t)connection);
+    g_debug ("%s generated Tpm2Response object: %p for connection: %p",
+             __func__, objid (response), objid (connection));
 out:
     if (response == NULL) {
         g_free (buf);

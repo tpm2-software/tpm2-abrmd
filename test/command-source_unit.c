@@ -344,6 +344,7 @@ command_source_on_io_ready_eof_test (void **state)
 int
 main (void)
 {
+    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (command_source_allocate_test,
                                          command_source_allocate_setup,

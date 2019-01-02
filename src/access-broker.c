@@ -54,11 +54,11 @@ access_broker_set_property (GObject        *object,
 {
     AccessBroker *self = ACCESS_BROKER (object);
 
-    g_debug ("access_broker_set_property: 0x%" PRIxPTR, (uintptr_t)self);
+    g_debug ("access_broker_set_property: %p", objid (self));
     switch (property_id) {
     case PROP_SAPI_CTX:
         self->sapi_context = g_value_get_pointer (value);
-        g_debug ("  sapi_context: 0x%" PRIxPTR, (uintptr_t)self->sapi_context);
+        g_debug ("  sapi_context: %p", objid (self->sapi_context));
         break;
     case PROP_TCTI:
         if (self->tcti != NULL) {
@@ -67,7 +67,7 @@ access_broker_set_property (GObject        *object,
         }
         self->tcti = g_value_get_object (value);
         g_object_ref (self->tcti);
-        g_debug ("  tcti: 0x%" PRIxPTR, (uintptr_t)self->tcti);
+        g_debug ("  tcti: %p", objid (self->tcti));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -85,7 +85,7 @@ access_broker_get_property (GObject     *object,
 {
     AccessBroker *self = ACCESS_BROKER (object);
 
-    g_debug ("access_broker_get_property: 0x%" PRIxPTR, (uintptr_t)self);
+    g_debug ("access_broker_get_property: %p", objid (self));
     switch (property_id) {
     case PROP_SAPI_CTX:
         g_value_set_pointer (value, self->sapi_context);
@@ -174,7 +174,7 @@ sapi_context_init (Tcti *tcti)
     size_t size;
     TSS2_ABI_VERSION abi_version = SUPPORTED_ABI_VERSION;
 
-    g_debug ("sapi_context_init w/ Tcti: 0x%" PRIxPTR, (uintptr_t)tcti);
+    g_debug ("sapi_context_init w/ Tcti: %p", objid (tcti));
     tcti_context = tcti_peek_context (tcti);
     if (tcti_context == NULL)
         g_error ("NULL TCTI_CONTEXT");
@@ -393,9 +393,9 @@ access_broker_send_cmd (AccessBroker *broker,
                         tpm2_command_get_size (command),
                         tpm2_command_get_buffer (command));
     if (rc != TSS2_RC_SUCCESS)
-        g_warning ("AccessBroker 0x%" PRIxPTR " failed to transmit "
-                   "Tpm2Command 0x%" PRIxPTR ": 0x%" PRIx32,
-                   (uintptr_t)broker, (uintptr_t)command, rc);
+        g_warning ("AccessBroker %p" " failed to transmit "
+                   "Tpm2Command %p" ": 0x%" PRIx32,
+                   objid (broker), objid (command), rc);
     return rc;
 }
 /*
@@ -458,9 +458,8 @@ access_broker_send_command (AccessBroker  *broker,
     guint8         *buffer = NULL;
     size_t          buffer_size = 0;
 
-    g_debug ("access_broker_send_command: AccessBroker: 0x%" PRIxPTR
-             " Tpm2Command: 0x%" PRIxPTR, (uintptr_t)broker,
-             (uintptr_t)command);
+    g_debug ("%s: AccessBroker: %p Tpm2Command: %p", __func__,
+             objid (broker), objid (command));
     access_broker_lock (broker);
     *rc = access_broker_send_cmd (broker, command);
     if (*rc != TSS2_RC_SUCCESS)
@@ -475,9 +474,9 @@ access_broker_send_command (AccessBroker  *broker,
                                   buffer,
                                   buffer_size,
                                   tpm2_command_get_attributes (command));
-    g_debug ("access_broker_send_command: AccessBroker: 0x%" PRIxPTR
-             " Tpm2Response: 0x%" PRIxPTR " RC: 0x%" PRIx32, (uintptr_t)broker,
-             (uintptr_t)response, tpm2_response_get_code (response));
+    g_debug ("access_broker_send_command: AccessBroker: %p"
+             " Tpm2Response: %p RC: 0x%" PRIx32, objid (broker),
+             objid (response), tpm2_response_get_code (response));
     g_clear_object (&connection);
     return response;
 
@@ -523,7 +522,7 @@ access_broker_init_tpm (AccessBroker *broker)
 {
     TSS2_RC rc;
 
-    g_debug ("access_broker_init_tpm: 0x%" PRIxPTR, (uintptr_t)broker);
+    g_debug ("access_broker_init_tpm: %p", objid (broker));
     if (broker->initialized)
         return TSS2_RC_SUCCESS;
     pthread_mutex_init (&broker->sapi_mutex, NULL);
@@ -592,13 +591,12 @@ access_broker_context_load (AccessBroker *broker,
     rc = Tss2_Sys_ContextLoad (sapi_context, context, handle);
     access_broker_unlock (broker);
     if (rc == TSS2_RC_SUCCESS) {
-        g_debug ("Tss2_Sys_ContextLoad: successfully load context at 0x%"
-                 PRIxPTR " got handle 0x%" PRIx32, (uintptr_t)context,
-                 *handle);
+        g_debug ("Tss2_Sys_ContextLoad: successfully load context at %p"
+                 " got handle 0x%" PRIx32, objid (context), *handle);
     } else {
         g_warning ("Tss2_Sys_ContextLoad: failed to load context for "
-                   "context at: 0x%" PRIxPTR ", TSS2_RC: 0x%" PRIx32,
-                   (uintptr_t)context, rc);
+                   "context at: %p" ", TSS2_RC: 0x%" PRIx32,
+                   objid (context), rc);
     }
 
     return rc;
@@ -696,8 +694,8 @@ access_broker_flush_all_unlocked (AccessBroker     *broker,
     TPM2_HANDLE handle;
     size_t i;
 
-    g_debug ("%s: AccessBroker: 0x%" PRIxPTR ", first: 0x%08" PRIx32 ", last: "
-             "0x%08" PRIx32, __func__, (uintptr_t)broker, first, last);
+    g_debug ("%s: AccessBroker: %p" ", first: 0x%08" PRIx32 ", last: "
+             "0x%08" PRIx32, __func__, objid (broker), first, last);
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
                                  TPM2_CAP_HANDLES,
@@ -727,7 +725,7 @@ access_broker_flush_all_context (AccessBroker *broker)
 {
     TSS2_SYS_CONTEXT *sapi_context;
 
-    g_debug ("%s: AccessBroker: 0x%" PRIxPTR, __func__, (uintptr_t)broker);
+    g_debug ("%s: AccessBroker: %p", __func__, objid (broker));
     g_assert_nonnull (broker);
     sapi_context = access_broker_lock_sapi (broker);
     access_broker_flush_all_unlocked (broker,

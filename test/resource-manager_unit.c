@@ -498,6 +498,7 @@ resource_manager_getcap_gap_max_test (void **state)
 int
 main (void)
 {
+    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (resource_manager_type_test,
                                          resource_manager_setup,

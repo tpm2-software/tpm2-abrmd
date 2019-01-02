@@ -307,6 +307,7 @@ session_list_claim_fail_test (void **state)
 gint
 main (void)
 {
+    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (session_list_type_test,
                                          session_list_setup,

@@ -12,6 +12,7 @@
 #include "test.h"
 #include "test-options.h"
 #include "context-util.h"
+#include "util.h"
 
 /**
  * This program is a template for integration tests (ones that use the TCTI
@@ -27,6 +28,7 @@ main ()
     int ret;
     test_opts_t opts = TEST_OPTS_DEFAULT_INIT;
 
+    util_init ();
     get_test_opts_from_env (&opts);
     if (sanity_check_test_opts (&opts) != 0)
         exit (1);

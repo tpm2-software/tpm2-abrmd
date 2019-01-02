@@ -411,6 +411,7 @@ tpm2_response_set_handle_no_handle_test (void **state)
 gint
 main (void)
 {
+    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (tpm2_response_type_test,
                                          tpm2_response_setup,

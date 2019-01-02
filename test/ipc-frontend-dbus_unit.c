@@ -10,6 +10,7 @@
 #include <cmocka.h>
 
 #include "ipc-frontend-dbus.h"
+#include "util.h"
 
 static int
 ipc_frontend_dbus_setup (void **state)
@@ -64,6 +65,7 @@ ipc_frontend_dbus_type_test (void **state)
 gint
 main (void)
 {
+    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (ipc_frontend_dbus_type_test,
                                          ipc_frontend_dbus_setup,

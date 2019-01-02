@@ -83,7 +83,7 @@ static void
 on_ipc_frontend_disconnect (IpcFrontend *ipc_frontend,
                             GMainLoop   *loop)
 {
-    g_info ("IpcFrontend 0x%" PRIxPTR " disconnected", (uintptr_t)ipc_frontend);
+    g_info ("%s: IpcFrontend %p disconnected", __func__, objid (ipc_frontend));
     main_loop_quit (loop);
 }
 /**
@@ -133,7 +133,7 @@ init_thread_func (gpointer user_data)
     connection_manager = connection_manager_new(data->options.max_connections);
     if (connection_manager == NULL)
         g_error ("failed to allocate connection_manager");
-    g_debug ("ConnectionManager: 0x%" PRIxPTR, (uintptr_t)connection_manager);
+    g_debug ("%s: ConnectionManager: %p", __func__, objid (connection_manager));
     /* setup IpcFrontend */
     data->ipc_frontend =
         IPC_FRONTEND (ipc_frontend_dbus_new (data->options.bus,
@@ -161,8 +161,8 @@ init_thread_func (gpointer user_data)
     }
     g_clear_object (&tcti_factory);
     data->access_broker = access_broker_new (tcti);
-    g_debug ("created AccessBroker: 0x%" PRIxPTR,
-             (uintptr_t)data->access_broker);
+    g_debug ("%s: created AccessBroker: %p", __func__,
+             objid (data->access_broker));
     g_clear_object (&tcti);
     rc = access_broker_init_tpm (data->access_broker);
     if (rc != TSS2_RC_SUCCESS)
@@ -175,27 +175,27 @@ init_thread_func (gpointer user_data)
      * pipeline.
      */
     command_attrs = command_attrs_new ();
-    g_debug ("created CommandAttrs: 0x%" PRIxPTR, (uintptr_t)command_attrs);
+    g_debug ("%s: created CommandAttrs: %p", __func__, objid (command_attrs));
     ret = command_attrs_init_tpm (command_attrs, data->access_broker);
     if (ret != 0)
-        g_error ("failed to initialize CommandAttribute object: 0x%" PRIxPTR,
-                 (uintptr_t)command_attrs);
+        g_error ("%s: failed to initialize CommandAttribute object: %p",
+                 __func__, objid (command_attrs));
 
     data->command_source =
         command_source_new (connection_manager, command_attrs);
     g_object_unref (connection_manager);
-    g_debug ("created command source: 0x%" PRIxPTR,
-             (uintptr_t)data->command_source);
+    g_debug ("%s: created command source: %p", __func__,
+             objid (data->command_source));
     session_list = session_list_new (data->options.max_sessions,
                                      SESSION_LIST_MAX_ABANDONED_DEFAULT);
     data->resource_manager = resource_manager_new (data->access_broker,
                                                    session_list);
     g_clear_object (&session_list);
-    g_debug ("created ResourceManager: 0x%" PRIxPTR,
-             (uintptr_t)data->resource_manager);
+    g_debug ("%s: created ResourceManager: %p", __func__,
+             objid (data->resource_manager));
     data->response_sink = response_sink_new ();
-    g_debug ("created response source: 0x%" PRIxPTR,
-             (uintptr_t)data->response_sink);
+    g_debug ("%s: created response source: %p", __func__,
+             objid (data->response_sink));
     g_object_unref (command_attrs);
     g_object_unref (data->access_broker);
     /**
@@ -426,6 +426,7 @@ main (int argc, char *argv[])
     gmain_data_t gmain_data = { .options = TABRMD_OPTIONS_INIT_DEFAULT };
     GThread *init_thread;
 
+    util_init ();
     g_info ("tabrmd startup");
     parse_opts (argc, argv, &gmain_data.options);
     if (geteuid() == 0 && ! gmain_data.options.allow_root) {

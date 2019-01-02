@@ -461,8 +461,8 @@ on_handle_cancel (TctiTabrmd            *skeleton,
                                                "No connection.");
         return TRUE;
     }
-    g_info ("canceling command for connection 0x%" PRIxPTR " with "
-            "id_pid_mix: 0x%" PRIx64, (uintptr_t)connection, id_pid_mix);
+    g_info ("canceling command for connection %p" " with "
+            "id_pid_mix: 0x%" PRIx64, objid (connection), id_pid_mix);
     /* cancel any existing commands for the connection */
     g_dbus_method_invocation_return_error (invocation,
                                            TABRMD_ERROR,
@@ -515,9 +515,8 @@ on_handle_set_locality (TctiTabrmd            *skeleton,
                                                "No connection.");
         return TRUE;
     }
-    g_info ("setting locality for connection 0x%" PRIxPTR " with "
-            "id_pid_mix: 0x%" PRIx64 " to: %" PRIx8,
-            (uintptr_t)connection, id_pid_mix, locality);
+    g_info ("setting locality for connection %p with id_pid_mix: 0x%" PRIx64
+            " to: %" PRIx8, objid (connection), id_pid_mix, locality);
     /* set locality for an existing connection */
     g_dbus_method_invocation_return_error (invocation,
                                            TABRMD_ERROR,

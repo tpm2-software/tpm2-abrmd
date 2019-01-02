@@ -268,6 +268,7 @@ command_attrs_from_cc_fail_test (void **state)
 gint
 main (void)
 {
+    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (command_attrs_type_test,
                                          command_attrs_setup,
