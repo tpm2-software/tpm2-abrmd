@@ -96,6 +96,7 @@ tcti_receive_test (void **state)
 gint
 main (void)
 {
+    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (tcti_type_test,
                                          tcti_setup,

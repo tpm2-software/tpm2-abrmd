@@ -16,6 +16,7 @@
 
 #include <tss2/tss2_tpm2_types.h>
 
+#include "random.h"
 #include "util.h"
 #include "tpm2-header.h"
 
@@ -76,11 +77,8 @@ write_all (GOutputStream *ostream,
     GError *error = NULL;
 
     do {
-        g_debug ("writing %zu bytes starting at 0x%" PRIxPTR " to socket 0x%"
-                 PRIxPTR,
-                 size - written_total,
-                 (uintptr_t)(buf + written_total),
-                 (uintptr_t)socket);
+        g_debug ("%s: writing %zu bytes to ostream", __func__,
+                 size - written_total);
         written = g_output_stream_write (ostream,
                                          (const gchar*)&buf [written_total],
                                          size - written_total,
@@ -89,15 +87,13 @@ write_all (GOutputStream *ostream,
         switch (written) {
         case -1:
             g_assert (error != NULL);
-            g_warning ("failed to write to ostream 0x%" PRIxPTR ": %s",
-                       (uintptr_t)ostream, error->message);
+            g_warning ("%s: failed to write to ostream: %s", __func__, error->message);
             g_error_free (error);
             return written;
         case  0:
             return (ssize_t)written_total;
         default:
-            g_debug ("wrote %zd bytes to ostream 0x%" PRIxPTR,
-                     written, (uintptr_t)ostream);
+            g_debug ("%s: wrote %zd bytes to ostream", __func__, written);
         }
         written_total += (size_t)written;
     } while (written_total < size);
@@ -134,8 +130,7 @@ read_data (GInputStream  *istream,
 
     g_assert (index != NULL);
     do {
-        g_debug ("reading %zu bytes socket 0x%" PRIxPTR", to 0x%" PRIxPTR,
-                 bytes_left, (uintptr_t)socket, (uintptr_t)&buf [*index]);
+        g_debug ("%s: reading %zu bytes from istream", __func__,  bytes_left);
         num_read = g_input_stream_read (istream,
                                         (gchar*)&buf [*index],
                                         bytes_left,
@@ -152,8 +147,8 @@ read_data (GInputStream  *istream,
             return -1;
         } else { /* num_read < 0 */
             g_assert (error != NULL);
-            g_warning ("read on istream 0x%" PRIxPTR " produced error: %s",
-                       (uintptr_t)istream, error->message);
+            g_warning ("%s: read on istream produced error: %s", __func__,
+                       error->message);
             error_code = error->code;
             g_error_free (error);
             return error_code;
@@ -248,13 +243,12 @@ read_tpm_buffer_alloc (GInputStream *istream,
             goto err_out;
         }
     } while (ret == EPROTO);
-    g_debug ("%s: read TPM buffer to 0x%" PRIxPTR " of size: %zd",
-             __func__, (uintptr_t)buf, index);
+    g_debug ("%s: read TPM buffer of size: %zd", __func__, index);
     g_debug_bytes (buf, index, 16, 4);
     *buf_size = size_tmp;
     return buf;
 err_out:
-    g_debug ("%s: err_out freeing buffer at 0x%" PRIxPTR, __func__, (uintptr_t)buf);
+    g_debug ("%s: err_out freeing buffer", __func__);
     if (buf != NULL) {
         g_free (buf);
     }
@@ -332,7 +326,6 @@ parse_key_value (char *key_value_str,
     const char *delim = "=";
     char *tok, *state;
 
-    g_debug ("%s: with key_value_str: \"%s\" and key_value_t: 0x%" PRIxPTR, __func__, key_value_str, (uintptr_t)key_value);
     tok = strtok_r (key_value_str, delim, &state);
     if (tok == NULL) {
         g_warning ("key / value string is null.");
@@ -367,9 +360,6 @@ parse_key_value_string (char *kv_str,
     gboolean ret;
     TSS2_RC rc = TSS2_RC_SUCCESS;
 
-    g_debug ("%s: kv_str: \"%s\", callback: 0x%" PRIxPTR ", user_data: 0x%"
-             PRIxPTR, __func__, kv_str, (uintptr_t)callback,
-             (uintptr_t)user_data);
     for (tok = strtok_r (kv_str, delim, &state);
          tok;
          tok = strtok_r (NULL, delim, &state)) {
@@ -384,4 +374,50 @@ parse_key_value_string (char *kv_str,
     }
 out:
     return rc;
+}
+
+#define ENTROPY_SRC "/dev/urandom"
+static void* ptr_mask = NULL;
+/*
+ * This initialization function is used to initialize state internal to the
+ * util module. Use of any function from this module that requires
+ * initialization before 'util_init' is called should cause the program to
+ * halt via an 'assert'. Currently this init function is only used to get a
+ * random value from ENTROPY_SRC for use in the 'objid' function.
+ */
+void
+util_init (void)
+{
+    if (ptr_mask != NULL) {
+        g_debug ("%s: already initialized", __func__);
+        return;
+    }
+
+    Random *rand = NULL;
+    int ret;
+    size_t bytes;
+
+    rand = random_new ();
+    ret = random_seed_from_file (rand, ENTROPY_SRC);
+    g_assert (ret != -1);
+    bytes = random_get_bytes (rand, (uint8_t*)&ptr_mask, sizeof (ptr_mask));
+    g_assert (bytes == sizeof (ptr_mask));
+
+    g_clear_object (&rand);
+}
+/*
+ * This function is used to mask pointer values before they are displayed
+ * in debug output. This allows us to use the address of objects to track
+ * their use in 'trace' output without weakening ASRL in systems that may
+ * be misconfigured to collect 'debug' output when deployed.
+ */
+void*
+objid (const void *ptr)
+{
+    g_assert (ptr_mask != NULL);
+
+    if (ptr == NULL) {
+        return NULL;
+    }
+    return (void*)((uintptr_t)ptr_mask ^ (uintptr_t)ptr);
 }

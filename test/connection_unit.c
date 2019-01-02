@@ -167,6 +167,7 @@ connection_server_to_client_test (void **state)
 int
 main(void)
 {
+    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (connection_allocate_test),
         cmocka_unit_test_setup_teardown (connection_key_socket_test,

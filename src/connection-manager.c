@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "connection-manager.h"
+#include "util.h"
 
 #define MAX_CONNECTIONS 100
 #define MAX_CONNECTIONS_DEFAULT 27
@@ -44,13 +45,11 @@ connection_manager_set_property (GObject        *object,
 {
     ConnectionManager *mgr = CONNECTION_MANAGER (object);
 
-    g_debug ("connection_manager_set_property: 0x%" PRIxPTR,
-             (uintptr_t)mgr);
+    g_debug ("connection_manager_set_property: %p", objid (mgr));
     switch (property_id) {
     case PROP_MAX_CONNECTIONS:
         mgr->max_connections = g_value_get_uint (value);
-        g_debug ("  max_connections: 0x%" PRIxPTR,
-                 (uintptr_t)mgr->max_connections);
+        g_debug ("  max_connections: %u", mgr->max_connections);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -68,7 +67,7 @@ connection_manager_get_property (GObject     *object,
 {
     ConnectionManager *mgr = CONNECTION_MANAGER (object);
 
-    g_debug ("connection_manager_get_property: 0x%" PRIxPTR, (uintptr_t)mgr);
+    g_debug ("connection_manager_get_property: %p", objid (mgr));
     switch (property_id) {
     case PROP_MAX_CONNECTIONS:
         g_value_set_uint (value, mgr->max_connections);
@@ -196,8 +195,8 @@ connection_manager_insert (ConnectionManager    *manager,
         g_error ("Error locking connection_manager mutex: %s",
                  strerror (errno));
     if (connection_manager_is_full (manager)) {
-        g_warning ("connection_manager: 0x%" PRIxPTR " max_connections of %u exceeded",
-                   (uintptr_t)manager, manager->max_connections);
+        g_warning ("connection_manager: %p max_connections of %u exceeded",
+                   objid (manager), manager->max_connections);
         pthread_mutex_unlock (&manager->mutex);
         return -1;
     }
@@ -290,23 +289,23 @@ connection_manager_remove (ConnectionManager   *manager,
 {
     gboolean ret;
 
-    g_debug ("connection_manager 0x%" PRIxPTR " removing Connection 0x%" PRIxPTR,
-             (uintptr_t)manager, (uintptr_t)connection);
+    g_debug ("connection_manager %p removing Connection %p",
+             objid (manager), objid (connection));
     pthread_mutex_lock (&manager->mutex);
     ret = g_hash_table_remove (manager->connection_from_istream_table,
                                connection_key_istream (connection));
     if (ret != TRUE)
-        g_error ("failed to remove Connection 0x%" PRIxPTR " from g_hash_table "
-                 "0x%" PRIxPTR "using key 0x%" PRIxPTR, (uintptr_t)connection,
-                 (uintptr_t)manager->connection_from_istream_table,
-                 (uintptr_t)connection_key_istream (connection));
+        g_error ("failed to remove Connection %p from g_hash_table %p using "
+                 "key %p", objid (connection),
+                 objid (manager->connection_from_istream_table),
+                 objid (connection_key_istream (connection)));
     ret = g_hash_table_remove (manager->connection_from_id_table,
                                connection_key_id (connection));
     if (ret != TRUE)
-        g_error ("failed to remove Connection 0x%" PRIxPTR " from g_hash_table "
-                 "0x%" PRIxPTR " using key %" PRIxPTR, (uintptr_t)connection,
-                 (uintptr_t)manager->connection_from_istream_table,
-                 (uintptr_t)connection_key_id (connection));
+        g_error ("failed to remove Connection %p from g_hash_table %p using "
+                 "key %p", objid (connection),
+                 objid (manager->connection_from_istream_table),
+                 objid (connection_key_id (connection)));
     pthread_mutex_unlock (&manager->mutex);
 
     return ret;

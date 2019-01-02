@@ -45,8 +45,7 @@ tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
     }
     g_debug_bytes (command, size, 16, 4);
     ostream = g_io_stream_get_output_stream (TSS2_TCTI_TABRMD_IOSTREAM (context));
-    g_debug ("blocking write on iostream: 0x%" PRIxPTR,
-             (uintptr_t)ostream);
+    g_debug ("%s: blocking write on ostream", __func__);
     write_ret = write_all (ostream, command, size);
     /* should switch on possible errors to translate to TSS2 error codes */
     switch (write_ret) {
@@ -449,8 +448,6 @@ tabrmd_kv_callback (const key_value_t *key_value,
 {
     tabrmd_conf_t *tabrmd_conf = (tabrmd_conf_t*)user_data;
 
-    g_debug ("%s with key_value: 0x%" PRIxPTR " and user_data: 0x%" PRIxPTR,
-             __func__, (uintptr_t)key_value, (uintptr_t)user_data);
     if (key_value == NULL || user_data == NULL) {
         g_warning ("%s passed NULL parameter", __func__);
         return TSS2_TCTI_RC_GENERAL_FAILURE;

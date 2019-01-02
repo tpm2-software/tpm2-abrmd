@@ -99,7 +99,6 @@ random_seed_from_file (Random *random,
         ret = -1;
         goto close_out;
     }
-    g_debug ("seeding rand with %ld", rand_seed);
     random->rand_state[0] = 0x330E;
     random->rand_state[1] = rand_seed & 0xffff;
     random->rand_state[2] = (rand_seed >> 16) & 0xffff;
@@ -127,7 +126,6 @@ random_get_bytes (Random    *random,
     size_t i;
     uint8_t rand[sizeof (long int)] = { 0, };
 
-    g_debug ("random_get_bytes: %p", random);
     g_assert_nonnull (random);
     assert (random->rand_state);
     for (i = 0; i < count; ++i) {

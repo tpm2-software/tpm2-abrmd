@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "message-queue.h"
+#include "util.h"
 
 G_DEFINE_TYPE (MessageQueue, message_queue, G_TYPE_OBJECT);
 
@@ -65,8 +66,8 @@ message_queue_enqueue (MessageQueue  *message_queue,
                        GObject       *object)
 {
     g_assert (message_queue != NULL);
-    g_debug ("message_queue_enqueue 0x%" PRIxPTR " : message 0x%" PRIxPTR,
-             (uintptr_t)message_queue, (uintptr_t)object);
+    g_debug ("message_queue_enqueue %p : message %p",
+             objid (message_queue), objid (object));
     g_object_ref (object);
     g_async_queue_push (message_queue->queue, object);
 }
@@ -81,8 +82,8 @@ message_queue_dequeue (MessageQueue *message_queue)
     GObject *obj;
 
     g_assert (message_queue != NULL);
-    g_debug ("message_queue_dequeue 0x%" PRIxPTR, (uintptr_t)message_queue);
+    g_debug ("message_queue_dequeue %p", objid (message_queue));
     obj = g_async_queue_pop (message_queue->queue);
-    g_debug ("  got obj: 0x%" PRIxPTR, (uintptr_t)obj);
+    g_debug ("  got obj: %p", objid (obj));
     return obj;
 }

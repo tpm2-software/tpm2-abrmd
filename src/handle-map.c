@@ -8,6 +8,7 @@
 #include <inttypes.h>
 
 #include "handle-map.h"
+#include "util.h"
 
 G_DEFINE_TYPE (HandleMap, handle_map, G_TYPE_OBJECT);
 
@@ -58,7 +59,8 @@ handle_map_set_property (GObject        *object,
         break;
     case PROP_MAX_ENTRIES:
         map->max_entries = g_value_get_uint (value);
-        g_debug ("handle_map_set_property: 0x%" PRIxPTR " max-entries: %u", (intptr_t)map, map->max_entries);
+        g_debug ("handle_map_set_property: %p max-entries: %u", objid (map),
+                 map->max_entries);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -208,12 +210,12 @@ handle_map_insert (HandleMap      *map,
                    TPM2_HANDLE      vhandle,
                    HandleMapEntry *entry)
 {
-    g_debug ("handle_map_insert: vhandle: 0x%" PRIx32 ", entry: 0x%" PRIxPTR,
-             vhandle, (uintptr_t)entry);
+    g_debug ("handle_map_insert: vhandle: 0x%" PRIx32 ", entry: %p",
+             vhandle, objid (entry));
     handle_map_lock (map);
     if (handle_map_is_full (map)) {
-        g_warning ("HandleMap: 0x%" PRIxPTR " max_entries of %u exceeded",
-                   (uintptr_t)map, map->max_entries);
+        g_warning ("HandleMap: %p" " max_entries of %u exceeded",
+                   objid (map), map->max_entries);
         handle_map_unlock (map);
         return FALSE;
     }
