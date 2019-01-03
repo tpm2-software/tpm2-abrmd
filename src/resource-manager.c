@@ -985,7 +985,7 @@ get_cap_post_process (Tpm2Response *resp)
     g_assert (resp != NULL);
     g_assert (tpm2_response_get_code (resp) == TSS2_RC_SUCCESS);
 
-    TPMS_CAPABILITY_DATA cap_data = { 0 };
+    TPMS_CAPABILITY_DATA cap_data = { .capability = 0 };
     TSS2_RC rc;
     uint8_t *buf = tpm2_response_get_buffer (resp);
     size_t buf_size = tpm2_response_get_size (resp);
