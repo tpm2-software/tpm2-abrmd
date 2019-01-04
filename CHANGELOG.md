@@ -3,6 +3,28 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## 2.1.0 - 2019-02-06
+### Added
+- `-Wstrict-overflow=5` now used in default CFLAGS.
+- Handling of `TPM2_RC_CONTEXT_GAP` on behalf of users.
+- Convert `TPM2_PT_CONTEXT_GAP_MAX` response from lower layer to
+`UINT32_MAX`
+### Changed
+- travis-ci now uses 'xenial' builder
+- Significant refactoring of TCTI handling code.
+- `--install` added to ACLOCAL_AMFLAGS to install aclocal required macros
+instead of using the default symlinks
+- Launch `dbus-run-session` in the automake test environment to
+automagically set up a dbus session bus instance when one isn't present.
+### Fixed
+- Bug caused by unloading of `libtss2-tcti-tabrmd.so` on dlclose. GLib
+does not support reloading a second time.
+- Bug causing `-fstack-protector-all` to be used on systems with core
+libraries (i.e. libc) that do not support it. This caused failures at
+link-time.
+- Unnecessary symbols from libtest utility library no longer included in
+TCTI library.
+
 ## 2.0.3 - 2018-10-31
 ### Fixed
 - Update build to account for upstream change to glib '.pc' files
