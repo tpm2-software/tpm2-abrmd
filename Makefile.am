@@ -76,7 +76,8 @@ XFAIL_TESTS = \
 TEST_EXTENSIONS = .int
 AM_TESTS_ENVIRONMENT = \
     TEST_FUNC_LIB=$(srcdir)/scripts/int-test-funcs.sh \
-    PATH=./src:$(PATH)
+    PATH=./src:$(PATH) \
+    dbus-run-session
 INT_LOG_COMPILER = $(srcdir)/scripts/int-test-setup.sh
 INT_LOG_FLAGS = --tabrmd-tcti=$(TABRMD_TCTI)
 

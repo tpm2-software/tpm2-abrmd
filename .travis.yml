@@ -77,7 +77,7 @@ script :
         exit 0
     fi
   - $SCANBUILD ./configure $CONFIG_OPTS $CONFIG_EXTRA
-  - dbus-launch $SCANBUILD $MAKE distcheck
+  - $SCANBUILD $MAKE distcheck
   - |
     if [ ! -z "$COVERALLS_REPO_TOKEN" ]; then
       coveralls --build-root=./tpm2-abrmd-*/ --exclude=${DEPS} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
