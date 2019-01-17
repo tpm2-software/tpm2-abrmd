@@ -34,6 +34,7 @@ env:
     - PREFIX=/usr
     - DEPS="${TRAVIS_BUILD_DIR}/deps"
     - PATH="${DEPS}/ibmtpm/src:${PATH}"
+    - ACLOCAL_PATH="/usr/share/gnulib/m4"
     - CONFIG_OPTS="--enable-unit --enable-integration --disable-silent-rules"
     - MAKE="make --jobs=$(($(nproc)*3/2))"
 
@@ -54,7 +55,7 @@ install:
   - popd # autoconf-archive
   - git clone -b master --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
-  - ./bootstrap -I /usr/share/gnulib/m4
+  - ./bootstrap
   - ./configure --prefix=${PREFIX} --disable-doxygen-doc --disable-tcti-device --disable-esapi
   - $MAKE && sudo $MAKE install
   - popd # tpm2-tss
