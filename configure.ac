@@ -45,6 +45,11 @@ AS_IF([test ! -x "$(which $GDBUS_CODEGEN)"],
       [AC_MSG_ERROR([*** gdbus-codegen is required to build tpm2-abrmd])])
 
 AX_CODE_COVERAGE
+m4_ifdef([_AX_CODE_COVERAGE_RULES],
+         [AM_CONDITIONAL(AUTOCONF_CODE_COVERAGE_2019_01_06, [true])],
+         [AM_CONDITIONAL(AUTOCONF_CODE_COVERAGE_2019_01_06, [false])])
+AX_ADD_AM_MACRO_STATIC([])
+
 # disable helgrind and drd, they hate GAsyncQueue
 AX_VALGRIND_DFLT([sgcheck], [off])
 AX_VALGRIND_DFLT([helgrind], [off])
