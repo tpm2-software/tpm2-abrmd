@@ -166,7 +166,22 @@ dbusservicedir   = $(datadir)/dbus-1/system-services
 dbusservice_DATA = dist/com.intel.tss2.Tabrmd.service
 endif # HAVE_SYSTEMD
 
+# ax_code_coverage
+if AUTOCONF_CODE_COVERAGE_2019_01_06
+include $(top_srcdir)/aminclude_static.am
+clean-local: code-coverage-clean
+distclean-local: code-coverage-dist-clean
+
+# workaround for a bug in Autoconf Archive 2019.01.06
+# (https://github.com/autoconf-archive/autoconf-archive/pull/182)
+if CODE_COVERAGE_ENABLED
+AM_DISTCHECK_CONFIGURE_FLAGS := $(AM_DISTCHECK_CONFIGURE_FLAGS) --disable-code-coverage
+endif # CODE_COVERAGE_ENABLED
+
+else # AUTOCONF_CODE_COVERAGE_2019_01_06
 @CODE_COVERAGE_RULES@
+endif # AUTOCONF_CODE_COVERAGE_2019_01_06
+
 @VALGRIND_CHECK_RULES@
 VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
 VALGRIND_memcheck_FLAGS = --leak-check=full --show-leak-kinds=definite,indirect --track-origins=yes --error-exitcode=1

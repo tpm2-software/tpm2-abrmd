@@ -48,9 +48,9 @@ matrix:
 install:
   - pip install --user cpp-coveralls
   - mkdir ${DEPS} && pushd ${DEPS}
-  - wget https://download.01.org/tpm2/autoconf-archive-2017.09.28.tar.xz
-  - sha256sum autoconf-archive-2017.09.28.tar.xz | grep -q 5c9fb5845b38b28982a3ef12836f76b35f46799ef4a2e46b48e2bd3c6182fa01
-  - tar xJf autoconf-archive-2017.09.28.tar.xz && pushd autoconf-archive-2017.09.28
+  - wget http://ftpmirror.gnu.org/autoconf-archive/autoconf-archive-2019.01.06.tar.xz
+  - sha256sum autoconf-archive-2019.01.06.tar.xz | grep -q 17195c833098da79de5778ee90948f4c5d90ed1a0cf8391b4ab348e2ec511e3f
+  - tar xJf autoconf-archive-2019.01.06.tar.xz && pushd autoconf-archive-2019.01.06
   - ./configure --prefix=${PREFIX} && $MAKE && sudo $MAKE install
   - popd # autoconf-archive
   - git clone -b master --single-branch https://github.com/01org/tpm2-tss.git
