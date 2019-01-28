@@ -41,9 +41,9 @@ env:
 matrix:
   include:
     - compiler: clang
-      env: SCANBUILD="scan-build --status-bugs" CFLAGS=-D_REENTRANT
+      env: SCANBUILD="scan-build --status-bugs" CFLAGS=-D_REENTRANT CONFIG_EXTRA=--enable-code-coverage MAKE_TARGET=check
     - compiler: gcc
-      env: SCANBUILD= CONFIG_EXTRA=--enable-code-coverage
+      env: SCANBUILD= MAKE_TARGET=distcheck
 
 install:
   - pip install --user cpp-coveralls
@@ -77,11 +77,18 @@ script :
         exit 0
     fi
   - $SCANBUILD ./configure $CONFIG_OPTS $CONFIG_EXTRA
-  - $SCANBUILD $MAKE distcheck
+  - $SCANBUILD $MAKE $MAKE_TARGET
+
+after_success:
   - |
-    if [ ! -z "$COVERALLS_REPO_TOKEN" ]; then
-      coveralls --build-root=./tpm2-abrmd-*/ --exclude=${DEPS} --exclude=./test --exclude=tpm2-abrmd-$(cat VERSION) --exclude=./coverity --exclude=./src/tabrmd-generated.c --exclude=./src/tabrmd-generated.h --gcov-options '\-lp'
+    if [ ! -z "$COVERALLS_REPO_TOKEN" ] && [ "$CC" == "clang" ]; then
+      coveralls --build-root=$(pwd) --exclude=${DEPS} --exclude=test --exclude=coverity --exclude=src/tabrmd-generated.c --exclude=src/tabrmd-generated.h --gcov-options '\-lp'
     fi
 
 after_failure:
-  - cat tpm2-abrmd-*/_build/sub/test-suite.log
+  - |
+    if [ -f test-suite-log ]; then
+        cat test-suite.log
+    else
+        cat tpm2-abrmd-*/_build/sub/test-suite.log
+    fi
