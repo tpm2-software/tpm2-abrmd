@@ -649,9 +649,17 @@ on_get_dbus_daemon_proxy (GObject      *source_object,
                    "(org.freedesktop.DBus): %s", error->message);
         g_error_free (error);
         self->dbus_daemon_proxy = NULL;
-    } else {
-        g_debug ("Got proxy object for DBus daemon.");
     }
+    g_debug ("Got proxy object for DBus daemon.");
+
+    self->dbus_name_owner_id = g_bus_own_name (self->bus_type,
+                                               self->bus_name,
+                                               G_BUS_NAME_OWNER_FLAGS_NONE,
+                                               on_bus_acquired,
+                                               on_name_acquired,
+                                               on_name_lost,
+                                               self,
+                                               NULL);
 }
 /*
  * This function overrides the ipc_frontend_connect function from the
@@ -670,14 +678,6 @@ ipc_frontend_dbus_connect (IpcFrontendDbus *self,
     g_return_if_fail (IS_IPC_FRONTEND_DBUS (self));
 
     frontend->init_mutex = init_mutex;
-    self->dbus_name_owner_id = g_bus_own_name (self->bus_type,
-                                               self->bus_name,
-                                               G_BUS_NAME_OWNER_FLAGS_NONE,
-                                               on_bus_acquired,
-                                               on_name_acquired,
-                                               on_name_lost,
-                                               self,
-                                               NULL);
     g_dbus_proxy_new_for_bus (self->bus_type,
                               G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
                               NULL,
