@@ -12,6 +12,7 @@ addons:
       - dbus-x11
       - cmake
       - lcov
+      - libcmocka-dev
       - libglib2.0-dev
       - libdbus-1-dev
       - realpath
@@ -48,13 +49,6 @@ install:
   - tar xJf autoconf-archive-2017.09.28.tar.xz && pushd autoconf-archive-2017.09.28
   - ./configure --prefix=${PREFIX} && make && make install
   - popd # autoconf-archive
-  - wget https://download.01.org/tpm2/cmocka-1.1.1.tar.xz
-  - sha256sum cmocka-1.1.1.tar.xz | grep -q ^f02ef48a7039aa77191d525c5b1aee3f13286b77a13615d11bc1148753fc0389
-  - tar -Jxvf cmocka-1.1.1.tar.xz
-  - mkdir cmocka-1.1.1/build && pushd cmocka-1.1.1/build
-  - cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release
-  - make -j$(nproc) install
-  - popd # cmocka
   - git clone -b 1.x --single-branch https://github.com/01org/tpm2-tss.git
   - pushd tpm2-tss
   - ./bootstrap
