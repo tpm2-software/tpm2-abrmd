@@ -553,12 +553,9 @@ tcti_tabrmd_version_test (void **state)
 static void
 tcti_tabrmd_init_success_test (void **state)
 {
-    data_t *data;
+    data_t *data = *state;
 
-    tcti_tabrmd_setup (state);
-    data = *state;
     assert_int_equal (data->id, TSS2_TCTI_TABRMD_ID (data->context));
-    tcti_tabrmd_teardown (state);
 }
 /*
  * These are a series of tests to ensure that the exposed TCTI functions
@@ -1478,7 +1475,9 @@ main (void)
         cmocka_unit_test (tcti_tabrmd_init_success_return_value_test),
         cmocka_unit_test (tcti_tabrmd_init_allnull_is_bad_value_test),
         cmocka_unit_test (tcti_tabrmd_proxy_new_fail),
-        cmocka_unit_test (tcti_tabrmd_init_success_test),
+        cmocka_unit_test_setup_teardown (tcti_tabrmd_init_success_test,
+                                         tcti_tabrmd_setup,
+                                         tcti_tabrmd_teardown),
         cmocka_unit_test (tcti_tabrmd_info_test),
         cmocka_unit_test (tcti_tabrmd_bus_type_from_str_session_test),
         cmocka_unit_test (tcti_tabrmd_bus_type_from_str_system_test),
