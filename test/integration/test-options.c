@@ -52,8 +52,8 @@ sanity_check_test_opts (test_opts_t  *opts)
 }
 
 /*
- * Parse command line options from argv extracting test options. These are
- * returned to the caller in the provided options structure.
+ * Extract configuration from environment and populate the provided
+ * `test_opts_t` with the relevant data.
  */
 int
 get_test_opts_from_env (test_opts_t          *test_opts)
