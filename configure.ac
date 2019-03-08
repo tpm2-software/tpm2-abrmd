@@ -19,8 +19,7 @@ AC_SUBST([DISTCHECK_CONFIGURE_FLAGS],[$ac_configure_args])
 AX_PTHREAD([], [AC_MSG_ERROR([requires pthread])])
 AC_ARG_ENABLE([unit],
               [AS_HELP_STRING([--enable-unit],
-                   [build cmocka unit tests (default is no)])],
-              [enable_unit=$enableval],
+                   [build cmocka unit tests (default is no)])],,
               [enable_unit=no])
 AS_IF([test "x$enable_unit" != xno],
       [PKG_CHECK_MODULES([CMOCKA],
@@ -77,8 +76,7 @@ AC_DEFUN([MY_ARG_WITH],
 #
 AC_ARG_WITH([systemdsystemunitdir],
             AS_HELP_STRING([--with-systemdsystemunitdir=DIR],
-                           [Directory for systemd service files]),
-            [],
+                           [Directory for systemd service files]),,
             [with_systemdsystemunitdir=${libdir}/systemd/system])
 AS_IF([test "x$with_systemdsystemunitdir" != xno],
       [AC_SUBST([systemdsystemunitdir],
@@ -88,8 +86,7 @@ AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_sy
 # systemd preset directory
 AC_ARG_WITH([systemdpresetdir],
             AS_HELP_STRING([--with-systemdpresetdir=DIR],
-                           [Directory for systemd preset files]),
-            [],
+                           [Directory for systemd preset files]),,
             [with_systemdpresetdir=${libdir}/systemd/system-preset])
 AC_SUBST([systemdpresetdir], [$with_systemdpresetdir])
 
@@ -104,8 +101,7 @@ AC_ARG_WITH([systemdpresetdisable],
 # dbus
 #
 AC_ARG_WITH([dbuspolicydir],
-            [AS_HELP_STRING([--with-dbuspolicydir=DIR],[D-Bus policy directory])],
-            [],
+            [AS_HELP_STRING([--with-dbuspolicydir=DIR],[D-Bus policy directory])],,
             [with_dbuspolicydir=${sysconfdir}/dbus-1/system.d])
 AX_NORMALIZE_PATH([with_dbuspolicydir])
 AC_SUBST([dbuspolicydir], [$with_dbuspolicydir])
@@ -124,8 +120,7 @@ AM_CONDITIONAL([HWTPM], [test "x$enable_hwtpm" != xno])
 #
 AC_ARG_ENABLE([integration],
     [AS_HELP_STRING([--enable-integration],
-        [build and execute integration tests (default is no)])],
-    [enable_integration=$enableval],
+        [build and execute integration tests (default is no)])],,
     [enable_integration=no])
 AS_IF([test \( "x$enable_integration" = "xyes" \) -a \( "x$enable_hwtpm" = "xno" \)],
     [AC_CHECK_PROG([tpm_server], [tpm_server], [yes], [no])
