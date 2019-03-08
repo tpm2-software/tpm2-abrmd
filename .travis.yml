@@ -10,7 +10,6 @@ addons:
       - gnulib
       - lcov
       - libcmocka-dev
-      - libcmocka0
       - libglib2.0-dev
       - libdbus-1-dev
       - liburiparser-dev
@@ -19,7 +18,7 @@ addons:
     project:
       name: 01org/tpm2-abrmd
       description: Build submitted via Travis-CI
-    notification_email: flihp@twobit.us
+    notification_email: philip.b.tricca@intel.com
     build_command_prepend: "./bootstrap && ./configure"
     build_command: "make --jobs=$(nproc)"
     branch_pattern: coverity_scan

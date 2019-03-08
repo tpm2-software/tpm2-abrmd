@@ -3,6 +3,11 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## 1.3.3 - 2019-03-08
+### Fixed
+- Race condition between client connections and dbus proxy object
+creation by registering bus name after instantiation of the proxy object.
+
 ## 2.1.0 - 2019-02-06
 ### Added
 - `-Wstrict-overflow=5` now used in default CFLAGS.
