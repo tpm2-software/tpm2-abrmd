@@ -3,6 +3,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## 2.1.1 - 2019-03-08
+### Fixed
+- Unit tests accessing dbus have been fixed to use mock functions. Unit
+tests no longer depend on dbus.
+- Race condition between client connections and dbus proxy object
+creation by registering bus name after instantiation of the proxy object.
+
 ## 1.3.3 - 2019-03-08
 ### Fixed
 - Race condition between client connections and dbus proxy object
