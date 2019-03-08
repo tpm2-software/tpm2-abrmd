@@ -60,7 +60,6 @@ AX_VALGRIND_CHECK
 AC_ARG_ENABLE([dlclose],
   [AS_HELP_STRING([--disable-dlclose],
     [Some versions of libc cause a sigsegv on exit, this disables the dlclose and works around that bug])],
-  []
   [AC_DEFINE([DISABLE_DLCLOSE], [1])]
 )
 
