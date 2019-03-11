@@ -110,11 +110,10 @@ AC_SUBST([dbuspolicydir], [$with_dbuspolicydir])
 #
 AC_ARG_ENABLE([test-hwtpm],
               [AS_HELP_STRING([--enable-test-hwtpm],
-                  [enable the integration test on a real tpm hardware (default is no)])],
-              [enable_hwtpm=$enableval
-               enable_integration=$enableval],
-              [enable_hwtpm=no])
-AM_CONDITIONAL([HWTPM], [test "x$enable_hwtpm" != xno])
+                  [enable the integration test on a real tpm hardware])],
+              [enable_integration=$enableval],
+              [enable_test_hwtpm=no])
+AM_CONDITIONAL([HWTPM], [test "x$enable_test_hwtpm" != xno])
 #
 # enable integration tests and check for simulator binary
 #
@@ -122,7 +121,7 @@ AC_ARG_ENABLE([integration],
     [AS_HELP_STRING([--enable-integration],
         [build and execute integration tests])],,
     [enable_integration=no])
-AS_IF([test \( "x$enable_integration" = "xyes" \) -a \( "x$enable_hwtpm" = "xno" \)],
+AS_IF([test \( "x$enable_integration" = "xyes" \) -a \( "x$enable_test_hwtpm" = "xno" \)],
     [AC_CHECK_PROG([tpm_server], [tpm_server], [yes], [no])
      AS_IF([test "x$tpm_server" != "xyes"],
          [AC_MSG_ERROR([Integration tests enabled but tpm_server not found, try setting PATH])])
