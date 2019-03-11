@@ -19,7 +19,7 @@ AC_SUBST([DISTCHECK_CONFIGURE_FLAGS],[$ac_configure_args])
 AX_PTHREAD([], [AC_MSG_ERROR([requires pthread])])
 AC_ARG_ENABLE([unit],
               [AS_HELP_STRING([--enable-unit],
-                   [build cmocka unit tests (default is no)])],,
+                   [build cmocka unit tests])],,
               [enable_unit=no])
 AS_IF([test "x$enable_unit" != xno],
       [PKG_CHECK_MODULES([CMOCKA],
@@ -120,7 +120,7 @@ AM_CONDITIONAL([HWTPM], [test "x$enable_hwtpm" != xno])
 #
 AC_ARG_ENABLE([integration],
     [AS_HELP_STRING([--enable-integration],
-        [build and execute integration tests (default is no)])],,
+        [build and execute integration tests])],,
     [enable_integration=no])
 AS_IF([test \( "x$enable_integration" = "xyes" \) -a \( "x$enable_hwtpm" = "xno" \)],
     [AC_CHECK_PROG([tpm_server], [tpm_server], [yes], [no])
