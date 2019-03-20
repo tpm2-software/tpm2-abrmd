@@ -107,9 +107,10 @@ libutil        = src/libutil.la
 lib_LTLIBRARIES = $(libtss2_tcti_tabrmd)
 noinst_LTLIBRARIES += \
     $(libutil)
-man3_MANS = man/man3/Tss2_Tcti_Tabrmd_Init.3
-man7_MANS = man/man7/tss2-tcti-tabrmd.7
-man8_MANS = man/man8/tpm2-abrmd.8
+man_MANS = \
+    man/man3/Tss2_Tcti_Tabrmd_Init.3 \
+    man/man7/tss2-tcti-tabrmd.7 \
+    man/man8/tpm2-abrmd.8
 
 libtss2_tcti_tabrmddir      = $(includedir)/tss2
 libtss2_tcti_tabrmd_HEADERS = $(srcdir)/src/include/tss2-tcti-tabrmd.h
@@ -143,9 +144,7 @@ EXTRA_DIST = \
     VERSION
 
 CLEANFILES = \
-    $(man3_MANS) \
-    $(man7_MANS) \
-    man/man8/tpm2-abrmd.8 \
+    $(man_MANS) \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
     $(pkgconfig_DATA) \
