@@ -435,7 +435,7 @@ test_tcti_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
 test_tcti_unit_SOURCES  = test/tcti_unit.c
 
 test_tcti_factory_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_tcti_factory_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_tcti_factory_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtest)
 test_tcti_factory_unit_LDFLAGS = -Wl,--wrap=tcti_util_discover_info,--wrap=tcti_util_dynamic_init,--wrap=dlclose
 test_tcti_factory_unit_SOURCES  = test/tcti-factory_unit.c
 

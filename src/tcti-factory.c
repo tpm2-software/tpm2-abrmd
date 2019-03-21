@@ -135,7 +135,7 @@ tcti_factory_create (TctiFactory *self)
     TSS2_RC rc = TSS2_RC_SUCCESS;
     void *dl_handle = NULL;
     const TSS2_TCTI_INFO *info;
-    TSS2_TCTI_CONTEXT *ctx;
+    TSS2_TCTI_CONTEXT *ctx = NULL;
 
     g_debug ("%s: TctiFactory %p with TCTI '%s' and conf '%s'",
              __func__, objid (self), self->name, self->conf);
@@ -150,7 +150,7 @@ tcti_factory_create (TctiFactory *self)
     g_debug ("%s: tcti_util_dynamic_init", __func__);
     rc = tcti_util_dynamic_init (info, self->conf, &ctx);
     g_debug ("%s: after tcti_util_dynamic_init", __func__);
-    if (rc != TSS2_RC_SUCCESS) {
+    if (rc != TSS2_RC_SUCCESS || ctx == NULL) {
         g_info ("%s: failed to initialize TCTI, RC: 0x%" PRIx32,
                  __func__, rc);
 #if !defined (DISABLE_DLCLOSE)
