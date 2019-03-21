@@ -7,6 +7,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include "tcti-mock.h"
 #include "tcti-factory.h"
 #include "util.h"
 
@@ -111,11 +112,13 @@ tcti_factory_create_test (void **state)
     TctiFactory *factory = TCTI_FACTORY (*state);
     Tcti *tcti = NULL;
     TSS2_TCTI_INFO info = { 0 };
+    TSS2_TCTI_CONTEXT *tcti_ctx = NULL;
 
+    tcti_ctx = tcti_mock_init_full ();
     will_return (__wrap_tcti_util_discover_info, &info);
     will_return (__wrap_tcti_util_discover_info, TCTI_UTIL_UNIT_HANDLE);
     will_return (__wrap_tcti_util_discover_info, TSS2_RC_SUCCESS);
-    will_return (__wrap_tcti_util_dynamic_init, NULL);
+    will_return (__wrap_tcti_util_dynamic_init, tcti_ctx);
     will_return (__wrap_tcti_util_dynamic_init, TSS2_RC_SUCCESS);
 #if !defined (DISABLE_DLCLOSE)
     will_return (__wrap_dlclose, 0);
