@@ -43,8 +43,7 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
         nvAuth.buffer[i] = password[i];
     }
 
-    publicInfo.size = sizeof (TPMI_RH_NV_INDEX) + sizeof (TPMI_ALG_HASH) +
-        sizeof (TPMA_NV) + sizeof (UINT16) + sizeof (UINT16);
+    publicInfo.size = 0;
     publicInfo.nvPublic.nvIndex = nvIndex;
     publicInfo.nvPublic.nameAlg = TPM2_ALG_SHA1;
 
