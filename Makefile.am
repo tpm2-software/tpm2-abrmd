@@ -71,8 +71,7 @@ TESTS_INTEGRATION_NOHW = test/integration/tcti-connect-multiple.int
 # empty init for these since they're manipulated by conditionals
 TESTS =
 noinst_LTLIBRARIES =
-XFAIL_TESTS = \
-    test/integration/start-auth-session.int
+XFAIL_TESTS =
 TEST_EXTENSIONS = .int
 AM_TESTS_ENVIRONMENT = \
     TEST_FUNC_LIB=$(srcdir)/scripts/int-test-funcs.sh \

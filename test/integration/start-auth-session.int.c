@@ -148,9 +148,9 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     }
     g_info ("StartAuthSession for TPM_SE_POLICY success! Session handle: "
             "0x%08" PRIx32, session_handle);
-    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
-    g_assert (count == 1);
     handles_count (sapi_context, TPM2_ACTIVE_SESSION_FIRST, &count);
+    g_assert (count == 1);
+    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
     g_assert (count == 0);
     dump_loaded_active_handles (sapi_context);
 
@@ -164,10 +164,10 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
             session_handle);
     prettyprint_context (&context);
     dump_loaded_active_handles (sapi_context);
-    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
-    g_assert (count == 0);
     handles_count (sapi_context, TPM2_ACTIVE_SESSION_FIRST, &count);
     g_assert (count == 1);
+    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
+    g_assert (count == 0);
 
     /* load context */
     g_info ("Loading context for session: 0x%" PRIxHANDLE, session_handle);
@@ -183,9 +183,9 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
         g_info ("session_handle != session_handle_load");
     }
     dump_loaded_active_handles (sapi_context);
-    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
-    g_assert (count == 1);
     handles_count (sapi_context, TPM2_ACTIVE_SESSION_FIRST, &count);
+    g_assert (count == 1);
+    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
     g_assert (count == 0);
 
     g_info ("Flushing context for session: 0x%" PRIxHANDLE, session_handle);
@@ -196,9 +196,9 @@ test_invoke (TSS2_SYS_CONTEXT *sapi_context)
     g_info ("Flushed context for session handle: 0x%" PRIxHANDLE " success!",
             session_handle);
     dump_loaded_active_handles (sapi_context);
-    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
-    g_assert (count == 0);
     handles_count (sapi_context, TPM2_ACTIVE_SESSION_FIRST, &count);
+    g_assert (count == 0);
+    handles_count (sapi_context, TPM2_LOADED_SESSION_FIRST, &count);
     g_assert (count == 0);
 
     return 0;
