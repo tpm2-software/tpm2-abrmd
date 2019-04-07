@@ -23,10 +23,7 @@ AC_ARG_ENABLE([unit],
               [enable_unit=no])
 AS_IF([test "x$enable_unit" != xno],
       [PKG_CHECK_MODULES([CMOCKA],
-                         [cmocka >= 1.0],
-                         [AC_DEFINE([HAVE_CMOCKA],
-                                    [1],
-                                    [cmocka is available])])])
+                         [cmocka >= 1.0])])
 AM_CONDITIONAL([UNIT], [test "x$enable_unit" != xno])
 
 # -dl or -dld
