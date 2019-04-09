@@ -28,7 +28,15 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
 {
     TSS2_RC rval;
     int i;
-    TPM2B_NV_PUBLIC publicInfo;
+    TPM2B_NV_PUBLIC publicInfo = {
+        .nvPublic = {
+            .attributes = TPMA_NV_AUTHREAD | TPMA_NV_AUTHWRITE | \
+                TPMA_NV_ORDERLY,
+            .dataSize = strlen (password),
+            .nameAlg = TPM2_ALG_SHA1,
+            .nvIndex = nvIndex,
+        }
+    };
     TPM2B_AUTH  nvAuth;
     TSS2L_SYS_AUTH_COMMAND cmd_auths = {
         .count = 1,
@@ -42,20 +50,6 @@ CreatePasswordTestNV (TSS2_SYS_CONTEXT   *sapi_context,
     for (i = 0; i < nvAuth.size; i++) {
         nvAuth.buffer[i] = password[i];
     }
-
-    publicInfo.size = 0;
-    publicInfo.nvPublic.nvIndex = nvIndex;
-    publicInfo.nvPublic.nameAlg = TPM2_ALG_SHA1;
-
-    /* First zero out attributes. */
-    *(UINT32 *)&( publicInfo.nvPublic.attributes ) = 0;
-
-    /* Now set the attributes. */
-    publicInfo.nvPublic.attributes |= TPMA_NV_AUTHREAD;
-    publicInfo.nvPublic.attributes |= TPMA_NV_AUTHWRITE;
-    publicInfo.nvPublic.attributes |= TPMA_NV_ORDERLY;
-    publicInfo.nvPublic.authPolicy.size = 0;
-    publicInfo.nvPublic.dataSize = 32;
 
     rval = Tss2_Sys_NV_DefineSpace (sapi_context,
                                     TPM2_RH_OWNER,
