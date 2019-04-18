@@ -11,7 +11,11 @@ LT_INIT()
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 # enable "silent-rules" option by default
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
-AC_CONFIG_FILES([Makefile])
+
+AX_RECURSIVE_EVAL([$sbindir], [SBINDIR])
+AC_SUBST([SBINDIR])
+
+AC_CONFIG_FILES([Makefile dist/tss2-tcti-tabrmd.pc dist/tpm2-abrmd.service dist/tpm2-abrmd.preset])
 
 # propagate configure arguments to distcheck
 AC_SUBST([DISTCHECK_CONFIGURE_FLAGS],[$ac_configure_args])

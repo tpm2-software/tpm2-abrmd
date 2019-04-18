@@ -125,9 +125,6 @@ EXTRA_DIST = \
     man/tss2-tcti-tabrmd.7.in \
     man/tpm2-abrmd.8.in \
     dist/tpm2-abrmd.conf \
-    dist/tpm2-abrmd.preset.in \
-    dist/tss2-tcti-tabrmd.pc.in \
-    dist/tpm2-abrmd.service.in \
     dist/com.intel.tss2.Tabrmd.service \
     scripts/int-test-funcs.sh \
     scripts/int-test-setup.sh \
@@ -147,12 +144,14 @@ CLEANFILES = \
     $(man_MANS) \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
-    $(pkgconfig_DATA) \
-    $(systemdpreset_DATA) \
-    $(systemdsystemunit_DATA) \
     test/integration/*.log \
     _tabrmd.log
-DISTCLEANFILES = core default.profraw
+DISTCLEANFILES = \
+    core \
+    default.profraw \
+    $(pkgconfig_DATA) \
+    $(systemdpreset_DATA) \
+    $(systemdsystemunit_DATA)
 
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
@@ -307,20 +306,6 @@ endef # man_tcti_prefix
 	$(AM_V_GEN)$(call make_parent_dir,$@) && \
 	$(GDBUS_CODEGEN) --interface-prefix=com.intel.tss2. \
 	    --generate-c-code=src/tabrmd-generated $^
-
-%.preset : %.preset.in
-	$(AM_V_GEN)$(call make_parent_dir,$@) && \
-	sed -e "s,[@]SYSTEMD_PRESET_DEFAULT[@],$(SYSTEMD_PRESET_DEFAULT),g;" $^ > $@
-
-%.service : %.service.in
-	$(AM_V_GEN)$(call make_parent_dir,$@) && \
-	sed -e "s,[@]SBINDIR[@],$(sbindir),g; \
-	        s,[@]sysconfdir[@],$(sysconfdir),g;" $^ > $@
-
-%.pc : %.pc.in
-	$(AM_V_GEN)$(call make_parent_dir,$@) && \
-	sed -e "s,[@]VERSION[@],$(PACKAGE_VERSION),g; \
-                s,[@]includedir[@],$(includedir),g;" $^ > $@
 
 define make_parent_dir
     if [ ! -d $(dir $1) ]; then mkdir -p $(dir $1); fi
