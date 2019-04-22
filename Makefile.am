@@ -155,7 +155,6 @@ DISTCLEANFILES = \
 
 BUILT_SOURCES = src/tabrmd-generated.h src/tabrmd-generated.c
 
-pkgconfigdir     = $(libdir)/pkgconfig
 pkgconfig_DATA   = dist/tss2-tcti-tabrmd.pc
 dbuspolicy_DATA  = dist/tpm2-abrmd.conf
 if HAVE_SYSTEMD
