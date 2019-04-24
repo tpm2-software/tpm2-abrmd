@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/tpm2-software/tpm2-abrmd.svg?branch=master)](https://travis-ci.org/tpm2-software/tpm2-abrmd)
 [![Coverity Scan](https://img.shields.io/coverity/scan/3997.svg)](https://scan.coverity.com/projects/01org-tpm2-abrmd)
-[![Coverage Status](https://img.shields.io/coveralls/github/tpm2-software/tpm2-abrmd/master.svg)](https://coveralls.io/github/tpm2-software/tpm2-abrmd?branch=master)
+[![codecov](https://codecov.io/gh/tpm2-software/tpm2-abrmd/branch/master/graph/badge.svg)](https://codecov.io/gh/tpm2-software/tpm2-abrmd)
 
 # TPM2 Access Broker & Resource Manager
 This is a system daemon implementing the TPM2 access broker (TAB) & Resource
