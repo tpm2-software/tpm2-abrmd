@@ -80,8 +80,8 @@ script :
 
 after_success:
   - |
-    if [ ! -z "$COVERALLS_REPO_TOKEN" ] && [ "$CC" == "clang" ]; then
-      coveralls --build-root=$(pwd) --exclude=${DEPS} --exclude=test --exclude=coverity --exclude=src/tabrmd-generated.c --exclude=src/tabrmd-generated.h --gcov-options '\-lp'
+    if [ "${CONFIG_EXTRA}" == "--enable-code-coverage" ]; then
+        bash <(curl -s https://codecov.io/bash)
     fi
 
 after_failure:
