@@ -104,7 +104,7 @@ tcti_conf_parse (gchar *combined_conf,
  * Then we do a bit of sanity checking and setting up default values if
  * none were supplied.
  */
-void
+gboolean
 parse_opts (gint argc,
             gchar *argv[],
             tabrmd_options_t *options)
@@ -157,35 +157,42 @@ parse_opts (gint argc,
     ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabrmd)");
     g_option_context_add_main_entries (ctx, entries, NULL);
     if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
-        tabrmd_critical ("Failed to parse options: %s", err->message);
+        g_critical ("Failed to parse options: %s", err->message);
+        return FALSE;
     }
     /* select the bus type, default to G_BUS_TYPE_SESSION */
     options->bus = session_bus ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
     if (set_logger (logger_name) == -1) {
-        tabrmd_critical ("Unknown logger: %s, try --help\n", logger_name);
+        g_critical ("Unknown logger: %s, try --help\n", logger_name);
+        return FALSE;
     }
     if (options->max_connections < 1 ||
         options->max_connections > TABRMD_CONNECTION_MAX)
     {
-        tabrmd_critical ("maximum number of connections must be between 1 "
-                         "and %d", TABRMD_CONNECTION_MAX);
+        g_critical ("maximum number of connections must be between 1 "
+                    "and %d", TABRMD_CONNECTION_MAX);
+        return FALSE;
     }
     if (options->max_sessions < 1 ||
         options->max_sessions > TABRMD_SESSIONS_MAX_DEFAULT)
     {
-        tabrmd_critical ("max-sessions must be between 1 and %d",
-                         TABRMD_SESSIONS_MAX_DEFAULT);
+        g_critical ("max-sessions must be between 1 and %d",
+                    TABRMD_SESSIONS_MAX_DEFAULT);
+        return FALSE;
     }
     if (options->max_transients < 1 ||
         options->max_transients > TABRMD_TRANSIENT_MAX)
     {
-        tabrmd_critical ("max-trans-obj parameter must be between 1 and %d",
-                         TABRMD_TRANSIENT_MAX);
+        g_critical ("max-trans-obj parameter must be between 1 and %d",
+                    TABRMD_TRANSIENT_MAX);
+        return FALSE;
     }
     if (!tcti_conf_parse (tcti_optconf,
                           &options->tcti_filename,
                           &options->tcti_conf)) {
-        tabrmd_critical ("bad tcti conf string");
+        g_critical ("bad tcti conf string");
+        return FALSE;
     }
     g_option_context_free (ctx);
+    return TRUE;
 }

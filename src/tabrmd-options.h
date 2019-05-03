@@ -35,7 +35,7 @@ typedef struct tabrmd_options {
     gchar          *tcti_conf;
 } tabrmd_options_t;
 
-void
+gboolean
 parse_opts (gint argc,
             gchar *argv[],
             tabrmd_options_t *options);
