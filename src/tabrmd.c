@@ -250,7 +250,9 @@ main (int argc, char *argv[])
 
     util_init ();
     g_info ("tabrmd startup");
-    parse_opts (argc, argv, &gmain_data.options);
+    if (!parse_opts (argc, argv, &gmain_data.options)) {
+        return 1;
+    }
     if (geteuid() == 0 && ! gmain_data.options.allow_root) {
         g_print ("Refusing to run as root. Pass --allow-root if you know what you are doing.\n");
         return 1;
