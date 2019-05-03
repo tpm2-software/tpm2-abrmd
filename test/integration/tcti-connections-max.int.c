@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "tabrmd.h"
+#include "tabrmd-defaults.h"
 #include "test-options.h"
 #include "context-util.h"
 #include "tss2-tcti-tabrmd.h"

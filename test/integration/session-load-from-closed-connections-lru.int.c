@@ -12,7 +12,7 @@
 #include <tss2/tss2_sys.h>
 
 #include "common.h"
-#include "tabrmd.h"
+#include "tabrmd-defaults.h"
 #include "test-options.h"
 #include "context-util.h"
 

@@ -8,6 +8,7 @@
 #include <inttypes.h>
 
 #include "ipc-frontend-dbus.h"
+#include "tabrmd-defaults.h"
 #include "tabrmd.h"
 #include "util.h"
 
