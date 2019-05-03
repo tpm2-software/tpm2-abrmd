@@ -10,6 +10,7 @@
 #include "tss2-tcti-tabrmd.h"
 #include "tpm2-struct-init.h"
 #include "common.h"
+#include "tabrmd-defaults.h"
 #include "tabrmd.h"
 
 #define NUM_KEYS (TABRMD_TRANSIENT_MAX_DEFAULT + 1)

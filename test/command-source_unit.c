@@ -24,7 +24,7 @@
 #include "source-interface.h"
 #include "command-attrs.h"
 #include "command-source.h"
-#include "tabrmd.h"
+#include "tabrmd-defaults.h"
 #include "tpm2-command.h"
 #include "util.h"
 

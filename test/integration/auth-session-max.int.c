@@ -10,6 +10,7 @@
 #include <tss2/tss2_tpm2_types.h>
 
 #include "common.h"
+#include "tabrmd-defaults.h"
 #include "tabrmd.h"
 #include "test.h"
 

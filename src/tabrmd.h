@@ -6,26 +6,10 @@
 #ifndef TSS2_TABD_H
 #define TSS2_TABD_H
 
-#include <gio/gio.h>
+#include <glib.h>
 
 #include <tss2/tss2_tpm2_types.h>
 #include <tss2/tss2_tcti.h>
-
-#define TABRMD_CONNECTIONS_MAX_DEFAULT 27
-#define TABRMD_CONNECTION_MAX 100
-#define TABRMD_DBUS_NAME_DEFAULT "com.intel.tss2.Tabrmd"
-#define TABRMD_DBUS_TYPE_DEFAULT G_BUS_TYPE_SYSTEM
-#define TABRMD_DBUS_PATH                     "/com/intel/tss2/Tabrmd/Tcti"
-#define TABRMD_DBUS_METHOD_CREATE_CONNECTION "CreateConnection"
-#define TABRMD_DBUS_METHOD_CANCEL            "Cancel"
-#define TABRMD_ERROR tabrmd_error_quark ()
-#define TABRMD_ENTROPY_SRC_DEFAULT "/dev/urandom"
-#define TABRMD_SESSIONS_MAX_DEFAULT 4
-#define TABRMD_SESSIONS_MAX 64
-#define TABRMD_TCTI_FILENAME_DEFAULT "libtss2-tcti-device.so.0"
-#define TABRMD_TCTI_CONF_DEFAULT NULL
-#define TABRMD_TRANSIENT_MAX_DEFAULT 27
-#define TABRMD_TRANSIENT_MAX 100
 
 #define TABD_INIT_THREAD_NAME "tss2-tabrmd_init-thread"
 
@@ -40,32 +24,6 @@
 #define TSS2_RESMGR_RC_GENERAL_FAILURE (TSS2_RC)(TSS2_RESMGR_RC_LAYER | TSS2_BASE_RC_GENERAL_FAILURE)
 #define TSS2_RESMGR_RC_OBJECT_MEMORY   (TSS2_RC)(TSS2_RESMGR_RC_LAYER | TPM2_RC_OBJECT_MEMORY)
 #define TSS2_RESMGR_RC_SESSION_MEMORY  (TSS2_RC)(TSS2_RESMGR_RC_LAYER | TPM2_RC_SESSION_MEMORY)
-
-#define TABRMD_OPTIONS_INIT_DEFAULT { \
-    .bus = (GBusType)TABRMD_DBUS_TYPE_DEFAULT, \
-    .flush_all = FALSE, \
-    .max_connections = TABRMD_CONNECTIONS_MAX_DEFAULT, \
-    .max_transients = TABRMD_TRANSIENT_MAX_DEFAULT, \
-    .max_sessions = TABRMD_SESSIONS_MAX_DEFAULT, \
-    .dbus_name = TABRMD_DBUS_NAME_DEFAULT, \
-    .prng_seed_file = TABRMD_ENTROPY_SRC_DEFAULT, \
-    .allow_root = FALSE, \
-    .tcti_filename = TABRMD_TCTI_FILENAME_DEFAULT, \
-    .tcti_conf = TABRMD_TCTI_CONF_DEFAULT, \
-}
-
-typedef struct tabrmd_options {
-    GBusType        bus;
-    gboolean        flush_all;
-    guint           max_connections;
-    guint           max_transients;
-    guint           max_sessions;
-    gchar          *dbus_name;
-    const gchar    *prng_seed_file;
-    gboolean        allow_root;
-    gchar          *tcti_filename;
-    gchar          *tcti_conf;
-} tabrmd_options_t;
 
 GQuark  tabrmd_error_quark (void);
 

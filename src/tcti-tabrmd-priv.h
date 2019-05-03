@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <tss2/tss2_tcti.h>
 
+#include "tabrmd-defaults.h"
 #include "tabrmd-generated.h"
 #include "tpm2-header.h"
 #include "util.h"

@@ -20,7 +20,7 @@
 
 #include "connection.h"
 #include "connection-manager.h"
-#include "tabrmd.h"
+#include "tabrmd-defaults.h"
 #include "util.h"
 
 static void

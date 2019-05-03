@@ -236,9 +236,12 @@ src_libutil_la_SOURCES = \
     src/sink-interface.h \
     src/source-interface.c \
     src/source-interface.h \
+    src/tabrmd-defaults.h \
     src/tabrmd-error.c \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
+    src/tabrmd-options.c \
+    src/tabrmd-options.h \
     src/tabrmd.h \
     src/tcti.c \
     src/tcti.h \
