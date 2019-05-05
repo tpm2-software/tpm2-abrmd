@@ -39,5 +39,9 @@ gboolean
 parse_opts (gint argc,
             gchar *argv[],
             tabrmd_options_t *options);
+gboolean
+tcti_conf_parse (gchar *combined_conf,
+                 gchar **tcti_filename,
+                 gchar **tcti_conf);
 
 #endif /* TABRMD_OPTIONS_H */

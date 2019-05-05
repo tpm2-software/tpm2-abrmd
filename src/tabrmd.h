@@ -6,7 +6,7 @@
 #ifndef TSS2_TABD_H
 #define TSS2_TABD_H
 
-#include <glib.h>
+#include <gio/gio.h>
 
 #include <tss2/tss2_tpm2_types.h>
 #include <tss2/tss2_tcti.h>

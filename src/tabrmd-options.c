@@ -71,11 +71,11 @@ tcti_conf_parse (gchar *combined_conf,
     }
     if (combined_conf == NULL) {
         g_debug ("%s: combined conf is null", __func__);
-        return TRUE;
+        return FALSE;
     }
     if (strlen (combined_conf) == 0) {
         g_debug ("%s: combined conf is the empty string", __func__);
-        return TRUE;
+        return FALSE;
     }
 
     split = strchr (combined_conf, ':');
