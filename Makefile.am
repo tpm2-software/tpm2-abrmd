@@ -33,6 +33,7 @@ TESTS_UNIT = \
     test/random_unit \
     test/session-entry_unit \
     test/session-list_unit \
+    test/tabrmd-options_unit \
     test/test-skeleton_unit \
     test/tcti_unit \
     test/tcti-factory_unit \
@@ -314,6 +315,13 @@ define make_parent_dir
 endef
 
 if UNIT
+test_tabrmd_options_unit_CFLAGS = $(UNIT_AM_CFLAGS) $(GLIB_CFLAGS)
+test_tabrmd_options_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(libutil)
+test_tabrmd_options_unit_LDFLAGS = -Wl,--wrap=g_option_context_new \
+    -Wl,--wrap=g_option_context_add_main_entries,--wrap=g_option_context_parse \
+    -Wl,--wrap=set_logger,--wrap=g_option_context_free
+test_tabrmd_options_unit_SOURCES = test/tabrmd-options_unit.c
+
 test_test_skeleton_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_test_skeleton_unit_LDADD   = $(CMOCKA_LIBS)
 test_test_skeleton_unit_SOURCES = test/test-skeleton_unit.c
