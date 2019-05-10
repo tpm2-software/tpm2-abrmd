@@ -241,6 +241,8 @@ src_libutil_la_SOURCES = \
     src/tabrmd-error.c \
     src/tabrmd-generated.c \
     src/tabrmd-generated.h \
+    src/tabrmd-init.c \
+    src/tabrmd-init.h \
     src/tabrmd-options.c \
     src/tabrmd-options.h \
     src/tabrmd.h \
