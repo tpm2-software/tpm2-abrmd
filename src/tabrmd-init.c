@@ -51,6 +51,41 @@ on_ipc_frontend_disconnect (IpcFrontend *ipc_frontend,
     g_info ("%s: IpcFrontend %p disconnected", __func__, objid (ipc_frontend));
     main_loop_quit (loop);
 }
+static void
+thread_cleanup (Thread **thread)
+{
+    thread_cancel (*thread);
+    thread_join (*thread);
+    g_clear_object (thread);
+}
+void
+gmain_data_cleanup (gmain_data_t *data)
+{
+    g_debug ("%s", __func__);
+    Thread* thread;
+
+    if (data->command_source != NULL) {
+        thread = THREAD (data->command_source);
+        thread_cleanup (&thread);
+    }
+    if (data->resource_manager != NULL) {
+        thread = THREAD (data->resource_manager);
+        thread_cleanup (&thread);
+    }
+    if (data->response_sink != NULL) {
+        thread = THREAD (data->response_sink);
+        thread_cleanup (&thread);
+    }
+    if (data->ipc_frontend != NULL) {
+        ipc_frontend_disconnect (data->ipc_frontend);
+        g_clear_object (&data->ipc_frontend);
+    }
+    if (data->random != NULL)
+        g_clear_object (&data->random);
+    if (data->loop != NULL) {
+        main_loop_quit (data->loop);
+    }
+}
 /*
  * This function initializes and configures all of the long-lived objects
  * in the tabrmd system. It is invoked on a thread separate from the main
