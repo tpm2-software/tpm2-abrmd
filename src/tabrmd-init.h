@@ -30,5 +30,7 @@ typedef struct gmain_data {
 
 gpointer
 init_thread_func (gpointer user_data);
+void
+gmain_data_cleanup (gmain_data_t *data);
 
 #endif /* TABRMD_INIT_H */
