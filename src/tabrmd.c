@@ -218,7 +218,7 @@ init_thread_func (gpointer user_data)
     g_mutex_unlock (&data->init_mutex);
     g_info ("init_thread_func done");
 
-    return NULL;
+    return GINT_TO_POINTER (0);
 }
 void
 thread_cleanup (Thread *thread)
@@ -247,6 +247,7 @@ main (int argc, char *argv[])
 {
     gmain_data_t gmain_data = { .options = TABRMD_OPTIONS_INIT_DEFAULT };
     GThread *init_thread;
+    gint init_ret;
 
     util_init ();
     g_info ("tabrmd startup");
@@ -271,7 +272,7 @@ main (int argc, char *argv[])
     g_info ("entering g_main_loop");
     g_main_loop_run (gmain_data.loop);
     g_info ("g_main_loop_run done, cleaning up");
-    g_thread_join (init_thread);
+    init_ret = GPOINTER_TO_INT (g_thread_join (init_thread));
     /* cleanup glib stuff first so we stop getting events */
     ipc_frontend_disconnect (gmain_data.ipc_frontend);
     g_object_unref (gmain_data.ipc_frontend);
@@ -281,5 +282,5 @@ main (int argc, char *argv[])
     thread_cleanup (THREAD (gmain_data.response_sink));
     /* clean up what remains */
     g_object_unref (gmain_data.random);
-    return 0;
+    return init_ret;
 }
