@@ -32,5 +32,8 @@ gpointer
 init_thread_func (gpointer user_data);
 void
 gmain_data_cleanup (gmain_data_t *data);
+void
+on_ipc_frontend_disconnect (IpcFrontend *ipc_frontend,
+                            GMainLoop   *loop);
 
 #endif /* TABRMD_INIT_H */

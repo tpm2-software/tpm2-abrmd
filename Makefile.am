@@ -33,6 +33,7 @@ TESTS_UNIT = \
     test/random_unit \
     test/session-entry_unit \
     test/session-list_unit \
+    test/tabrmd-init_unit \
     test/tabrmd-options_unit \
     test/test-skeleton_unit \
     test/tcti_unit \
@@ -317,6 +318,16 @@ define make_parent_dir
 endef
 
 if UNIT
+test_tabrmd_init_unit_CFLAGS = $(UNIT_AM_CFLAGS) $(GLIB_CFLAGS)
+test_tabrmd_init_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(libutil) $(libtest)
+test_tabrmd_init_unit_LDFLAGS = -Wl,--wrap=g_main_loop_is_running \
+    -Wl,--wrap=g_main_loop_quit,--wrap=g_unix_signal_add \
+    -Wl,--wrap=random_seed_from_file,--wrap=random_get_bytes \
+    -Wl,--wrap=ipc_frontend_connect,--wrap=tcti_factory_create \
+    -Wl,--wrap=access_broker_init_tpm,--wrap=command_attrs_init_tpm \
+    -Wl,--wrap=thread_start,--wrap=access_broker_flush_all_context
+test_tabrmd_init_unit_SOURCES = test/tabrmd-init_unit.c
+
 test_tabrmd_options_unit_CFLAGS = $(UNIT_AM_CFLAGS) $(GLIB_CFLAGS)
 test_tabrmd_options_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(libutil)
 test_tabrmd_options_unit_LDFLAGS = -Wl,--wrap=g_option_context_new \
