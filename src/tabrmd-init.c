@@ -44,7 +44,7 @@ signal_handler (gpointer user_data)
     return G_SOURCE_CONTINUE;
 }
 
-static void
+void
 on_ipc_frontend_disconnect (IpcFrontend *ipc_frontend,
                             GMainLoop   *loop)
 {
@@ -80,8 +80,9 @@ gmain_data_cleanup (gmain_data_t *data)
         ipc_frontend_disconnect (data->ipc_frontend);
         g_clear_object (&data->ipc_frontend);
     }
-    if (data->random != NULL)
+    if (data->random != NULL) {
         g_clear_object (&data->random);
+    }
     if (data->loop != NULL) {
         main_loop_quit (data->loop);
     }
@@ -122,17 +123,18 @@ init_thread_func (gpointer user_data)
     if (g_unix_signal_add(SIGINT, signal_handler, data->loop) <= 0 ||
         g_unix_signal_add(SIGTERM, signal_handler, data->loop) <= 0)
     {
-        g_error("failed to setup signal handlers");
+        g_critical ("failed to setup signal handlers");
+        goto err_out;
     }
 
     data->random = random_new();
     ret = random_seed_from_file (data->random, data->options.prng_seed_file);
-    if (ret != 0)
-        g_error ("failed to seed Random object");
+    if (ret != 0) {
+        g_critical ("failed to seed Random object");
+        goto err_out;
+    }
 
     connection_manager = connection_manager_new(data->options.max_connections);
-    if (connection_manager == NULL)
-        g_error ("failed to allocate connection_manager");
     g_debug ("%s: ConnectionManager: %p", __func__, objid (connection_manager));
     /* setup IpcFrontend */
     data->ipc_frontend =
@@ -141,9 +143,6 @@ init_thread_func (gpointer user_data)
                                              connection_manager,
                                              data->options.max_transients,
                                              data->random));
-    if (data->ipc_frontend == NULL) {
-        g_error ("failed to allocate IpcFrontend object");
-    }
     g_signal_connect (data->ipc_frontend,
                       "disconnected",
                       (GCallback) on_ipc_frontend_disconnect,
@@ -155,9 +154,10 @@ init_thread_func (gpointer user_data)
                                      data->options.tcti_conf);
     tcti = tcti_factory_create (tcti_factory);
     if (tcti == NULL) {
-        tabrmd_critical ("%s: failed to create TCTI with name \"%s\" and conf "
-                         "\"%s\"", __func__, data->options.tcti_filename,
-                         data->options.tcti_conf);
+        g_critical ("%s: failed to create TCTI with name \"%s\" and conf "
+                    "\"%s\"", __func__, data->options.tcti_filename,
+                    data->options.tcti_conf);
+        goto err_out;
     }
     g_clear_object (&tcti_factory);
     data->access_broker = access_broker_new (tcti);
@@ -165,8 +165,10 @@ init_thread_func (gpointer user_data)
              objid (data->access_broker));
     g_clear_object (&tcti);
     rc = access_broker_init_tpm (data->access_broker);
-    if (rc != TSS2_RC_SUCCESS)
-        g_error ("failed to initialize AccessBroker: 0x%" PRIx32, rc);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_critical ("failed to initialize AccessBroker: 0x%" PRIx32, rc);
+        goto err_out;
+    }
     if (data->options.flush_all) {
         access_broker_flush_all_context (data->access_broker);
     }
@@ -177,9 +179,11 @@ init_thread_func (gpointer user_data)
     command_attrs = command_attrs_new ();
     g_debug ("%s: created CommandAttrs: %p", __func__, objid (command_attrs));
     ret = command_attrs_init_tpm (command_attrs, data->access_broker);
-    if (ret != 0)
-        g_error ("%s: failed to initialize CommandAttribute object: %p",
-                 __func__, objid (command_attrs));
+    if (ret != 0) {
+        g_critical ("%s: failed to initialize CommandAttribute object: %p",
+                    __func__, objid (command_attrs));
+        goto err_out;
+    }
 
     data->command_source =
         command_source_new (connection_manager, command_attrs);
@@ -211,17 +215,28 @@ init_thread_func (gpointer user_data)
      * Start the TPM command processing pipeline.
      */
     ret = thread_start (THREAD (data->command_source));
-    if (ret != 0)
-        g_error ("failed to start connection_source");
+    if (ret != 0) {
+        g_critical ("failed to start connection_source");
+        goto err_out;
+    }
     ret = thread_start (THREAD (data->resource_manager));
-    if (ret != 0)
-        g_error ("failed to start ResourceManager: %s", strerror (errno));
+    if (ret != 0) {
+        g_critical ("failed to start ResourceManager: %s", strerror (errno));
+        goto err_out;
+    }
     ret = thread_start (THREAD (data->response_sink));
-    if (ret != 0)
-        g_error ("failed to start response_source");
+    if (ret != 0) {
+        g_critical ("failed to start response_source");
+        goto err_out;
+    }
 
     g_mutex_unlock (&data->init_mutex);
     g_info ("init_thread_func done");
 
     return GINT_TO_POINTER (0);
+
+err_out:
+    g_debug ("%s: calling gmain_data_cleanup", __func__);
+    gmain_data_cleanup (data);
+    return GINT_TO_POINTER (1);
 }
