@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: BSD-2 */
+/* SPDX-License-Identifier: BSD-2-Clause */
 #include <inttypes.h>
 #include <glib.h>
 #include <string.h>

@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: BSD-2 */
+/* SPDX-License-Identifier: BSD-2-Clause */
 #ifndef RESOURCE_MANAGER_SESSION_H
 #define RESOURCE_MANAGER_SESSION_H
 

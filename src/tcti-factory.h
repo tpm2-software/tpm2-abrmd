@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: BSD-2 */
+/* SPDX-License-Identifier: BSD-2-Clause */
 #ifndef TCTI_FACTORY_H
 #define TCTI_FACTORY_H
 
