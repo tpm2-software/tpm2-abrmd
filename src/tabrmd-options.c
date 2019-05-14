@@ -65,17 +65,17 @@ tcti_conf_parse (gchar *combined_conf,
 
     g_debug ("%s", __func__);
     if (tcti_filename == NULL || tcti_conf == NULL) {
-        g_info ("%s: tcti_filename and tcti_conf out params may not be NULL",
-                __func__);
+        g_critical ("%s: tcti_filename and tcti_conf out params may not be NULL",
+                    __func__);
         return FALSE;
     }
     if (combined_conf == NULL) {
         g_debug ("%s: combined conf is null", __func__);
-        return FALSE;
+        return TRUE;
     }
     if (strlen (combined_conf) == 0) {
         g_debug ("%s: combined conf is the empty string", __func__);
-        return FALSE;
+        return TRUE;
     }
 
     split = strchr (combined_conf, ':');
@@ -160,6 +160,7 @@ parse_opts (gint argc,
         g_critical ("Failed to parse options: %s", err->message);
         return FALSE;
     }
+    g_option_context_free (ctx);
     /* select the bus type, default to G_BUS_TYPE_SESSION */
     options->bus = session_bus ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
     if (set_logger (logger_name) == -1) {
@@ -187,12 +188,7 @@ parse_opts (gint argc,
                     TABRMD_TRANSIENT_MAX);
         return FALSE;
     }
-    if (!tcti_conf_parse (tcti_optconf,
-                          &options->tcti_filename,
-                          &options->tcti_conf)) {
-        g_critical ("bad tcti conf string");
-        return FALSE;
-    }
-    g_option_context_free (ctx);
-    return TRUE;
+    return tcti_conf_parse (tcti_optconf,
+                            &options->tcti_filename,
+                            &options->tcti_conf);
 }

@@ -26,7 +26,7 @@ tcti_conf_parse_test_null_conf (void **state)
     UNUSED_PARAM (state);
     gchar *tcti_filename, *tcti_conf;
 
-    assert_false (tcti_conf_parse (NULL, &tcti_filename, &tcti_conf));
+    assert_true (tcti_conf_parse (NULL, &tcti_filename, &tcti_conf));
 }
 static void
 tcti_conf_parse_test_zero_conf (void **state)
@@ -34,7 +34,7 @@ tcti_conf_parse_test_zero_conf (void **state)
     UNUSED_PARAM (state);
     gchar *tcti_filename, *tcti_conf;
 
-    assert_false (tcti_conf_parse ("", &tcti_filename, &tcti_conf));
+    assert_true (tcti_conf_parse ("", &tcti_filename, &tcti_conf));
 }
 static void
 tcti_conf_parse_test_name_only (void **state)
@@ -199,24 +199,6 @@ tcti_conf_parse_opts_max_transient_fail (void **state)
     will_return (__wrap_set_logger, 0);
     assert_false (parse_opts (argc, argv, &options));
 }
-static void
-tcti_conf_parse_opts_tcti_conf_fail (void **state)
-{
-    UNUSED_PARAM (state);
-    tabrmd_options_t options = TABRMD_OPTIONS_INIT_DEFAULT;
-    GOptionContext *ctx = NULL;
-    int argc = 0;
-    char **argv = NULL;
-    GError error = { .message = "foo", };
-
-    options.tcti_filename = NULL;
-    will_return (__wrap_g_option_context_new, ctx);
-    will_return (__wrap_g_option_context_add_main_entries, "foo");
-    will_return (__wrap_g_option_context_parse, &error);
-    will_return (__wrap_g_option_context_parse, TRUE);
-    will_return (__wrap_set_logger, 0);
-    assert_false (parse_opts (argc, argv, &options));
-}
 void
 __wrap_g_option_context_free (GOptionContext *context)
 {
@@ -258,7 +240,6 @@ main (void)
         cmocka_unit_test (tcti_conf_parse_opts_max_connections_fail),
         cmocka_unit_test (tcti_conf_parse_opts_max_sessions_fail),
         cmocka_unit_test (tcti_conf_parse_opts_max_transient_fail),
-        cmocka_unit_test (tcti_conf_parse_opts_tcti_conf_fail),
         cmocka_unit_test (tcti_conf_parse_opts_success),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
