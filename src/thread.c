@@ -51,6 +51,11 @@ thread_cancel (Thread *self)
 gint
 thread_join (Thread *self)
 {
+    if (self->thread_id == 0) {
+        g_warning ("thread not running");
+        return -1;
+    }
+
     gint ret = pthread_join (self->thread_id, NULL);
     self->thread_id = 0;
     return ret;
