@@ -35,7 +35,6 @@ AM_CONDITIONAL([UNIT], [test "x$enable_unit" != xno])
 AC_SEARCH_LIBS([dlopen], [dl dld], [], [
   AC_MSG_ERROR([unable to find the dlopen() function])
 ])
-PKG_CHECK_MODULES([DBUS], [dbus-1])
 PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GOBJECT], [gobject-2.0])
