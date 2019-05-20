@@ -10,7 +10,7 @@ unit-count: check
 
 AM_CFLAGS = $(EXTRA_CFLAGS) \
     -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
-    $(DBUS_CFLAGS) $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
+    $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
     $(TSS2_SYS_CFLAGS) $(TSS2_MU_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS) \
     $(CODE_COVERAGE_CFLAGS)
 AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
@@ -193,7 +193,7 @@ src/ipc-frontend-dbus.c : $(BUILT_SOURCES)
 # utility library with most of the code that makes up the daemon
 # -Wno-unused-parameter for automatically-generated tabrmd-generated.c:
 src_libutil_la_CFLAGS  = $(AM_CFLAGS) -Wno-unused-parameter
-src_libutil_la_LIBADD  = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
+src_libutil_la_LIBADD  = $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(TSS2_SYS_LIBS) $(TSS2_MU_LIBS) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
 src_libutil_la_SOURCES = \
     src/access-broker.c \
@@ -278,12 +278,12 @@ test_integration_libtest_la_SOURCES = \
     test/tcti-mock.c \
     test/tcti-mock.h
 
-src_libtss2_tcti_tabrmd_la_LIBADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) \
+src_libtss2_tcti_tabrmd_la_LIBADD   = $(GIO_LIBS) $(GLIB_LIBS) \
     $(PTHREAD_LIBS) $(libutil) $(TSS2_SYS_LIBS)
 src_libtss2_tcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,-z,nodelete -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
 src_libtss2_tcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(srcdir)/src/tcti-tabrmd.map
 
-src_tpm2_abrmd_LDADD   = $(DBUS_LIBS) $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
+src_tpm2_abrmd_LDADD   = $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(TSS2_SYS_LIBS) $(libutil)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
 
