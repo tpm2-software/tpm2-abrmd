@@ -11,8 +11,7 @@ unit-count: check
 AM_CFLAGS = $(EXTRA_CFLAGS) \
     -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
     $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
-    $(TSS2_SYS_CFLAGS) $(TSS2_MU_CFLAGS) $(TCTI_DEVICE_CFLAGS) $(TCTI_SOCKET_CFLAGS) \
-    $(CODE_COVERAGE_CFLAGS)
+    $(TSS2_SYS_CFLAGS) $(TSS2_MU_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
 UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 
@@ -194,7 +193,7 @@ src/ipc-frontend-dbus.c : $(BUILT_SOURCES)
 # -Wno-unused-parameter for automatically-generated tabrmd-generated.c:
 src_libutil_la_CFLAGS  = $(AM_CFLAGS) -Wno-unused-parameter
 src_libutil_la_LIBADD  = $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(TSS2_SYS_LIBS) $(TSS2_MU_LIBS) $(TCTI_DEVICE_LIBS) $(TCTI_SOCKET_LIBS)
+    $(TSS2_SYS_LIBS) $(TSS2_MU_LIBS)
 src_libutil_la_SOURCES = \
     src/access-broker.c \
     src/access-broker.h \
@@ -264,8 +263,7 @@ src_libutil_la_SOURCES = \
     src/util.c \
     src/util.h
 
-test_integration_libtest_la_LIBADD  = $(TSS2_SYS_LIBS) $(TCTI_SOCKET_LIBS) \
-    $(TCTI_DEVICE_LIBS) $(GLIB_LIBS)
+test_integration_libtest_la_LIBADD  = $(TSS2_SYS_LIBS) $(GLIB_LIBS)
 test_integration_libtest_la_SOURCES = \
     test/integration/common.c \
     test/integration/common.h \
