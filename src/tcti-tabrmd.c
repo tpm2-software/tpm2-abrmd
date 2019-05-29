@@ -20,7 +20,7 @@
 #include "tpm2-header.h"
 #include "util.h"
 
-static TSS2_RC
+TSS2_RC
 tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
                            size_t             size,
                            const uint8_t      *command)
@@ -263,7 +263,7 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     return errno_to_tcti_rc (ret);
 }
 
-static void
+void
 tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *context)
 {
     g_debug ("tss2_tcti_tabrmd_finalize");
@@ -276,7 +276,7 @@ tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *context)
     g_clear_object (&TSS2_TCTI_TABRMD_PROXY (context));
 }
 
-static TSS2_RC
+TSS2_RC
 tss2_tcti_tabrmd_cancel (TSS2_TCTI_CONTEXT *context)
 {
     TSS2_RC ret = TSS2_RC_SUCCESS;
@@ -307,7 +307,7 @@ tss2_tcti_tabrmd_cancel (TSS2_TCTI_CONTEXT *context)
     return ret;
 }
 
-static TSS2_RC
+TSS2_RC
 tss2_tcti_tabrmd_get_poll_handles (TSS2_TCTI_CONTEXT     *context,
                                    TSS2_TCTI_POLL_HANDLE *handles,
                                    size_t                *num_handles)
@@ -328,7 +328,7 @@ tss2_tcti_tabrmd_get_poll_handles (TSS2_TCTI_CONTEXT     *context,
     return TSS2_RC_SUCCESS;
 }
 
-static TSS2_RC
+TSS2_RC
 tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *context,
                                guint8             locality)
 {

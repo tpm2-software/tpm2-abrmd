@@ -111,5 +111,19 @@ const TSS2_TCTI_INFO* Tss2_Tcti_Info (void);
 GBusType tabrmd_bus_type_from_str (const char* const bus_type);
 TSS2_RC tabrmd_kv_callback (const key_value_t *key_value,
                             gpointer user_data);
+TSS2_RC tss2_tcti_tabrmd_transmit (TSS2_TCTI_CONTEXT *context,
+                                   size_t size,
+                                   const uint8_t *command);
+TSS2_RC tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
+                                  size_t *size,
+                                  uint8_t *response,
+                                  int32_t timeout);
+void tss2_tcti_tabrmd_finalize (TSS2_TCTI_CONTEXT *context);
+TSS2_RC tss2_tcti_tabrmd_cancel (TSS2_TCTI_CONTEXT *context);
+TSS2_RC tss2_tcti_tabrmd_get_poll_handles (TSS2_TCTI_CONTEXT *context,
+                                           TSS2_TCTI_POLL_HANDLE *handles,
+                                           size_t *num_handles);
+TSS2_RC tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *context,
+                                       guint8 locality);
 
 #endif /* TSS2TCTI_TABRMD_PRIV_H */
