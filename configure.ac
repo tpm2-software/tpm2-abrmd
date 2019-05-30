@@ -134,30 +134,37 @@ AS_IF([test \( "x$enable_integration" = "xyes" \) -a \( "x$enable_test_hwtpm" = 
     [AC_MSG_NOTICE([Integration tests will be executed against the TPM device.])])
 AM_CONDITIONAL([ENABLE_INTEGRATION],[test "x$enable_integration" = "xyes"])
 
-# preprocessor / compiler / linker flags
-#   these macros are defined in m4/flags.m4
-AX_ADD_FORTIFY_SOURCE
-AX_ADD_COMPILER_FLAG([-Wall])
-AX_ADD_COMPILER_FLAG([-Wextra])
-AX_ADD_COMPILER_FLAG([-Werror])
-AX_ADD_COMPILER_FLAG([-std=gnu99])
-AX_ADD_COMPILER_FLAG([-Wformat])
-AX_ADD_COMPILER_FLAG([-Wformat-security])
-AX_ADD_COMPILER_FLAG([-Wno-missing-braces])
-# work around for Glib usage of function pointers type casting
-#   https://bugzilla.gnome.org/show_bug.cgi?id=793272
-AX_ADD_COMPILER_FLAG([-Wno-cast-function-type])
-AX_ADD_COMPILER_FLAG([-fdata-sections])
-AX_ADD_COMPILER_FLAG([-ffunction-sections])
-AX_ADD_TOOLCHAIN_FLAG([-fstack-protector-all])
-AX_ADD_COMPILER_FLAG([-fpic])
-AX_ADD_COMPILER_FLAG([-fPIC])
-AX_ADD_COMPILER_FLAG([-Wstrict-overflow=5])
-AX_ADD_LINK_FLAG([-Wl,--gc-sections])
-AX_ADD_LINK_FLAG([-Wl,--no-undefined])
-AX_ADD_LINK_FLAG([-Wl,-z,noexecstack])
-AX_ADD_LINK_FLAG([-Wl,-z,now])
-AX_ADD_LINK_FLAG([-Wl,-z,relro])
+AC_ARG_ENABLE([defaultflags],
+              [AS_HELP_STRING([--disable-defaultflags],
+                              [Disable default preprocessor, compiler, and linker flags.])],,
+              [enable_defaultflags=yes])
+AS_IF([test "x$enable_defaultflags" = "xyes"],
+      [
+      # preprocessor / compiler / linker flags
+      #   these macros are defined in m4/flags.m4
+      AX_ADD_FORTIFY_SOURCE
+      AX_ADD_COMPILER_FLAG([-Wall])
+      AX_ADD_COMPILER_FLAG([-Wextra])
+      AX_ADD_COMPILER_FLAG([-Werror])
+      AX_ADD_COMPILER_FLAG([-std=gnu99])
+      AX_ADD_COMPILER_FLAG([-Wformat])
+      AX_ADD_COMPILER_FLAG([-Wformat-security])
+      AX_ADD_COMPILER_FLAG([-Wno-missing-braces])
+      # work around for Glib usage of function pointers type casting
+      #   https://bugzilla.gnome.org/show_bug.cgi?id=793272
+      AX_ADD_COMPILER_FLAG([-Wno-cast-function-type])
+      AX_ADD_COMPILER_FLAG([-fdata-sections])
+      AX_ADD_COMPILER_FLAG([-ffunction-sections])
+      AX_ADD_TOOLCHAIN_FLAG([-fstack-protector-all])
+      AX_ADD_COMPILER_FLAG([-fpic])
+      AX_ADD_COMPILER_FLAG([-fPIC])
+      AX_ADD_COMPILER_FLAG([-Wstrict-overflow=5])
+      AX_ADD_LINK_FLAG([-Wl,--gc-sections])
+      AX_ADD_LINK_FLAG([-Wl,--no-undefined])
+      AX_ADD_LINK_FLAG([-Wl,-z,noexecstack])
+      AX_ADD_LINK_FLAG([-Wl,-z,now])
+      AX_ADD_LINK_FLAG([-Wl,-z,relro])
+      ])
 
 AC_SUBST([PATH])
 
