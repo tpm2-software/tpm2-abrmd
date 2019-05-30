@@ -7,6 +7,7 @@ AC_INIT([tpm2-abrmd],
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_CC
 AC_PROG_LN_S
+AC_USE_SYSTEM_EXTENSIONS
 LT_INIT()
 PKG_INSTALLDIR()
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -135,6 +136,7 @@ AM_CONDITIONAL([ENABLE_INTEGRATION],[test "x$enable_integration" = "xyes"])
 
 # preprocessor / compiler / linker flags
 #   these macros are defined in m4/flags.m4
+AX_ADD_FORTIFY_SOURCE
 AX_ADD_COMPILER_FLAG([-Wall])
 AX_ADD_COMPILER_FLAG([-Wextra])
 AX_ADD_COMPILER_FLAG([-Werror])
@@ -151,9 +153,6 @@ AX_ADD_TOOLCHAIN_FLAG([-fstack-protector-all])
 AX_ADD_COMPILER_FLAG([-fpic])
 AX_ADD_COMPILER_FLAG([-fPIC])
 AX_ADD_COMPILER_FLAG([-Wstrict-overflow=5])
-AX_ADD_PREPROC_FLAG([-D_GNU_SOURCE])
-AX_ADD_PREPROC_FLAG([-U_FORTIFY_SOURCE])
-AX_ADD_PREPROC_FLAG([-D_FORTIFY_SOURCE=2])
 AX_ADD_LINK_FLAG([-Wl,--gc-sections])
 AX_ADD_LINK_FLAG([-Wl,--no-undefined])
 AX_ADD_LINK_FLAG([-Wl,-z,noexecstack])
