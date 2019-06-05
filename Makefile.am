@@ -43,6 +43,7 @@ TESTS_UNIT = \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
     test/tss2-tcti-tabrmd_unit \
+    test/tcti-tabrmd-receive_unit \
     test/util_unit
 
 TESTS_INTEGRATION = \
@@ -273,6 +274,8 @@ test_integration_libtest_la_SOURCES = \
     test/integration/context-util.h \
     test/integration/test-options.c \
     test/integration/test-options.h \
+    test/mock-funcs.c \
+    test/mock-funcs.h \
     test/mock-io-stream.c \
     test/mock-io-stream.h \
     test/tcti-mock.c \
@@ -452,9 +455,14 @@ test_tcti_util_unit_LDFLAGS  = -Wl,--wrap=dlopen,--wrap=dlsym,--wrap=dlclose
 test_tcti_util_unit_SOURCES  = test/tcti-util_unit.c
 
 test_tss2_tcti_tabrmd_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tss2_tcti_tabrmd_unit_LDFLAGS = -Wl,--wrap=g_dbus_proxy_call_with_unix_fd_list_sync,--wrap=tcti_tabrmd_call_cancel_sync,--wrap=tcti_tabrmd_call_set_locality_sync,--wrap=read_data,--wrap=poll,--wrap=tcti_tabrmd_proxy_new_for_bus_sync
+test_tss2_tcti_tabrmd_unit_LDFLAGS = -Wl,--wrap=g_dbus_proxy_call_with_unix_fd_list_sync,--wrap=tcti_tabrmd_call_cancel_sync,--wrap=tcti_tabrmd_call_set_locality_sync,--wrap=tcti_tabrmd_proxy_new_for_bus_sync
 test_tss2_tcti_tabrmd_unit_LDADD   = $(CMOCKA_LIBS) $(GIO_LIBS) $(libutil)
 test_tss2_tcti_tabrmd_unit_SOURCES = src/tcti-tabrmd.c test/tss2-tcti-tabrmd_unit.c
+
+test_tcti_tabrmd_receive_unit_CFLAGS = $(UNIT_AM_CFLAGS) -DG_DISABLE_CAST_CHECKS
+test_tcti_tabrmd_receive_unit_LDFLAGS = -Wl,--wrap=poll,--wrap=g_socket_connection_get_socket,--wrap=g_socket_get_fd,--wrap=g_input_stream_read,--wrap=g_io_stream_get_input_stream,--wrap=g_input_stream_read
+test_tcti_tabrmd_receive_unit_LDADD = $(CMOCKA_LIBS) $(GIO_LIBS) $(libutil) $(libtest)
+test_tcti_tabrmd_receive_unit_SOURCES = src/tcti-tabrmd.c test/tcti-tabrmd-receive_unit.c
 endif
 
 TEST_INT_LIBS = $(libtest) $(libutil) $(libtss2_tcti_tabrmd) $(GLIB_LIBS)

@@ -170,6 +170,61 @@ tcti_tabrmd_poll (int        fd,
     }
 }
 /*
+ * Read as much of the requested data as possible into the provided buffer.
+ * If the read would block, return TSS2_TCTI_RC_TRY_AGAIN (a short read will
+ * write data into the buffer first).
+ * If an error occurs map that to the appropriate TSS2_RC and return.
+ */
+TSS2_RC
+tcti_tabrmd_read (TSS2_TCTI_TABRMD_CONTEXT *ctx,
+                  uint8_t *buf,
+                  size_t size,
+                  int32_t timeout)
+{
+    GError *error;
+    ssize_t num_read;
+    int ret;
+
+    ret = tcti_tabrmd_poll (TSS2_TCTI_TABRMD_FD (ctx), timeout);
+    switch (ret) {
+    case -1:
+        return TSS2_TCTI_RC_TRY_AGAIN;
+    case 0:
+        break;
+    default:
+        return errno_to_tcti_rc (ret);
+    }
+
+    num_read = g_input_stream_read (TSS2_TCTI_TABRMD_ISTREAM (ctx),
+                                    (gchar*)&buf [ctx->index],
+                                    size,
+                                    NULL,
+                                    &error);
+    switch (num_read) {
+    case 0:
+        g_debug ("read produced EOF");
+        return TSS2_TCTI_RC_NO_CONNECTION;
+    case -1:
+        g_assert (error != NULL);
+        g_warning ("%s: read on istream produced error: %s", __func__,
+                   error->message);
+        ret = error->code;
+        g_error_free (error);
+        return gerror_code_to_tcti_rc (ret);
+    default:
+        g_debug ("successfully read %zd bytes", num_read);
+        g_debug_bytes (&buf [ctx->index], num_read, 16, 4);
+        /* Advance index by the number of bytes read. */
+        ctx->index += num_read;
+        /* short read means try again */
+        if (size - num_read != 0) {
+            return TSS2_TCTI_RC_TRY_AGAIN;
+        } else {
+            return TSS2_RC_SUCCESS;
+        }
+    }
+}
+/*
  * This is the receive function that is exposed to clients through the TCTI
  * API.
  */
@@ -179,8 +234,8 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
                           uint8_t           *response,
                           int32_t            timeout)
 {
+    TSS2_RC rc = TSS2_RC_SUCCESS;
     TSS2_TCTI_TABRMD_CONTEXT *tabrmd_ctx = (TSS2_TCTI_TABRMD_CONTEXT*)context;
-    size_t ret = 0;
 
     g_debug ("tss2_tcti_tabrmd_receive");
     if (context == NULL || size == NULL) {
@@ -206,24 +261,14 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
     if (response != NULL && *size < TPM_HEADER_SIZE) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
-    ret = tcti_tabrmd_poll (TSS2_TCTI_TABRMD_FD (context), timeout);
-    switch (ret) {
-    case -1:
-        return TSS2_TCTI_RC_TRY_AGAIN;
-    case 0:
-        break;
-    default:
-        return errno_to_tcti_rc (ret);
-    }
     /* make sure we've got the response header */
     if (tabrmd_ctx->index < TPM_HEADER_SIZE) {
-        ret = read_data (TSS2_TCTI_TABRMD_ISTREAM (context),
-                         &tabrmd_ctx->index,
-                         tabrmd_ctx->header_buf,
-                         TPM_HEADER_SIZE - tabrmd_ctx->index);
-        if (ret != 0) {
-            return gerror_code_to_tcti_rc (ret);
-        }
+        rc = tcti_tabrmd_read (tabrmd_ctx,
+                               tabrmd_ctx->header_buf,
+                               TPM_HEADER_SIZE - tabrmd_ctx->index,
+                               timeout);
+        if (rc != TSS2_RC_SUCCESS)
+            return rc;
         if (tabrmd_ctx->index == TPM_HEADER_SIZE) {
             tabrmd_ctx->header.tag  = get_response_tag  (tabrmd_ctx->header_buf);
             tabrmd_ctx->header.size = get_response_size (tabrmd_ctx->header_buf);
@@ -239,28 +284,28 @@ tss2_tcti_tabrmd_receive (TSS2_TCTI_CONTEXT *context,
         *size = tabrmd_ctx->header.size;
         return TSS2_RC_SUCCESS;
     } else if (tabrmd_ctx->index == TPM_HEADER_SIZE) {
-        /* once we have the full header copy it to the callers buffer */
+        /* once we have the header and a buffer from the caller, copy */
         memcpy (response, tabrmd_ctx->header_buf, TPM_HEADER_SIZE);
-    }
-    if (tabrmd_ctx->header.size == TPM_HEADER_SIZE) {
-        tabrmd_ctx->index = 0;
-        tabrmd_ctx->state = TABRMD_STATE_TRANSMIT;
-        return TSS2_RC_SUCCESS;
     }
     if (*size < tabrmd_ctx->header.size) {
         return TSS2_TCTI_RC_INSUFFICIENT_BUFFER;
     }
-    ret = read_data (TSS2_TCTI_TABRMD_ISTREAM (context),
-                     &tabrmd_ctx->index,
-                     response,
-                     tabrmd_ctx->header.size - tabrmd_ctx->index);
-    if (ret == 0) {
+    /* the whole response has been read already */
+    if (tabrmd_ctx->header.size == tabrmd_ctx->index) {
+        goto out;
+    }
+    rc = tcti_tabrmd_read (tabrmd_ctx,
+                           response,
+                           tabrmd_ctx->header.size - tabrmd_ctx->index,
+                           timeout);
+out:
+    if (rc == TSS2_RC_SUCCESS) {
         /* We got all the bytes we asked for, reset the index & state: done */
         *size = tabrmd_ctx->index;
         tabrmd_ctx->index = 0;
         tabrmd_ctx->state = TABRMD_STATE_TRANSMIT;
     }
-    return errno_to_tcti_rc (ret);
+    return rc;
 }
 
 void
