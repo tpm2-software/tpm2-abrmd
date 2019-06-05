@@ -125,5 +125,10 @@ TSS2_RC tss2_tcti_tabrmd_get_poll_handles (TSS2_TCTI_CONTEXT *context,
                                            size_t *num_handles);
 TSS2_RC tss2_tcti_tabrmd_set_locality (TSS2_TCTI_CONTEXT *context,
                                        guint8 locality);
+int tcti_tabrmd_poll (int fd, int32_t timeout);
+TSS2_RC tcti_tabrmd_read (TSS2_TCTI_TABRMD_CONTEXT *ctx,
+                          uint8_t *buf,
+                          size_t size,
+                          int32_t timeout);
 
 #endif /* TSS2TCTI_TABRMD_PRIV_H */
