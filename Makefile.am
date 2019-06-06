@@ -338,19 +338,8 @@ test_test_skeleton_unit_LDADD   = $(CMOCKA_LIBS)
 test_test_skeleton_unit_SOURCES = test/test-skeleton_unit.c
 
 test_response_sink_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) \
-    $(PTHREAD_LIBS) $(noinst_LTLIBRARIES) $(GOBJECT_LIBS)
-test_response_sink_unit_SOURCES = \
-    src/connection.c \
-    src/control-message.c \
-    src/handle-map.c \
-    src/handle-map-entry.c \
-    src/thread.c \
-    src/message-queue.c \
-    src/response-sink.c \
-    src/sink-interface.c \
-    src/tpm2-response.c \
-    test/response-sink_unit.c
+test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(libutil)
+test_response_sink_unit_SOURCES = test/response-sink_unit.c
 
 test_connection_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
 test_connection_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
