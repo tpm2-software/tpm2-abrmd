@@ -27,7 +27,6 @@ load_session (ResourceManager *resmgr,
     size_buf_t *size_buf = NULL;
     TSS2_RC rc = TSS2_RC_SUCCESS;
 
-    g_debug ("%s: SessionEntry %p", __func__, objid (entry));
     size_buf = session_entry_get_context (entry);
     cmd = tpm2_command_new_context_load (size_buf->buf, size_buf->size);
     if (cmd == NULL) {
@@ -39,15 +38,14 @@ load_session (ResourceManager *resmgr,
     resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
     if (rc != TSS2_RC_SUCCESS) {
         g_critical ("%s: TCTI failed while loading session context from "
-                   "SessionEntry %p" ", got RC 0x%" PRIx32,
-                   __func__, objid (entry), rc);
+                   "SessionEntry, got RC 0x%" PRIx32, __func__, rc);
         resp = tpm2_response_new_rc (NULL, rc);
         goto out;
     }
     rc = tpm2_response_get_code (resp);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("%s: failed to ContextLoad SessionEntry %p" ", got "
-                   "RC 0x%" PRIx32, __func__, objid (entry), rc);
+        g_warning ("%s: failed to ContextLoad SessionEntry, got RC 0x%"
+                   PRIx32, __func__, rc);
         goto out;
     }
     session_entry_set_state (entry, SESSION_ENTRY_LOADED);
@@ -70,9 +68,8 @@ flush_session (ResourceManager *resmgr,
     TPM2_HANDLE handle = session_entry_get_handle (entry);
     TSS2_RC rc;
 
-    g_debug ("%s: flushing stale SessionEntry: %p" " with "
-             "handle: 0x%08" PRIx32,
-             __func__, objid (entry), handle);
+    g_debug ("%s: flushing stale SessionEntry with handle: 0x%08" PRIx32,
+             __func__, handle);
     rc = access_broker_context_flush (resmgr->access_broker, handle);
     session_list_remove (resmgr->session_list, entry);
     if (rc != TSS2_RC_SUCCESS) {
@@ -99,10 +96,8 @@ save_session (ResourceManager *resmgr,
 
     g_assert_nonnull (resmgr);
     g_assert_nonnull (entry);
-    g_debug ("%s: SessionEntry: %p", __func__, objid (entry));
     if (session_entry_get_state (entry) != SESSION_ENTRY_LOADED) {
-        g_critical ("%s: SessionEntry %p already loaded",
-                    __func__, objid (entry));
+        g_critical ("%s: SessionEntry already loaded", __func__);
         resp = tpm2_response_new_rc (NULL, TSS2_RESMGR_RC_GENERAL_FAILURE);
         goto out;
     }
@@ -116,15 +111,14 @@ save_session (ResourceManager *resmgr,
     resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
     if (rc != TSS2_RC_SUCCESS) {
         g_critical ("%s: TCTI failed while saving session context from "
-                   "SessionEntry %p" ", got RC 0x%" PRIx32,
-                   __func__, objid (entry), rc);
+                    "SessionEntry, got RC 0x%" PRIx32, __func__, rc);
         resp = tpm2_response_new_rc (NULL, rc);
         goto out;
     }
     rc = tpm2_response_get_code (resp);
     if (rc != TSS2_RC_SUCCESS) {
-        g_info ("%s: failed to ContextSave SessionEntry %p" ", got "
-                "RC 0x%" PRIx32, __func__, objid (entry), rc);
+        g_info ("%s: failed to ContextSave SessionEntry, got RC 0x%" PRIx32,
+                __func__, rc);
         goto out;
     }
     session_entry_set_context (entry,
@@ -153,16 +147,16 @@ regap_session (ResourceManager *resmgr,
     g_assert_nonnull (entry);
 
     state = session_entry_get_state (entry);
-    g_debug ("%s: swapping SessionEntry %p" " in state \"%s\"",
-             __func__, objid (entry), session_entry_state_to_str (state));
+    g_debug ("%s: swapping SessionEntry in state \"%s\"", __func__,
+             session_entry_state_to_str (state));
     if (state == SESSION_ENTRY_SAVED_CLIENT ||
         state == SESSION_ENTRY_SAVED_CLIENT_CLOSED ||
         state == SESSION_ENTRY_SAVED_RM)
     {
         resp = load_session (resmgr, entry);
         if (tpm2_response_get_code (resp) != TSS2_RC_SUCCESS) {
-            g_critical ("%s: Failed to save SessionEntry %p" "removing "
-                        "from list", __func__, objid (entry));
+            g_critical ("%s: Failed to save SessionEntry removing from list",
+                        __func__);
             flush_session (resmgr, entry);
             ret = FALSE;
             goto out;
@@ -170,9 +164,9 @@ regap_session (ResourceManager *resmgr,
         g_clear_object (&resp);
         resp = save_session (resmgr, entry);
         if (tpm2_response_get_code (resp) != TSS2_RC_SUCCESS) {
-            g_critical ("%s: Failed to load SessionEntry %p" ". Got RC "
-                        "0x%" PRIx32 ", removing from list",
-                        __func__, objid (entry), tpm2_response_get_code (resp));
+            g_critical ("%s: Failed to load SessionEntry. Got RC 0x%" PRIx32
+                        ", removing from list", __func__,
+                        tpm2_response_get_code (resp));
             flush_session (resmgr, entry);
             ret = FALSE;
         }

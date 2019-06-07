@@ -56,13 +56,9 @@ session_list_set_property (GObject        *object,
     switch (property_id) {
     case PROP_MAX_ABANDONED:
         list->max_abandoned = g_value_get_uint (value);
-        g_debug ("%s: %p max-abandoned: %u",
-                 __func__, objid (list), list->max_abandoned);
         break;
    case PROP_MAX_PER_CONNECTION:
         list->max_per_connection = g_value_get_uint (value);
-        g_debug ("%s: %p max-per-connection: %u", __func__, objid (list),
-                 list->max_per_connection);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -91,8 +87,8 @@ session_list_dispose (GObject *object)
 {
     SessionList *self = SESSION_LIST (object);
 
-    g_debug ("%s: SessionList: %p with %" PRIu32 " entries", __func__,
-             objid (self), g_list_length (self->session_entry_list));
+    g_debug ("%s: SessionList with %" PRIu32 " entries", __func__,
+             g_list_length (self->session_entry_list));
     g_queue_free (self->abandoned_queue);
     self->abandoned_queue = NULL;
     g_list_free_full (self->session_entry_list, g_object_unref);
@@ -107,8 +103,8 @@ session_list_finalize (GObject *object)
 {
     SessionList *self = SESSION_LIST (object);
 
-    g_debug ("session_list_finalize: SessionList: %p with %" PRIu32 " entries",
-             objid (self), g_list_length (self->session_entry_list));
+    g_debug ("%s: SessionList with %" PRIu32 " entries", __func__,
+             g_list_length (self->session_entry_list));
     g_list_free_full (self->session_entry_list, g_object_unref);
     G_OBJECT_CLASS (session_list_parent_class)->finalize (object);
 }
@@ -171,14 +167,12 @@ gboolean
 session_list_insert (SessionList      *list,
                      SessionEntry     *entry)
 {
-    g_debug ("%s: session_list_insert: %p, entry: %p", __func__,
-             objid (list), objid (entry));
     if (list == NULL || entry == NULL) {
         g_error ("session_list_insert passed NULL parameter");
     }
     if (session_list_is_full (list, entry->connection)) {
-        g_warning ("%s: %p max_per_connection of %u exceeded", __func__,
-                    objid (list), list->max_per_connection);
+        g_warning ("%s: max_per_connection of %u exceeded", __func__,
+                    list->max_per_connection);
         return FALSE;
     }
     g_object_ref (entry);
@@ -241,8 +235,7 @@ void
 session_list_remove (SessionList   *list,
                      SessionEntry  *entry)
 {
-    g_debug ("%s: SessionList: %p SessionEntry: %p", __func__,
-             objid (list), objid (entry));
+    g_debug ("%s", __func__);
     list->session_entry_list = g_list_remove (list->session_entry_list, entry);
     g_object_unref (entry);
 }
@@ -396,34 +389,12 @@ session_list_is_full (SessionList *session_list,
     session_count = session_list_connection_count (session_list,
                                                    connection);
     if (session_count >= session_list->max_per_connection) {
-        g_info ("%s: Connection %p has exceeded session limit", __func__,
-                objid (connection));
+        g_info ("%s: Connection has exceeded session limit", __func__);
         ret = TRUE;
     } else {
         ret= FALSE;
     }
     return ret;
-}
-/*
- */
-static void
-session_list_dump_entry (gpointer data,
-                         gpointer user_data)
-{
-    SessionEntry *entry = SESSION_ENTRY (data);
-    UNUSED_PARAM(user_data);
-
-    session_entry_prettyprint (entry);
-}
-/*
- */
-void
-session_list_prettyprint (SessionList *list)
-{
-    g_debug ("SessionList: %p", objid (list));
-    g_list_foreach (list->session_entry_list,
-                     session_list_dump_entry,
-                     NULL);
 }
 /*
  */
@@ -449,14 +420,13 @@ session_list_abandon_handle (SessionList *list,
 
     entry = session_list_lookup_handle (list, handle);
     if (entry == NULL) {
-        g_debug ("%s: Handle 0x%08" PRIx32 " doesn't exist in SessionList %p",
-                 __func__, handle, objid (list));
+        g_debug ("%s: Handle 0x%08" PRIx32 " doesn't exist in SessionList",
+                 __func__, handle);
         return FALSE;
     }
     if (session_entry_compare_on_connection (entry, connection)) {
-        g_warning ("%s: Connection %p attempted to abandon SessionEntry %p "
-                   "with handle 0x%08" PRIx32,
-                   __func__, objid (connection), objid (entry), handle);
+        g_warning ("%s: Connection attempted to abandon SessionEntry with "
+                   "handle 0x%08" PRIx32, __func__, handle);
         g_clear_object (&entry);
         return FALSE;
     }
@@ -487,7 +457,7 @@ session_list_claim (SessionList *list,
     if (link != NULL) {
         g_assert (link->data == entry);
         g_debug ("%s: GQueue of abandoned sessions does not contain "
-                 "SessionEntry: %p", __func__, objid (entry));
+                 "SessionEntry", __func__);
         session_entry_set_state (entry, SESSION_ENTRY_LOADED);
         session_entry_set_connection (entry, connection);
         g_queue_remove (list->abandoned_queue, link->data);
@@ -496,8 +466,7 @@ session_list_claim (SessionList *list,
     link = g_list_find (list->session_entry_list, entry);
     if (link != NULL) {
         g_assert (link->data == entry);
-        g_debug ("%s: SessionEntry object %p found in SessionList",
-                 __func__, objid (entry));
+        g_debug ("%s: SessionEntry found in SessionList", __func__);
         session_entry_set_state (entry, SESSION_ENTRY_LOADED);
         session_entry_set_connection (entry, connection);
     } else {
@@ -517,8 +486,6 @@ session_list_prune_abandoned (SessionList *list,
     SessionEntry *entry = NULL;
     gboolean ret = FALSE;
 
-    g_debug ("%s: SessionList %p, PruneFunc %p, data %p", __func__,
-             objid (list), objid (func), objid (data));
     if (g_queue_get_length (list->abandoned_queue) <= list->max_abandoned) {
         g_debug ("%s: abandoned_queue has not exceeded 'max_abandoned', "
                  "nothing to do.", __func__);

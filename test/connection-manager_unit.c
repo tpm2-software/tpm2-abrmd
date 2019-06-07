@@ -138,7 +138,6 @@ connection_manager_remove_test (void **state)
 int
 main(void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (connection_manager_allocate_test),
         cmocka_unit_test_setup_teardown (connection_manager_insert_test,

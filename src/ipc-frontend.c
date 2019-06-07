@@ -69,7 +69,7 @@ void
 ipc_frontend_connect (IpcFrontend *self,
                       GMutex      *init_mutex)
 {
-    g_debug ("ipc_frontend_connect: %p", objid (self));
+    g_debug ("%s", __func__);
     IPC_FRONTEND_GET_CLASS (self)->connect (self, init_mutex);
 }
 /*
@@ -82,7 +82,7 @@ ipc_frontend_connect (IpcFrontend *self,
 void
 ipc_frontend_disconnect (IpcFrontend *self)
 {
-    g_debug ("ipc_frontend_disconnect: %p", objid (self));
+    g_debug ("%s", __func__);
     IPC_FRONTEND_GET_CLASS (self)->disconnect (self);
 }
 void

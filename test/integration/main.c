@@ -28,7 +28,6 @@ main ()
     int ret;
     test_opts_t opts = TEST_OPTS_DEFAULT_INIT;
 
-    util_init ();
     get_test_opts_from_env (&opts);
     if (sanity_check_test_opts (&opts) != 0)
         exit (1);

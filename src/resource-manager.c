@@ -101,8 +101,7 @@ resource_manager_load_transient (ResourceManager  *resmgr,
     /* we don't unref the entry since we're adding it to the entry_slist below */
     entry = handle_map_vlookup (map, handle);
     if (entry) {
-        g_debug ("mapped virtual handle 0x%" PRIx32 " to entry %p", handle,
-                 objid (entry));
+        g_debug ("mapped virtual handle 0x%" PRIx32 " to entry", handle);
     } else {
         g_warning ("No HandleMapEntry for vhandle: 0x%" PRIx32, handle);
         goto out;
@@ -135,12 +134,12 @@ regap_session_callback (gpointer data_entry,
     regap_session_data_t *data = (regap_session_data_t*)data_user;
     SessionEntry *entry  = SESSION_ENTRY (data_entry);
 
-    g_debug ("%s: SessionEntry %p", __func__, objid (entry));
+    g_debug ("%s: SessionEntry", __func__);
     if (data->ret == TRUE) {
         data->ret = regap_session (data->resmgr, entry);
     } else {
         g_critical ("%s: previous attempt to regap failed, skipping"
-                    " SessionEntry %p", __func__, objid (entry));
+                    " SessionEntry", __func__);
     }
 }
 /*
@@ -204,10 +203,8 @@ resource_manager_load_session_from_handle (ResourceManager *resmgr,
                  "ResourceManager.", handle);
         goto out;
     }
-    g_debug ("mapped session handle 0x%08" PRIx32 " to "
-             "SessionEntry: %p", handle,
-             objid(session_entry));
-    session_entry_prettyprint (session_entry);
+    g_debug ("%s: mapped session handle 0x%08" PRIx32 " to "
+             "SessionEntry", __func__, handle);
     entry_conn = session_entry_get_connection (session_entry);
     if (command_conn != entry_conn) {
         g_warning ("%s: Connection from Tpm2Command and SessionEntry do not "
@@ -216,11 +213,10 @@ resource_manager_load_session_from_handle (ResourceManager *resmgr,
     }
     session_entry_state = session_entry_get_state (session_entry);
     if (session_entry_state != SESSION_ENTRY_SAVED_RM) {
-        g_warning ("%s: Handle in handle area references SessionEntry %p "
+        g_warning ("%s: Handle in handle area references SessionEntry "
                    "for session in state \"%s\". Must be in state: "
                    "SESSION_ENTRY_SAVED_RM for us manage it, ignorning.",
-                   __func__, objid (session_entry),
-                   session_entry_state_to_str (session_entry_state));
+                   __func__, session_entry_state_to_str (session_entry_state));
         goto out;
     }
     response = load_session (resmgr, session_entry);
@@ -309,7 +305,7 @@ resource_manager_load_handles (ResourceManager *resmgr,
     }
     handle_ret = tpm2_command_get_handles (command, handles, &handle_count);
     if (handle_ret == FALSE) {
-        g_error ("Unable to get handles from command %p", objid (command));
+        g_error ("Unable to get handles from command");
     }
     g_debug ("%s: for %zu handles in command handle area",
              __func__, handle_count);
@@ -358,7 +354,7 @@ resource_manager_flushsave_context (gpointer data_entry,
     TPM2_HANDLE      phandle;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
 
-    g_debug ("%s: for entry: %p", __func__, objid (entry));
+    g_debug ("%s: for entry", __func__);
     if (resmgr == NULL || entry == NULL)
         g_error ("%s: passed NULL parameter", __func__);
     phandle = handle_map_entry_get_phandle (entry);
@@ -395,7 +391,7 @@ save_session_callback (gpointer data_entry,
     Tpm2Response *resp = NULL;
     TSS2_RC rc;
 
-    g_debug ("%s: SessionEntry %p", __func__, objid (entry));
+    g_debug ("%s: SessionEntry", __func__);
     if (session_entry_get_state (entry) != SESSION_ENTRY_LOADED) {
         g_debug ("%s: cannot save SessionEntry, not loaded", __func__);
         return;
@@ -404,16 +400,16 @@ save_session_callback (gpointer data_entry,
     rc = tpm2_response_get_code (resp);
     if (rc != TSS2_RC_SUCCESS) {
         if (handle_rc (resmgr, rc) != TRUE) {
-            g_warning ("%s: Failed to save SessionEntry %p",
-                       __func__, objid (entry));
+            g_warning ("%s: Failed to save SessionEntry",
+                       __func__);
             flush_session (resmgr, entry);
             goto out;
 
         }
         resp = save_session (resmgr, entry);
         if (tpm2_response_get_code (resp) != TSS2_RC_SUCCESS) {
-            g_critical ("%s: failed to save SessionEntry %p, flushing",
-                        __func__, objid (entry));
+            g_critical ("%s: failed to save SessionEntry, flushing",
+                        __func__);
             flush_session (resmgr, entry);
          }
     }
@@ -425,7 +421,7 @@ static void
 dump_command (Tpm2Command *command)
 {
     g_assert (command != NULL);
-    g_debug ("Tpm2Command: %p", objid (command));
+    g_debug ("Tpm2Command");
     g_debug_bytes (tpm2_command_get_buffer (command),
                    tpm2_command_get_size (command),
                    16,
@@ -436,7 +432,7 @@ static void
 dump_response (Tpm2Response *response)
 {
     g_assert (response != NULL);
-    g_debug ("Tpm2Response: %p", objid (response));
+    g_debug ("Tpm2Response");
     g_debug_bytes (tpm2_response_get_buffer (response),
                    tpm2_response_get_size (response),
                    16,
@@ -478,8 +474,7 @@ resource_manager_save_context_session (ResourceManager *resmgr,
     }
     session_entry_set_state (entry, SESSION_ENTRY_SAVED_CLIENT);
     response = tpm2_response_new_context_save (conn_cmd, entry);
-    g_debug ("%s: Tpm2Response %p in reponse to TPM2_ContextSave",
-             __func__, objid (response));
+    g_debug ("%s: Tpm2Response from TPM2_ContextSave", __func__);
     g_debug_bytes (tpm2_response_get_buffer (response),
                    tpm2_response_get_size (response),
                    16, 4);
@@ -519,8 +514,7 @@ resource_manager_save_context (ResourceManager *resmgr,
 {
     TPM2_HANDLE handle = tpm2_command_get_handle (command, 0);
 
-    g_debug ("resource_manager_save_context: resmgr: %p"
-             " command: %p", objid (resmgr), objid (command));
+    g_debug ("%s", __func__);
     switch (handle >> TPM2_HR_SHIFT) {
     case TPM2_HT_HMAC_SESSION:
     case TPM2_HT_POLICY_SESSION:
@@ -557,24 +551,18 @@ resource_manager_load_context_session (ResourceManager *resmgr,
     SessionEntry *entry = NULL;
     Tpm2Response *response = NULL;
 
-    g_debug ("%s: ResourceManager: %p, Tpm2Command: %p",
-             __func__, objid (resmgr), objid (command));
-
+    g_debug ("%s", __func__);
     entry = session_list_lookup_context_client (resmgr->session_list,
                                                 &tpm2_command_get_buffer (command) [TPM_HEADER_SIZE],
                                                 tpm2_command_get_size (command) - TPM_HEADER_SIZE);
     if (entry == NULL) {
-        g_debug ("%s: Tpm2Command %p contains unknown "
-                 "TPMS_CONTEXT.", __func__, objid (command));
+        g_debug ("%s: Tpm2Command contains unknown TPMS_CONTEXT.", __func__);
         goto out;
     }
     conn_cmd = tpm2_command_get_connection (command);
     conn_entry = session_entry_get_connection (entry);
     if (conn_cmd != conn_entry) {
         if (!session_list_claim (resmgr->session_list, entry, conn_cmd)) {
-            g_debug ("%s: Connection %p attempting to load context"
-                     " belonging to Connection %p", __func__,
-                     objid (conn_cmd), objid (conn_entry));
             goto out;
         }
     }
@@ -583,7 +571,7 @@ resource_manager_load_context_session (ResourceManager *resmgr,
              session_entry_get_handle (entry));
     response = tpm2_response_new_context_load (conn_cmd, entry);
 out:
-    g_debug ("%s: returning Tpm2Response %p", __func__, objid (response));
+    g_debug ("%s: returning Tpm2Response", __func__);
     g_clear_object (&conn_cmd);
     g_clear_object (&conn_entry);
     g_clear_object (&entry);
@@ -603,16 +591,14 @@ resource_manager_load_context (ResourceManager *resmgr,
     TSS2_RC rc;
     size_t offset = TPM_HEADER_SIZE;
 
-    g_debug ("%s: resmgr: %p command: %p", __func__, objid (resmgr),
-             objid (command));
     /* Need to be able to get handle from Tpm2Command */
     rc = Tss2_MU_TPMS_CONTEXT_Unmarshal (buf,
                                          tpm2_command_get_size (command),
                                          &offset,
                                          &tpms_context);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("%s: Failed to unmarshal TPMS_CONTEXT from Tpm2Command "
-                   "%p, rc: 0x%" PRIx32, __func__, objid (command), rc);
+        g_warning ("%s: Failed to unmarshal TPMS_CONTEXT from Tpm2Command, "
+                   "rc: 0x%" PRIx32, __func__, rc);
         /* Generate Tpm2Response with "appropriate" RC */
     }
     switch (tpms_context.savedHandle >> TPM2_HR_SHIFT) {
@@ -699,7 +685,6 @@ resource_manager_flush_context (ResourceManager *resmgr,
         g_debug ("%s: handle 0x%08" PRIx32 "is a session, removing from "
                  "SessionList", __func__, handle);
         session_list_remove_handle (resmgr->session_list, handle);
-        session_list_prettyprint (resmgr->session_list);
         break;
     }
 
@@ -727,8 +712,8 @@ resource_manager_quota_check (ResourceManager *resmgr,
         connection = tpm2_command_get_connection (command);
         handle_map = connection_get_trans_map (connection);
         if (handle_map_is_full (handle_map)) {
-            g_info ("%s: Connection %p has exceeded transient object limit",
-                    __func__, objid (connection));
+            g_info ("%s: Connection has exceeded transient object limit",
+                    __func__);
             rc = TSS2_RESMGR_RC_OBJECT_MEMORY;
         }
         break;
@@ -736,8 +721,7 @@ resource_manager_quota_check (ResourceManager *resmgr,
     case TPM2_CC_StartAuthSession:
         connection = tpm2_command_get_connection (command);
         if (session_list_is_full (resmgr->session_list, connection)) {
-            g_info ("Connection %p has exceeded session limit",
-                    objid (connection));
+            g_info ("%s: Connectionhas exceeded session limit", __func__);
             rc = TSS2_RESMGR_RC_SESSION_MEMORY;
         }
         break;
@@ -766,13 +750,11 @@ remove_entry_from_handle_map (gpointer data_entry,
     g_debug ("remove_entry_from_handle_map");
     switch (handle_type) {
     case TPM2_HT_TRANSIENT:
-        g_debug ("%s: entry %p is transient, removing from map", __func__,
-                 objid (entry));
+        g_debug ("%s: entry is transient, removing from map", __func__);
         handle_map_remove (map, handle);
         break;
     default:
-        g_debug ("%s: entry %p not transient, leaving entry alone", __func__,
-                 objid (entry));
+        g_debug ("%s: entry not transient, leaving entry alone", __func__);
         break;
     }
 }
@@ -1168,7 +1150,6 @@ create_context_mapping_transient (ResourceManager  *resmgr,
         g_warning ("failed to create new HandleMapEntry for handle 0x%"
                    PRIx32, phandle);
     }
-    g_debug ("handle map entry: %p", objid (handle_entry));
     *loaded_transient_slist = g_slist_prepend (*loaded_transient_slist,
                                                handle_entry);
     handle_map_insert (handle_map, vhandle, handle_entry);
@@ -1218,8 +1199,7 @@ create_context_mapping_session (ResourceManager *resmgr,
     entry = session_list_lookup_handle (resmgr->session_list, handle);
     conn_resp = tpm2_response_get_connection (response);
     if (entry != NULL) {
-        g_debug ("%s: got SessionEntry %p that's in the SessionList",
-                 __func__, objid (entry));
+        g_debug ("%s: got SessionEntry that's in the SessionList", __func__);
         conn_entry = session_entry_get_connection (entry);
         if (conn_resp != conn_entry) {
             g_warning ("%s: connections do not match!", __func__);
@@ -1234,8 +1214,6 @@ create_context_mapping_session (ResourceManager *resmgr,
     g_clear_object (&conn_resp);
     g_clear_object (&conn_entry);
     g_clear_object (&entry);
-    g_debug ("dumping resmgr->session_list:");
-    session_list_prettyprint (resmgr->session_list);
 }
 /*
  * Each Tpm2Response object can have at most one handle in it.
@@ -1262,9 +1240,9 @@ resource_manager_create_context_mapping (ResourceManager  *resmgr,
 {
     TPM2_HANDLE       handle;
 
-    g_debug ("resource_manager_create_context_mapping");
+    g_debug ("%s", __func__);
     if (!tpm2_response_has_handle (response)) {
-        g_debug ("response %p has no handles", objid (response));
+        g_debug ("response has no handles");
         return;
     }
     handle = tpm2_response_get_handle (response);
@@ -1333,8 +1311,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     TPMA_CC         command_attrs;
 
     command_attrs = tpm2_command_get_attributes (command);
-    g_debug ("resource_manager_process_tpm2_command: resmgr: %p, cmd: %p",
-             objid (resmgr), objid (command));
+    g_debug ("%s", __func__);
     dump_command (command);
     connection = tpm2_command_get_connection (command);
     /* If executing the command would exceed a per connection quota */
@@ -1356,8 +1333,7 @@ resource_manager_process_tpm2_command (ResourceManager   *resmgr,
     }
     /* Load objets associated with the authorizations in the command. */
     if (tpm2_command_has_auths (command)) {
-        g_info ("%s, Processing auths for command: %p", __func__,
-                objid (command));
+        g_info ("%s, Processing auths for command", __func__);
         auth_callback_data_t auth_callback_data = {
             .resmgr = resmgr,
             .command = command,
@@ -1401,8 +1377,8 @@ resource_manager_process_control (ResourceManager *resmgr,
         return FALSE;
     case CONNECTION_REMOVED:
         conn = CONNECTION (control_message_get_object (msg));
-        g_debug ("%s: received CONNECTION_REMOVED message for connection: %p",
-                 __func__, objid (conn));
+        g_debug ("%s: received CONNECTION_REMOVED message for connection",
+                 __func__);
         resource_manager_remove_connection (resmgr, conn);
         sink_enqueue (resmgr->sink, G_OBJECT (msg));
         return TRUE;
@@ -1429,10 +1405,9 @@ resource_manager_thread (gpointer data)
     g_debug ("resource_manager_thread start");
     while (!done) {
         obj = message_queue_dequeue (resmgr->in_queue);
-        g_debug ("resource_manager_thread: message_queue_dequeue got obj: "
-                 "%p", objid (obj));
+        g_debug ("%s: message_queue_dequeue got obj", __func__);
         if (obj == NULL) {
-            g_debug ("resource_manager_thread: dequeued a null object");
+            g_debug ("%s: dequeued a null object", __func__);
             break;
         }
         if (IS_TPM2_COMMAND (obj)) {
@@ -1458,8 +1433,7 @@ resource_manager_unblock (Thread *self)
     if (resmgr == NULL)
         g_error ("resource_manager_cancel passed NULL ResourceManager");
     msg = control_message_new (CHECK_CANCEL);
-    g_debug ("%s: resource_manager_cancel: enqueuing ControlMessage: %p",
-             __func__, objid (msg));
+    g_debug ("%s: enqueuing ControlMessage", __func__);
     message_queue_enqueue (resmgr->in_queue, G_OBJECT (msg));
     g_object_unref (msg);
 }
@@ -1473,8 +1447,7 @@ resource_manager_enqueue (Sink        *sink,
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (sink);
 
-    g_debug ("%s: ResourceManager: %p, obj: %p",
-             __func__, objid (resmgr), objid (obj));
+    g_debug ("%s", __func__);
     message_queue_enqueue (resmgr->in_queue, obj);
 }
 /**
@@ -1489,8 +1462,7 @@ resource_manager_add_sink (Source *self,
     ResourceManager *resmgr = RESOURCE_MANAGER (self);
     GValue value = G_VALUE_INIT;
 
-    g_debug ("%s: resource_manager_add_sink: ResourceManager: %p, Sink: %p",
-             __func__, objid (resmgr), objid (sink));
+    g_debug ("%s", __func__);
     g_value_init (&value, G_TYPE_OBJECT);
     g_value_set_object (&value, sink);
     g_object_set_property (G_OBJECT (resmgr), "sink", &value);
@@ -1507,12 +1479,10 @@ resource_manager_set_property (GObject        *object,
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (object);
 
-    g_debug ("%s: resource_manager_set_property: %p", __func__,
-             objid (resmgr));
+    g_debug ("%s", __func__);
     switch (property_id) {
     case PROP_QUEUE_IN:
         resmgr->in_queue = g_value_get_object (value);
-        g_debug ("  in_queue: %p", objid (resmgr->in_queue));
         break;
     case PROP_SINK:
         if (resmgr->sink != NULL) {
@@ -1521,7 +1491,6 @@ resource_manager_set_property (GObject        *object,
         }
         resmgr->sink = SINK (g_value_get_object (value));
         g_object_ref (resmgr->sink);
-        g_debug ("  sink: %p", objid (resmgr->sink));
         break;
     case PROP_ACCESS_BROKER:
         if (resmgr->access_broker != NULL) {
@@ -1530,7 +1499,6 @@ resource_manager_set_property (GObject        *object,
         }
         resmgr->access_broker = g_value_get_object (value);
         g_object_ref (resmgr->access_broker);
-        g_debug ("  access_broker: %p", objid (resmgr->access_broker));
         break;
     case PROP_SESSION_LIST:
         resmgr->session_list = SESSION_LIST (g_value_dup_object (value));
@@ -1551,7 +1519,7 @@ resource_manager_get_property (GObject     *object,
 {
     ResourceManager *resmgr = RESOURCE_MANAGER (object);
 
-    g_debug ("%s: %p", __func__, objid (resmgr));
+    g_debug ("%s", __func__);
     switch (property_id) {
     case PROP_QUEUE_IN:
         g_value_set_object (value, resmgr->in_queue);
@@ -1579,7 +1547,7 @@ resource_manager_dispose (GObject *obj)
     ResourceManager *resmgr = RESOURCE_MANAGER (obj);
     Thread *thread = THREAD (obj);
 
-    g_debug ("%s: %p", __func__, objid (resmgr));
+    g_debug ("%s", __func__);
     if (resmgr == NULL)
         g_error ("%s: passed NULL parameter", __func__);
     if (thread->thread_id != 0)
@@ -1714,13 +1682,12 @@ connection_close_session_callback (gpointer data,
         g_debug ("%s: connection mismatch", __func__);
         return;
     }
-    g_debug ("%s: processing SessionEntry %p associated with Connection %p",
-             __func__, objid (session_entry), objid (connection));
     handle = session_entry_get_handle (session_entry);
+    g_debug ("%s: SessionEntry is in state %s", __func__,
+             session_entry_state_to_str (session_state));
     switch (session_state) {
     case SESSION_ENTRY_SAVED_CLIENT:
-        g_debug ("%s: Connection %p, TPM2_HANDLE 0x%08" PRIx32,
-                 __func__, objid (connection), handle);
+        g_debug ("%s: abandoning.", __func__);
         session_list_abandon_handle (resource_manager->session_list,
                                      connection,
                                      handle);
@@ -1729,22 +1696,19 @@ connection_close_session_callback (gpointer data,
                                       resource_manager);
         break;
     case SESSION_ENTRY_SAVED_RM:
-        g_debug ("%s: SessionEntry %p is in state %s: flushing.", __func__,
-                 objid (session_entry),
-                 session_entry_state_to_str (session_state));
+        g_debug ("%s: flushing.", __func__);
         rc = access_broker_context_flush (resource_manager->access_broker,
                                           handle);
         if (rc != TSS2_RC_SUCCESS) {
-            g_warning ("%s: failed to flush context associated with "
-                       "connection: %p", __func__, objid (connection));
+            g_warning ("%s: failed to flush context", __func__);
         }
         session_list_remove (resource_manager->session_list,
                              session_entry);
         break;
     default:
         /* This is a situation that should never happen */
-        g_error ("Connection closed with session in unexpected state: %s",
-                 session_entry_state_to_str (session_state));
+        g_error ("%s: Connection closed with session in unexpected state: %s",
+                 __func__, session_entry_state_to_str (session_state));
         break;
     }
 }
@@ -1763,8 +1727,7 @@ resource_manager_remove_connection (ResourceManager *resource_manager,
         .resource_manager = resource_manager,
     };
 
-    g_info ("%s: flushing session contexts associated with connection %p",
-            __func__, objid (connection));
+    g_info ("%s: flushing session contexts", __func__);
     session_list_foreach (resource_manager->session_list,
                           connection_close_session_callback,
                           &connection_close_data);

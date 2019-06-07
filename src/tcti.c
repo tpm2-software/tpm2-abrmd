@@ -53,7 +53,6 @@ tcti_get_property (GObject     *object,
 {
     Tcti *self = TCTI (object);
 
-    g_debug ("%s: %p", __func__, objid (self));
     switch (property_id) {
     case PROP_CONTEXT:
         g_value_set_pointer (value, self->tcti_context);
@@ -72,7 +71,6 @@ tcti_dispose (GObject *object)
 {
     Tcti *self = TCTI (object);
 
-    g_debug ("%s: Tcti %p", __func__, objid (self));
     if (self->tcti_context) {
         Tss2_Tcti_Finalize (self->tcti_context);
     }
@@ -83,7 +81,6 @@ tcti_finalize (GObject *object)
 {
     Tcti *self = TCTI (object);
 
-    g_debug ("%s: Tcti %p", __func__, objid (self));
 #if !defined (DISABLE_DLCLOSE)
     g_clear_pointer (&self->tcti_dl_handle, dlclose);
 #endif
@@ -135,7 +132,6 @@ tcti_new (TSS2_TCTI_CONTEXT *tcti_context,
 TSS2_TCTI_CONTEXT*
 tcti_peek_context (Tcti *self)
 {
-    g_debug ("%s: %p", __func__, objid (self));
     return self->tcti_context;
 }
 /**

@@ -342,7 +342,6 @@ access_broker_send_command_success (void **state)
 int
 main (void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (access_broker_type_test,
                                          access_broker_setup,

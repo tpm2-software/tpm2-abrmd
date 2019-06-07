@@ -628,7 +628,6 @@ tpm2_command_get_cap_no_count (void **state)
 gint
 main (void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (tpm2_command_type_test,
                                          tpm2_command_setup,

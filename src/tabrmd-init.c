@@ -48,7 +48,6 @@ void
 on_ipc_frontend_disconnect (IpcFrontend *ipc_frontend,
                             GMainLoop   *loop)
 {
-    g_info ("%s: IpcFrontend %p disconnected", __func__, objid (ipc_frontend));
     main_loop_quit (loop);
 }
 static void
@@ -135,7 +134,6 @@ init_thread_func (gpointer user_data)
     }
 
     connection_manager = connection_manager_new(data->options.max_connections);
-    g_debug ("%s: ConnectionManager: %p", __func__, objid (connection_manager));
     /* setup IpcFrontend */
     data->ipc_frontend =
         IPC_FRONTEND (ipc_frontend_dbus_new (data->options.bus,
@@ -161,8 +159,6 @@ init_thread_func (gpointer user_data)
     }
     g_clear_object (&tcti_factory);
     data->access_broker = access_broker_new (tcti);
-    g_debug ("%s: created AccessBroker: %p", __func__,
-             objid (data->access_broker));
     g_clear_object (&tcti);
     rc = access_broker_init_tpm (data->access_broker);
     if (rc != TSS2_RC_SUCCESS) {
@@ -177,29 +173,21 @@ init_thread_func (gpointer user_data)
      * pipeline.
      */
     command_attrs = command_attrs_new ();
-    g_debug ("%s: created CommandAttrs: %p", __func__, objid (command_attrs));
     ret = command_attrs_init_tpm (command_attrs, data->access_broker);
     if (ret != 0) {
-        g_critical ("%s: failed to initialize CommandAttribute object: %p",
-                    __func__, objid (command_attrs));
+        g_critical ("%s: failed to initialize CommandAttribute object", __func__);
         goto err_out;
     }
 
     data->command_source =
         command_source_new (connection_manager, command_attrs);
     g_object_unref (connection_manager);
-    g_debug ("%s: created command source: %p", __func__,
-             objid (data->command_source));
     session_list = session_list_new (data->options.max_sessions,
                                      SESSION_LIST_MAX_ABANDONED_DEFAULT);
     data->resource_manager = resource_manager_new (data->access_broker,
                                                    session_list);
     g_clear_object (&session_list);
-    g_debug ("%s: created ResourceManager: %p", __func__,
-             objid (data->resource_manager));
     data->response_sink = response_sink_new ();
-    g_debug ("%s: created response source: %p", __func__,
-             objid (data->response_sink));
     g_object_unref (command_attrs);
     g_object_unref (data->access_broker);
     /*

@@ -45,7 +45,7 @@ connection_manager_set_property (GObject        *object,
 {
     ConnectionManager *mgr = CONNECTION_MANAGER (object);
 
-    g_debug ("connection_manager_set_property: %p", objid (mgr));
+    g_debug ("%s", __func__);
     switch (property_id) {
     case PROP_MAX_CONNECTIONS:
         mgr->max_connections = g_value_get_uint (value);
@@ -67,7 +67,7 @@ connection_manager_get_property (GObject     *object,
 {
     ConnectionManager *mgr = CONNECTION_MANAGER (object);
 
-    g_debug ("connection_manager_get_property: %p", objid (mgr));
+    g_debug (__func__);
     switch (property_id) {
     case PROP_MAX_CONNECTIONS:
         g_value_set_uint (value, mgr->max_connections);
@@ -195,8 +195,8 @@ connection_manager_insert (ConnectionManager    *manager,
         g_error ("Error locking connection_manager mutex: %s",
                  strerror (errno));
     if (connection_manager_is_full (manager)) {
-        g_warning ("connection_manager: %p max_connections of %u exceeded",
-                   objid (manager), manager->max_connections);
+        g_warning ("%s: max_connections of %u exceeded", __func__,
+                   manager->max_connections);
         pthread_mutex_unlock (&manager->mutex);
         return -1;
     }
@@ -289,23 +289,16 @@ connection_manager_remove (ConnectionManager   *manager,
 {
     gboolean ret;
 
-    g_debug ("connection_manager %p removing Connection %p",
-             objid (manager), objid (connection));
+    g_debug ("%s: removing Connection", __func__);
     pthread_mutex_lock (&manager->mutex);
     ret = g_hash_table_remove (manager->connection_from_istream_table,
                                connection_key_istream (connection));
     if (ret != TRUE)
-        g_error ("failed to remove Connection %p from g_hash_table %p using "
-                 "key %p", objid (connection),
-                 objid (manager->connection_from_istream_table),
-                 objid (connection_key_istream (connection)));
+        g_error ("%s: failed to remove Connection", __func__);
     ret = g_hash_table_remove (manager->connection_from_id_table,
                                connection_key_id (connection));
     if (ret != TRUE)
-        g_error ("failed to remove Connection %p from g_hash_table %p using "
-                 "key %p", objid (connection),
-                 objid (manager->connection_from_istream_table),
-                 objid (connection_key_id (connection)));
+        g_error ("%s: failed to remove Connection", __func__);
     pthread_mutex_unlock (&manager->mutex);
 
     return ret;

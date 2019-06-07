@@ -28,29 +28,12 @@
  * test whether or not the gmain loop is killed by code under test.
  */
 static gboolean gmain_quit = FALSE;
-/*
- * This is a hack to work around weirdness in the util module. We can call
- * the util_init function only once. Since we're mocking functions used by
- * util_init we must call it from a setup function (not the main function)
- * since we need to push values onto the mock stack.
- */
-static gboolean init = FALSE;
-
 static int
 test_setup (void **state)
 {
     UNUSED_PARAM (state);
-    void *rand_bytes = (void*)1;
 
     gmain_quit = FALSE;
-
-    if (!init) {
-        will_return (__wrap_random_seed_from_file, 0);
-        will_return (__wrap_random_get_bytes, rand_bytes);
-        will_return (__wrap_random_get_bytes, sizeof (rand_bytes));
-        util_init ();
-        init = TRUE;
-    }
 
     return 0;
 }
@@ -104,14 +87,6 @@ init_thread_func_setup (void **state)
     data_src.options.flush_all = TRUE;
     memcpy (&data, &data_src, sizeof (data));
     g_mutex_init (&data.init_mutex);
-
-    if (!init) {
-        void *rand_bytes = (void*)1;
-        will_return (__wrap_random_seed_from_file, 0);
-        will_return (__wrap_random_get_bytes, rand_bytes);
-        will_return (__wrap_random_get_bytes, sizeof (rand_bytes));
-        util_init ();
-    }
 
     return 0;
 }
