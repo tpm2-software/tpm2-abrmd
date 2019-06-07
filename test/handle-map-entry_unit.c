@@ -89,7 +89,6 @@ handle_map_entry_get_vhandle_test (void **state)
 gint
 main (void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (handle_map_entry_type_test,
                                          handle_map_entry_setup,

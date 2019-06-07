@@ -39,8 +39,7 @@ command_source_add_sink (Source      *self,
     CommandSource *src = COMMAND_SOURCE (self);
     GValue value = G_VALUE_INIT;
 
-    g_debug ("command_source_add_sink: CommandSource: %p, Sink: %p",
-             objid (src), objid (sink));
+    g_debug (__func__);
     g_value_init (&value, G_TYPE_OBJECT);
     g_value_set_object (&value, sink);
     g_object_set_property (G_OBJECT (src), "sink", &value);
@@ -109,11 +108,10 @@ command_source_set_property (GObject       *object,
 {
     CommandSource *self = COMMAND_SOURCE (object);
 
-    g_debug ("command_source_set_properties: %p", objid (self));
+    g_debug (__func__);
     switch (property_id) {
     case PROP_COMMAND_ATTRS:
         self->command_attrs = COMMAND_ATTRS (g_value_dup_object (value));
-        g_debug ("  command_attrs: %p", objid (self->command_attrs));
         break;
     case PROP_CONNECTION_MANAGER:
         self->connection_manager = CONNECTION_MANAGER (g_value_get_object (value));
@@ -126,7 +124,6 @@ command_source_set_property (GObject       *object,
         }
         self->sink = SINK (g_value_get_object (value));
         g_object_ref (self->sink);
-        g_debug ("  sink: %p", objid (self->sink));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -142,7 +139,7 @@ command_source_get_property (GObject      *object,
 {
     CommandSource *self = COMMAND_SOURCE (object);
 
-    g_debug ("command_source_get_properties: %p", objid (self));
+    g_debug (__func__);
     switch (property_id) {
     case PROP_COMMAND_ATTRS:
         g_value_set_object (value, self->command_attrs);
@@ -181,17 +178,13 @@ command_source_on_input_ready (GInputStream *istream,
     uint8_t       *buf;
     size_t         buf_size;
 
-    g_debug ("%s: GInputStream: %p, CommandSource: %p",
-             __func__, objid (istream), objid (data->self));
+    g_debug (__func__);
     connection =
         connection_manager_lookup_istream (data->self->connection_manager,
                                            istream);
     if (connection == NULL) {
-        g_error ("failed to get connection associated with istream: %p",
-                 objid (istream));
-    } else {
-        g_debug ("connection_manager_lookup_socket for socket: %p, "
-                 "connection: %p", objid (istream), objid (connection));
+        g_error ("%s: failed to get connection associated with istream",
+                 __func__);
     }
     buf = read_tpm_buffer_alloc (istream, &buf_size);
     if (buf == NULL) {
@@ -213,8 +206,7 @@ fail_out:
     if (buf != NULL) {
         g_free (buf);
     }
-    g_debug ("removing connection %p from connection_manager %p",
-             objid (connection), objid (data->self->connection_manager));
+    g_debug ("%s: removing connection from connection_manager", __func__);
     connection_manager_remove (data->self->connection_manager,
                                connection);
     ControlMessage *msg =
@@ -229,7 +221,7 @@ fail_out:
      * since we're letting this source die at the end of this function
      * (returning FALSE).
      */
-    g_debug ("%s: reomvingunref GCancellable: %p", __func__, objid (data->cancellable));
+    g_debug ("%s: removing GCancellable", __func__);
     g_hash_table_remove (data->self->istream_to_source_data_map, istream);
     return G_SOURCE_REMOVE;
 }
@@ -248,7 +240,7 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
     source_data_t *data;
     UNUSED_PARAM(connection_manager);
 
-    g_info ("%s: adding new connection: %p", __func__, objid (connection));
+    g_info ("%s: adding new connection", __func__);
     /*
      * Take reference to socket, will be freed when the source_data_t
      * structure is freed
@@ -292,8 +284,7 @@ command_source_source_cancel (gpointer key,
     g_debug ("%s", __func__);
     source_data_t *data = (source_data_t*)value;
 
-    g_debug ("%s: canceling cancellable: %p" " and destroying source: %p",
-             __func__, objid (data->cancellable), objid (data->source));
+    g_debug ("%s: canceling cancellable and destroying source", __func__);
     g_cancellable_cancel (data->cancellable);
 }
 /*

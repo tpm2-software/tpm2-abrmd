@@ -36,7 +36,6 @@ main (int argc, char *argv[])
     GThread *init_thread;
     gint init_ret;
 
-    util_init ();
     g_info ("tabrmd startup");
     if (!parse_opts (argc, argv, &gmain_data.options)) {
         return 1;

@@ -82,7 +82,6 @@ response_sink_get_property (GObject     *object,
 {
     ResponseSink *self = RESPONSE_SINK (object);
 
-    g_debug ("%s: %p", __func__, objid (self));
     switch (property_id) {
     case PROP_IN_QUEUE:
         g_value_set_object (value, self->in_queue);
@@ -101,7 +100,6 @@ response_sink_dispose (GObject *obj)
     ResponseSink *sink = RESPONSE_SINK (obj);
     Thread *thread = THREAD (obj);
 
-    g_debug ("%s: %p", __func__, objid (obj));
     if (sink == NULL)
         g_error ("%s: passed NULL pointer", __func__);
     if (thread->thread_id != 0)
@@ -125,7 +123,6 @@ response_sink_unblock (Thread *self)
     if (sink == NULL)
         g_error ("%s: passed NULL sink", __func__);
     msg = control_message_new (CHECK_CANCEL);
-    g_debug ("%s: enqueuing ControlMessage: %p", __func__, objid (msg));
     message_queue_enqueue (sink->in_queue, G_OBJECT (msg));
     g_object_unref (msg);
 }
@@ -189,8 +186,7 @@ response_sink_process_response (Tpm2Response *response)
     GIOStream   *iostream = connection_get_iostream (connection);
     GOutputStream *ostream = g_io_stream_get_output_stream (iostream);
 
-    g_debug ("%s: got response: %p size %d", __func__, objid (response), size);
-    g_debug ("  writing 0x%x bytes", size);
+    g_debug ("%s: writing 0x%x bytes", __func__, size);
     g_debug_bytes (buffer, size, 16, 4);
     written = write_all (ostream, buffer, size);
     g_object_unref (connection);
@@ -230,10 +226,8 @@ response_sink_thread (void *data)
     gboolean done = FALSE;
 
     while (!done) {
-        g_debug ("%s: blocking on input queue: %p", __func__,
-                 objid (sink->in_queue));
+        g_debug ("%s: blocking on input queue", __func__);
         obj = message_queue_dequeue (sink->in_queue);
-        g_debug ("%s: got obj: %p", __func__, objid (obj));
         if (IS_TPM2_RESPONSE (obj)) {
             response_sink_process_response (TPM2_RESPONSE (obj));
         } else if (IS_CONTROL_MESSAGE (obj)) {

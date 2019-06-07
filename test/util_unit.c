@@ -668,7 +668,6 @@ read_tpm_buf_alloc_eof_test (void **state)
 gint
 main (void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (write_in_one),
         cmocka_unit_test (write_in_two),

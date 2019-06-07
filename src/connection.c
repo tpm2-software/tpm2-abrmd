@@ -37,18 +37,16 @@ connection_set_property (GObject       *object,
     switch (property_id) {
     case PROP_ID:
         self->id = g_value_get_uint64 (value);
-        g_debug ("Connection %p set id to 0x%" PRIx64, objid (self), self->id);
+        g_debug ("%s: set id to 0x%" PRIx64, __func__, self->id);
         break;
     case PROP_IO_STREAM:
         self->iostream = G_IO_STREAM (g_value_dup_object (value));
-        g_debug ("Connection %p set socket to %p",
-                 objid (self), objid (self->iostream));
+        g_debug ("%s: set socket", __func__);
         break;
     case PROP_TRANSIENT_HANDLE_MAP:
         self->transient_handle_map = g_value_get_object (value);
         g_object_ref (self->transient_handle_map);
-        g_debug ("Connection %p set transient_handle_map to %p",
-                 objid (self), objid (self->transient_handle_map));
+        g_debug ("%s: set transient_handle_map", __func__);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

@@ -200,7 +200,6 @@ ipc_frontend_disconnect_test (void **state)
 gint
 main (void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (ipc_frontend_type_test,
                                          ipc_frontend_setup,

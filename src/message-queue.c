@@ -66,8 +66,7 @@ message_queue_enqueue (MessageQueue  *message_queue,
                        GObject       *object)
 {
     g_assert (message_queue != NULL);
-    g_debug ("message_queue_enqueue %p : message %p",
-             objid (message_queue), objid (object));
+    g_debug ("%s", __func__);
     g_object_ref (object);
     g_async_queue_push (message_queue->queue, object);
 }
@@ -82,8 +81,7 @@ message_queue_dequeue (MessageQueue *message_queue)
     GObject *obj;
 
     g_assert (message_queue != NULL);
-    g_debug ("message_queue_dequeue %p", objid (message_queue));
+    g_debug ("%s", __func__);
     obj = g_async_queue_pop (message_queue->queue);
-    g_debug ("  got obj: %p", objid (obj));
     return obj;
 }

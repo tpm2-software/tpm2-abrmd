@@ -92,7 +92,5 @@ void        g_debug_tpma_cc                 (TPMA_CC           tpma_cc);
 TSS2_RC     parse_key_value_string (char *kv_str,
                                     KeyValueFunc callback,
                                     gpointer user_data);
-void util_init (void);
-void* objid (const void* ptr);
 
 #endif /* UTIL_H */

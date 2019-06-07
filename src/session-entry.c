@@ -99,7 +99,7 @@ session_entry_dispose (GObject *object)
 {
     SessionEntry *entry = SESSION_ENTRY (object);
 
-    g_debug ("%s: %p", __func__, objid (entry));
+    g_debug ("%s", __func__);
     g_clear_object (&entry->connection);
     G_OBJECT_CLASS (session_entry_parent_class)->dispose (object);
 }
@@ -153,8 +153,7 @@ SessionEntry*
 session_entry_new (Connection *connection,
                    TPM2_HANDLE  handle)
 {
-    g_debug ("session_entry_new with connection: %p",
-             objid (connection));
+    g_debug ("%s", __func__);
     return SESSION_ENTRY (g_object_new (TYPE_SESSION_ENTRY,
                                         "connection", connection,
                                         "handle", handle,
@@ -204,8 +203,7 @@ get_handle (size_buf_t *size_buf)
                                         &offset,
                                         &handle);
     if (rc != TSS2_RC_SUCCESS) {
-        g_debug ("%s: Failed to unmarshal handle from size_buf_t %p",
-                 __func__, objid (size_buf));
+        g_debug ("%s: Failed to unmarshal handle from size_buf_t", __func__);
         return 0;
     }
     g_debug ("%s: unmarshalled handle 0x08%" PRIx32, __func__, handle);
@@ -218,14 +216,12 @@ TPM2_HANDLE
 session_entry_get_handle (SessionEntry *entry)
 {
     g_assert_nonnull (entry);
-    g_debug ("%s: with SessionEntry %p", __func__, objid (entry));
     return entry->handle;
 }
 TPM2_HANDLE
 session_entry_get_context_client_handle (SessionEntry *entry)
 {
     g_assert_nonnull (entry);
-    g_debug ("%s: with SessionEntry %p", __func__, objid (entry));
     return get_handle (session_entry_get_context_client (entry));
 }
 /*
@@ -288,16 +284,6 @@ void
 session_entry_clear_connection (SessionEntry *entry)
 {
     g_clear_object (&entry->connection);
-}
-void
-session_entry_prettyprint (SessionEntry *entry)
-{
-    g_debug ("SessionEntry:    %p", objid (entry));
-    g_debug ("  Connection:    %p", objid (entry->connection));
-    g_debug ("  State:         %s", session_entry_state_to_str (entry->state));
-    g_debug ("  context:       %p", objid (session_entry_get_context (entry)));
-    g_debug ("  context_client:%p",
-             objid (session_entry_get_context_client (entry)));
 }
 /*
  * This function is used with the g_list_find_custom function to find
@@ -396,8 +382,6 @@ session_entry_compare_on_context_client (SessionEntry *entry,
 {
     size_buf_t *size_buf = NULL;
 
-    g_debug ("%s: SessionEntry %p, buf %p and size 0x%zx", __func__,
-             objid (entry), objid (buf), size);
     g_assert (size <= SIZE_BUF_MAX);
     size_buf = session_entry_get_context_client (entry);
     return memcmp (size_buf->buf, buf, size);

@@ -65,7 +65,6 @@ ipc_frontend_dbus_type_test (void **state)
 gint
 main (void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (ipc_frontend_dbus_type_test,
                                          ipc_frontend_dbus_setup,

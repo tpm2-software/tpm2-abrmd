@@ -162,7 +162,6 @@ tpm2_command_get_property (GObject     *object,
 {
     Tpm2Command *self = TPM2_COMMAND (object);
 
-    g_debug ("%s: %p", __func__, objid (self));
     switch (property_id) {
     case PROP_ATTRIBUTES:
         g_value_set_uint (value, self->attributes);
@@ -186,7 +185,6 @@ tpm2_command_dispose (GObject *obj)
 {
     Tpm2Command *cmd = TPM2_COMMAND (obj);
 
-    g_debug ("%s: Tpm2Command %p", __func__, objid (cmd));
     g_clear_object (&cmd->connection);
     G_OBJECT_CLASS (tpm2_command_parent_class)->dispose (obj);
 }
@@ -640,8 +638,7 @@ tpm2_command_get_auths_size (Tpm2Command *command)
         return 0;
     }
     if (!tpm2_command_has_auths (command)) {
-        g_warning ("%s: Tpm2Command %p has no auths",
-                   __func__, objid (command));
+        g_warning ("%s: Tpm2Command has no auths", __func__);
         return 0;
     }
     auth_size_end = AUTH_AREA_SIZE_END_OFFSET (command);
@@ -725,9 +722,6 @@ tpm2_command_foreach_auth (Tpm2Command *command,
          offset = AUTH_AUTH_BUF_END_OFFSET   (command, offset))
     {
         size_t offset_tmp = offset;
-        g_debug ("%s: invoking callback at %p with authorization at offset: "
-                 "%zu and user data: %p", __func__, objid (callback),
-                 offset_tmp, objid (user_data));
         callback (&offset_tmp, user_data);
     }
 

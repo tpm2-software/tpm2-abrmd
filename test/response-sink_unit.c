@@ -29,7 +29,6 @@ response_sink_allocate_test (void **state)
 int
 main (void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (response_sink_allocate_test),
     };

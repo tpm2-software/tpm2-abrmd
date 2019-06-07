@@ -137,8 +137,6 @@ tcti_factory_create (TctiFactory *self)
     const TSS2_TCTI_INFO *info;
     TSS2_TCTI_CONTEXT *ctx = NULL;
 
-    g_debug ("%s: TctiFactory %p with TCTI '%s' and conf '%s'",
-             __func__, objid (self), self->name, self->conf);
     rc = tcti_util_discover_info (self->name,
                                   &info,
                                   &dl_handle);
