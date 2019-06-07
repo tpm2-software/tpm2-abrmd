@@ -279,8 +279,8 @@ test_integration_libtest_la_SOURCES = \
     test/tcti-mock.c \
     test/tcti-mock.h
 
-src_libtss2_tcti_tabrmd_la_LIBADD   = $(GIO_LIBS) $(GLIB_LIBS) \
-    $(PTHREAD_LIBS) $(libutil) $(TSS2_SYS_LIBS)
+src_libtss2_tcti_tabrmd_la_LIBADD = $(GIO_LIBS) $(GLIB_LIBS) $(TSS2_MU_LIBS) \
+    $(libutil)
 src_libtss2_tcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,-z,nodelete -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
 src_libtss2_tcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(srcdir)/src/tcti-tabrmd.map
 
