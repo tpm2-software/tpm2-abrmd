@@ -13,7 +13,6 @@ AM_CFLAGS = $(EXTRA_CFLAGS) \
     $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
     $(TSS2_SYS_CFLAGS) $(TSS2_MU_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
-UNIT_AM_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
 
 TESTS_UNIT = \
     test/access-broker_unit \
@@ -319,8 +318,10 @@ define make_parent_dir
 endef
 
 if UNIT
-test_tabrmd_init_unit_CFLAGS = $(UNIT_AM_CFLAGS) $(GLIB_CFLAGS)
-test_tabrmd_init_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(libutil) $(libtest)
+UNIT_CFLAGS = $(AM_CFLAGS) $(CMOCKA_CFLAGS)
+UNIT_LIBS = $(CMOCKA_LIBS) $(libutil) $(libtest)
+test_tabrmd_init_unit_CFLAGS = $(UNIT_CFLAGS)
+test_tabrmd_init_unit_LDADD = $(UNIT_LIBS)
 test_tabrmd_init_unit_LDFLAGS = -Wl,--wrap=g_main_loop_is_running \
     -Wl,--wrap=g_main_loop_quit,--wrap=g_unix_signal_add \
     -Wl,--wrap=random_seed_from_file,--wrap=random_get_bytes \
@@ -329,126 +330,126 @@ test_tabrmd_init_unit_LDFLAGS = -Wl,--wrap=g_main_loop_is_running \
     -Wl,--wrap=thread_start,--wrap=access_broker_flush_all_context
 test_tabrmd_init_unit_SOURCES = test/tabrmd-init_unit.c
 
-test_tabrmd_options_unit_CFLAGS = $(UNIT_AM_CFLAGS) $(GLIB_CFLAGS)
-test_tabrmd_options_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(libutil)
+test_tabrmd_options_unit_CFLAGS = $(UNIT_CFLAGS)
+test_tabrmd_options_unit_LDADD = $(UNIT_LIBS)
 test_tabrmd_options_unit_LDFLAGS = -Wl,--wrap=g_option_context_new \
     -Wl,--wrap=g_option_context_add_main_entries,--wrap=g_option_context_parse \
     -Wl,--wrap=set_logger,--wrap=g_option_context_free
 test_tabrmd_options_unit_SOURCES = test/tabrmd-options_unit.c
 
-test_test_skeleton_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_test_skeleton_unit_LDADD   = $(CMOCKA_LIBS)
+test_test_skeleton_unit_CFLAGS = $(UNIT_CFLAGS)
+test_test_skeleton_unit_LDADD = $(UNIT_LIBS)
 test_test_skeleton_unit_SOURCES = test/test-skeleton_unit.c
 
-test_response_sink_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_response_sink_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(libutil)
+test_response_sink_unit_CFLAGS = $(UNIT_CFLAGS)
+test_response_sink_unit_LDADD = $(UNIT_LIBS)
 test_response_sink_unit_SOURCES = test/response-sink_unit.c
 
-test_connection_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_connection_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_connection_unit_CFLAGS = $(UNIT_CFLAGS)
+test_connection_unit_LDADD = $(UNIT_LIBS)
 test_connection_unit_SOURCES = test/connection_unit.c
 
-test_connection_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_connection_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_connection_manager_unit_CFLAGS = $(UNIT_CFLAGS)
+test_connection_manager_unit_LDADD = $(UNIT_LIBS)
 test_connection_manager_unit_SOURCES = test/connection-manager_unit.c
 
-test_command_attrs_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_command_attrs_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtest)
+test_command_attrs_unit_CFLAGS = $(UNIT_CFLAGS)
+test_command_attrs_unit_LDADD = $(UNIT_LIBS)
 test_command_attrs_unit_LDFLAGS  = -Wl,--wrap=access_broker_lock_sapi,--wrap=access_broker_get_max_command,--wrap=Tss2_Sys_GetCapability
 test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
-test_command_source_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_command_source_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_command_source_unit_CFLAGS = $(UNIT_CFLAGS)
+test_command_source_unit_LDADD = $(UNIT_LIBS)
 test_command_source_unit_LDFLAGS = -Wl,--wrap=g_source_set_callback,--wrap=connection_manager_lookup_istream,--wrap=connection_manager_remove,--wrap=sink_enqueue,--wrap=read_tpm_buffer_alloc,--wrap=command_attrs_from_cc
 test_command_source_unit_SOURCES = test/command-source_unit.c
 
-test_handle_map_entry_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_handle_map_entry_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_handle_map_entry_unit_CFLAGS = $(UNIT_CFLAGS)
+test_handle_map_entry_unit_LDADD = $(UNIT_LIBS)
 test_handle_map_entry_unit_SOURCES = test/handle-map-entry_unit.c
 
-test_handle_map_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_handle_map_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_handle_map_unit_CFLAGS = $(UNIT_CFLAGS)
+test_handle_map_unit_LDADD = $(UNIT_LIBS)
 test_handle_map_unit_SOURCES = test/handle-map_unit.c
 
-test_ipc_frontend_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_ipc_frontend_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_ipc_frontend_unit_CFLAGS = $(UNIT_CFLAGS)
+test_ipc_frontend_unit_LDADD = $(UNIT_LIBS)
 test_ipc_frontend_unit_SOURCES = test/ipc-frontend_unit.c
 
-test_ipc_frontend_dbus_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_ipc_frontend_dbus_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_ipc_frontend_dbus_unit_CFLAGS = $(UNIT_CFLAGS)
+test_ipc_frontend_dbus_unit_LDADD = $(UNIT_LIBS)
 test_ipc_frontend_dbus_unit_SOURCES = test/ipc-frontend-dbus_unit.c
 
-test_logging_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_logging_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_logging_unit_CFLAGS = $(UNIT_CFLAGS)
+test_logging_unit_LDADD = $(UNIT_LIBS)
 test_logging_unit_LDFLAGS = -Wl,--wrap=getenv,--wrap=syslog
 test_logging_unit_SOURCES = test/logging_unit.c
 
-test_thread_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_thread_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(libutil)
+test_thread_unit_CFLAGS = $(UNIT_CFLAGS)
+test_thread_unit_LDADD = $(UNIT_LIBS)
 test_thread_unit_SOURCES = test/thread_unit.c
 
-test_tpm2_command_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tpm2_command_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(libutil)
+test_tpm2_command_unit_CFLAGS = $(UNIT_CFLAGS)
+test_tpm2_command_unit_LDADD = $(UNIT_LIBS)
 test_tpm2_command_unit_SOURCES = test/tpm2-command_unit.c
 
-test_tpm2_response_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_tpm2_response_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(libutil)
+test_tpm2_response_unit_CFLAGS = $(UNIT_CFLAGS)
+test_tpm2_response_unit_LDADD = $(UNIT_LIBS)
 test_tpm2_response_unit_SOURCES = test/tpm2-response_unit.c
 
-test_util_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_util_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(libutil)
+test_util_unit_CFLAGS = $(UNIT_CFLAGS)
+test_util_unit_LDADD = $(UNIT_LIBS)
 test_util_unit_LDFLAGS = -Wl,--wrap=g_input_stream_read,--wrap=g_output_stream_write
 test_util_unit_SOURCES = test/util_unit.c
 
-test_message_queue_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_message_queue_unit_LDADD  = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_message_queue_unit_CFLAGS = $(UNIT_CFLAGS)
+test_message_queue_unit_LDADD = $(UNIT_LIBS)
 test_message_queue_unit_SOURCES = test/message-queue_unit.c
 
-test_access_broker_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_access_broker_unit_CFLAGS = $(UNIT_CFLAGS)
+test_access_broker_unit_LDADD = $(UNIT_LIBS)
 test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_Startup,--wrap=Tss2_Sys_GetCapability
-test_access_broker_unit_LDADD = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtest)
 test_access_broker_unit_SOURCES = test/access-broker_unit.c
 
-test_random_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_random_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_random_unit_CFLAGS = $(UNIT_CFLAGS)
+test_random_unit_LDADD = $(UNIT_LIBS)
 test_random_unit_LDFLAGS = -Wl,--wrap=open,--wrap=read,--wrap=close
 test_random_unit_SOURCES = test/random_unit.c
 
-test_session_entry_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_session_entry_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_session_entry_unit_CFLAGS = $(UNIT_CFLAGS)
+test_session_entry_unit_LDADD = $(UNIT_LIBS)
 test_session_entry_unit_SOURCES = test/session-entry_unit.c
 
-test_session_list_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
-test_session_list_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtest)
+test_session_list_unit_CFLAGS = $(UNIT_CFLAGS)
+test_session_list_unit_LDADD = $(UNIT_LIBS)
 test_session_list_unit_SOURCES = test/session-list_unit.c
 
-test_resource_manager_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_resource_manager_unit_CFLAGS = $(UNIT_CFLAGS)
+test_resource_manager_unit_LDADD = $(UNIT_LIBS)
 test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
-test_resource_manager_unit_LDADD   = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(TSS2_SYS_LIBS) $(PTHREAD_LIBS) $(libutil) $(libtest)
 test_resource_manager_unit_SOURCES = test/resource-manager_unit.c
 
-test_tcti_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_tcti_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtest)
+test_tcti_unit_CFLAGS = $(UNIT_CFLAGS)
+test_tcti_unit_LDADD = $(UNIT_LIBS)
 test_tcti_unit_SOURCES  = test/tcti_unit.c
 
-test_tcti_factory_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_tcti_factory_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil) $(libtest)
+test_tcti_factory_unit_CFLAGS = $(UNIT_CFLAGS)
+test_tcti_factory_unit_LDADD = $(UNIT_LIBS)
 test_tcti_factory_unit_LDFLAGS = -Wl,--wrap=tcti_util_discover_info,--wrap=tcti_util_dynamic_init,--wrap=dlclose
 test_tcti_factory_unit_SOURCES  = test/tcti-factory_unit.c
 
-test_tcti_util_unit_CFLAGS   = $(UNIT_AM_CFLAGS)
-test_tcti_util_unit_LDADD    = $(CMOCKA_LIBS) $(GLIB_LIBS) $(GOBJECT_LIBS) $(libutil)
+test_tcti_util_unit_CFLAGS = $(UNIT_CFLAGS)
+test_tcti_util_unit_LDADD = $(UNIT_LIBS)
 test_tcti_util_unit_LDFLAGS  = -Wl,--wrap=dlopen,--wrap=dlsym,--wrap=dlclose
 test_tcti_util_unit_SOURCES  = test/tcti-util_unit.c
 
-test_tss2_tcti_tabrmd_unit_CFLAGS  = $(UNIT_AM_CFLAGS)
+test_tss2_tcti_tabrmd_unit_CFLAGS = $(UNIT_CFLAGS)
+test_tss2_tcti_tabrmd_unit_LDADD = $(UNIT_LIBS)
 test_tss2_tcti_tabrmd_unit_LDFLAGS = -Wl,--wrap=g_dbus_proxy_call_with_unix_fd_list_sync,--wrap=tcti_tabrmd_call_cancel_sync,--wrap=tcti_tabrmd_call_set_locality_sync,--wrap=tcti_tabrmd_proxy_new_for_bus_sync
-test_tss2_tcti_tabrmd_unit_LDADD   = $(CMOCKA_LIBS) $(GIO_LIBS) $(libutil)
 test_tss2_tcti_tabrmd_unit_SOURCES = src/tcti-tabrmd.c test/tss2-tcti-tabrmd_unit.c
 
-test_tcti_tabrmd_receive_unit_CFLAGS = $(UNIT_AM_CFLAGS) -DG_DISABLE_CAST_CHECKS
+test_tcti_tabrmd_receive_unit_CFLAGS = $(UNIT_CFLAGS) -DG_DISABLE_CAST_CHECKS
+test_tcti_tabrmd_receive_unit_LDADD = $(UNIT_LIBS)
 test_tcti_tabrmd_receive_unit_LDFLAGS = -Wl,--wrap=poll,--wrap=g_socket_connection_get_socket,--wrap=g_socket_get_fd,--wrap=g_input_stream_read,--wrap=g_io_stream_get_input_stream,--wrap=g_input_stream_read
-test_tcti_tabrmd_receive_unit_LDADD = $(CMOCKA_LIBS) $(GIO_LIBS) $(libutil) $(libtest)
 test_tcti_tabrmd_receive_unit_SOURCES = src/tcti-tabrmd.c test/tcti-tabrmd-receive_unit.c
 endif
 
