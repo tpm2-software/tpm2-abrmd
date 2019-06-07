@@ -868,7 +868,6 @@ tcti_tabrmd_set_locality_bad_sequence_test (void **state)
 int
 main (void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (tcti_tabrmd_init_size_test),
         cmocka_unit_test (tcti_tabrmd_init_success_return_value_test),

@@ -376,35 +376,6 @@ out:
     return rc;
 }
 
-#define ENTROPY_SRC "/dev/urandom"
-static void* ptr_mask = NULL;
-/*
- * This initialization function is used to initialize state internal to the
- * util module. Use of any function from this module that requires
- * initialization before 'util_init' is called should cause the program to
- * halt via an 'assert'. Currently this init function is only used to get a
- * random value from ENTROPY_SRC for use in the 'objid' function.
- */
-void
-util_init (void)
-{
-    if (ptr_mask != NULL) {
-        g_debug ("%s: already initialized", __func__);
-        return;
-    }
-
-    Random *rand = NULL;
-    int ret;
-    size_t bytes;
-
-    rand = random_new ();
-    ret = random_seed_from_file (rand, ENTROPY_SRC);
-    g_assert (ret != -1);
-    bytes = random_get_bytes (rand, (uint8_t*)&ptr_mask, sizeof (ptr_mask));
-    g_assert (bytes == sizeof (ptr_mask));
-
-    g_clear_object (&rand);
-}
 /*
  * This function is used to mask pointer values before they are displayed
  * in debug output. This allows us to use the address of objects to track
@@ -414,10 +385,18 @@ util_init (void)
 void*
 objid (const void *ptr)
 {
-    g_assert (ptr_mask != NULL);
+    GChecksum *checksum;
+    uintptr_t buf [64 / sizeof (uintptr_t)] = { 0, };
+    gsize length = sizeof (buf);
 
-    if (ptr == NULL) {
+    checksum = g_checksum_new (G_CHECKSUM_SHA256);
+    if (checksum == NULL) {
+        g_warning ("g_checksum_new failed, returning NULL");
         return NULL;
     }
-    return (void*)((uintptr_t)ptr_mask ^ (uintptr_t)ptr);
+    g_checksum_update (checksum, (guchar*)&ptr, sizeof (ptr));
+    g_checksum_get_digest (checksum, (guint8*)buf, &length);
+    g_checksum_free (checksum);
+
+    return (void*)buf[0];
 }

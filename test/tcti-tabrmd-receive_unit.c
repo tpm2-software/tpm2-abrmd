@@ -655,7 +655,6 @@ tcti_tabrmd_receive_partial_reads (void **state)
 int
 main (void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test (tcti_tabrmd_poll_fd_ready_pollin),
         cmocka_unit_test (tcti_tabrmd_poll_fd_ready_pollpri),

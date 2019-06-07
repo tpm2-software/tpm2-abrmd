@@ -131,7 +131,6 @@ tcti_factory_create_test (void **state)
 gint
 main (void)
 {
-    util_init ();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (tcti_factory_type_test,
                                          tcti_factory_setup,
