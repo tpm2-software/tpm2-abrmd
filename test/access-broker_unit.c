@@ -97,7 +97,7 @@ access_broker_setup (void **state)
         return 1;
     }
     data = calloc (1, sizeof (test_data_t));
-    tcti = tcti_new (context, 0);
+    tcti = tcti_new (context);
     data->broker = access_broker_new (tcti);
     g_clear_object (&tcti);
     *state = data;

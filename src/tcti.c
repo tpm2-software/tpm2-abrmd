@@ -3,8 +3,9 @@
  * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  */
-#include <dlfcn.h>
 #include <inttypes.h>
+
+#include <tss2/tss2_tctildr.h>
 
 #include "tcti.h"
 #include "util.h"
@@ -14,7 +15,6 @@ G_DEFINE_TYPE (Tcti, tcti, G_TYPE_OBJECT);
 enum {
     PROP_0,
     PROP_CONTEXT,
-    PROP_DL_HANDLE,
     N_PROPERTIES
 };
 static GParamSpec *obj_properties [N_PROPERTIES] = { NULL };
@@ -33,9 +33,6 @@ tcti_set_property (GObject        *object,
     switch (property_id) {
     case PROP_CONTEXT:
         self->tcti_context = (TSS2_TCTI_CONTEXT*)g_value_get_pointer (value);
-        break;
-    case PROP_DL_HANDLE:
-        self->tcti_dl_handle = g_value_get_pointer (value);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -57,9 +54,6 @@ tcti_get_property (GObject     *object,
     case PROP_CONTEXT:
         g_value_set_pointer (value, self->tcti_context);
         break;
-    case PROP_DL_HANDLE:
-        g_value_set_pointer (value, self->tcti_dl_handle);
-        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -72,19 +66,13 @@ tcti_dispose (GObject *object)
     Tcti *self = TCTI (object);
 
     if (self->tcti_context) {
-        Tss2_Tcti_Finalize (self->tcti_context);
+        Tss2_TctiLdr_Finalize (&self->tcti_context);
     }
     G_OBJECT_CLASS (tcti_parent_class)->dispose (object);
 }
 static void
 tcti_finalize (GObject *object)
 {
-    Tcti *self = TCTI (object);
-
-#if !defined (DISABLE_DLCLOSE)
-    g_clear_pointer (&self->tcti_dl_handle, dlclose);
-#endif
-    g_clear_pointer (&self->tcti_context, g_free);
     G_OBJECT_CLASS (tcti_parent_class)->finalize (object);
 }
 
@@ -110,22 +98,15 @@ tcti_class_init (TctiClass *klass)
                               "TSS2_TCTI_CONTEXT",
                               "TSS2_TCTI_CONTEXT",
                               G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-    obj_properties [PROP_DL_HANDLE] =
-        g_param_spec_pointer ("tcti-dl-handle",
-                              "dl handle",
-                              "dl handle",
-                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     g_object_class_install_properties (object_class,
                                        N_PROPERTIES,
                                        obj_properties);
 }
 Tcti*
-tcti_new (TSS2_TCTI_CONTEXT *tcti_context,
-          void *tcti_dl_handle)
+tcti_new (TSS2_TCTI_CONTEXT *tcti_context)
 {
     return TCTI (g_object_new (TYPE_TCTI,
                                "tcti-context", tcti_context,
-                               "tcti-dl-handle", tcti_dl_handle,
                                NULL));
 }
 

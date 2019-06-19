@@ -14,45 +14,6 @@
 #include "tabrmd-options.h"
 #include "util.h"
 
-static void
-tcti_conf_parse_test_null_tcti (void **state)
-{
-    UNUSED_PARAM (state);
-    assert_false (tcti_conf_parse (NULL, NULL, NULL));
-}
-static void
-tcti_conf_parse_test_null_conf (void **state)
-{
-    UNUSED_PARAM (state);
-    gchar *tcti_filename, *tcti_conf;
-
-    assert_true (tcti_conf_parse (NULL, &tcti_filename, &tcti_conf));
-}
-static void
-tcti_conf_parse_test_zero_conf (void **state)
-{
-    UNUSED_PARAM (state);
-    gchar *tcti_filename, *tcti_conf;
-
-    assert_true (tcti_conf_parse ("", &tcti_filename, &tcti_conf));
-}
-static void
-tcti_conf_parse_test_name_only (void **state)
-{
-    UNUSED_PARAM (state);
-    gchar *combined_conf = "tcti_name", *tcti_filename, *tcti_conf;
-
-    assert_true (tcti_conf_parse (combined_conf, &tcti_filename, &tcti_conf));
-    assert_string_equal (combined_conf, tcti_filename);
-}
-static void
-tcti_conf_parse_test_name_conf (void **state)
-{
-    UNUSED_PARAM (state);
-    gchar combined_conf[] = "tcti_name:tcti_conf", *tcti_filename, *tcti_conf;
-
-    assert_true (tcti_conf_parse (combined_conf, &tcti_filename, &tcti_conf));
-}
 GOptionContext*
 __wrap_g_option_context_new (const gchar *parameter_string)
 {
@@ -230,11 +191,6 @@ int
 main (void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test (tcti_conf_parse_test_null_tcti),
-        cmocka_unit_test (tcti_conf_parse_test_null_conf),
-        cmocka_unit_test (tcti_conf_parse_test_zero_conf),
-        cmocka_unit_test (tcti_conf_parse_test_name_only),
-        cmocka_unit_test (tcti_conf_parse_test_name_conf),
         cmocka_unit_test (tcti_conf_parse_opts_parse_fail),
         cmocka_unit_test (tcti_conf_parse_opts_logger_fail),
         cmocka_unit_test (tcti_conf_parse_opts_max_connections_fail),

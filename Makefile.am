@@ -11,7 +11,8 @@ unit-count: check
 AM_CFLAGS = $(EXTRA_CFLAGS) \
     -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
     $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
-    $(TSS2_SYS_CFLAGS) $(TSS2_MU_CFLAGS) $(CODE_COVERAGE_CFLAGS)
+    $(TSS2_SYS_CFLAGS) $(TSS2_MU_CFLAGS) $(TSS2_TCTILDR_CFLAGS) \
+    $(CODE_COVERAGE_CFLAGS)
 AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
 
 TESTS_UNIT = \
@@ -36,7 +37,6 @@ TESTS_UNIT = \
     test/test-skeleton_unit \
     test/tcti_unit \
     test/tcti-factory_unit \
-    test/tcti-util_unit \
     test/thread_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
@@ -193,7 +193,7 @@ src/ipc-frontend-dbus.c : $(BUILT_SOURCES)
 # -Wno-unused-parameter for automatically-generated tabrmd-generated.c:
 src_libutil_la_CFLAGS  = $(AM_CFLAGS) -Wno-unused-parameter
 src_libutil_la_LIBADD  = $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(TSS2_SYS_LIBS) $(TSS2_MU_LIBS)
+    $(TSS2_SYS_LIBS) $(TSS2_MU_LIBS) $(TSS2_TCTILDR_LIBS)
 src_libutil_la_SOURCES = \
     src/access-broker.c \
     src/access-broker.h \
@@ -250,8 +250,6 @@ src_libutil_la_SOURCES = \
     src/tcti.h \
     src/tcti-factory.c \
     src/tcti-factory.h \
-    src/tcti-util.c \
-    src/tcti-util.h \
     src/thread.c \
     src/thread.h \
     src/tpm2-command.c \
@@ -263,7 +261,8 @@ src_libutil_la_SOURCES = \
     src/util.c \
     src/util.h
 
-test_integration_libtest_la_LIBADD  = $(TSS2_SYS_LIBS) $(GLIB_LIBS)
+test_integration_libtest_la_LIBADD  = $(TSS2_SYS_LIBS) $(TSS2_TCTILDR_LIBS) \
+    $(GLIB_LIBS)
 test_integration_libtest_la_SOURCES = \
     test/integration/common.c \
     test/integration/common.h \
@@ -279,12 +278,12 @@ test_integration_libtest_la_SOURCES = \
     test/tcti-mock.h
 
 src_libtss2_tcti_tabrmd_la_LIBADD = $(GIO_LIBS) $(GLIB_LIBS) $(TSS2_MU_LIBS) \
-    $(libutil)
+    $(libutil) $(TSS2_TCTILDR_LIBS)
 src_libtss2_tcti_tabrmd_la_LDFLAGS = -fPIC -Wl,--no-undefined -Wl,-z,nodelete -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
 src_libtss2_tcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(srcdir)/src/tcti-tabrmd.map
 
 src_tpm2_abrmd_LDADD   = $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(TSS2_SYS_LIBS) $(libutil)
+    $(TSS2_SYS_LIBS) $(TSS2_TCTILDR_LIBS) $(libutil)
 src_tpm2_abrmd_SOURCES = src/tabrmd.c
 
 AUTHORS :
@@ -434,13 +433,9 @@ test_tcti_unit_SOURCES  = test/tcti_unit.c
 
 test_tcti_factory_unit_CFLAGS = $(UNIT_CFLAGS)
 test_tcti_factory_unit_LDADD = $(UNIT_LIBS)
-test_tcti_factory_unit_LDFLAGS = -Wl,--wrap=tcti_util_discover_info,--wrap=tcti_util_dynamic_init,--wrap=dlclose
+test_tcti_factory_unit_LDFLAGS = -Wl,--wrap=Tss2_TctiLdr_Initialize \
+    -Wl,--wrap=Tss2_TctiLdr_Finalize
 test_tcti_factory_unit_SOURCES  = test/tcti-factory_unit.c
-
-test_tcti_util_unit_CFLAGS = $(UNIT_CFLAGS)
-test_tcti_util_unit_LDADD = $(UNIT_LIBS)
-test_tcti_util_unit_LDFLAGS  = -Wl,--wrap=dlopen,--wrap=dlsym,--wrap=dlclose
-test_tcti_util_unit_SOURCES  = test/tcti-util_unit.c
 
 test_tss2_tcti_tabrmd_unit_CFLAGS = $(UNIT_CFLAGS)
 test_tss2_tcti_tabrmd_unit_LDADD = $(UNIT_LIBS)

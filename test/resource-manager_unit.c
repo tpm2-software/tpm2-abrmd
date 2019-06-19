@@ -119,7 +119,7 @@ resource_manager_setup (void **state)
     TSS2_TCTI_CONTEXT *context;
 
     context = tcti_mock_init_full ();
-    tcti = tcti_new (context, NULL);
+    tcti = tcti_new (context);
 
     data = calloc (1, sizeof (test_data_t));
     handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);

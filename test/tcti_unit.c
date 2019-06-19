@@ -30,7 +30,7 @@ tcti_setup (void **state)
         g_critical ("tcti_mock_init_full failed");
         return 1;
     }
-    data->tcti = tcti_new (data->context, NULL);
+    data->tcti = tcti_new (data->context);
     *state = data;
 
     return 0;

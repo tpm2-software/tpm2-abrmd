@@ -10,33 +10,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <tss2/tss2_tctildr.h>
+
 #include "context-util.h"
-#include "tcti-util.h"
 #include "common.h"
 
-TSS2_TCTI_CONTEXT*
-tcti_dynamic_init (const char *filename,
-                   const char *conf)
-{
-    TSS2_TCTI_CONTEXT *context;
-    const TSS2_TCTI_INFO *info;
-    TSS2_RC rc;
-    void *tcti_dl_handle;
-
-    rc = tcti_util_discover_info (filename, &info, &tcti_dl_handle);
-    if (rc != TSS2_RC_SUCCESS) {
-        return NULL;
-    }
-    rc = tcti_util_dynamic_init (info, conf, &context);
-    if (rc != TSS2_RC_SUCCESS) {
-        context = NULL;
-    }
-    return context;
-}
 /*
  * Initialize a TCTI context for the tabrmd. Currently it requires no options.
  */
-TSS2_TCTI_CONTEXT*
+static TSS2_TCTI_CONTEXT*
 tcti_tabrmd_init (const char *conf)
 {
     TSS2_RC rc;
@@ -127,8 +109,16 @@ sapi_init_from_opts (test_opts_t *options)
 TSS2_TCTI_CONTEXT*
 tcti_init_from_opts (test_opts_t *options)
 {
+    TSS2_TCTI_CONTEXT *tcti_ctx = NULL;
+    TSS2_RC rc;
+
     if (options->tcti_filename != NULL) {
-        return tcti_dynamic_init (options->tcti_filename, options->tcti_conf);
+        rc = Tss2_TctiLdr_Initialize_Ex (options->tcti_filename,
+                                         options->tcti_conf,
+                                         &tcti_ctx);
+        if (rc != TSS2_RC_SUCCESS || tcti_ctx == NULL)
+            return NULL;
+        return tcti_ctx;
     } else {
         return tcti_tabrmd_init (options->tcti_conf);
     }
@@ -149,7 +139,11 @@ sapi_teardown_full (TSS2_SYS_CONTEXT *sapi_context)
     Tss2_Sys_Finalize (sapi_context);
     free (sapi_context);
     if (tcti_context) {
-        Tss2_Tcti_Finalize (tcti_context);
-        free (tcti_context);
+        Tss2_TctiLdr_Finalize (&tcti_context);
+        /* if tctildr can't finalize, try to do it the old fashioned way */
+        if (tcti_context != NULL) {
+            Tss2_Tcti_Finalize (tcti_context);
+            free (tcti_context);
+        }
     }
 }

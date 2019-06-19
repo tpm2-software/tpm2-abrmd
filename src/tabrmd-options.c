@@ -36,64 +36,6 @@ show_version (const gchar  *option_name,
     g_print ("tpm2-abrmd version %s\n", VERSION);
     exit (0);
 }
-/*
- * Break the 'combined_conf' string up into the name of the TCTI and the
- * config string passed to the TCTI. The combined_conf string is formatted:
- * "name:conf" where:
- * - 'name' is the name of the TCTI library in the form 'libtcti-name.so'.
- *   Additionally the prefix 'libtcti-' and suffix '.so' may be omitted.
- * - 'conf' is the configuration string passed to the TCTI. This is TCTI
- *   specific.
- * Bot the 'name' and 'conf' fields in this string are optional HOWEVER if
- * no semicolon is present in the combined_conf string it will be assumed
- * that the whole string is the 'name'. To provide a 'conf' string to the
- * default TCTI the first character of the combined_conf string must be a
- * semicolon.
- * If a field in the combined_conf string indicates a default value then
- * the provided tcti_filename or tcti_conf will not be set. This is to allow
- * defaults to be set by the caller and only updated here if we're changing
- * them.
- * This function returns TRUE if 'combined_conf' is successfully parsed, FALSE
- * otherwise.
- */
-gboolean
-tcti_conf_parse (gchar *combined_conf,
-                 gchar **tcti_filename,
-                 gchar **tcti_conf)
-{
-    gchar *split;
-
-    g_debug ("%s", __func__);
-    if (tcti_filename == NULL || tcti_conf == NULL) {
-        g_critical ("%s: tcti_filename and tcti_conf out params may not be NULL",
-                    __func__);
-        return FALSE;
-    }
-    if (combined_conf == NULL) {
-        g_debug ("%s: combined conf is null", __func__);
-        return TRUE;
-    }
-    if (strlen (combined_conf) == 0) {
-        g_debug ("%s: combined conf is the empty string", __func__);
-        return TRUE;
-    }
-
-    split = strchr (combined_conf, ':');
-    /* no semicolon, combined_conf is tcti name */
-    if (split == NULL) {
-        *tcti_filename = combined_conf;
-        return TRUE;
-    }
-    split [0] = '\0';
-    if (combined_conf[0] != '\0') {
-        *tcti_filename = combined_conf;
-    }
-    if (split [1] != '\0') {
-        *tcti_conf = &split [1];
-    }
-
-    return TRUE;
-}
 /**
  * This function parses the parameter argument vector and populates the
  * parameter 'options' structure with data needed to configure the tabrmd.
@@ -109,7 +51,7 @@ parse_opts (gint argc,
             gchar *argv[],
             tabrmd_options_t *options)
 {
-    gchar *logger_name = "stdout", *tcti_optconf = NULL;
+    gchar *logger_name = "stdout";
     GOptionContext *ctx;
     GError *err = NULL;
     gboolean session_bus = FALSE;
@@ -147,12 +89,14 @@ parse_opts (gint argc,
             .short_name      = 't',
             .flags           = G_OPTION_FLAG_NONE,
             .arg             = G_OPTION_ARG_STRING,
-            .arg_data        = &tcti_optconf,
+            .arg_data        = &options->tcti_conf,
             .description     = "TCTI configuration string. See tpm2-abrmd (8) for search rules.",
             .arg_description = "tcti-conf",
         },
         { NULL, '\0', 0, 0, NULL, NULL, NULL },
     };
+
+    g_warning ("tcti_conf before: \"%s\"", options->tcti_conf);
 
     ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabrmd)");
     g_option_context_add_main_entries (ctx, entries, NULL);
@@ -188,7 +132,6 @@ parse_opts (gint argc,
                     TABRMD_TRANSIENT_MAX);
         return FALSE;
     }
-    return tcti_conf_parse (tcti_optconf,
-                            &options->tcti_filename,
-                            &options->tcti_conf);
+    g_warning ("tcti_conf after: \"%s\"", options->tcti_conf);
+    return TRUE;
 }
