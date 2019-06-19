@@ -21,7 +21,6 @@ struct _TctiClass {
 struct _Tcti {
     GObject             parent;
     TSS2_TCTI_CONTEXT  *tcti_context;
-    void               *tcti_dl_handle;
 };
 
 #define TYPE_TCTI             (tcti_get_type ())
@@ -32,8 +31,7 @@ struct _Tcti {
 #define TCTI_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TCTI, TctiClass))
 
 GType               tcti_get_type        (void);
-Tcti*               tcti_new             (TSS2_TCTI_CONTEXT *ctx,
-                                          void *tcti_dl_handle);
+Tcti*               tcti_new             (TSS2_TCTI_CONTEXT *ctx);
 TSS2_RC             tcti_transmit        (Tcti            *self,
                                           size_t           size,
                                           uint8_t         *command);

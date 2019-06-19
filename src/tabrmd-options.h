@@ -18,7 +18,6 @@
     .dbus_name = TABRMD_DBUS_NAME_DEFAULT, \
     .prng_seed_file = TABRMD_ENTROPY_SRC_DEFAULT, \
     .allow_root = FALSE, \
-    .tcti_filename = TABRMD_TCTI_FILENAME_DEFAULT, \
     .tcti_conf = TABRMD_TCTI_CONF_DEFAULT, \
 }
 
@@ -31,7 +30,6 @@ typedef struct tabrmd_options {
     gchar          *dbus_name;
     const gchar    *prng_seed_file;
     gboolean        allow_root;
-    gchar          *tcti_filename;
     gchar          *tcti_conf;
 } tabrmd_options_t;
 
@@ -39,9 +37,5 @@ gboolean
 parse_opts (gint argc,
             gchar *argv[],
             tabrmd_options_t *options);
-gboolean
-tcti_conf_parse (gchar *combined_conf,
-                 gchar **tcti_filename,
-                 gchar **tcti_conf);
 
 #endif /* TABRMD_OPTIONS_H */

@@ -181,7 +181,7 @@ static void
 init_thread_func_broker_init_fail (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full (), NULL);
+    Tcti *tcti = tcti_new (tcti_mock_init_full ());
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -210,7 +210,7 @@ static void
 init_thread_func_cmdattrs_fail (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full (), NULL);
+    Tcti *tcti = tcti_new (tcti_mock_init_full ());
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -232,7 +232,7 @@ static void
 init_thread_func_cmdsrc_fail (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full (), NULL);
+    Tcti *tcti = tcti_new (tcti_mock_init_full ());
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -248,7 +248,7 @@ static void
 init_thread_func_resmgr_fail (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full (), NULL);
+    Tcti *tcti = tcti_new (tcti_mock_init_full ());
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -265,7 +265,7 @@ static void
 init_thread_func_respsnk_fail (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full (), NULL);
+    Tcti *tcti = tcti_new (tcti_mock_init_full ());
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -283,7 +283,7 @@ static void
 init_thread_func_success (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full (), NULL);
+    Tcti *tcti = tcti_new (tcti_mock_init_full ());
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);

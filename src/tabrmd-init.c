@@ -148,13 +148,11 @@ init_thread_func (gpointer user_data)
     ipc_frontend_connect (data->ipc_frontend,
                           &data->init_mutex);
 
-    tcti_factory = tcti_factory_new (data->options.tcti_filename,
-                                     data->options.tcti_conf);
+    tcti_factory = tcti_factory_new (data->options.tcti_conf);
     tcti = tcti_factory_create (tcti_factory);
     if (tcti == NULL) {
-        g_critical ("%s: failed to create TCTI with name \"%s\" and conf "
-                    "\"%s\"", __func__, data->options.tcti_filename,
-                    data->options.tcti_conf);
+        g_critical ("%s: failed to create TCTI with conf \"%s\"",
+                    __func__, data->options.tcti_conf);
         goto err_out;
     }
     g_clear_object (&tcti_factory);

@@ -16,7 +16,6 @@ typedef struct _TctiFactoryClass {
 typedef struct _TctiFactory
 {
     GObject               parent;
-    gchar                *name;
     gchar                *conf;
 } TctiFactory;
 
@@ -28,8 +27,7 @@ typedef struct _TctiFactory
 #define TCTI_FACTORY_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_TCTI_FACTORY, TctiFactoryClass))
 
 GType                tcti_factory_get_type       (void);
-TctiFactory*         tcti_factory_new            (gchar const      *name,
-                                                  gchar const      *conf);
+TctiFactory*         tcti_factory_new            (gchar const      *conf);
 Tcti*                tcti_factory_create         (TctiFactory      *self);
 G_END_DECLS
 #endif /* TCTI_FACTORY_H */

@@ -35,7 +35,7 @@ command_attrs_setup (void **state)
         return 1;
     }
     data = calloc (1, sizeof (test_data_t));
-    tcti = tcti_new (context, NULL);
+    tcti = tcti_new (context);
     data->access_broker = access_broker_new (tcti);
     data->command_attrs = command_attrs_new ();
     g_clear_object (&tcti);

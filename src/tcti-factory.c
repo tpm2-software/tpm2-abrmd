@@ -2,10 +2,11 @@
 #include <dlfcn.h>
 #include <inttypes.h>
 
+#include <tss2/tss2_tctildr.h>
+
 #include "util.h"
 #include "tabrmd.h"
 #include "tcti-factory.h"
-#include "tcti-util.h"
 
 /*
  * This class implements a simple factory object used to instantiate Tcti
@@ -17,7 +18,6 @@ G_DEFINE_TYPE (TctiFactory, tcti_factory, G_TYPE_OBJECT);
 
 enum {
     PROP_0,
-    PROP_NAME,
     PROP_CONF,
     N_PROPERTIES
 };
@@ -32,9 +32,6 @@ tcti_factory_set_property (GObject *object,
     TctiFactory *self = TCTI_FACTORY (object);
 
     switch (property_id) {
-    case PROP_NAME:
-        self->name = g_value_dup_string (value);
-        break;
     case PROP_CONF:
         self->conf = g_value_dup_string (value);
         break;
@@ -53,9 +50,6 @@ tcti_factory_get_property (GObject *object,
     TctiFactory *self = TCTI_FACTORY (object);
 
     switch (property_id) {
-    case PROP_NAME:
-        g_value_set_string (value, self->name);
-        break;
     case PROP_CONF:
         g_value_set_string (value, self->conf);
         break;
@@ -70,7 +64,6 @@ tcti_factory_finalize (GObject *obj)
 {
     TctiFactory *self = TCTI_FACTORY (obj);
 
-    g_clear_pointer (&self->name, g_free);
     g_clear_pointer (&self->conf, g_free);
     G_OBJECT_CLASS (tcti_factory_parent_class)->finalize (obj);
 }
@@ -94,12 +87,6 @@ tcti_factory_class_init (TctiFactoryClass *klass)
     object_class->get_property = tcti_factory_get_property;
     object_class->set_property = tcti_factory_set_property;
 
-    obj_properties [PROP_NAME] =
-        g_param_spec_string ("name",
-                             "TCTI library name",
-                             "Library file containing TCTI implementation.",
-                             "libtss2-tcti-device.so.0",
-                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_CONF] =
         g_param_spec_string ("conf",
                              "TCTI config string",
@@ -116,11 +103,9 @@ tcti_factory_class_init (TctiFactoryClass *klass)
  * when the '_create' function is called.
  */
 TctiFactory*
-tcti_factory_new (const gchar *name,
-                  const gchar *conf)
+tcti_factory_new (const gchar *conf)
 {
     return TCTI_FACTORY (g_object_new (TYPE_TCTI_FACTORY,
-                                       "name", name,
                                        "conf", conf,
                                        NULL));
 }
@@ -133,30 +118,14 @@ Tcti*
 tcti_factory_create (TctiFactory *self)
 {
     TSS2_RC rc = TSS2_RC_SUCCESS;
-    void *dl_handle = NULL;
-    const TSS2_TCTI_INFO *info;
     TSS2_TCTI_CONTEXT *ctx = NULL;
 
-    rc = tcti_util_discover_info (self->name,
-                                  &info,
-                                  &dl_handle);
-    if (rc != TSS2_RC_SUCCESS) {
-        g_info ("%s: failed to discover TCTI info structure, RC: 0x%"
-                PRIx32, __func__, rc);
-        return NULL;
-    }
-    g_debug ("%s: tcti_util_dynamic_init", __func__);
-    rc = tcti_util_dynamic_init (info, self->conf, &ctx);
-    g_debug ("%s: after tcti_util_dynamic_init", __func__);
+    g_debug ("%s: TctiFactory with TCTI conf '%s'", __func__, self->conf);
+    rc = Tss2_TctiLdr_Initialize (self->conf, &ctx);
     if (rc != TSS2_RC_SUCCESS || ctx == NULL) {
         g_info ("%s: failed to initialize TCTI, RC: 0x%" PRIx32,
                  __func__, rc);
-#if !defined (DISABLE_DLCLOSE)
-        if (dl_handle != NULL) {
-            dlclose (dl_handle);
-        }
-#endif
         return NULL;
     }
-    return tcti_new (ctx, dl_handle);
+    return tcti_new (ctx);
 }
