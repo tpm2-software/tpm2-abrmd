@@ -124,13 +124,13 @@ AC_ARG_ENABLE([integration],
     [AS_HELP_STRING([--enable-integration],
         [build and execute integration tests])],,
     [enable_integration=no])
-AS_IF([test \( "x$enable_integration" = "xyes" \) -a \( "x$enable_test_hwtpm" = "xno" \)],
-    [AC_CHECK_PROG([tpm_server], [tpm_server], [yes], [no])
-     AS_IF([test "x$tpm_server" != "xyes"],
-         [AC_MSG_ERROR([Integration tests enabled but tpm_server not found, try setting PATH])])
-     AC_SUBST([ENABLE_INTEGRATION],[$enable_integration])
-     AC_MSG_NOTICE([Integration tests will be executed against the TPM2 simulator.])],
-    [AC_MSG_NOTICE([Integration tests will be executed against the TPM device.])])
+AS_IF([test "x$enable_integration" = "xyes"],
+    [AS_IF([test "x$enable_test_hwtpm" = "xno"],
+        [AC_CHECK_PROG([tpm_server], [tpm_server], [yes], [no])
+         AS_IF([test "x$tpm_server" != "xyes"],
+             [AC_MSG_ERROR([Integration tests enabled but tpm_server not found, try setting PATH])],
+             [AC_MSG_NOTICE([Integration tests will be executed against the TPM2 simulator.])])],
+        [AC_MSG_NOTICE([Integration tests will be executed against the TPM device.])])])
 AM_CONDITIONAL([ENABLE_INTEGRATION],[test "x$enable_integration" = "xyes"])
 
 AC_ARG_ENABLE([defaultflags],
