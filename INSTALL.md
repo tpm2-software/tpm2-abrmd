@@ -10,9 +10,8 @@ required:
 * C compiler
 * C Library Development Libraries and Header Files (for pthreads headers)
 * pkg-config
-* glib 2.0 library and development files
-* libsapi and TCTI libraries from https://github.com/tpm2-software/tpm2-tss
-* D-Bus 1 library and header files
+* glib and gio 2.0 libraries and development files
+* libtss2-sys, libtss2-mu and TCTI libraries from https://github.com/tpm2-software/tpm2-tss
 
 **NOTE**: Different GNU/Linux distros package glib-2.0 differently and so
 additional packages may be required. The tabrmd requires the GObject and
