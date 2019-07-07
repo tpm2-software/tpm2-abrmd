@@ -3,6 +3,24 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## 2.2.0 - 2019-07-17
+### Added
+- New configuration option `--disable-defaultflags/ added. This is
+for use for packaging for targets that do not support the default
+compilation / linking flags.
+### Changed
+- Use private dependencies properly in pkg-config metadata for TCTI.
+- Refactor daemon main module to enable better handling of error
+conditions and enable more thorough unit testing.
+- Updated dependencies to ensure compatibility with pkg-config fixes
+in tpm2-tss.
+### Fixed
+- Bug causing TCTI to block when used by libtss2-sys built with partial
+reads enabled.
+- Removed unnecessary libs / flags for pthreads in the TCTI pkg-config.
+- Output from configure script now accurately describes the state of the
+flags that govern the integration tests.
+
 ## 2.1.1 - 2019-03-08
 ### Fixed
 - Unit tests accessing dbus have been fixed to use mock functions. Unit
