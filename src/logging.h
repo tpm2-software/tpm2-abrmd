@@ -3,6 +3,9 @@
  * Copyright (c) 2017, Intel Corporation
  * All rights reserved.
  */
+#ifndef LOGGING_H
+#define LOGGING_H
+
 #include <glib.h>
 
 /* Macro to log "critical" events, then exit indicating failure. */
@@ -24,3 +27,4 @@ syslog_log_handler (const char     *log_domain,
                     gpointer        log_config_list);
 int get_enabled_log_levels (void);
 gint set_logger (gchar *name);
+#endif /* LOGGING_H */
