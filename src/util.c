@@ -230,7 +230,7 @@ read_tpm_buffer_alloc (GInputStream *istream,
         switch (ret) {
         case EPROTO:
             size_tmp = get_command_size (buf);
-            if (size_tmp < TPM_HEADER_SIZE && size_tmp > UTIL_BUF_MAX) {
+            if (size_tmp < TPM_HEADER_SIZE || size_tmp > UTIL_BUF_MAX) {
                 g_warning ("%s: tpm buffer size is ouside of acceptable bounds: %zd",
                            __func__, size_tmp);
                 goto err_out;
