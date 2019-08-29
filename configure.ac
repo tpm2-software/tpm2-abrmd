@@ -143,6 +143,7 @@ AS_IF([test "x$enable_defaultflags" = "xyes"],
       # preprocessor / compiler / linker flags
       #   these macros are defined in m4/flags.m4
       AX_ADD_FORTIFY_SOURCE
+      AX_ADD_COMPILER_FLAG([-O2])
       AX_ADD_COMPILER_FLAG([-Wall])
       AX_ADD_COMPILER_FLAG([-Wextra])
       AX_ADD_COMPILER_FLAG([-Werror])
