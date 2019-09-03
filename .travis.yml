@@ -82,7 +82,7 @@ script :
 
 after_success:
   - |
-    if [ "${CONFIG_EXTRA}" == "--enable-code-coverage" ]; then
+    if [[ "${CONFIG_EXTRA}" = *"--enable-code-coverage"* ]]; then
         bash <(curl -s https://codecov.io/bash)
     fi
 
