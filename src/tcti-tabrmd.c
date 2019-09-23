@@ -122,6 +122,12 @@ gerror_code_to_tcti_rc (int error_number)
         return TSS2_TCTI_RC_GENERAL_FAILURE;
     }
 }
+
+#if defined(__FreeBSD__)
+#ifndef POLLRDHUP
+#define POLLRDHUP 0x0
+#endif
+#endif
 /*
  * This is a thin wrapper around a call to poll. It packages up the provided
  * file descriptor and timeout and polls on that same FD for data or a hangup.
