@@ -4,7 +4,6 @@
  * All rights reserved.
  */
 #include <assert.h>
-#include <endian.h>
 #include <glib.h>
 #include <inttypes.h>
 #include <stddef.h>
