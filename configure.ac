@@ -151,9 +151,6 @@ AS_IF([test "x$enable_defaultflags" = "xyes"],
       AX_ADD_COMPILER_FLAG([-Wformat])
       AX_ADD_COMPILER_FLAG([-Wformat-security])
       AX_ADD_COMPILER_FLAG([-Wno-missing-braces])
-      # work around for Glib usage of function pointers type casting
-      #   https://bugzilla.gnome.org/show_bug.cgi?id=793272
-      AX_ADD_COMPILER_FLAG([-Wno-cast-function-type])
       AX_ADD_COMPILER_FLAG([-fdata-sections])
       AX_ADD_COMPILER_FLAG([-ffunction-sections])
       AX_ADD_TOOLCHAIN_FLAG([-fstack-protector-all])
