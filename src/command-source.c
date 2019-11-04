@@ -19,6 +19,10 @@
 #include "tpm2-header.h"
 #include "util.h"
 
+#ifndef G_SOURCE_FUNC
+#define G_SOURCE_FUNC(x) ((GSourceFunc)(void*)x)
+#endif
+
 enum {
     PROP_0,
     PROP_COMMAND_ATTRS,
@@ -256,7 +260,7 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
     g_source_attach (data->source, self->main_context);
     data->self = self;
     g_source_set_callback (data->source,
-                           (GSourceFunc)command_source_on_input_ready,
+                           G_SOURCE_FUNC (command_source_on_input_ready),
                            data,
                            NULL);
     /*
