@@ -5,6 +5,8 @@ AC_INIT([tpm2-abrmd],
         [],
         [https://github.com/tpm2-software/tpm2-abrmd])
 AC_CONFIG_MACRO_DIR([m4])
+AX_IS_RELEASE(dash-version)
+AX_CHECK_ENABLE_DEBUG([info])
 AC_PROG_CC
 AC_PROG_LN_S
 AC_USE_SYSTEM_EXTENSIONS
@@ -142,11 +144,13 @@ AS_IF([test "x$enable_defaultflags" = "xyes"],
       [
       # preprocessor / compiler / linker flags
       #   these macros are defined in m4/flags.m4
-      AX_ADD_FORTIFY_SOURCE
-      AX_ADD_COMPILER_FLAG([-O2])
+      AS_IF([test "x$enable_debug" = "xno"],
+            [AX_ADD_FORTIFY_SOURCE
+             AX_ADD_COMPILER_FLAG([-O2])])
       AX_ADD_COMPILER_FLAG([-Wall])
       AX_ADD_COMPILER_FLAG([-Wextra])
-      AX_ADD_COMPILER_FLAG([-Werror])
+      AS_IF([test "x$ax_is_release" = "xno"],
+            [AX_ADD_COMPILER_FLAG([-Werror])])
       AX_ADD_COMPILER_FLAG([-std=gnu99])
       AX_ADD_COMPILER_FLAG([-Wformat])
       AX_ADD_COMPILER_FLAG([-Wformat-security])
