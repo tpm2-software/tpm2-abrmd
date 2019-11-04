@@ -3,6 +3,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## 2.3.0 - 2019-11-13
+### Added
+- Add '--enable-debug' flag to configure script to simplify debug builds.
+This relies on the AX_CHECK_ENABLE_DEBUG autoconf archive macro.
+### Canged
+- Replaced custom dynamic TCTI loading code with libtss2-tctildr from
+upstream tpm2-tss repo.
+### Fixed
+- Explicitly set '-O2' optimization when using FORTIFY_SOURCE as required.
+
 ## 2.2.0 - 2019-07-17
 ### Added
 - New configuration option `--disable-defaultflags/ added. This is
