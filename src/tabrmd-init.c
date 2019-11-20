@@ -3,6 +3,8 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include <tss2/tss2_tctildr.h>
+
 #include "access-broker.h"
 #include "command-source.h"
 #include "logging.h"
@@ -15,7 +17,6 @@
 #include "tabrmd-init.h"
 #include "tabrmd-options.h"
 #include "tabrmd.h"
-#include "tcti-factory.h"
 #include "util.h"
 
 /*
@@ -114,7 +115,7 @@ init_thread_func (gpointer user_data)
     ConnectionManager *connection_manager = NULL;
     SessionList *session_list;
     Tcti *tcti = NULL;
-    TctiFactory *tcti_factory = NULL;
+    TSS2_TCTI_CONTEXT *tcti_ctx = NULL;
 
     g_info ("init_thread_func start");
     g_mutex_lock (&data->init_mutex);
@@ -148,14 +149,13 @@ init_thread_func (gpointer user_data)
     ipc_frontend_connect (data->ipc_frontend,
                           &data->init_mutex);
 
-    tcti_factory = tcti_factory_new (data->options.tcti_conf);
-    tcti = tcti_factory_create (tcti_factory);
-    if (tcti == NULL) {
-        g_critical ("%s: failed to create TCTI with conf \"%s\"",
-                    __func__, data->options.tcti_conf);
+    rc = Tss2_TctiLdr_Initialize (data->options.tcti_conf, &tcti_ctx);
+    if (rc != TSS2_RC_SUCCESS || tcti_ctx == NULL) {
+        g_critical ("%s: failed to create TCTI with conf \"%s\", got RC 0x%x",
+                    __func__, data->options.tcti_conf, rc);
         goto err_out;
     }
-    g_clear_object (&tcti_factory);
+    tcti = tcti_new (tcti_ctx);
     data->access_broker = access_broker_new (tcti);
     g_clear_object (&tcti);
     rc = access_broker_init_tpm (data->access_broker);

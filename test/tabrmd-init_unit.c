@@ -11,9 +11,10 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include <tss2/tss2_tcti.h>
+
 #include "tabrmd-init.h"
 #include "tabrmd-options.h"
-#include "tcti-factory.h"
 #include "tcti-mock.h"
 #include "tcti.h"
 #include "util.h"
@@ -149,12 +150,14 @@ __wrap_ipc_frontend_connect (IpcFrontend  *self,
     return;
 }
 
-Tcti*
-__wrap_tcti_factory_create (TctiFactory *self)
+TSS2_RC
+__wrap_Tss2_TctiLdr_Initialize (const char* conf,
+                                TSS2_TCTI_CONTEXT **tcti_ctx)
 {
-    UNUSED_PARAM (self);
+    UNUSED_PARAM (conf);
 
-    return mock_type (Tcti*);
+    *tcti_ctx = mock_type (TSS2_TCTI_CONTEXT*);
+    return mock_type (TSS2_RC);
 }
 
 
@@ -166,7 +169,8 @@ init_thread_func_tcti_factory_fail (void **state)
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_random_seed_from_file, 0);
-    will_return (__wrap_tcti_factory_create, NULL);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, NULL);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_TCTI_RC_IO_ERROR);
     assert_int_equal (init_thread_func (&data), 1);
 }
 
@@ -181,12 +185,13 @@ static void
 init_thread_func_broker_init_fail (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full ());
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_random_seed_from_file, 0);
-    will_return (__wrap_tcti_factory_create, tcti);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_init_tpm, 1);
     assert_int_equal (init_thread_func (&data), 1);
 }
@@ -210,12 +215,13 @@ static void
 init_thread_func_cmdattrs_fail (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full ());
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_random_seed_from_file, 0);
-    will_return (__wrap_tcti_factory_create, tcti);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
     will_return (__wrap_command_attrs_init_tpm, 1);
     assert_int_equal (init_thread_func (&data), 1);
@@ -232,12 +238,13 @@ static void
 init_thread_func_cmdsrc_fail (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full ());
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_random_seed_from_file, 0);
-    will_return (__wrap_tcti_factory_create, tcti);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
     will_return (__wrap_command_attrs_init_tpm, 0);
     will_return (__wrap_thread_start, 1);
@@ -248,12 +255,13 @@ static void
 init_thread_func_resmgr_fail (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full ());
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_random_seed_from_file, 0);
-    will_return (__wrap_tcti_factory_create, tcti);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
     will_return (__wrap_command_attrs_init_tpm, 0);
     will_return (__wrap_thread_start, 0);
@@ -265,12 +273,13 @@ static void
 init_thread_func_respsnk_fail (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full ());
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_random_seed_from_file, 0);
-    will_return (__wrap_tcti_factory_create, tcti);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
     will_return (__wrap_command_attrs_init_tpm, 0);
     will_return (__wrap_thread_start, 0);
@@ -283,12 +292,13 @@ static void
 init_thread_func_success (void **state)
 {
     UNUSED_PARAM (state);
-    Tcti *tcti = tcti_new (tcti_mock_init_full ());
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_random_seed_from_file, 0);
-    will_return (__wrap_tcti_factory_create, tcti);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
+    will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
     will_return (__wrap_command_attrs_init_tpm, 0);
     will_return (__wrap_thread_start, 0);
