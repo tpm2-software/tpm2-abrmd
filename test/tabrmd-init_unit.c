@@ -7,6 +7,8 @@
 #include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
+#include <sysexits.h>
+#include <stdio.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
@@ -98,7 +100,7 @@ init_thread_func_signal_add_fail (void **state)
     UNUSED_PARAM (state);
 
     will_return (__wrap_g_unix_signal_add, 0);
-    assert_int_equal (init_thread_func (&data), 1);
+    assert_int_equal (init_thread_func (&data), EX_OSERR);
 }
 
 int
@@ -136,7 +138,7 @@ init_thread_func_random_fail (void **state)
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_random_seed_from_file, 1);
-    assert_int_equal (init_thread_func (&data), 1);
+    assert_int_equal (init_thread_func (&data), EX_OSERR);
 }
 
 /* ipc_frontend_connect */
@@ -171,13 +173,14 @@ init_thread_func_tcti_factory_fail (void **state)
     will_return (__wrap_random_seed_from_file, 0);
     will_return (__wrap_Tss2_TctiLdr_Initialize, NULL);
     will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_TCTI_RC_IO_ERROR);
-    assert_int_equal (init_thread_func (&data), 1);
+    assert_int_equal (init_thread_func (&data), EX_IOERR);
 }
 
 TSS2_RC
 __wrap_access_broker_init_tpm (AccessBroker *broker)
 {
     UNUSED_PARAM (broker);
+    printf ("ftw\n");
     return mock_type (TSS2_RC);
 }
 
@@ -192,8 +195,8 @@ init_thread_func_broker_init_fail (void **state)
     will_return (__wrap_random_seed_from_file, 0);
     will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
     will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_init_tpm, 1);
-    assert_int_equal (init_thread_func (&data), 1);
+    will_return (__wrap_access_broker_init_tpm, EX_UNAVAILABLE);
+    assert_int_equal (init_thread_func (&data), EX_UNAVAILABLE);
 }
 
 gint
@@ -223,8 +226,8 @@ init_thread_func_cmdattrs_fail (void **state)
     will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
     will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
     will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
-    will_return (__wrap_command_attrs_init_tpm, 1);
-    assert_int_equal (init_thread_func (&data), 1);
+    will_return (__wrap_command_attrs_init_tpm, EX_UNAVAILABLE);
+    assert_int_equal (init_thread_func (&data), EX_UNAVAILABLE);
 }
 
 gint
@@ -249,7 +252,7 @@ init_thread_func_cmdsrc_fail (void **state)
     will_return (__wrap_command_attrs_init_tpm, 0);
     will_return (__wrap_thread_start, 1);
     will_return (__wrap_g_main_loop_is_running, FALSE);
-    assert_int_equal (init_thread_func (&data), 1);
+    assert_int_equal (init_thread_func (&data), EX_OSERR);
 }
 static void
 init_thread_func_resmgr_fail (void **state)
@@ -267,7 +270,7 @@ init_thread_func_resmgr_fail (void **state)
     will_return (__wrap_thread_start, 0);
     will_return (__wrap_thread_start, 1);
     will_return (__wrap_g_main_loop_is_running, FALSE);
-    assert_int_equal (init_thread_func (&data), 1);
+    assert_int_equal (init_thread_func (&data), EX_OSERR);
 }
 static void
 init_thread_func_respsnk_fail (void **state)
@@ -286,7 +289,7 @@ init_thread_func_respsnk_fail (void **state)
     will_return (__wrap_thread_start, 0);
     will_return (__wrap_thread_start, 1);
     will_return (__wrap_g_main_loop_is_running, FALSE);
-    assert_int_equal (init_thread_func (&data), 1);
+    assert_int_equal (init_thread_func (&data), EX_OSERR);
 }
 static void
 init_thread_func_success (void **state)
