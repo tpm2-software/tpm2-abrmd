@@ -36,7 +36,6 @@ TESTS_UNIT = \
     test/tabrmd-options_unit \
     test/test-skeleton_unit \
     test/tcti_unit \
-    test/tcti-factory_unit \
     test/thread_unit \
     test/tpm2-command_unit \
     test/tpm2-response_unit \
@@ -248,8 +247,6 @@ src_libutil_la_SOURCES = \
     src/tabrmd.h \
     src/tcti.c \
     src/tcti.h \
-    src/tcti-factory.c \
-    src/tcti-factory.h \
     src/thread.c \
     src/thread.h \
     src/tpm2-command.c \
@@ -324,7 +321,7 @@ test_tabrmd_init_unit_LDADD = $(UNIT_LIBS)
 test_tabrmd_init_unit_LDFLAGS = -Wl,--wrap=g_main_loop_is_running \
     -Wl,--wrap=g_main_loop_quit,--wrap=g_unix_signal_add \
     -Wl,--wrap=random_seed_from_file,--wrap=random_get_bytes \
-    -Wl,--wrap=ipc_frontend_connect,--wrap=tcti_factory_create \
+    -Wl,--wrap=ipc_frontend_connect,--wrap=Tss2_TctiLdr_Initialize \
     -Wl,--wrap=access_broker_init_tpm,--wrap=command_attrs_init_tpm \
     -Wl,--wrap=thread_start,--wrap=access_broker_flush_all_context
 test_tabrmd_init_unit_SOURCES = test/tabrmd-init_unit.c
@@ -430,12 +427,6 @@ test_resource_manager_unit_SOURCES = test/resource-manager_unit.c
 test_tcti_unit_CFLAGS = $(UNIT_CFLAGS)
 test_tcti_unit_LDADD = $(UNIT_LIBS)
 test_tcti_unit_SOURCES  = test/tcti_unit.c
-
-test_tcti_factory_unit_CFLAGS = $(UNIT_CFLAGS)
-test_tcti_factory_unit_LDADD = $(UNIT_LIBS)
-test_tcti_factory_unit_LDFLAGS = -Wl,--wrap=Tss2_TctiLdr_Initialize \
-    -Wl,--wrap=Tss2_TctiLdr_Finalize
-test_tcti_factory_unit_SOURCES  = test/tcti-factory_unit.c
 
 test_tss2_tcti_tabrmd_unit_CFLAGS = $(UNIT_CFLAGS)
 test_tss2_tcti_tabrmd_unit_LDADD = $(UNIT_LIBS)
