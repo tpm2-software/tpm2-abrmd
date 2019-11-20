@@ -2,6 +2,9 @@
 #include <glib.h>
 #include <inttypes.h>
 #include <string.h>
+#include <sysexits.h>
+
+#include <tss2/tss2_tctildr.h>
 
 #include <tss2/tss2_tctildr.h>
 
@@ -124,13 +127,16 @@ init_thread_func (gpointer user_data)
         g_unix_signal_add(SIGTERM, signal_handler, data->loop) <= 0)
     {
         g_critical ("failed to setup signal handlers");
+        ret = EX_OSERR;
         goto err_out;
     }
 
     data->random = random_new();
     ret = random_seed_from_file (data->random, data->options.prng_seed_file);
     if (ret != 0) {
-        g_critical ("failed to seed Random object");
+        g_critical ("failed to seed Random object from seed source: %s",
+                    data->options.prng_seed_file);
+        ret = EX_OSERR;
         goto err_out;
     }
 
@@ -151,8 +157,9 @@ init_thread_func (gpointer user_data)
 
     rc = Tss2_TctiLdr_Initialize (data->options.tcti_conf, &tcti_ctx);
     if (rc != TSS2_RC_SUCCESS || tcti_ctx == NULL) {
-        g_critical ("%s: failed to create TCTI with conf \"%s\", got RC 0x%x",
+        g_critical ("%s: failed to create TCTI with conf \"%s\", got RC: 0x%x",
                     __func__, data->options.tcti_conf, rc);
+        ret = EX_IOERR;
         goto err_out;
     }
     tcti = tcti_new (tcti_ctx);
@@ -160,6 +167,7 @@ init_thread_func (gpointer user_data)
     g_clear_object (&tcti);
     rc = access_broker_init_tpm (data->access_broker);
     if (rc != TSS2_RC_SUCCESS) {
+        ret = EX_UNAVAILABLE;
         g_critical ("failed to initialize AccessBroker: 0x%" PRIx32, rc);
         goto err_out;
     }
@@ -174,6 +182,7 @@ init_thread_func (gpointer user_data)
     ret = command_attrs_init_tpm (command_attrs, data->access_broker);
     if (ret != 0) {
         g_critical ("%s: failed to initialize CommandAttribute object", __func__);
+        ret = EX_UNAVAILABLE;
         goto err_out;
     }
 
@@ -203,16 +212,19 @@ init_thread_func (gpointer user_data)
     ret = thread_start (THREAD (data->command_source));
     if (ret != 0) {
         g_critical ("failed to start connection_source");
+        ret = EX_OSERR;
         goto err_out;
     }
     ret = thread_start (THREAD (data->resource_manager));
     if (ret != 0) {
         g_critical ("failed to start ResourceManager: %s", strerror (errno));
+        ret = EX_OSERR;
         goto err_out;
     }
     ret = thread_start (THREAD (data->response_sink));
     if (ret != 0) {
         g_critical ("failed to start response_source");
+        ret = EX_OSERR;
         goto err_out;
     }
 
@@ -224,5 +236,5 @@ init_thread_func (gpointer user_data)
 err_out:
     g_debug ("%s: calling gmain_data_cleanup", __func__);
     gmain_data_cleanup (data);
-    return GINT_TO_POINTER (1);
+    return GINT_TO_POINTER (ret);
 }
