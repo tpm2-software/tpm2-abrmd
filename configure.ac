@@ -132,7 +132,10 @@ AS_IF([test "x$enable_integration" = "xyes"],
         [AC_CHECK_PROG([tpm_server], [tpm_server], [yes], [no])
          AS_IF([test "x$tpm_server" != "xyes"],
              [AC_MSG_ERROR([Integration tests enabled but tpm_server not found, try setting PATH])],
-             [AC_MSG_NOTICE([Integration tests will be executed against the TPM2 simulator.])])],
+             [AC_MSG_NOTICE([Integration tests will be executed against the TPM2 simulator.])])
+         AC_CHECK_PROG([ss], [ss], [yes], [no])
+         AS_IF([test "x$ss" != "xyes"],
+             [AC_MSG_ERROR([Integration tests require the ss executable to be installed.])])],
         [AC_MSG_NOTICE([Integration tests will be executed against the TPM device.])])])
 AM_CONDITIONAL([ENABLE_INTEGRATION],[test "x$enable_integration" = "xyes"])
 
