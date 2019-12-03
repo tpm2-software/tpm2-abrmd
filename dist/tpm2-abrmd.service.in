@@ -1,5 +1,7 @@
 [Unit]
 Description=TPM2 Access Broker and Resource Management Daemon
+After=systemd-udev-settle.service
+Requires=systemd-udev-settle.service
 
 [Service]
 Type=dbus
