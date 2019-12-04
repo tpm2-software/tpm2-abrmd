@@ -42,17 +42,27 @@ static gboolean
 signal_handler (gpointer user_data)
 {
     g_info ("handling signal");
-    /* this is the only place the global pointer to the GMainLoop is accessed */
     main_loop_quit ((GMainLoop*)user_data);
 
     return G_SOURCE_CONTINUE;
 }
 
+/*
+ * This function is a callback invoked by the IpcFrontend object
+ * when a 'disconnect' event occurs. It sets a flag in the gmain_data_t
+ * structure before killing off the gmain loop. This flag is checked by the
+ * 'main' function that started the gmain loop and, if set, an exit code
+ * is returned to indicate a failure.
+ * Currently the only known reasons for the IPC disconnecting are not
+ * recoverable.
+ */
 void
 on_ipc_frontend_disconnect (IpcFrontend *ipc_frontend,
-                            GMainLoop   *loop)
+                            gmain_data_t *data)
 {
-    main_loop_quit (loop);
+    data->ipc_disconnected = TRUE;
+    if (data->loop)
+        main_loop_quit (data->loop);
 }
 static void
 thread_cleanup (Thread **thread)
@@ -151,7 +161,7 @@ init_thread_func (gpointer user_data)
     g_signal_connect (data->ipc_frontend,
                       "disconnected",
                       (GCallback) on_ipc_frontend_disconnect,
-                      data->loop);
+                      data);
     ipc_frontend_connect (data->ipc_frontend,
                           &data->init_mutex);
 

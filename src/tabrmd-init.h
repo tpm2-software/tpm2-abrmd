@@ -26,6 +26,7 @@ typedef struct gmain_data {
     ResponseSink           *response_sink;
     GMutex                  init_mutex;
     IpcFrontend            *ipc_frontend;
+    gboolean                ipc_disconnected;
 } gmain_data_t;
 
 gpointer
@@ -34,6 +35,6 @@ void
 gmain_data_cleanup (gmain_data_t *data);
 void
 on_ipc_frontend_disconnect (IpcFrontend *ipc_frontend,
-                            GMainLoop   *loop);
+                            gmain_data_t *data);
 
 #endif /* TABRMD_INIT_H */
