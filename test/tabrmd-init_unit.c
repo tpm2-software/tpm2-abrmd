@@ -60,11 +60,11 @@ on_ipc_frontend_disconnect_test (void **state)
 {
     UNUSED_PARAM (state);
     IpcFrontend *ipc_frontend = ID_IPCFRONT;
-    GMainLoop *loop = ID_GMAIN;
+    gmain_data_t data = { .loop = ID_GMAIN, };
 
     will_return (__wrap_g_main_loop_is_running, TRUE);
     will_return (__wrap_g_main_loop_quit, TRUE);
-    on_ipc_frontend_disconnect (ipc_frontend, loop);
+    on_ipc_frontend_disconnect (ipc_frontend, &data);
     assert_true (gmain_quit);
 }
 

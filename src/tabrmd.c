@@ -6,6 +6,7 @@
 #include <glib.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <sysexits.h>
 #include <unistd.h>
 #include <tss2/tss2_tpm2_types.h>
 
@@ -34,7 +35,7 @@ main (int argc, char *argv[])
 {
     gmain_data_t gmain_data = { .options = TABRMD_OPTIONS_INIT_DEFAULT };
     GThread *init_thread;
-    gint init_ret;
+    gint ret;
 
     g_info ("tabrmd startup");
     if (!parse_opts (argc, argv, &gmain_data.options)) {
@@ -58,7 +59,10 @@ main (int argc, char *argv[])
     g_info ("entering g_main_loop");
     g_main_loop_run (gmain_data.loop);
     g_info ("g_main_loop_run done, cleaning up");
-    init_ret = GPOINTER_TO_INT (g_thread_join (init_thread));
+    ret = GPOINTER_TO_INT (g_thread_join (init_thread));
+    if (ret == 0 && gmain_data.ipc_disconnected) {
+        ret = EX_IOERR;
+    }
     gmain_data_cleanup (&gmain_data);
-    return init_ret;
+    return ret;
 }
