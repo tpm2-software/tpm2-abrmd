@@ -8,10 +8,6 @@ ConditionPathExistsGlob=/dev/tpm*
 
 [Service]
 Type=dbus
-Restart=always
-# 69=EX_UNAVAILABLE, 71=EX_OSERR, 74=EX_IOERR
-RestartPreventExitStatus=69 71 74
-RestartSec=5
 BusName=com.intel.tss2.Tabrmd
 StandardOutput=syslog
 ExecStart=@SBINDIR@/tpm2-abrmd
