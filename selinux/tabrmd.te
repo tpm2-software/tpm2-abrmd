@@ -1,9 +1,11 @@
-policy_module(tabrmd, 0.0.1)
+policy_module(tabrmd, 0.0.2)
 
 ########################################
 #
 # Declarations
 #
+
+gen_tunable(`tpm_abrmd_can_network_connect', false)
 
 type tabrmd_t;
 type tabrmd_exec_t;
@@ -20,3 +22,18 @@ optional_policy(`
     allow system_dbusd_t tabrmd_t:unix_stream_socket rw_stream_socket_perms;
 ')
 
+tunable_policy(`tpm_abrmd_can_network_connect',`
+
+    gen_require(`type net_conf_t;')
+    gen_require(`type tcs_port_t;')
+
+    allow tabrmd_t tcs_port_t:tcp_socket name_bind;
+    allow tabrmd_t tcs_port_t:udp_socket name_bind;
+
+    allow tabrmd_t net_conf_t:file { getattr read open };
+    allow tabrmd_t self:netlink_route_socket { create bind getattr };
+    allow tabrmd_t self:tcp_socket { create connect name_connect };
+    allow tabrmd_t self:udp_socket { create connect getattr };
+
+    allow tabrmd_t tcs_port_t:tcp_socket name_connect;
+')
