@@ -293,8 +293,8 @@ access_broker_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
                                  capability_data,
                                  NULL);
     if (rc != TSS2_RC_SUCCESS) {
-        g_error ("Failed to GetCapability: TPM2_CAP_TPM_PROPERTIES, "
-                 "TPM2_PT_FIXED: 0x%x", rc);
+        g_warning ("Failed to GetCapability: TPM2_CAP_TPM_PROPERTIES, "
+                   "TPM2_PT_FIXED: 0x%x", rc);
         return rc;
     }
     /* sanity check the property returned */
