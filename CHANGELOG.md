@@ -3,6 +3,18 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## 2.3.1 - 2020-01-10
+### Fixed
+- Provide meaningful exit codes on initialization failures.
+- Prevent systemd from starting the daemon before udev changes ownership
+of the TPM device node.
+- Prevent systemd from starting the daemon if there is no TPM device
+node.
+- Prevent systemd from restarting the daemon if it fails.
+- Add SELinux policy to allow daemon to resolve names.
+- Add SELinux policy boolean (disabled by default) to allow daemon to
+connect to all unreserved ports.
+
 ## 2.3.0 - 2019-11-13
 ### Added
 - Add '--enable-debug' flag to configure script to simplify debug builds.
