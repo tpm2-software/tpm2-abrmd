@@ -8,6 +8,9 @@ ACLOCAL_AMFLAGS = -I m4 --install
 unit-count: check
 	sh scripts/unit-count.sh
 
+CLEAN_LOCAL_DEPS =
+clean-local: $(CLEAN_LOCAL_DEPS)
+
 AM_CFLAGS = $(EXTRA_CFLAGS) \
     -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
     $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
@@ -128,7 +131,6 @@ EXTRA_DIST = \
     dist/com.intel.tss2.Tabrmd.service \
     scripts/int-test-funcs.sh \
     scripts/int-test-setup.sh \
-    selinux/Makefile \
     selinux/tabrmd.fc \
     selinux/tabrmd.if \
     selinux/tabrmd.te \
@@ -167,7 +169,7 @@ endif # HAVE_SYSTEMD
 # ax_code_coverage
 if AUTOCONF_CODE_COVERAGE_2019_01_06
 include $(top_srcdir)/aminclude_static.am
-clean-local: code-coverage-clean
+CLEAN_LOCAL_DEPS += code-coverage-clean
 distclean-local: code-coverage-dist-clean
 
 # workaround for a bug in Autoconf Archive 2019.01.06
@@ -518,3 +520,44 @@ test_integration_tpm2_command_flush_no_handle_int_SOURCES = \
 test_integration_util_buf_max_upper_bound_int_LDADD = $(TEST_INT_LIBS)
 test_integration_util_buf_max_upper_bound_int_SOURCES = \
     test/integration/main.c test/integration/util-buf-max-upper-bound.int.c
+
+if WITH_SEPOLICY
+
+refpoldir = $(datadir)/selinux/packages
+refpol_DATA = selinux/tabrmd.pp.bz2
+
+refpolifdir = $(datadir)/selinux/devel/include/contrib
+refpolif_DATA = selinux/tabrmd.if
+
+CLEANFILES += \
+    $(refpol_DATA) \
+    selinux/all_interfaces.conf \
+    selinux/iferror.m4 \
+    selinux/tabrmd.mod \
+    selinux/tabrmd.mod.fc \
+    selinux/tabrmd.pp \
+    selinux/tabrmd.tmp
+
+selinux/all_interfaces.conf: $(SEPOL_SUPPORT) $(SEPOL_INTERFACES) $(refpolif_DATA)
+	@test -d $(@D) || mkdir -p $(@D)
+	@echo "ifdef(\`__if_error',\`m4exit(1)')" > selinux/iferror.m4
+	@echo "divert(-1)" > $@
+	$(M4) $^ selinux/iferror.m4 | $(SED) -e s/dollarsstar/\$$\*/g >> $@
+	@echo "divert" >> $@
+
+%.mod: $(SEPOL_SUPPORT) selinux/all_interfaces.conf %.te
+	@test -d $(@D) || mkdir -p $(@D)
+	$(M4) $(SEPOL_M4PARAM) -s $^ > $(@:.mod=.tmp)
+	$(CHECKMODULE) -M -m $(@:.mod=.tmp) -o $@
+
+%.mod.fc: $(SEPOL_SUPPORT) %.fc
+	@test -d $(@D) || mkdir -p $(@D)
+	$(M4) $(SEPOL_M4PARAM) $^ > $@
+
+%.pp: %.mod %.mod.fc
+	$(SEMODULE_PACKAGE) -o $@ -m $< -f $<.fc
+
+%.pp.bz2: %.pp
+	$(BZIP2) -k -f -9 $^ && touch $@
+
+endif
