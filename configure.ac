@@ -111,6 +111,45 @@ AC_ARG_WITH([dbuspolicydir],
             [with_dbuspolicydir=${sysconfdir}/dbus-1/system.d])
 AX_NORMALIZE_PATH([with_dbuspolicydir])
 AC_SUBST([dbuspolicydir], [$with_dbuspolicydir])
+
+m4_define([PATH_PROG],
+    [
+        AC_PATH_PROG([$1],[$2],[no])
+        AS_IF([test "x$$1" = "xno"],
+              [AC_MSG_ERROR([missing required command: $2])])
+    ])
+# selinux reference policy
+AC_ARG_WITH(
+    [sepolicy],
+    AS_HELP_STRING([--with-sepolicy=@<:@/usr/share/selinux/devel/include@:>@],
+        [build SELinux policy module]),
+    [
+        AM_PATH_PYTHON([3])
+        PATH_PROG([BZIP2],[bzip2])
+        PATH_PROG([CHECKMODULE],[checkmodule])
+        PATH_PROG([M4],[m4])
+        PATH_PROG([SED],[sed])
+        PATH_PROG([SEMODULE_PACKAGE],[semodule_package])
+        AS_IF([test "x$with_sepolicy" = xyes],
+              with_sepolicy=/usr/share/selinux/devel/include)
+        AS_IF(
+            [test -d $with_sepolicy],
+            [
+                sepol_support=$(find ${with_sepolicy}/support -type f \
+                                    -name '*.spt' | sort | tr '\n' ' ')
+                sepol_interfaces=$(find $with_sepolicy -type f -name '*.if' | \
+                                       sort | tr '\n' ' ')
+            ],
+            [AC_MSG_ERROR([$with_sepolicy isn't a directory])])
+        AC_SUBST([SEPOL_INTERFACES],[$sepol_interfaces])
+        AC_SUBST([SEPOL_SUPPORT],[$sepol_support])
+        AC_SUBST(
+            [SEPOL_M4PARAM],
+            ["-D enable_mcs -D distro_redhat -D hide_broken_symptoms \
+              -D mls_num_sens=16 -D mls_num_cats=1024 -D mcs_num_cats=1024"])
+    ],[with_sepolicy=no])
+AM_CONDITIONAL([WITH_SEPOLICY], [test "x$with_sepolicy" != xno])
+
 #
 # Real TPM hardware
 #
