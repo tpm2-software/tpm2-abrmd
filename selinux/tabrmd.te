@@ -21,6 +21,7 @@ optional_policy(`
     dbus_stub()
     dbus_system_domain(tabrmd_t, tabrmd_exec_t)
     allow system_dbusd_t tabrmd_t:unix_stream_socket rw_stream_socket_perms;
+    fwupd_dbus_chat(tabrmd_t)
 ')
 
 tunable_policy(`tabrmd_connect_all_unreserved',`
