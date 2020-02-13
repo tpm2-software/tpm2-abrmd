@@ -61,10 +61,10 @@ install:
   - ./configure --prefix=${PREFIX} --disable-doxygen-doc --disable-tcti-device --disable-esapi --disable-fapi
   - $MAKE && sudo $MAKE install
   - popd # tpm2-tss
-  - wget https://download.01.org/tpm2/ibmtpm974.tar.gz
-  - sha256sum ibmtpm974.tar.gz | grep -q ^8e45d86129a0adb95fee4cee51f4b1e5b2d81ed3e55af875df53f98f39eb7ad7
+  - wget https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm1563.tar.gz
+  - sha256sum ibmtpm1563.tar.gz | grep -q ^fc3a17f8315c1f47670764f2384943afc0d3ba1e9a0422dacb08d455733bd1e9
   - mkdir ibmtpm
-  - tar axf ibmtpm974.tar.gz -C ibmtpm
+  - tar axf ibmtpm1563.tar.gz -C ibmtpm
   - $MAKE -C ibmtpm/src
   - popd # ${DEPS}
 
