@@ -1,5 +1,5 @@
 language: c
-dist: xenial
+dist: bionic
 
 cache: ccache
 
@@ -7,6 +7,8 @@ addons:
   apt:
     packages:
       - autoconf-archive
+      - clang-tools
+      - coreutils
       - dbus
       - dbus-x11
       - gnulib
@@ -16,7 +18,6 @@ addons:
       - libglib2.0-dev
       - libdbus-1-dev
       - liburiparser-dev
-      - realpath
   coverity_scan:
     project:
       name: 01org/tpm2-abrmd
