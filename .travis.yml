@@ -47,10 +47,16 @@ matrix:
     - arch: arm64
       compiler: clang
       env: SCANBUILD="scan-build --status-bugs" CFLAGS=-D_REENTRANT CONFIG_EXTRA="--disable-defaultflags --enable-debug" MAKE_TARGET=check
+    - arch: ppc64le
+      compiler: clang
+      env: SCANBUILD="scan-build --status-bugs" CFLAGS=-D_REENTRANT CONFIG_EXTRA="--disable-defaultflags --enable-debug" MAKE_TARGET=check
     - arch: x64
       compiler: clang
       env: SCANBUILD="scan-build --status-bugs" CFLAGS=-D_REENTRANT CONFIG_EXTRA="--enable-code-coverage --disable-defaultflags --enable-debug" MAKE_TARGET=check
     - arch: arm64
+      compiler: gcc
+      env: SCANBUILD= MAKE_TARGET=distcheck
+    - arch: ppc64le
       compiler: gcc
       env: SCANBUILD= MAKE_TARGET=distcheck
     - arch: x64
