@@ -192,7 +192,7 @@ sapi_context_init (Tcti *tcti)
     return sapi_context;
 }
 
-static TSS2_RC
+TSS2_RC
 access_broker_send_tpm_startup (AccessBroker *broker)
 {
     TSS2_RC rc;
@@ -520,9 +520,8 @@ access_broker_init_tpm (AccessBroker *broker)
         return TSS2_RC_SUCCESS;
     pthread_mutex_init (&broker->sapi_mutex, NULL);
     rc = access_broker_send_tpm_startup (broker);
-    if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("access_broker_sent_tpm_startup failed: 0x%x", rc);
-    }
+    if (rc != TSS2_RC_SUCCESS)
+        goto out;
     rc = access_broker_get_tpm_properties_fixed (broker->sapi_context,
                                                  &broker->properties_fixed);
     if (rc != TSS2_RC_SUCCESS) {

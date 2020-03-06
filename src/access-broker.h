@@ -67,6 +67,7 @@ TSS2_RC            access_broker_context_save           (AccessBroker *broker,
                                                          TPM2_HANDLE    handle,
                                                          TPMS_CONTEXT *context);
 void               access_broker_flush_all_context      (AccessBroker *broker);
+TSS2_RC            access_broker_send_tpm_startup       (AccessBroker *broker);
 
 G_END_DECLS
 
