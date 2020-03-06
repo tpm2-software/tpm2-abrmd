@@ -20,6 +20,20 @@
 #define MAX_COMMAND_VALUE 2048
 #define MAX_RESPONSE_VALUE 1024
 
+#define TAGGED_PROPS_INIT { \
+        .count = 2, \
+        .tpmProperty = { \
+            { \
+                .property = TPM2_PT_MAX_COMMAND_SIZE, \
+                .value = MAX_COMMAND_VALUE, \
+            }, \
+            { \
+                .property = TPM2_PT_MAX_RESPONSE_SIZE, \
+                .value = MAX_RESPONSE_VALUE, \
+            }, \
+        } \
+    };
+
 typedef struct test_data {
     AccessBroker *broker;
     Connection  *connection;
@@ -43,10 +57,10 @@ __wrap_Tss2_Sys_Startup (TSS2_SYS_CONTEXT *sapi_context,
     g_debug ("__wrap_Tss2_Sys_Startup returning: 0x%x", rc);
     return rc;
 }
-/**
- * The AccessBroker initialize function calls the GetCapability function to
- * get fixed TPM properties. The only ones it cares about are the MAX sizes
- * for command / response buffers. Hardcode those here.
+/*
+ * mock stack:
+ *   - TSS2_RC: an RC indicating failure will be returned immediately
+ *   - TPML: the TPML from the TPMU_CAPABILITIES structure to be returned
  */
 TSS2_RC
 __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
@@ -59,24 +73,42 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
                                TSS2L_SYS_AUTH_RESPONSE  *rspAuthsArray)
 
 {
-    TSS2_RC rc;
     UNUSED_PARAM(sysContext);
     UNUSED_PARAM(cmdAuthsArray);
-    UNUSED_PARAM(capability);
     UNUSED_PARAM(property);
     UNUSED_PARAM(propertyCount);
     UNUSED_PARAM(moreData);
     UNUSED_PARAM(rspAuthsArray);
 
-    capabilityData->capability = TPM2_CAP_TPM_PROPERTIES;
-    capabilityData->data.tpmProperties.tpmProperty[0].property = TPM2_PT_MAX_COMMAND_SIZE;
-    capabilityData->data.tpmProperties.tpmProperty[0].value    = mock_type (guint32);
-    capabilityData->data.tpmProperties.tpmProperty[1].property = TPM2_PT_MAX_RESPONSE_SIZE;
-    capabilityData->data.tpmProperties.tpmProperty[1].value    = mock_type (guint32);
-    capabilityData->data.tpmProperties.count = 2;
+    TPML_TAGGED_TPM_PROPERTY *tpmProperties;
+    TPML_HANDLE *handles;
+    TSS2_RC rc;
 
     rc = mock_type (TSS2_RC);
     g_debug ("__wrap_Tss2_Sys_GetCapability returning: 0x%x", rc);
+    if (rc != TSS2_RC_SUCCESS)
+        goto out;
+
+    switch (capability) {
+    case TPM2_CAP_TPM_PROPERTIES:
+        capabilityData->capability = TPM2_CAP_TPM_PROPERTIES;
+        tpmProperties = mock_type (TPML_TAGGED_TPM_PROPERTY*);
+        memcpy (&capabilityData->data.tpmProperties,
+                tpmProperties,
+                sizeof (*tpmProperties));
+        break;
+    case TPM2_CAP_HANDLES:
+        capabilityData->capability = TPM2_CAP_HANDLES;
+        handles = mock_type (TPML_HANDLE*);
+        memcpy (&capabilityData->data.handles,
+                handles,
+                sizeof (*handles));
+        break;
+    default:
+        g_error ("%s does not understand this capability type", __func__);
+    }
+
+out:
     return rc;
 }
 /**
@@ -114,14 +146,14 @@ static int
 access_broker_setup_with_init (void **state)
 {
     test_data_t *data;
+    TPML_TAGGED_TPM_PROPERTY tagged_data = TAGGED_PROPS_INIT;
 
     access_broker_setup (state);
     data = (test_data_t*)*state;
 
-    will_return (__wrap_Tss2_Sys_Startup, TSS2_RC_SUCCESS);
-    will_return (__wrap_Tss2_Sys_GetCapability, MAX_COMMAND_VALUE);
-    will_return (__wrap_Tss2_Sys_GetCapability, MAX_RESPONSE_VALUE);
-    will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Sys_Startup, TPM2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Sys_GetCapability, TPM2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Sys_GetCapability, &tagged_data);
     access_broker_init_tpm (data->broker);
     return 0;
 }
@@ -202,11 +234,11 @@ static void
 access_broker_init_tpm_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
+    TPML_TAGGED_TPM_PROPERTY tagged_data = TAGGED_PROPS_INIT;
 
     will_return (__wrap_Tss2_Sys_Startup, TSS2_RC_SUCCESS);
-    will_return (__wrap_Tss2_Sys_GetCapability, MAX_COMMAND_VALUE);
-    will_return (__wrap_Tss2_Sys_GetCapability, MAX_RESPONSE_VALUE);
     will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Sys_GetCapability, &tagged_data);
     assert_int_equal (access_broker_init_tpm (data->broker), TSS2_RC_SUCCESS);
     assert_true (data->broker->initialized);
 }
@@ -348,6 +380,36 @@ access_broker_send_command_success (void **state)
     g_object_unref (connection);
 }
 
+static void
+access_broker_get_trans_object_count_caps_fail (void **state)
+{
+    TSS2_RC rc;
+    uint32_t count = 0;
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_GetCapability, TPM2_RC_DISABLED);
+    rc = access_broker_get_trans_object_count (data->broker, &count);
+    assert_int_equal (rc, TPM2_RC_DISABLED);
+}
+
+static void
+access_broker_get_trans_object_count_success (void **state)
+{
+    TSS2_RC rc;
+    uint32_t count = 0;
+    test_data_t *data = (test_data_t*)*state;
+    TPML_HANDLE handle = {
+        .count = 2,
+        .handle = { 555, 444 },
+    };
+
+    will_return (__wrap_Tss2_Sys_GetCapability, TPM2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Sys_GetCapability, &handle);
+    rc = access_broker_get_trans_object_count (data->broker, &count);
+    assert_int_equal (rc, TPM2_RC_SUCCESS);
+    assert_int_equal (count, handle.count);
+}
+
 int
 main (void)
 {
@@ -377,6 +439,12 @@ main (void)
                                          access_broker_setup_with_command,
                                          access_broker_teardown),
         cmocka_unit_test_setup_teardown (access_broker_send_command_success,
+                                         access_broker_setup_with_command,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_get_trans_object_count_caps_fail,
+                                         access_broker_setup_with_command,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_get_trans_object_count_success,
                                          access_broker_setup_with_command,
                                          access_broker_teardown),
     };
