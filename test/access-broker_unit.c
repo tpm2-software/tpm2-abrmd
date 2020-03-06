@@ -184,6 +184,15 @@ access_broker_type_test (void **state)
 
     assert_true (IS_ACCESS_BROKER (data->broker));
 }
+static void
+access_broker_startup_fail (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_Startup, TSS2_SYS_RC_BAD_SIZE);
+    assert_int_equal (access_broker_send_tpm_startup (data->broker),
+                      TSS2_SYS_RC_BAD_SIZE);
+}
 /**
  * Test the initialization route for the AccessBroker. A successful call
  * to the init function should return TSS2_RC_SUCCESS and the 'initialized'
@@ -344,6 +353,9 @@ main (void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown (access_broker_type_test,
+                                         access_broker_setup,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_startup_fail,
                                          access_broker_setup,
                                          access_broker_teardown),
         cmocka_unit_test_setup_teardown (access_broker_init_tpm_test,
