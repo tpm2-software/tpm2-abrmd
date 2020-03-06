@@ -16,24 +16,6 @@
 #include "tpm2-response.h"
 #include "util.h"
 
-#define TPMS_CAPABILITY_DATA_ZERO_INIT { 0, { 0, { \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } } }
-
 G_DEFINE_TYPE (AccessBroker, access_broker, G_TYPE_OBJECT);
 
 enum {
@@ -540,7 +522,7 @@ access_broker_get_trans_object_count (AccessBroker *broker,
     TSS2_RC rc = TSS2_RC_SUCCESS;
     TSS2_SYS_CONTEXT *sapi_context;
     TPMI_YES_NO more_data;
-    TPMS_CAPABILITY_DATA capability_data = TPMS_CAPABILITY_DATA_ZERO_INIT;
+    TPMS_CAPABILITY_DATA capability_data = { 0, };
 
     g_assert_nonnull (broker);
     g_assert_nonnull (count);
@@ -682,7 +664,7 @@ access_broker_flush_all_unlocked (AccessBroker     *broker,
 {
     TSS2_RC rc = TSS2_RC_SUCCESS;
     TPMI_YES_NO more_data;
-    TPMS_CAPABILITY_DATA capability_data = TPMS_CAPABILITY_DATA_ZERO_INIT;
+    TPMS_CAPABILITY_DATA capability_data = { 0, };
     TPM2_HANDLE handle;
     size_t i;
 
