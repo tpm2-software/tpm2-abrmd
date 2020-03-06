@@ -524,10 +524,8 @@ access_broker_init_tpm (AccessBroker *broker)
         goto out;
     rc = access_broker_get_tpm_properties_fixed (broker->sapi_context,
                                                  &broker->properties_fixed);
-    if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("failed to get fixed TPM properties: 0x%" PRIx32, rc);
+    if (rc != TSS2_RC_SUCCESS)
         goto out;
-    }
     broker->initialized = true;
 out:
     return rc;
@@ -560,8 +558,11 @@ access_broker_get_trans_object_count (AccessBroker *broker,
                                  &more_data,
                                  &capability_data,
                                  NULL);
-    if (rc != TSS2_RC_SUCCESS)
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("%s: Tss2_Sys_GetCapability failed with RC 0x%" PRIx32,
+                   __func__, rc);
         goto out;
+    }
     if (count != NULL)
         *count = capability_data.data.handles.count;
 out:
