@@ -41,6 +41,20 @@ typedef struct test_data {
     Tpm2Response *response;
     gboolean      acquired_lock;
 } test_data_t;
+
+TSS2_RC
+__wrap_Tss2_Sys_Initialize (TSS2_SYS_CONTEXT *sysContext,
+                            size_t contextSize,
+                            TSS2_TCTI_CONTEXT *tctiContext,
+                            TSS2_ABI_VERSION *abiVersion)
+{
+    UNUSED_PARAM (sysContext);
+    UNUSED_PARAM (contextSize);
+    UNUSED_PARAM (tctiContext);
+    UNUSED_PARAM (abiVersion);
+
+    return mock_type (TSS2_RC);
+}
 /**
  * The access broker initialize function calls the Startup function so we
  * must mock it here.
@@ -111,6 +125,20 @@ __wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
 out:
     return rc;
 }
+
+static Tcti*
+mock_tcti_setup (void)
+{
+    TSS2_TCTI_CONTEXT *context;
+
+    context = tcti_mock_init_full ();
+    if (context == NULL) {
+        g_critical ("tcti_mock_init_full failed");
+        return NULL;
+    }
+
+    return tcti_new (context);
+}
 /**
  * Do the minimum setup required by the AccessBroker object. This does not
  * call the access_broker_init_tpm function intentionally. We test that function
@@ -120,17 +148,13 @@ static int
 access_broker_setup (void **state)
 {
     test_data_t *data;
-    TSS2_TCTI_CONTEXT *context;
     Tcti *tcti = NULL;
 
-    context = tcti_mock_init_full ();
-    if (context == NULL) {
-        g_critical ("tcti_mock_init_full failed");
-        return 1;
-    }
     data = calloc (1, sizeof (test_data_t));
-    tcti = tcti_new (context);
+    tcti = mock_tcti_setup ();
+    will_return (__wrap_Tss2_Sys_Initialize, TSS2_RC_SUCCESS);
     data->broker = access_broker_new (tcti);
+
     g_clear_object (&tcti);
     *state = data;
     return 0;
@@ -400,7 +424,7 @@ access_broker_get_trans_object_count_success (void **state)
     test_data_t *data = (test_data_t*)*state;
     TPML_HANDLE handle = {
         .count = 2,
-        .handle = { 555, 444 },
+       .handle = { 555, 444 },
     };
 
     will_return (__wrap_Tss2_Sys_GetCapability, TPM2_RC_SUCCESS);
@@ -408,6 +432,21 @@ access_broker_get_trans_object_count_success (void **state)
     rc = access_broker_get_trans_object_count (data->broker, &count);
     assert_int_equal (rc, TPM2_RC_SUCCESS);
     assert_int_equal (count, handle.count);
+}
+
+static void
+access_broker_sapi_context_init_fail (void **state)
+{
+    UNUSED_PARAM (state);
+
+    TSS2_SYS_CONTEXT *ctx = NULL;
+    Tcti *tcti = NULL;
+
+    tcti = mock_tcti_setup ();
+    will_return (__wrap_Tss2_Sys_Initialize, TPM2_RC_FAILURE);
+    ctx = sapi_context_init (tcti);
+    assert_null (ctx);
+    g_clear_object (&tcti);
 }
 
 int
@@ -447,6 +486,7 @@ main (void)
         cmocka_unit_test_setup_teardown (access_broker_get_trans_object_count_success,
                                          access_broker_setup_with_command,
                                          access_broker_teardown),
+        cmocka_unit_test (access_broker_sapi_context_init_fail),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
 }

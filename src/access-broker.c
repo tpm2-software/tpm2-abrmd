@@ -3,6 +3,7 @@
  * Copyright (c) 2017 - 2018, Intel Corporation
  * All rights reserved.
  */
+#include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -145,7 +146,7 @@ access_broker_class_init (AccessBrokerClass *klass)
     .tssVersion = 108, \
 }
 
-static TSS2_SYS_CONTEXT*
+TSS2_SYS_CONTEXT*
 sapi_context_init (Tcti *tcti)
 {
     TSS2_SYS_CONTEXT *sapi_context;
@@ -154,21 +155,19 @@ sapi_context_init (Tcti *tcti)
     size_t size;
     TSS2_ABI_VERSION abi_version = SUPPORTED_ABI_VERSION;
 
-    g_debug(__func__);
+    assert (tcti != NULL);
     tcti_context = tcti_peek_context (tcti);
-    if (tcti_context == NULL)
-        g_error ("NULL TCTI_CONTEXT");
+    assert (tcti_context != NULL);
+
     size = Tss2_Sys_GetContextSize (0);
     g_debug ("Allocating 0x%zx bytes for SAPI context", size);
+    /* NOTE: g_malloc0 will terminate the program if allocation fails */
     sapi_context = (TSS2_SYS_CONTEXT*)g_malloc0 (size);
-    if (sapi_context == NULL) {
-        g_error ("Failed to allocate 0x%zx bytes for the SAPI context", size);
-        return NULL;
-    }
+
     rc = Tss2_Sys_Initialize (sapi_context, size, tcti_context, &abi_version);
     if (rc != TSS2_RC_SUCCESS) {
         g_free (sapi_context);
-        g_error ("Failed to initialize SAPI context: 0x%x", rc);
+        g_warning ("Failed to initialize SAPI context: 0x%x", rc);
         return NULL;
     }
     return sapi_context;
