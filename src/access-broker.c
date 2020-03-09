@@ -254,10 +254,6 @@ access_broker_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
     assert (capability_data != NULL);
 
     g_debug ("access_broker_get_tpm_properties_fixed");
-    if (capability_data == NULL)
-        return TSS2_RESMGR_RC_BAD_VALUE;
-    if (sapi_context == NULL)
-        return TSS2_RESMGR_RC_SAPI_INIT;
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
                                  TPM2_CAP_TPM_PROPERTIES,
