@@ -329,17 +329,6 @@ access_broker_lock_sapi (AccessBroker *broker)
     return broker->sapi_context;
 }
 /*
- * Return the TPM2_PT_TOTAL_COMAMNDS fixed TPM property.
- */
-TSS2_RC
-access_broker_get_total_commands (AccessBroker *broker,
-                                  guint        *value)
-{
-    return access_broker_get_fixed_property (broker,
-                                             TPM2_PT_TOTAL_COMMANDS,
-                                             value);
-}
-/**
  * Return the TPM2_PT_TPM2_MAX_COMMAND_SIZE fixed TPM property.
  */
 TSS2_RC
