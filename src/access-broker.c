@@ -178,6 +178,8 @@ access_broker_send_tpm_startup (AccessBroker *broker)
 {
     TSS2_RC rc;
 
+    assert (broker != NULL);
+
     rc = Tss2_Sys_Startup (broker->sapi_context, TPM2_SU_CLEAR);
     if (rc != TSS2_RC_SUCCESS && rc != TPM2_RC_INITIALIZE)
         g_warning ("Tss2_Sys_Startup returned unexpected RC: 0x%" PRIx32, rc);
@@ -198,10 +200,7 @@ access_broker_lock (AccessBroker *broker)
 {
     gint error;
 
-    if (broker == NULL) {
-        g_error ("AccessBroker: NULL pointer passed to access_broker_lock");
-        return;
-    }
+    assert (broker != NULL);
 
     error = pthread_mutex_lock (&broker->sapi_mutex);
     if (error != 0) {
@@ -228,10 +227,7 @@ access_broker_unlock (AccessBroker *broker)
 {
     gint error;
 
-    if (broker == NULL) {
-        g_error ("AccessBroker: NULL pointer passed to access_broker_unlock");
-        return;
-    }
+    assert (broker != NULL);
 
     error= pthread_mutex_unlock (&broker->sapi_mutex);
     if (error != 0) {
@@ -257,6 +253,9 @@ access_broker_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
 {
     TSS2_RC          rc;
     TPMI_YES_NO      more_data;
+
+    assert (sapi_context != NULL);
+    assert (capability_data != NULL);
 
     g_debug ("access_broker_get_tpm_properties_fixed");
     if (capability_data == NULL)
@@ -297,6 +296,9 @@ access_broker_get_fixed_property (AccessBroker           *broker,
 {
     unsigned int i;
 
+    assert (broker != NULL);
+    assert (value != NULL);
+
     if (broker->properties_fixed.data.tpmProperties.count == 0) {
         return TSS2_RESMGR_RC_INTERNAL_ERROR;
     }
@@ -318,14 +320,11 @@ access_broker_get_fixed_property (AccessBroker           *broker,
 TSS2_SYS_CONTEXT*
 access_broker_lock_sapi (AccessBroker *broker)
 {
-    if (broker == NULL) {
-        g_error (
-            "AccessBroker: NULL pointer passed to access_broker_lock_sapi");
-        return NULL;
-    }
+    assert (broker != NULL);
+    assert (broker->sapi_context != NULL);
 
     access_broker_lock (broker);
-    g_assert_nonnull (broker->sapi_context);
+
     return broker->sapi_context;
 }
 /*
@@ -379,9 +378,10 @@ access_broker_get_response (AccessBroker *broker,
     TSS2_RC rc;
     guint32 max_size;
 
-    if (broker == NULL || buffer == NULL || buffer_size == NULL) {
-        g_error ("%s passed NULL parameter.", __func__);
-    }
+    assert (broker != NULL);
+    assert (buffer != NULL);
+    assert (buffer_size != NULL);
+
     rc = access_broker_get_max_response (broker, &max_size);
     if (rc != TSS2_RC_SUCCESS)
         return rc;
@@ -426,6 +426,10 @@ access_broker_send_command (AccessBroker  *broker,
     size_t          buffer_size = 0;
 
     g_debug (__func__);
+    assert (broker != NULL);
+    assert (command != NULL);
+    assert (rc != NULL);
+
     access_broker_lock (broker);
     *rc = access_broker_send_cmd (broker, command);
     if (*rc != TSS2_RC_SUCCESS)
@@ -462,8 +466,7 @@ access_broker_new (Tcti *tcti)
     AccessBroker       *broker;
     TSS2_SYS_CONTEXT   *sapi_context;
 
-    if (tcti == NULL)
-        g_error ("access_broker_new passed NULL Tcti");
+    assert (tcti != NULL);
 
     sapi_context = sapi_context_init (tcti);
     broker = ACCESS_BROKER (g_object_new (TYPE_ACCESS_BROKER,
@@ -486,6 +489,8 @@ access_broker_init_tpm (AccessBroker *broker)
     TSS2_RC rc;
 
     g_debug (__func__);
+    assert (broker != NULL);
+
     if (broker->initialized)
         return TSS2_RC_SUCCESS;
     pthread_mutex_init (&broker->sapi_mutex, NULL);
@@ -512,8 +517,9 @@ access_broker_get_trans_object_count (AccessBroker *broker,
     TPMI_YES_NO more_data;
     TPMS_CAPABILITY_DATA capability_data = { 0, };
 
-    g_assert_nonnull (broker);
-    g_assert_nonnull (count);
+    assert (broker != NULL);
+    assert (count != NULL);
+
     sapi_context = access_broker_lock_sapi (broker);
     /*
      * GCC gets confused by the TPM2_TRANSIENT_FIRST constant being used for
@@ -533,8 +539,7 @@ access_broker_get_trans_object_count (AccessBroker *broker,
                    __func__, rc);
         goto out;
     }
-    if (count != NULL)
-        *count = capability_data.data.handles.count;
+    *count = capability_data.data.handles.count;
 out:
     access_broker_unlock (broker);
     return rc;
@@ -547,8 +552,9 @@ access_broker_context_load (AccessBroker *broker,
     TSS2_RC           rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    if (broker == NULL || context == NULL || handle == NULL)
-        g_error ("access_broker_context_load received NULL parameter");
+    assert (broker == NULL);
+    assert (context == NULL);
+    assert (handle == NULL);
 
     sapi_context = access_broker_lock_sapi (broker);
     rc = Tss2_Sys_ContextLoad (sapi_context, context, handle);
@@ -577,9 +583,9 @@ access_broker_context_save (AccessBroker *broker,
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    if (broker == NULL || context == NULL) {
-        g_error ("access_broker_context_save received NULL parameter");
-    }
+    assert (broker == NULL);
+    assert (context == NULL);
+
     g_debug ("access_broker_context_save: handle 0x%08" PRIx32, handle);
     sapi_context = access_broker_lock_sapi (broker);
     rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
@@ -600,9 +606,8 @@ access_broker_context_flush (AccessBroker *broker,
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    if (broker == NULL) {
-        g_error ("access_broker_context_flush received NULL parameter");
-    }
+    assert (broker == NULL);
+
     g_debug ("access_broker_context_flush: handle 0x%08" PRIx32, handle);
     sapi_context = access_broker_lock_sapi (broker);
     rc = Tss2_Sys_FlushContext (sapi_context, handle);
@@ -622,8 +627,8 @@ access_broker_context_saveflush (AccessBroker *broker,
     TSS2_RC           rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    if (broker == NULL || context == NULL)
-        g_error ("access_broker_context_save received NULL parameter");
+    assert (broker == NULL);
+    assert (context == NULL);
 
     g_debug ("access_broker_context_saveflush: handle 0x%" PRIx32, handle);
     sapi_context = access_broker_lock_sapi (broker);
@@ -658,6 +663,9 @@ access_broker_flush_all_unlocked (AccessBroker     *broker,
 
     g_debug ("%s: first: 0x%08" PRIx32 ", last: 0x%08" PRIx32,
              __func__, first, last);
+    assert (broker != NULL);
+    assert (sapi_context != NULL);
+
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
                                  TPM2_CAP_HANDLES,
@@ -688,7 +696,8 @@ access_broker_flush_all_context (AccessBroker *broker)
     TSS2_SYS_CONTEXT *sapi_context;
 
     g_debug (__func__);
-    g_assert_nonnull (broker);
+    assert (broker != NULL);
+
     sapi_context = access_broker_lock_sapi (broker);
     access_broker_flush_all_unlocked (broker,
                                       sapi_context,
