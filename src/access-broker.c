@@ -43,10 +43,6 @@ access_broker_set_property (GObject        *object,
         self->sapi_context = g_value_get_pointer (value);
         break;
     case PROP_TCTI:
-        if (self->tcti != NULL) {
-            g_warning ("  tcti already set");
-            break;
-        }
         self->tcti = g_value_get_object (value);
         g_object_ref (self->tcti);
         break;
