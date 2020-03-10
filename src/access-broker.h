@@ -67,6 +67,10 @@ TSS2_RC            access_broker_context_save           (AccessBroker *broker,
 void               access_broker_flush_all_context      (AccessBroker *broker);
 TSS2_RC            access_broker_send_tpm_startup       (AccessBroker *broker);
 TSS2_SYS_CONTEXT*  sapi_context_init                    (Tcti *tcti);
+TSS2_RC            access_broker_flush_all_unlocked     (AccessBroker     *broker,
+                                                         TSS2_SYS_CONTEXT *sapi_context,
+                                                         TPM2_RH           first,
+                                                         TPM2_RH           last);
 
 G_END_DECLS
 

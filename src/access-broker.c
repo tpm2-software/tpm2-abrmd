@@ -641,7 +641,13 @@ out:
     access_broker_unlock (broker);
     return rc;
 }
-static void
+/*
+ * Flush all handles in a given range. This function will return an error if
+ * we're unable to query for handles within the requested range. Failures to
+ * flush handles returned will be ignored since our goal here is to flush as
+ * many as possible.
+ */
+TSS2_RC
 access_broker_flush_all_unlocked (AccessBroker     *broker,
                                   TSS2_SYS_CONTEXT *sapi_context,
                                   TPM2_RH            first,
@@ -668,7 +674,7 @@ access_broker_flush_all_unlocked (AccessBroker     *broker,
                                  NULL);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("Failed to get capability TPM2_CAP_HANDLES");
-        return;
+        return rc;
     }
     g_debug ("%s: got %u handles", __func__, capability_data.data.handles.count);
     for (i = 0; i < capability_data.data.handles.count; ++i) {
@@ -681,6 +687,8 @@ access_broker_flush_all_unlocked (AccessBroker     *broker,
                        " RC: 0x%" PRIx32, handle, rc);
         }
     }
+
+    return TSS2_RC_SUCCESS;
 }
 void
 access_broker_flush_all_context (AccessBroker *broker)
