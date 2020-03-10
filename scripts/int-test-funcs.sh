@@ -85,7 +85,7 @@ tabrmd_start ()
     local tabrmd_opts="$4"
     local tabrmd_env="G_MESSAGES_DEBUG=all"
 
-    daemon_start "${tabrmd_bin}" "${tabrmd_opts}" "${tabrmd_log_file}" \
+    daemon_start "${tabrmd_bin}" "--flush-all ${tabrmd_opts}" "${tabrmd_log_file}" \
         "${tabrmd_pid_file}" "${tabrmd_env}" "${VALGRIND}" "${LOG_FLAGS}"
 }
 # function to stop a running daemon
