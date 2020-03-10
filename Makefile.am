@@ -405,8 +405,10 @@ test_message_queue_unit_SOURCES = test/message-queue_unit.c
 
 test_access_broker_unit_CFLAGS = $(UNIT_CFLAGS)
 test_access_broker_unit_LDADD = $(UNIT_LIBS)
-test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_GetCapability \
-    -Wl,--wrap=Tss2_Sys_Initialize,--wrap=Tss2_Sys_Startup
+test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_FlushContext \
+    -Wl,--wrap=Tss2_Sys_ContextLoad,--wrap=Tss2_Sys_ContextSave \
+    -Wl,--wrap=Tss2_Sys_GetCapability,--wrap=Tss2_Sys_Initialize \
+    -Wl,--wrap=Tss2_Sys_Startup
 test_access_broker_unit_SOURCES = test/access-broker_unit.c
 
 test_random_unit_CFLAGS = $(UNIT_CFLAGS)

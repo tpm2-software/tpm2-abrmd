@@ -43,6 +43,39 @@ typedef struct test_data {
 } test_data_t;
 
 TSS2_RC
+__wrap_Tss2_Sys_FlushContext (TSS2_SYS_CONTEXT *sysContext,
+                              TPM2_HANDLE handle)
+{
+    UNUSED_PARAM (sysContext);
+    UNUSED_PARAM (handle);
+
+    return mock_type (TSS2_RC);
+}
+
+TSS2_RC
+__wrap_Tss2_Sys_ContextSave (TSS2_SYS_CONTEXT *sysContext,
+                             TPM2_HANDLE handle,
+                             TPMS_CONTEXT *context)
+{
+    UNUSED_PARAM (sysContext);
+    UNUSED_PARAM (handle);
+    UNUSED_PARAM (context);
+
+    return mock_type (TSS2_RC);
+}
+
+TSS2_RC
+__wrap_Tss2_Sys_ContextLoad (TSS2_SYS_CONTEXT *sysContext,
+                             TPMS_CONTEXT *context,
+                             TPM2_HANDLE *handle)
+{
+    UNUSED_PARAM (sysContext);
+    UNUSED_PARAM (context);
+    UNUSED_PARAM (handle);
+
+    return mock_type (TSS2_RC);
+}
+TSS2_RC
 __wrap_Tss2_Sys_Initialize (TSS2_SYS_CONTEXT *sysContext,
                             size_t contextSize,
                             TSS2_TCTI_CONTEXT *tctiContext,
@@ -268,6 +301,24 @@ access_broker_init_tpm_test (void **state)
 }
 
 static void
+access_broker_init_tpm_initialized (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    assert_int_equal (access_broker_init_tpm (data->broker), TSS2_RC_SUCCESS);
+    assert_true (data->broker->initialized);
+}
+
+static void
+access_broker_init_tpm_startup_fail (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_Startup, TPM2_RC_FAILURE);
+    assert_int_equal (access_broker_init_tpm (data->broker), TPM2_RC_FAILURE);
+}
+
+static void
 access_broker_get_max_command_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -449,6 +500,120 @@ access_broker_sapi_context_init_fail (void **state)
     g_clear_object (&tcti);
 }
 
+static void
+access_broker_context_load_test (void **state)
+{
+    TSS2_RC rc;
+    TPMS_CONTEXT context = { 0, };
+    TPM2_HANDLE handle = 0;
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_ContextLoad, TSS2_RC_SUCCESS);
+    rc = access_broker_context_load (data->broker, &context, &handle);
+    assert_int_equal (rc, TSS2_RC_SUCCESS);
+}
+
+static void
+access_broker_context_load_fail (void **state)
+{
+    TSS2_RC rc;
+    TPMS_CONTEXT context = { 0, };
+    TPM2_HANDLE handle = 0;
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_ContextLoad, TPM2_RC_FAILURE);
+    rc = access_broker_context_load (data->broker, &context, &handle);
+    assert_int_equal (rc, TPM2_RC_FAILURE);
+}
+
+static void
+access_broker_context_save_test (void **state)
+{
+    TSS2_RC rc;
+    TPMS_CONTEXT context = { 0, };
+    TPM2_HANDLE handle = 0;
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_ContextSave, TPM2_RC_SUCCESS);
+    rc = access_broker_context_save (data->broker, handle, &context);
+    assert_int_equal (rc, TPM2_RC_SUCCESS);
+}
+
+static void
+access_broker_context_flush_fail (void **state)
+{
+    TSS2_RC rc;
+    TPM2_HANDLE handle = 0;
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_FlushContext, TPM2_RC_FAILURE);
+    rc = access_broker_context_flush (data->broker, handle);
+    assert_int_equal (rc, TPM2_RC_FAILURE);
+}
+
+static void
+access_broker_context_saveflush_save_fail (void **state)
+{
+    TSS2_RC rc;
+    TPMS_CONTEXT context = { 0, };
+    TPM2_HANDLE handle = 0;
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_ContextSave, TPM2_RC_FAILURE);
+    rc = access_broker_context_saveflush (data->broker, handle, &context);
+    assert_int_equal (rc, TPM2_RC_FAILURE);
+}
+
+static void
+access_broker_context_saveflush_flush_fail (void **state)
+{
+    TSS2_RC rc;
+    TPMS_CONTEXT context = { 0, };
+    TPM2_HANDLE handle = 0;
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_ContextSave, TPM2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Sys_FlushContext, TPM2_RC_FAILURE);
+    rc = access_broker_context_saveflush (data->broker, handle, &context);
+    assert_int_equal (rc, TPM2_RC_FAILURE);
+}
+
+static void
+access_broker_flush_all_unlocked_getcap_fail (void **state)
+{
+    TSS2_RC rc;
+    TSS2_SYS_CONTEXT *sys_ctx = (TSS2_SYS_CONTEXT*)0x1;
+    test_data_t *data = (test_data_t*)*state;
+
+    will_return (__wrap_Tss2_Sys_GetCapability, TPM2_RC_FAILURE);
+    rc = access_broker_flush_all_unlocked (data->broker,
+                                           sys_ctx,
+                                           TPM2_ACTIVE_SESSION_FIRST,
+                                           TPM2_ACTIVE_SESSION_LAST);
+    assert_int_equal (rc, TPM2_RC_FAILURE);
+}
+
+static void
+access_broker_flush_all_unlocked_flush_fail (void **state)
+{
+    TSS2_RC rc;
+    TSS2_SYS_CONTEXT *sys_ctx = (TSS2_SYS_CONTEXT*)0x1;
+    test_data_t *data = (test_data_t*)*state;
+    TPML_HANDLE handle = {
+        .count = 1,
+       .handle = { 555 },
+    };
+
+    will_return (__wrap_Tss2_Sys_GetCapability, TPM2_RC_SUCCESS);
+    will_return (__wrap_Tss2_Sys_GetCapability, &handle);
+    will_return (__wrap_Tss2_Sys_FlushContext, TPM2_RC_FAILURE);
+    rc = access_broker_flush_all_unlocked (data->broker,
+                                           sys_ctx,
+                                           TPM2_ACTIVE_SESSION_FIRST,
+                                           TPM2_ACTIVE_SESSION_LAST);
+    assert_int_equal (rc, TPM2_RC_SUCCESS);
+}
+
 int
 main (void)
 {
@@ -460,6 +625,12 @@ main (void)
                                          access_broker_setup,
                                          access_broker_teardown),
         cmocka_unit_test_setup_teardown (access_broker_init_tpm_test,
+                                         access_broker_setup,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_init_tpm_initialized,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_init_tpm_startup_fail,
                                          access_broker_setup,
                                          access_broker_teardown),
         cmocka_unit_test_setup_teardown (access_broker_get_max_command_test,
@@ -487,6 +658,30 @@ main (void)
                                          access_broker_setup_with_command,
                                          access_broker_teardown),
         cmocka_unit_test (access_broker_sapi_context_init_fail),
+        cmocka_unit_test_setup_teardown (access_broker_context_load_test,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_context_load_fail,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_context_save_test,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_context_flush_fail,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_context_saveflush_save_fail,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_context_saveflush_flush_fail,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_flush_all_unlocked_getcap_fail,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
+        cmocka_unit_test_setup_teardown (access_broker_flush_all_unlocked_flush_fail,
+                                         access_broker_setup_with_init,
+                                         access_broker_teardown),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
 }
