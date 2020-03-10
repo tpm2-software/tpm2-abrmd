@@ -64,7 +64,6 @@ matrix:
       env: SCANBUILD= MAKE_TARGET=distcheck
 
 install:
-  - pip install --user cpp-coveralls
   - mkdir ${DEPS} && pushd ${DEPS}
   - wget http://ftpmirror.gnu.org/autoconf-archive/autoconf-archive-2019.01.06.tar.xz
   - sha256sum autoconf-archive-2019.01.06.tar.xz | grep -q 17195c833098da79de5778ee90948f4c5d90ed1a0cf8391b4ab348e2ec511e3f
