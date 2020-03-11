@@ -11,7 +11,7 @@
 #include <pthread.h>
 #include <tss2/tss2_tpm2_types.h>
 
-#include "access-broker.h"
+#include "tpm2.h"
 #include "connection-manager.h"
 #include "message-queue.h"
 #include "session-list.h"
@@ -26,7 +26,7 @@ typedef struct _ResourceManagerClass {
 
 typedef struct _ResourceManager {
     Thread            parent_instance;
-    AccessBroker     *access_broker;
+    Tpm2 *tpm2;
     MessageQueue     *in_queue;
     Sink             *sink;
     SessionList      *session_list;
@@ -40,7 +40,7 @@ typedef struct _ResourceManager {
 #define RESOURCE_MANAGER_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS  ((obj),   TYPE_RESOURCE_MANAGER, ResourceManagerClass))
 
 GType                 resource_manager_get_type       (void);
-ResourceManager*      resource_manager_new            (AccessBroker *broker,
+ResourceManager*      resource_manager_new            (Tpm2 *tpm2,
                                                        SessionList  *session_list);
 void                  resource_manager_process_tpm2_command (ResourceManager   *resmgr,
                                                              Tpm2Command       *command);

@@ -2,7 +2,7 @@
 #include <glib.h>
 #include <inttypes.h>
 
-#include "access-broker.h"
+#include "tpm2.h"
 #include "resource-manager.h"
 #include "resource-manager-session.h"
 #include "session-list.h"
@@ -35,7 +35,7 @@ load_session (ResourceManager *resmgr,
         resp = tpm2_response_new_rc (NULL, TSS2_RESMGR_RC_GENERAL_FAILURE);
         goto out;
     }
-    resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
+    resp = tpm2_send_command (resmgr->tpm2, cmd, &rc);
     if (rc != TSS2_RC_SUCCESS) {
         g_critical ("%s: TCTI failed while loading session context from "
                    "SessionEntry, got RC 0x%" PRIx32, __func__, rc);
@@ -70,7 +70,7 @@ flush_session (ResourceManager *resmgr,
 
     g_debug ("%s: flushing stale SessionEntry with handle: 0x%08" PRIx32,
              __func__, handle);
-    rc = access_broker_context_flush (resmgr->access_broker, handle);
+    rc = tpm2_context_flush (resmgr->tpm2, handle);
     session_list_remove (resmgr->session_list, entry);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("%s: failed to flush session context with "
@@ -108,7 +108,7 @@ save_session (ResourceManager *resmgr,
         resp = tpm2_response_new_rc (NULL, TSS2_RESMGR_RC_GENERAL_FAILURE);
         goto out;
     }
-    resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
+    resp = tpm2_send_command (resmgr->tpm2, cmd, &rc);
     if (rc != TSS2_RC_SUCCESS) {
         g_critical ("%s: TCTI failed while saving session context from "
                     "SessionEntry, got RC 0x%" PRIx32, __func__, rc);

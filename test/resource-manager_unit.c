@@ -15,6 +15,7 @@
 
 #include <tss2/tss2_mu.h>
 
+#include "tpm2.h"
 #include "resource-manager.h"
 #include "sink-interface.h"
 #include "source-interface.h"
@@ -25,7 +26,7 @@
 #include "util.h"
 
 typedef struct test_data {
-    AccessBroker    *access_broker;
+    Tpm2    *tpm2;
     ResourceManager *resource_manager;
     Connection      *connection;
     Tpm2Command     *command;
@@ -37,16 +38,16 @@ typedef struct test_data {
 
 /**
  * Mock function for testing the resource_manager_process_tpm2_command
- * function which depends on the access_broker_send_command and must
+ * function which depends on the tpm2_send_command and must
  * handle the call and the associated error conditions.
  */
 Tpm2Response*
-__wrap_access_broker_send_command (AccessBroker *access_broker,
+__wrap_tpm2_send_command (Tpm2 *tpm2,
                                    Tpm2Command  *command,
                                    TSS2_RC      *rc)
 {
     Tpm2Response *response;
-    UNUSED_PARAM(access_broker);
+    UNUSED_PARAM(tpm2);
     UNUSED_PARAM(command);
 
     *rc      = mock_type (TSS2_RC);
@@ -56,7 +57,7 @@ __wrap_access_broker_send_command (AccessBroker *access_broker,
 }
 /**
  * Mock function for testing the resource_manager_process_tpm2_command
- * function. When the AccessBroker returns a Tpm2Response object the
+ * function. When the Tpm2 returns a Tpm2Response object the
  * ResourceManager passes this object to whatever sink has been provided
  * to it. For the purposes of testing we don't provide a valid Sink.
  * Instead we mock this function as a way to take the response object
@@ -78,7 +79,7 @@ __wrap_sink_enqueue (Sink      *self,
     data->response = TPM2_RESPONSE (obj);
 }
 TSS2_RC
-__wrap_access_broker_context_saveflush (AccessBroker *broker,
+__wrap_tpm2_context_saveflush (Tpm2 *broker,
                                         TPM2_HANDLE    handle,
                                         TPMS_CONTEXT *context)
 {
@@ -88,19 +89,19 @@ __wrap_access_broker_context_saveflush (AccessBroker *broker,
    return mock_type (TSS2_RC);
 }
 /*
- * Wrap call to access_broker_context_load. Pops two parameters off the
+ * Wrap call to tpm2_context_load. Pops two parameters off the
  * stack with the 'mock' command. The first is the RC which is returned
  * directly to the caller. The other is the new physical handle that was
  * allocated by the TPM for the context that was just loaded.
  */
 TSS2_RC
-__wrap_access_broker_context_load (AccessBroker *access_broker,
+__wrap_tpm2_context_load (Tpm2 *tpm2,
                                    TPMS_CONTEXT *context,
                                    TPM2_HANDLE   *handle)
 {
     TSS2_RC    rc      = mock_type (TSS2_RC);
     TPM2_HANDLE phandle = mock_type (TPM2_HANDLE);
-    UNUSED_PARAM(access_broker);
+    UNUSED_PARAM(tpm2);
     UNUSED_PARAM(context);
 
     assert_non_null (handle);
@@ -123,11 +124,11 @@ resource_manager_setup (void **state)
 
     data = calloc (1, sizeof (test_data_t));
     handle_map = handle_map_new (TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
-    data->access_broker = access_broker_new (tcti);
+    data->tpm2 = tpm2_new (tcti);
     g_clear_object (&tcti);
     session_list = session_list_new (SESSION_LIST_MAX_ENTRIES_DEFAULT,
                                      SESSION_LIST_MAX_ABANDONED_DEFAULT);
-    data->resource_manager = resource_manager_new (data->access_broker,
+    data->resource_manager = resource_manager_new (data->tpm2,
                                                    session_list);
     g_clear_object (&session_list);
     iostream = create_connection_iostream (&data->client_fd);
@@ -185,9 +186,9 @@ resource_manager_teardown (void **state)
 
     g_debug ("resource_manager_teardown");
     g_object_unref (data->resource_manager);
-    if (data->access_broker) {
-        g_debug ("resource_manager unref access_broker");
-        g_object_unref (data->access_broker);
+    if (data->tpm2) {
+        g_debug ("resource_manager unref tpm2");
+        g_object_unref (data->tpm2);
     }
     if (data->connection) {
         g_debug ("resource_manager unref Connection");
@@ -261,8 +262,8 @@ resource_manager_process_tpm2_command_success_test (void **state)
      */
     g_object_ref (response);
 
-    will_return (__wrap_access_broker_send_command, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_send_command, response);
+    will_return (__wrap_tpm2_send_command, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_send_command, response);
     /**
      * The sink_enqueue wrap function will assign the Tpm2Response it's passed
      * to the test data structure.
@@ -281,15 +282,15 @@ resource_manager_flushsave_context_test (void **state)
     TPM2_HANDLE vhandle = TPM2_HR_TRANSIENT + 0x1, phandle = TPM2_HR_TRANSIENT + 0x2;
 
     entry = handle_map_entry_new (phandle, vhandle);
-    will_return (__wrap_access_broker_context_saveflush, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_context_saveflush, TSS2_RC_SUCCESS);
     resource_manager_flushsave_context (entry, data->resource_manager);
     assert_int_equal (handle_map_entry_get_phandle (entry), 0);
 }
 /*
  * This test case pushes an error RC on to the mock stack for the
- * access_broker_context_flushsave function. The flushsave_context function
+ * tpm2_context_flushsave function. The flushsave_context function
  * in the RM will then successfully find the phandle in the provided entry
- * but the call to the AccessBroker will fail.
+ * but the call to the Tpm2 will fail.
  * The function under test should propagate this RC to the caller (us) and
  * should *NOT* update the phandle in the provided entry.
  */
@@ -301,7 +302,7 @@ resource_manager_flushsave_context_fail_test (void **state)
     TPM2_HANDLE vhandle = TPM2_HR_TRANSIENT + 0x1, phandle = TPM2_HR_TRANSIENT + 0x2;
 
     entry = handle_map_entry_new (phandle, vhandle);
-    will_return (__wrap_access_broker_context_saveflush, TPM2_RC_INITIALIZE);
+    will_return (__wrap_tpm2_context_saveflush, TPM2_RC_INITIALIZE);
     resource_manager_flushsave_context (entry, data->resource_manager);
     assert_int_equal (handle_map_entry_get_phandle (entry), phandle);
 }
@@ -316,8 +317,8 @@ resource_manager_virt_to_phys_test (void **state)
     TPM2_HANDLE      handle_ret = 0;
     TSS2_RC         rc = TSS2_RC_SUCCESS;
 
-    will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_context_load, phandle);
+    will_return (__wrap_tpm2_context_load, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_context_load, phandle);
     /* and the rest of it */
 
     /* create & populate HandleMap for transient handle */
@@ -353,10 +354,10 @@ resource_manager_load_handles_test(void **state)
     TSS2_RC         rc = TSS2_RC_SUCCESS;
     size_t          handle_count = 2, i;
 
-    will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_context_load, phandles [0]);
-    will_return (__wrap_access_broker_context_load, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_context_load, phandles [1]);
+    will_return (__wrap_tpm2_context_load, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_context_load, phandles [0]);
+    will_return (__wrap_tpm2_context_load, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_context_load, phandles [1]);
 
     tpm2_command_get_handles (data->command, vhandles, &handle_count);
     map = connection_get_trans_map (data->connection);

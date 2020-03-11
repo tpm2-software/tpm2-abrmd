@@ -3,7 +3,7 @@
 
 #include <glib.h>
 
-#include "access-broker.h"
+#include "tpm2.h"
 #include "command-source.h"
 #include "ipc-frontend.h"
 #include "random.h"
@@ -19,7 +19,7 @@
 typedef struct gmain_data {
     tabrmd_options_t        options;
     GMainLoop              *loop;
-    AccessBroker           *access_broker;
+    Tpm2           *tpm2;
     ResourceManager        *resource_manager;
     CommandSource          *command_source;
     Random                 *random;

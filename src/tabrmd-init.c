@@ -8,7 +8,7 @@
 
 #include <tss2/tss2_tctildr.h>
 
-#include "access-broker.h"
+#include "tpm2.h"
 #include "command-source.h"
 #include "logging.h"
 #include "ipc-frontend.h"
@@ -112,7 +112,7 @@ gmain_data_cleanup (gmain_data_t *data)
  * - Seeds the RNG state from an entropy source.
  * - Creates the ConnectionManager.
  * - Creates the TCTI instance used by the Tab.
- * - Creates an access broker and verify the current state of the TPM.
+ * - Creates an tpm2 and verify the current state of the TPM.
  * - Creates and wires up the objects that make up the TPM command
  *   processing pipeline.
  * - Starts all of the threads in the command processing pipeline.
@@ -173,23 +173,23 @@ init_thread_func (gpointer user_data)
         goto err_out;
     }
     tcti = tcti_new (tcti_ctx);
-    data->access_broker = access_broker_new (tcti);
+    data->tpm2 = tpm2_new (tcti);
     g_clear_object (&tcti);
-    rc = access_broker_init_tpm (data->access_broker);
+    rc = tpm2_init_tpm (data->tpm2);
     if (rc != TSS2_RC_SUCCESS) {
         ret = EX_UNAVAILABLE;
-        g_critical ("failed to initialize AccessBroker: 0x%" PRIx32, rc);
+        g_critical ("failed to initialize Tpm2: 0x%" PRIx32, rc);
         goto err_out;
     }
     if (data->options.flush_all) {
-        access_broker_flush_all_context (data->access_broker);
+        tpm2_flush_all_context (data->tpm2);
     }
     /*
      * Instantiate and the objects that make up the TPM command processing
      * pipeline.
      */
     command_attrs = command_attrs_new ();
-    ret = command_attrs_init_tpm (command_attrs, data->access_broker);
+    ret = command_attrs_init_tpm (command_attrs, data->tpm2);
     if (ret != 0) {
         g_critical ("%s: failed to initialize CommandAttribute object", __func__);
         ret = EX_UNAVAILABLE;
@@ -201,12 +201,12 @@ init_thread_func (gpointer user_data)
     g_object_unref (connection_manager);
     session_list = session_list_new (data->options.max_sessions,
                                      SESSION_LIST_MAX_ABANDONED_DEFAULT);
-    data->resource_manager = resource_manager_new (data->access_broker,
+    data->resource_manager = resource_manager_new (data->tpm2,
                                                    session_list);
     g_clear_object (&session_list);
     data->response_sink = response_sink_new ();
     g_object_unref (command_attrs);
-    g_object_unref (data->access_broker);
+    g_object_unref (data->tpm2);
     /*
      * Wire up the TPM command processing pipeline. TPM command buffers
      * flow from the CommandSource, to the Tab then finally back to the

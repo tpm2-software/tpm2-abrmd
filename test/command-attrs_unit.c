@@ -11,13 +11,13 @@
 #include <cmocka.h>
 
 #include "util.h"
-#include "access-broker.h"
+#include "tpm2.h"
 #include "command-attrs.h"
 #include "tcti.h"
 #include "tcti-mock.h"
 
 typedef struct test_data {
-    AccessBroker *access_broker;
+    Tpm2 *tpm2;
     CommandAttrs *command_attrs;
 } test_data_t;
 
@@ -36,7 +36,7 @@ command_attrs_setup (void **state)
     }
     data = calloc (1, sizeof (test_data_t));
     tcti = tcti_new (context);
-    data->access_broker = access_broker_new (tcti);
+    data->tpm2 = tpm2_new (tcti);
     data->command_attrs = command_attrs_new ();
     g_clear_object (&tcti);
 
@@ -55,11 +55,11 @@ command_attrs_init_tpm_setup (void **state)
 
     command_attrs_setup (state);
     data = *state;
-    will_return (__wrap_access_broker_get_command_attrs, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_get_command_attrs, 2);
-    will_return (__wrap_access_broker_get_command_attrs, command_attributes);
+    will_return (__wrap_tpm2_get_command_attrs, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_get_command_attrs, 2);
+    will_return (__wrap_tpm2_get_command_attrs, command_attributes);
 
-    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
+    ret = command_attrs_init_tpm (data->command_attrs, data->tpm2);
     assert_int_equal (ret, 0);
     return 0;
 }
@@ -85,13 +85,13 @@ command_attrs_type_test (void **state)
 
 /* */
 TSS2_RC
-__wrap_access_broker_get_command_attrs (AccessBroker *broker,
+__wrap_tpm2_get_command_attrs (Tpm2 *tpm2,
                                         UINT32 *count,
                                         TPMA_CC **attrs)
 {
     TSS2_RC rc;
     TPMA_CC *command_attrs;
-    UNUSED_PARAM(broker);
+    UNUSED_PARAM(tpm2);
 
     rc = mock_type (TSS2_RC);
     if (rc != TSS2_RC_SUCCESS)
@@ -115,11 +115,11 @@ command_attrs_init_tpm_success_test (void **state)
     gint         ret = -1;
     TPMA_CC      command_attributes [2] = { 0xdeadbeef, 0xfeebdaed };
 
-    will_return (__wrap_access_broker_get_command_attrs, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_get_command_attrs, 2);
-    will_return (__wrap_access_broker_get_command_attrs, command_attributes);
+    will_return (__wrap_tpm2_get_command_attrs, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_get_command_attrs, 2);
+    will_return (__wrap_tpm2_get_command_attrs, command_attributes);
 
-    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
+    ret = command_attrs_init_tpm (data->command_attrs, data->tpm2);
     assert_int_equal (ret, 0);
     assert_memory_equal (command_attributes,
                          data->command_attrs->command_attrs,
@@ -135,9 +135,9 @@ command_attrs_init_tpm_fail_get_capability_test (void **state)
     test_data_t *data = *state;
     gint         ret = -1;
 
-    will_return (__wrap_access_broker_get_command_attrs, TPM2_RC_FAILURE);
+    will_return (__wrap_tpm2_get_command_attrs, TPM2_RC_FAILURE);
 
-    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
+    ret = command_attrs_init_tpm (data->command_attrs, data->tpm2);
     assert_int_equal (ret, -1);
 }
 /*
