@@ -61,49 +61,14 @@ gint
 command_attrs_init_tpm (CommandAttrs *attrs,
                         AccessBroker *broker)
 {
-    TSS2_RC               rc;
-    TPMS_CAPABILITY_DATA  capability_data;
-    TSS2_SYS_CONTEXT     *sapi_context;
-    TPMI_YES_NO           more;
-    unsigned int          i;
+    TSS2_RC rc;
 
-    rc = access_broker_get_max_command (broker, &attrs->count);
-    if (rc != TSS2_RC_SUCCESS || attrs->count == 0) {
-        g_warning ("failed to get TPM2_PT_TOTAL_COMMANDS: 0x%" PRIx32
-                   ", count: 0x%" PRIx32, rc, attrs->count);
-        return -1;
-    }
-    sapi_context = access_broker_lock_sapi (broker);
-    if (sapi_context == NULL) {
-        g_warning ("access_broker_lock_sapi returned NULL TSS2_SYS_CONTEXT.");
-        access_broker_unlock (broker);
-        return -1;
-    }
-    g_debug ("GetCapabilty for 0x%" PRIx32 " commands", attrs->count);
-    rc = Tss2_Sys_GetCapability (sapi_context,
-                                 NULL,
-                                 TPM2_CAP_COMMANDS,
-                                 TPM2_CC_FIRST,
-                                 attrs->count,
-                                 &more,
-                                 &capability_data,
-                                 NULL);
-    access_broker_unlock (broker);
+    rc = access_broker_get_command_attrs (broker,
+                                          &attrs->count,
+                                          &attrs->command_attrs);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("failed to get TPM command attributes: 0x%" PRIx32, rc);
         return -1;
     }
-
-    attrs->count = capability_data.data.command.count;
-    g_debug ("got attributes for 0x%" PRIx32 " commands", attrs->count);
-    attrs->command_attrs = (TPMA_CC*) calloc (1, sizeof (TPMA_CC) * attrs->count);
-    if (attrs->command_attrs == NULL) {
-        g_warning ("Failed to allocate memory for TPMA_CC: %s\n",
-                   strerror (errno));
-        return -1;
-    }
-    for (i = 0; i < attrs->count; ++i)
-        attrs->command_attrs[i] = capability_data.data.command.commandAttributes[i];
 
     return 0;
 }

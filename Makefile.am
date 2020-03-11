@@ -353,7 +353,7 @@ test_connection_manager_unit_SOURCES = test/connection-manager_unit.c
 
 test_command_attrs_unit_CFLAGS = $(UNIT_CFLAGS)
 test_command_attrs_unit_LDADD = $(UNIT_LIBS)
-test_command_attrs_unit_LDFLAGS  = -Wl,--wrap=access_broker_lock_sapi,--wrap=access_broker_get_max_command,--wrap=Tss2_Sys_GetCapability
+test_command_attrs_unit_LDFLAGS  = -Wl,--wrap=access_broker_get_command_attrs
 test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
 test_command_source_unit_CFLAGS = $(UNIT_CFLAGS)

@@ -319,17 +319,6 @@ access_broker_lock_sapi (AccessBroker *broker)
 
     return broker->sapi_context;
 }
-/*
- * Return the TPM2_PT_TPM2_MAX_COMMAND_SIZE fixed TPM property.
- */
-TSS2_RC
-access_broker_get_max_command (AccessBroker *broker,
-                               guint32      *value)
-{
-    return access_broker_get_fixed_property (broker,
-                                             TPM2_PT_MAX_COMMAND_SIZE,
-                                             value);
-}
 /**
  * Return the TPM2_PT_TPM2_MAX_RESPONSE_SIZE fixed TPM property.
  */
@@ -712,4 +701,42 @@ access_broker_flush_all_context (AccessBroker *broker)
                                       TPM2_TRANSIENT_FIRST,
                                       TPM2_TRANSIENT_LAST);
     access_broker_unlock (broker);
+}
+
+TSS2_RC
+access_broker_get_command_attrs (AccessBroker *broker,
+                                 UINT32 *count,
+                                 TPMA_CC **attrs)
+{
+    TSS2_RC rc;
+    TPMI_YES_NO more = TPM2_NO;
+    TPMS_CAPABILITY_DATA cap_data = { 0, };
+    TSS2_SYS_CONTEXT *sys_ctx;
+
+    assert (broker != NULL);
+    assert (count != NULL);
+    assert (attrs != NULL);
+
+    sys_ctx = access_broker_lock_sapi (broker);
+    rc = Tss2_Sys_GetCapability (sys_ctx,
+                                 NULL,
+                                 TPM2_CAP_COMMANDS,
+                                 TPM2_CC_FIRST,
+                                 TPM2_MAX_CAP_CC,
+                                 &more,
+                                 &cap_data,
+                                 NULL);
+    access_broker_unlock (broker);
+    if (rc != TSS2_RC_SUCCESS) {
+        g_warning ("failed to get TPM command attributes: 0x%" PRIx32, rc);
+        return rc;
+    }
+
+    *count = cap_data.data.command.count;
+    *attrs = g_malloc0 (*count * sizeof (TPMA_CC));
+    memcpy (*attrs,
+            cap_data.data.command.commandAttributes,
+            *count * sizeof (TPMA_CC));
+
+    return rc;
 }
