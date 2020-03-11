@@ -55,11 +55,9 @@ command_attrs_init_tpm_setup (void **state)
 
     command_attrs_setup (state);
     data = *state;
-    will_return (__wrap_access_broker_lock_sapi, 1);
-    will_return (__wrap_access_broker_get_max_command, 2);
-    will_return (__wrap_access_broker_get_max_command, TSS2_RC_SUCCESS);
-    will_return (__wrap_Tss2_Sys_GetCapability, &command_attributes);
-    will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
+    will_return (__wrap_access_broker_get_command_attrs, TSS2_RC_SUCCESS);
+    will_return (__wrap_access_broker_get_command_attrs, 2);
+    will_return (__wrap_access_broker_get_command_attrs, command_attributes);
 
     ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, 0);
@@ -84,54 +82,27 @@ command_attrs_type_test (void **state)
     assert_true (G_IS_OBJECT (data->command_attrs));
     assert_true (IS_COMMAND_ATTRS (data->command_attrs));
 }
-/* */
-TSS2_SYS_CONTEXT*
-__wrap_access_broker_lock_sapi (AccessBroker *access_broker)
-{
-    UNUSED_PARAM(access_broker);
-    return mock_ptr_type (TSS2_SYS_CONTEXT*);
-}
+
 /* */
 TSS2_RC
-__wrap_access_broker_get_max_command (AccessBroker *access_broker,
-                                      guint        *value)
+__wrap_access_broker_get_command_attrs (AccessBroker *broker,
+                                        UINT32 *count,
+                                        TPMA_CC **attrs)
 {
     TSS2_RC rc;
-    UNUSED_PARAM(access_broker);
+    TPMA_CC *command_attrs;
+    UNUSED_PARAM(broker);
 
-    *value = mock_type (guint);
-    g_debug ("value: 0x%" PRIx32, *value);
     rc = mock_type (TSS2_RC);
-    g_debug ("rc: 0x%" PRIx32, rc);
+    if (rc != TSS2_RC_SUCCESS)
+        return rc;
+
+    *count = mock_type (UINT32);
+    command_attrs = mock_ptr_type (TPMA_CC*);
+    *attrs = g_malloc0 (*count * sizeof (TPMA_CC));
+    memcpy (*attrs, command_attrs, *count * sizeof (TPMA_CC));
 
     return rc;
-}
-/* */
-TSS2_RC
-__wrap_Tss2_Sys_GetCapability (TSS2_SYS_CONTEXT         *sysContext,
-                               TSS2L_SYS_AUTH_COMMAND const *cmdAuthsArray,
-                               TPM2_CAP                   capability,
-                               UINT32                    property,
-                               UINT32                    propertyCount,
-                               TPMI_YES_NO              *moreData,
-                               TPMS_CAPABILITY_DATA     *capabilityData,
-                               TSS2L_SYS_AUTH_RESPONSE  *rspAuthsArray)
-{
-    TPMA_CC *command_attrs;
-    unsigned int i;
-    UNUSED_PARAM(sysContext);
-    UNUSED_PARAM(cmdAuthsArray);
-    UNUSED_PARAM(capability);
-    UNUSED_PARAM(property);
-    UNUSED_PARAM(moreData);
-    UNUSED_PARAM(rspAuthsArray);
-
-    capabilityData->data.command.count = propertyCount;
-    command_attrs = mock_ptr_type (TPMA_CC*);
-    for (i = 0; i < capabilityData->data.command.count; ++i)
-        capabilityData->data.command.commandAttributes[i] = command_attrs[i];
-
-    return mock_type (TSS2_RC);
 }
 /*
  * Test case that initializes the CommandAttrs object. All wrapped
@@ -144,67 +115,15 @@ command_attrs_init_tpm_success_test (void **state)
     gint         ret = -1;
     TPMA_CC      command_attributes [2] = { 0xdeadbeef, 0xfeebdaed };
 
-    will_return (__wrap_access_broker_lock_sapi, 1);
-    will_return (__wrap_access_broker_get_max_command, 2);
-    will_return (__wrap_access_broker_get_max_command, TSS2_RC_SUCCESS);
-    will_return (__wrap_Tss2_Sys_GetCapability, &command_attributes);
-    will_return (__wrap_Tss2_Sys_GetCapability, TSS2_RC_SUCCESS);
+    will_return (__wrap_access_broker_get_command_attrs, TSS2_RC_SUCCESS);
+    will_return (__wrap_access_broker_get_command_attrs, 2);
+    will_return (__wrap_access_broker_get_command_attrs, command_attributes);
 
     ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, 0);
     assert_memory_equal (command_attributes,
                          data->command_attrs->command_attrs,
                          sizeof (TPMA_CC) * data->command_attrs->count);
-}
-/*
- * Test case that exercises the error handling path in the CommandAttrs
- * init function when a NULL SAPI context is returned by the AccessBroker.
- */
-static void
-command_attrs_init_tpm_null_sapi_test (void **state)
-{
-    test_data_t *data = *state;
-    gint         ret = -1;
-
-    will_return (__wrap_access_broker_get_max_command, 2);
-    will_return (__wrap_access_broker_get_max_command, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_lock_sapi, NULL);
-    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
-    assert_int_equal (ret, -1);
-}
-/*
- * Test case that exercises the error handling path for a failed call to
- * the access_broker_get_max_command function call in the CommandAttrs
- * init function.
- */
-static void
-command_attrs_init_tpm_fail_get_max_command_test (void **state)
-{
-    test_data_t *data = *state;
-    gint         ret = -1;
-
-    will_return (__wrap_access_broker_get_max_command, 2);
-    will_return (__wrap_access_broker_get_max_command, 1);
-
-    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
-    assert_int_equal (ret, -1);
-}
-/*
- * Test case that exercises the error handling path for a successful call
- * to the access_broker_get_max_command function that returns 0 commands.
- * This would mean that the TPM supports no commands.
- */
-static void
-command_attrs_init_tpm_zero_get_max_command_test (void **state)
-{
-    test_data_t *data = *state;
-    gint         ret = -1;
-
-    will_return (__wrap_access_broker_get_max_command, 0);
-    will_return (__wrap_access_broker_get_max_command, TSS2_RC_SUCCESS);
-
-    ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
-    assert_int_equal (ret, -1);
 }
 /*
  * Test case taht exercises the error handling path for a failed call to
@@ -215,13 +134,8 @@ command_attrs_init_tpm_fail_get_capability_test (void **state)
 {
     test_data_t *data = *state;
     gint         ret = -1;
-    TPMA_CC      command_attributes [2] = { 0xdeadbeef, 0xfeebdaed };
 
-    will_return (__wrap_access_broker_lock_sapi, 1);
-    will_return (__wrap_access_broker_get_max_command, 2);
-    will_return (__wrap_access_broker_get_max_command, TSS2_RC_SUCCESS);
-    will_return (__wrap_Tss2_Sys_GetCapability, &command_attributes);
-    will_return (__wrap_Tss2_Sys_GetCapability, 1);
+    will_return (__wrap_access_broker_get_command_attrs, TPM2_RC_FAILURE);
 
     ret = command_attrs_init_tpm (data->command_attrs, data->access_broker);
     assert_int_equal (ret, -1);
@@ -273,15 +187,6 @@ main (void)
                                          command_attrs_setup,
                                          command_attrs_teardown),
         cmocka_unit_test_setup_teardown (command_attrs_init_tpm_success_test,
-                                         command_attrs_setup,
-                                         command_attrs_teardown),
-        cmocka_unit_test_setup_teardown (command_attrs_init_tpm_null_sapi_test,
-                                         command_attrs_setup,
-                                         command_attrs_teardown),
-        cmocka_unit_test_setup_teardown (command_attrs_init_tpm_fail_get_max_command_test,
-                                         command_attrs_setup,
-                                         command_attrs_teardown),
-        cmocka_unit_test_setup_teardown (command_attrs_init_tpm_zero_get_max_command_test,
                                          command_attrs_setup,
                                          command_attrs_teardown),
         cmocka_unit_test_setup_teardown (command_attrs_init_tpm_fail_get_capability_test,

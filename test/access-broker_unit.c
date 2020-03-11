@@ -319,17 +319,6 @@ access_broker_init_tpm_startup_fail (void **state)
 }
 
 static void
-access_broker_get_max_command_test (void **state)
-{
-    test_data_t *data = (test_data_t*)*state;
-    guint32 value;
-
-    assert_int_equal (access_broker_get_max_command (data->broker, &value),
-                      TSS2_RC_SUCCESS);
-    assert_int_equal (value, MAX_COMMAND_VALUE);
-}
-
-static void
 access_broker_get_max_response_test (void **state)
 {
     test_data_t *data = (test_data_t*)*state;
@@ -632,9 +621,6 @@ main (void)
                                          access_broker_teardown),
         cmocka_unit_test_setup_teardown (access_broker_init_tpm_startup_fail,
                                          access_broker_setup,
-                                         access_broker_teardown),
-        cmocka_unit_test_setup_teardown (access_broker_get_max_command_test,
-                                         access_broker_setup_with_init,
                                          access_broker_teardown),
         cmocka_unit_test_setup_teardown (access_broker_get_max_response_test,
                                          access_broker_setup_with_init,
