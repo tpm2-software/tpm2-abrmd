@@ -25,7 +25,7 @@ typedef struct _CommandAttrs {
     UINT32                 count;
 } CommandAttrs;
 
-#include "access-broker.h"
+#include "tpm2.h"
 
 #define TYPE_COMMAND_ATTRS              (command_attrs_get_type   ())
 #define COMMAND_ATTRS(obj)              (G_TYPE_CHECK_INSTANCE_CAST ((obj),   TYPE_COMMAND_ATTRS, CommandAttrs))
@@ -37,7 +37,7 @@ typedef struct _CommandAttrs {
 GType            command_attrs_get_type    (void);
 CommandAttrs*    command_attrs_new         (void);
 gint             command_attrs_init_tpm    (CommandAttrs     *attrs,
-                                            AccessBroker     *broker);
+                                            Tpm2 *tpm2);
 TPMA_CC          command_attrs_from_cc     (CommandAttrs     *attrs,
                                             TPM2_CC            command_code);
 

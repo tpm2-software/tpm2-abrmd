@@ -59,13 +59,13 @@ command_attrs_new (void)
  */
 gint
 command_attrs_init_tpm (CommandAttrs *attrs,
-                        AccessBroker *broker)
+                        Tpm2 *tpm2)
 {
     TSS2_RC rc;
 
-    rc = access_broker_get_command_attrs (broker,
-                                          &attrs->count,
-                                          &attrs->command_attrs);
+    rc = tpm2_get_command_attrs (tpm2,
+                                 &attrs->count,
+                                 &attrs->command_attrs);
     if (rc != TSS2_RC_SUCCESS) {
         return -1;
     }

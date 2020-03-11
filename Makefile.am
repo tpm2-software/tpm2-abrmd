@@ -19,7 +19,7 @@ AM_CFLAGS = $(EXTRA_CFLAGS) \
 AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
 
 TESTS_UNIT = \
-    test/access-broker_unit \
+    test/tpm2_unit \
     test/command-attrs_unit \
     test/connection_unit \
     test/connection-manager_unit \
@@ -196,8 +196,8 @@ src_libutil_la_CFLAGS  = $(AM_CFLAGS) -Wno-unused-parameter
 src_libutil_la_LIBADD  = $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(TSS2_SYS_LIBS) $(TSS2_MU_LIBS) $(TSS2_TCTILDR_LIBS)
 src_libutil_la_SOURCES = \
-    src/access-broker.c \
-    src/access-broker.h \
+    src/tpm2.c \
+    src/tpm2.h \
     src/command-attrs.c \
     src/command-attrs.h \
     src/command-source.c \
@@ -324,8 +324,8 @@ test_tabrmd_init_unit_LDFLAGS = -Wl,--wrap=g_main_loop_is_running \
     -Wl,--wrap=g_main_loop_quit,--wrap=g_unix_signal_add \
     -Wl,--wrap=random_seed_from_file,--wrap=random_get_bytes \
     -Wl,--wrap=ipc_frontend_connect,--wrap=Tss2_TctiLdr_Initialize \
-    -Wl,--wrap=access_broker_init_tpm,--wrap=command_attrs_init_tpm \
-    -Wl,--wrap=thread_start,--wrap=access_broker_flush_all_context
+    -Wl,--wrap=tpm2_init_tpm,--wrap=command_attrs_init_tpm \
+    -Wl,--wrap=thread_start,--wrap=tpm2_flush_all_context
 test_tabrmd_init_unit_SOURCES = test/tabrmd-init_unit.c
 
 test_tabrmd_options_unit_CFLAGS = $(UNIT_CFLAGS)
@@ -353,7 +353,7 @@ test_connection_manager_unit_SOURCES = test/connection-manager_unit.c
 
 test_command_attrs_unit_CFLAGS = $(UNIT_CFLAGS)
 test_command_attrs_unit_LDADD = $(UNIT_LIBS)
-test_command_attrs_unit_LDFLAGS  = -Wl,--wrap=access_broker_get_command_attrs
+test_command_attrs_unit_LDFLAGS  = -Wl,--wrap=tpm2_get_command_attrs
 test_command_attrs_unit_SOURCES  = test/command-attrs_unit.c
 
 test_command_source_unit_CFLAGS = $(UNIT_CFLAGS)
@@ -403,13 +403,13 @@ test_message_queue_unit_CFLAGS = $(UNIT_CFLAGS)
 test_message_queue_unit_LDADD = $(UNIT_LIBS)
 test_message_queue_unit_SOURCES = test/message-queue_unit.c
 
-test_access_broker_unit_CFLAGS = $(UNIT_CFLAGS)
-test_access_broker_unit_LDADD = $(UNIT_LIBS)
-test_access_broker_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_FlushContext \
+test_tpm2_unit_CFLAGS = $(UNIT_CFLAGS)
+test_tpm2_unit_LDADD = $(UNIT_LIBS)
+test_tpm2_unit_LDFLAGS = -Wl,--wrap=Tss2_Sys_FlushContext \
     -Wl,--wrap=Tss2_Sys_ContextLoad,--wrap=Tss2_Sys_ContextSave \
     -Wl,--wrap=Tss2_Sys_GetCapability,--wrap=Tss2_Sys_Initialize \
     -Wl,--wrap=Tss2_Sys_Startup
-test_access_broker_unit_SOURCES = test/access-broker_unit.c
+test_tpm2_unit_SOURCES = test/tpm2_unit.c
 
 test_random_unit_CFLAGS = $(UNIT_CFLAGS)
 test_random_unit_LDADD = $(UNIT_LIBS)
@@ -426,7 +426,7 @@ test_session_list_unit_SOURCES = test/session-list_unit.c
 
 test_resource_manager_unit_CFLAGS = $(UNIT_CFLAGS)
 test_resource_manager_unit_LDADD = $(UNIT_LIBS)
-test_resource_manager_unit_LDFLAGS = -Wl,--wrap=access_broker_send_command,--wrap=sink_enqueue,--wrap=access_broker_context_saveflush,--wrap=access_broker_context_load
+test_resource_manager_unit_LDFLAGS = -Wl,--wrap=tpm2_send_command,--wrap=sink_enqueue,--wrap=tpm2_context_saveflush,--wrap=tpm2_context_load
 test_resource_manager_unit_SOURCES = test/resource-manager_unit.c
 
 test_tcti_unit_CFLAGS = $(UNIT_CFLAGS)

@@ -11,13 +11,13 @@
 
 #include "tabrmd.h"
 
-#include "access-broker.h"
+#include "tpm2.h"
 #include "tcti.h"
 #include "tpm2-command.h"
 #include "tpm2-response.h"
 #include "util.h"
 
-G_DEFINE_TYPE (AccessBroker, access_broker, G_TYPE_OBJECT);
+G_DEFINE_TYPE (Tpm2, tpm2, G_TYPE_OBJECT);
 
 enum {
     PROP_0,
@@ -30,12 +30,12 @@ static GParamSpec *obj_properties [N_PROPERTIES] = { NULL, };
  * GObject property setter.
  */
 static void
-access_broker_set_property (GObject        *object,
+tpm2_set_property (GObject        *object,
                             guint           property_id,
                             GValue const   *value,
                             GParamSpec     *pspec)
 {
-    AccessBroker *self = ACCESS_BROKER (object);
+    Tpm2 *self = TPM2 (object);
 
     g_debug (__func__);
     switch (property_id) {
@@ -55,12 +55,12 @@ access_broker_set_property (GObject        *object,
  * GObject property getter.
  */
 static void
-access_broker_get_property (GObject     *object,
+tpm2_get_property (GObject     *object,
                             guint        property_id,
                             GValue      *value,
                             GParamSpec  *pspec)
 {
-    AccessBroker *self = ACCESS_BROKER (object);
+    Tpm2 *self = TPM2 (object);
 
     g_debug (__func__);
     switch (property_id) {
@@ -81,24 +81,24 @@ access_broker_get_property (GObject     *object,
  * finalize function but it can't be used w/o the underlying TCTI.
  */
 static void
-access_broker_dispose (GObject *obj)
+tpm2_dispose (GObject *obj)
 {
-    AccessBroker *self = ACCESS_BROKER (obj);
+    Tpm2 *self = TPM2 (obj);
 
     if (self->sapi_context != NULL) {
         Tss2_Sys_Finalize (self->sapi_context);
     }
     g_clear_pointer (&self->sapi_context, g_free);
     g_clear_object (&self->tcti);
-    G_OBJECT_CLASS (access_broker_parent_class)->dispose (obj);
+    G_OBJECT_CLASS (tpm2_parent_class)->dispose (obj);
 }
 /*
  * G_DEFINE_TYPE requires an instance init even though we don't use it.
  */
 static void
-access_broker_init (AccessBroker *broker)
+tpm2_init (Tpm2 *tpm2)
 {
-    UNUSED_PARAM(broker);
+    UNUSED_PARAM(tpm2);
     /* noop */
 }
 /**
@@ -108,15 +108,15 @@ access_broker_init (AccessBroker *broker)
  * - Install properties.
  */
 static void
-access_broker_class_init (AccessBrokerClass *klass)
+tpm2_class_init (Tpm2Class *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    if (access_broker_parent_class == NULL)
-        access_broker_parent_class = g_type_class_peek_parent (klass);
-    object_class->dispose      = access_broker_dispose;
-    object_class->get_property = access_broker_get_property;
-    object_class->set_property = access_broker_set_property;
+    if (tpm2_parent_class == NULL)
+        tpm2_parent_class = g_type_class_peek_parent (klass);
+    object_class->dispose      = tpm2_dispose;
+    object_class->get_property = tpm2_get_property;
+    object_class->set_property = tpm2_set_property;
 
     obj_properties [PROP_SAPI_CTX] =
         g_param_spec_pointer ("sapi-ctx",
@@ -170,13 +170,13 @@ sapi_context_init (Tcti *tcti)
 }
 
 TSS2_RC
-access_broker_send_tpm_startup (AccessBroker *broker)
+tpm2_send_tpm_startup (Tpm2 *tpm2)
 {
     TSS2_RC rc;
 
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
 
-    rc = Tss2_Sys_Startup (broker->sapi_context, TPM2_SU_CLEAR);
+    rc = Tss2_Sys_Startup (tpm2->sapi_context, TPM2_SU_CLEAR);
     if (rc != TSS2_RC_SUCCESS && rc != TPM2_RC_INITIALIZE)
         g_warning ("Tss2_Sys_Startup returned unexpected RC: 0x%" PRIx32, rc);
     else
@@ -192,20 +192,20 @@ access_broker_send_tpm_startup (AccessBroker *broker)
  * to halt.
  */
 void
-access_broker_lock (AccessBroker *broker)
+tpm2_lock (Tpm2 *tpm2)
 {
     gint error;
 
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
 
-    error = pthread_mutex_lock (&broker->sapi_mutex);
+    error = pthread_mutex_lock (&tpm2->sapi_mutex);
     if (error != 0) {
         switch (error) {
         case EINVAL:
-            g_error ("AccessBroker: attempted to lock uninitialized mutex");
+            g_error ("Tpm2: attempted to lock uninitialized mutex");
             break;
         default:
-            g_error ("AccessBroker: unknown error attempting to lock SAPI "
+            g_error ("Tpm2: unknown error attempting to lock SAPI "
                      "mutex: 0x%x", error);
             break;
         }
@@ -219,20 +219,20 @@ access_broker_lock (AccessBroker *broker)
  * to halt.
  */
 void
-access_broker_unlock (AccessBroker *broker)
+tpm2_unlock (Tpm2 *tpm2)
 {
     gint error;
 
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
 
-    error= pthread_mutex_unlock (&broker->sapi_mutex);
+    error= pthread_mutex_unlock (&tpm2->sapi_mutex);
     if (error != 0) {
         switch (error) {
         case EINVAL:
-            g_error ("AccessBroker: attempted to unlock uninitialized mutex");
+            g_error ("Tpm2: attempted to unlock uninitialized mutex");
             break;
         default:
-            g_error ("AccessBroker: unknown error attempting to unlock SAPI "
+            g_error ("Tpm2: unknown error attempting to unlock SAPI "
                      "mutex: 0x%x", error);
             break;
         }
@@ -244,7 +244,7 @@ access_broker_unlock (AccessBroker *broker)
  * hold the sapi_mutex lock before calling.
  */
 TSS2_RC
-access_broker_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
+tpm2_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
                                         TPMS_CAPABILITY_DATA *capability_data)
 {
     TSS2_RC          rc;
@@ -253,7 +253,7 @@ access_broker_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
     assert (sapi_context != NULL);
     assert (capability_data != NULL);
 
-    g_debug ("access_broker_get_tpm_properties_fixed");
+    g_debug ("tpm2_get_tpm_properties_fixed");
     rc = Tss2_Sys_GetCapability (sapi_context,
                                  NULL,
                                  TPM2_CAP_TPM_PROPERTIES,
@@ -282,66 +282,66 @@ access_broker_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
  * then TSS2_TABRMD_BAD_VALUE will be returned.
  */
 TSS2_RC
-access_broker_get_fixed_property (AccessBroker           *broker,
+tpm2_get_fixed_property (Tpm2           *tpm2,
                                   TPM2_PT                  property,
                                   guint32                *value)
 {
     unsigned int i;
 
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
     assert (value != NULL);
 
-    if (broker->properties_fixed.data.tpmProperties.count == 0) {
+    if (tpm2->properties_fixed.data.tpmProperties.count == 0) {
         return TSS2_RESMGR_RC_INTERNAL_ERROR;
     }
-    for (i = 0; i < broker->properties_fixed.data.tpmProperties.count; ++i) {
-        if (broker->properties_fixed.data.tpmProperties.tpmProperty[i].property == property) {
-            *value = broker->properties_fixed.data.tpmProperties.tpmProperty[i].value;
+    for (i = 0; i < tpm2->properties_fixed.data.tpmProperties.count; ++i) {
+        if (tpm2->properties_fixed.data.tpmProperties.tpmProperty[i].property == property) {
+            *value = tpm2->properties_fixed.data.tpmProperties.tpmProperty[i].value;
             return TSS2_RC_SUCCESS;
         }
     }
     return TSS2_RESMGR_RC_BAD_VALUE;
 }
 /*
- * This function exposes the underlying SAPI context in the AccessBroker.
- * It locks the AccessBroker object and returns the SAPI context for use
+ * This function exposes the underlying SAPI context in the Tpm2.
+ * It locks the Tpm2 object and returns the SAPI context for use
  * by the caller. Do not call this function if you already hold the
- * AccessBroker lock. If you do you'll deadlock.
- * When done with the context the caller must unlock the AccessBroker.
+ * Tpm2 lock. If you do you'll deadlock.
+ * When done with the context the caller must unlock the Tpm2.
  */
 TSS2_SYS_CONTEXT*
-access_broker_lock_sapi (AccessBroker *broker)
+tpm2_lock_sapi (Tpm2 *tpm2)
 {
-    assert (broker != NULL);
-    assert (broker->sapi_context != NULL);
+    assert (tpm2 != NULL);
+    assert (tpm2->sapi_context != NULL);
 
-    access_broker_lock (broker);
+    tpm2_lock (tpm2);
 
-    return broker->sapi_context;
+    return tpm2->sapi_context;
 }
 /**
  * Return the TPM2_PT_TPM2_MAX_RESPONSE_SIZE fixed TPM property.
  */
 TSS2_RC
-access_broker_get_max_response (AccessBroker *broker,
+tpm2_get_max_response (Tpm2 *tpm2,
                                 guint32      *value)
 {
-    return access_broker_get_fixed_property (broker,
+    return tpm2_get_fixed_property (tpm2,
                                              TPM2_PT_MAX_RESPONSE_SIZE,
                                              value);
 }
 /* Send the parameter Tpm2Command to the TPM. Return the TSS2_RC. */
 static TSS2_RC
-access_broker_send_cmd (AccessBroker *broker,
+tpm2_send_cmd (Tpm2 *tpm2,
                         Tpm2Command  *command)
 {
     TSS2_RC rc;
 
-    rc = tcti_transmit (broker->tcti,
+    rc = tcti_transmit (tpm2->tcti,
                         tpm2_command_get_size (command),
                         tpm2_command_get_buffer (command));
     if (rc != TSS2_RC_SUCCESS)
-        g_warning ("%s: AccessBroker failed to transmit Tpm2Command: 0x%"
+        g_warning ("%s: Tpm2 failed to transmit Tpm2Command: 0x%"
                    PRIx32, __func__, rc);
     return rc;
 }
@@ -352,18 +352,18 @@ access_broker_send_cmd (AccessBroker *broker,
  * by reading the size field from the TPM command header.
  */
 static TSS2_RC
-access_broker_get_response (AccessBroker *broker,
+tpm2_get_response (Tpm2 *tpm2,
                             uint8_t     **buffer,
                             size_t       *buffer_size)
 {
     TSS2_RC rc;
     guint32 max_size;
 
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
     assert (buffer != NULL);
     assert (buffer_size != NULL);
 
-    rc = access_broker_get_max_response (broker, &max_size);
+    rc = tpm2_get_max_response (tpm2, &max_size);
     if (rc != TSS2_RC_SUCCESS)
         return rc;
 
@@ -374,7 +374,7 @@ access_broker_get_response (AccessBroker *broker,
         return RM_RC (TPM2_RC_MEMORY);
     }
     *buffer_size = max_size;
-    rc = tcti_receive (broker->tcti, buffer_size, *buffer, TSS2_TCTI_TIMEOUT_BLOCK);
+    rc = tcti_receive (tpm2->tcti, buffer_size, *buffer, TSS2_TCTI_TIMEOUT_BLOCK);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("%s: tcti_receive failed with RC 0x%" PRIx32, __func__, rc);
         free (*buffer);
@@ -397,7 +397,7 @@ access_broker_get_response (AccessBroker *broker,
  * appropriate RC populated.
  */
 Tpm2Response*
-access_broker_send_command (AccessBroker  *broker,
+tpm2_send_command (Tpm2  *tpm2,
                             Tpm2Command   *command,
                             TSS2_RC       *rc)
 {
@@ -407,19 +407,19 @@ access_broker_send_command (AccessBroker  *broker,
     size_t          buffer_size = 0;
 
     g_debug (__func__);
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
     assert (command != NULL);
     assert (rc != NULL);
 
-    access_broker_lock (broker);
-    *rc = access_broker_send_cmd (broker, command);
+    tpm2_lock (tpm2);
+    *rc = tpm2_send_cmd (tpm2, command);
     if (*rc != TSS2_RC_SUCCESS)
         goto unlock_out;
-    *rc = access_broker_get_response (broker, &buffer, &buffer_size);
+    *rc = tpm2_get_response (tpm2, &buffer, &buffer_size);
     if (*rc != TSS2_RC_SUCCESS) {
         goto unlock_out;
     }
-    access_broker_unlock (broker);
+    tpm2_unlock (tpm2);
     connection = tpm2_command_get_connection (command);
     response = tpm2_response_new (connection,
                                   buffer,
@@ -429,7 +429,7 @@ access_broker_send_command (AccessBroker  *broker,
     return response;
 
 unlock_out:
-    access_broker_unlock (broker);
+    tpm2_unlock (tpm2);
     if (!connection)
         connection = tpm2_command_get_connection (command);
     response = tpm2_response_new_rc (connection, *rc);
@@ -437,27 +437,27 @@ unlock_out:
     return response;
 }
 /**
- * Create new TPM access broker (ACCESS_BROKER) object. This includes
+ * Create new TPM access tpm2 (TPM2) object. This includes
  * using the provided TCTI to send the TPM the startup command and
  * creating the TCTI mutex.
  */
-AccessBroker*
-access_broker_new (Tcti *tcti)
+Tpm2*
+tpm2_new (Tcti *tcti)
 {
-    AccessBroker       *broker;
+    Tpm2       *tpm2;
     TSS2_SYS_CONTEXT   *sapi_context;
 
     assert (tcti != NULL);
 
     sapi_context = sapi_context_init (tcti);
-    broker = ACCESS_BROKER (g_object_new (TYPE_ACCESS_BROKER,
+    tpm2 = TPM2 (g_object_new (TYPE_TPM2,
                                           "sapi-ctx", sapi_context,
                                           "tcti", tcti,
                                           NULL));
-    return broker;
+    return tpm2;
 }
 /*
- * Initialize the AccessBroker. This is all about initializing internal data
+ * Initialize the Tpm2. This is all about initializing internal data
  * that normally we would want to do in a constructor. But since this
  * initialization requires reaching out to the TPM and could fail we don't
  * want to do it in the constructor / _new function. So we put it here in
@@ -465,24 +465,24 @@ access_broker_new (Tcti *tcti)
  * been instantiated.
  */
 TSS2_RC
-access_broker_init_tpm (AccessBroker *broker)
+tpm2_init_tpm (Tpm2 *tpm2)
 {
     TSS2_RC rc;
 
     g_debug (__func__);
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
 
-    if (broker->initialized)
+    if (tpm2->initialized)
         return TSS2_RC_SUCCESS;
-    pthread_mutex_init (&broker->sapi_mutex, NULL);
-    rc = access_broker_send_tpm_startup (broker);
+    pthread_mutex_init (&tpm2->sapi_mutex, NULL);
+    rc = tpm2_send_tpm_startup (tpm2);
     if (rc != TSS2_RC_SUCCESS)
         goto out;
-    rc = access_broker_get_tpm_properties_fixed (broker->sapi_context,
-                                                 &broker->properties_fixed);
+    rc = tpm2_get_tpm_properties_fixed (tpm2->sapi_context,
+                                                 &tpm2->properties_fixed);
     if (rc != TSS2_RC_SUCCESS)
         goto out;
-    broker->initialized = true;
+    tpm2->initialized = true;
 out:
     return rc;
 }
@@ -490,7 +490,7 @@ out:
  * Query the TPM for the current number of loaded transient objects.
  */
  TSS2_RC
-access_broker_get_trans_object_count (AccessBroker *broker,
+tpm2_get_trans_object_count (Tpm2 *tpm2,
                                       uint32_t     *count)
 {
     TSS2_RC rc = TSS2_RC_SUCCESS;
@@ -498,10 +498,10 @@ access_broker_get_trans_object_count (AccessBroker *broker,
     TPMI_YES_NO more_data;
     TPMS_CAPABILITY_DATA capability_data = { 0, };
 
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
     assert (count != NULL);
 
-    sapi_context = access_broker_lock_sapi (broker);
+    sapi_context = tpm2_lock_sapi (tpm2);
     /*
      * GCC gets confused by the TPM2_TRANSIENT_FIRST constant being used for
      * the 4th parameter. It assumes that it's a signed type which causes
@@ -522,24 +522,24 @@ access_broker_get_trans_object_count (AccessBroker *broker,
     }
     *count = capability_data.data.handles.count;
 out:
-    access_broker_unlock (broker);
+    tpm2_unlock (tpm2);
     return rc;
 }
 TSS2_RC
-access_broker_context_load (AccessBroker *broker,
+tpm2_context_load (Tpm2 *tpm2,
                             TPMS_CONTEXT *context,
                             TPM2_HANDLE   *handle)
 {
     TSS2_RC           rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    assert (broker == NULL);
+    assert (tpm2 == NULL);
     assert (context == NULL);
     assert (handle == NULL);
 
-    sapi_context = access_broker_lock_sapi (broker);
+    sapi_context = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_ContextLoad (sapi_context, context, handle);
-    access_broker_unlock (broker);
+    tpm2_unlock (tpm2);
     if (rc == TSS2_RC_SUCCESS) {
         g_debug ("%s: successfully load context, got handle 0x%" PRIx32,
                  __func__, *handle);
@@ -557,23 +557,23 @@ access_broker_context_load (AccessBroker *broker,
  * TSS2_RC_SUCCESS or an RC indicating failure from the TPM.
  */
 TSS2_RC
-access_broker_context_save (AccessBroker *broker,
+tpm2_context_save (Tpm2 *tpm2,
                             TPM2_HANDLE    handle,
                             TPMS_CONTEXT *context)
 {
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    assert (broker == NULL);
+    assert (tpm2 == NULL);
     assert (context == NULL);
 
-    g_debug ("access_broker_context_save: handle 0x%08" PRIx32, handle);
-    sapi_context = access_broker_lock_sapi (broker);
+    g_debug ("tpm2_context_save: handle 0x%08" PRIx32, handle);
+    sapi_context = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("%s returned an error: 0x%" PRIx32, __func__, rc);
     }
-    access_broker_unlock (broker);
+    tpm2_unlock (tpm2);
 
     return rc;
 }
@@ -581,38 +581,38 @@ access_broker_context_save (AccessBroker *broker,
  * This function is a simple wrapper around the TPM2_FlushContext command.
  */
 TSS2_RC
-access_broker_context_flush (AccessBroker *broker,
+tpm2_context_flush (Tpm2 *tpm2,
                              TPM2_HANDLE    handle)
 {
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    assert (broker == NULL);
+    assert (tpm2 == NULL);
 
-    g_debug ("access_broker_context_flush: handle 0x%08" PRIx32, handle);
-    sapi_context = access_broker_lock_sapi (broker);
+    g_debug ("tpm2_context_flush: handle 0x%08" PRIx32, handle);
+    sapi_context = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_FlushContext (sapi_context, handle);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("Failed to flush context for handle 0x%08" PRIx32
                    " RC: 0x%" PRIx32, handle, rc);
     }
-    access_broker_unlock (broker);
+    tpm2_unlock (tpm2);
 
     return rc;
 }
 TSS2_RC
-access_broker_context_saveflush (AccessBroker *broker,
+tpm2_context_saveflush (Tpm2 *tpm2,
                                  TPM2_HANDLE    handle,
                                  TPMS_CONTEXT *context)
 {
     TSS2_RC           rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    assert (broker == NULL);
+    assert (tpm2 == NULL);
     assert (context == NULL);
 
-    g_debug ("access_broker_context_saveflush: handle 0x%" PRIx32, handle);
-    sapi_context = access_broker_lock_sapi (broker);
+    g_debug ("tpm2_context_saveflush: handle 0x%" PRIx32, handle);
+    sapi_context = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("%s: Tss2_Sys_ContextSave failed to save context for "
@@ -620,14 +620,14 @@ access_broker_context_saveflush (AccessBroker *broker,
                    handle, rc);
         goto out;
     }
-    g_debug ("access_broker_context_saveflush: handle 0x%" PRIx32, handle);
+    g_debug ("tpm2_context_saveflush: handle 0x%" PRIx32, handle);
     rc = Tss2_Sys_FlushContext (sapi_context, handle);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning("%s: Tss2_Sys_FlushContext failed for handle: 0x%" PRIx32
                   ", TSS2_RC: 0x%" PRIx32, __func__, handle, rc);
     }
 out:
-    access_broker_unlock (broker);
+    tpm2_unlock (tpm2);
     return rc;
 }
 /*
@@ -637,7 +637,7 @@ out:
  * many as possible.
  */
 TSS2_RC
-access_broker_flush_all_unlocked (AccessBroker     *broker,
+tpm2_flush_all_unlocked (Tpm2     *tpm2,
                                   TSS2_SYS_CONTEXT *sapi_context,
                                   TPM2_RH            first,
                                   TPM2_RH            last)
@@ -650,7 +650,7 @@ access_broker_flush_all_unlocked (AccessBroker     *broker,
 
     g_debug ("%s: first: 0x%08" PRIx32 ", last: 0x%08" PRIx32,
              __func__, first, last);
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
     assert (sapi_context != NULL);
 
     rc = Tss2_Sys_GetCapability (sapi_context,
@@ -680,31 +680,31 @@ access_broker_flush_all_unlocked (AccessBroker     *broker,
     return TSS2_RC_SUCCESS;
 }
 void
-access_broker_flush_all_context (AccessBroker *broker)
+tpm2_flush_all_context (Tpm2 *tpm2)
 {
     TSS2_SYS_CONTEXT *sapi_context;
 
     g_debug (__func__);
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
 
-    sapi_context = access_broker_lock_sapi (broker);
-    access_broker_flush_all_unlocked (broker,
+    sapi_context = tpm2_lock_sapi (tpm2);
+    tpm2_flush_all_unlocked (tpm2,
                                       sapi_context,
                                       TPM2_ACTIVE_SESSION_FIRST,
                                       TPM2_ACTIVE_SESSION_LAST);
-    access_broker_flush_all_unlocked (broker,
+    tpm2_flush_all_unlocked (tpm2,
                                       sapi_context,
                                       TPM2_LOADED_SESSION_FIRST,
                                       TPM2_LOADED_SESSION_LAST);
-    access_broker_flush_all_unlocked (broker,
+    tpm2_flush_all_unlocked (tpm2,
                                       sapi_context,
                                       TPM2_TRANSIENT_FIRST,
                                       TPM2_TRANSIENT_LAST);
-    access_broker_unlock (broker);
+    tpm2_unlock (tpm2);
 }
 
 TSS2_RC
-access_broker_get_command_attrs (AccessBroker *broker,
+tpm2_get_command_attrs (Tpm2 *tpm2,
                                  UINT32 *count,
                                  TPMA_CC **attrs)
 {
@@ -713,11 +713,11 @@ access_broker_get_command_attrs (AccessBroker *broker,
     TPMS_CAPABILITY_DATA cap_data = { 0, };
     TSS2_SYS_CONTEXT *sys_ctx;
 
-    assert (broker != NULL);
+    assert (tpm2 != NULL);
     assert (count != NULL);
     assert (attrs != NULL);
 
-    sys_ctx = access_broker_lock_sapi (broker);
+    sys_ctx = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_GetCapability (sys_ctx,
                                  NULL,
                                  TPM2_CAP_COMMANDS,
@@ -726,7 +726,7 @@ access_broker_get_command_attrs (AccessBroker *broker,
                                  &more,
                                  &cap_data,
                                  NULL);
-    access_broker_unlock (broker);
+    tpm2_unlock (tpm2);
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("failed to get TPM command attributes: 0x%" PRIx32, rc);
         return rc;

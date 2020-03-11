@@ -46,7 +46,7 @@ enum {
     PROP_0,
     PROP_QUEUE_IN,
     PROP_SINK,
-    PROP_ACCESS_BROKER,
+    PROP_TPM2,
     PROP_SESSION_LIST,
     N_PROPERTIES
 };
@@ -70,7 +70,7 @@ resource_manager_virt_to_phys (ResourceManager *resmgr,
     TSS2_RC       rc = TSS2_RC_SUCCESS;
 
     context = handle_map_entry_get_context (entry);
-    rc = access_broker_context_load (resmgr->access_broker, context, &phandle);
+    rc = tpm2_context_load (resmgr->tpm2, context, &phandle);
     g_debug ("phandle: 0x%" PRIx32, phandle);
     if (rc == TSS2_RC_SUCCESS) {
         handle_map_entry_set_phandle (entry, phandle);
@@ -363,13 +363,13 @@ resource_manager_flushsave_context (gpointer data_entry,
     case TPM2_HT_TRANSIENT:
         g_debug ("%s: handle is transient, saving context", __func__);
         context = handle_map_entry_get_context (entry);
-        rc = access_broker_context_saveflush (resmgr->access_broker,
+        rc = tpm2_context_saveflush (resmgr->tpm2,
                                               phandle,
                                               context);
         if (rc == TSS2_RC_SUCCESS) {
             handle_map_entry_set_phandle (entry, 0);
         } else {
-            g_warning ("%s: access_broker_context_saveflush failed for "
+            g_warning ("%s: tpm2_context_saveflush failed for "
                        "handle: 0x%" PRIx32 " rc: 0x%" PRIx32,
                        __func__, phandle, rc);
         }
@@ -1069,7 +1069,7 @@ get_cap_gen_response (ResourceManager *resmgr,
     }
 
     if (response == NULL) {
-        response = access_broker_send_command (resmgr->access_broker, command, &rc);
+        response = tpm2_send_command (resmgr->tpm2, command, &rc);
         if (response != NULL && rc == TSS2_RC_SUCCESS) {
             get_cap_post_process (response);
         }
@@ -1271,7 +1271,7 @@ send_command_handle_rc (ResourceManager *resmgr,
     TSS2_RC rc;
 
     /* Send command and create response object. */
-    resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
+    resp = tpm2_send_command (resmgr->tpm2, cmd, &rc);
     rc = tpm2_response_get_code (resp);
     if (rc == TPM2_RC_CONTEXT_GAP) {
         g_debug ("%s: handling TPM2_RC_CONTEXT_GAP", __func__);
@@ -1279,20 +1279,20 @@ send_command_handle_rc (ResourceManager *resmgr,
                               regap_session_callback,
                               &data);
         g_clear_object (&resp);
-        resp = access_broker_send_command (resmgr->access_broker, cmd, &rc);
+        resp = tpm2_send_command (resmgr->tpm2, cmd, &rc);
     }
     return resp;
 }
 /**
  * This function is invoked in response to the receipt of a Tpm2Command.
  * This is the place where we send the command buffer out to the TPM
- * through the AccessBroker which will eventually get it to the TPM for us.
- * The AccessBroker will send us back a Tpm2Response that we send back to
+ * through the Tpm2 which will eventually get it to the TPM for us.
+ * The Tpm2 will send us back a Tpm2Response that we send back to
  * the client by way of our Sink object. The flow is roughly:
  * - Receive the Tpm2Command as a parameter
  * - Load all virtualized objects required by the command.
- * - Send the Tpm2Command out through the AccessBroker.
- * - Receive the response from the AccessBroker.
+ * - Send the Tpm2Command out through the Tpm2.
+ * - Receive the response from the Tpm2.
  * - Virtualize the new objects created by the command & referenced in the
  *   response.
  * - Enqueue the response back out to the processing pipeline through the
@@ -1439,7 +1439,7 @@ resource_manager_unblock (Thread *self)
 }
 /**
  * Implement the 'enqueue' function from the Sink interface. This is how
- * new messages / commands get into the AccessBroker.
+ * new messages / commands get into the Tpm2.
  */
 void
 resource_manager_enqueue (Sink        *sink,
@@ -1492,13 +1492,13 @@ resource_manager_set_property (GObject        *object,
         resmgr->sink = SINK (g_value_get_object (value));
         g_object_ref (resmgr->sink);
         break;
-    case PROP_ACCESS_BROKER:
-        if (resmgr->access_broker != NULL) {
-            g_warning ("  access_broker already set");
+    case PROP_TPM2:
+        if (resmgr->tpm2 != NULL) {
+            g_warning ("  tpm2 already set");
             break;
         }
-        resmgr->access_broker = g_value_get_object (value);
-        g_object_ref (resmgr->access_broker);
+        resmgr->tpm2 = g_value_get_object (value);
+        g_object_ref (resmgr->tpm2);
         break;
     case PROP_SESSION_LIST:
         resmgr->session_list = SESSION_LIST (g_value_dup_object (value));
@@ -1527,8 +1527,8 @@ resource_manager_get_property (GObject     *object,
     case PROP_SINK:
         g_value_set_object (value, resmgr->sink);
         break;
-    case PROP_ACCESS_BROKER:
-        g_value_set_object (value, resmgr->access_broker);
+    case PROP_TPM2:
+        g_value_set_object (value, resmgr->tpm2);
         break;
     case PROP_SESSION_LIST:
         g_value_set_object (value, resmgr->session_list);
@@ -1554,7 +1554,7 @@ resource_manager_dispose (GObject *obj)
         g_error ("%s: thread running, cancel thread first", __func__);
     g_clear_object (&resmgr->in_queue);
     g_clear_object (&resmgr->sink);
-    g_clear_object (&resmgr->access_broker);
+    g_clear_object (&resmgr->tpm2);
     g_clear_object (&resmgr->session_list);
     G_OBJECT_CLASS (resource_manager_parent_class)->dispose (obj);
 }
@@ -1595,11 +1595,11 @@ resource_manager_class_init (ResourceManagerClass *klass)
                              "Reference to a Sink object that we pass messages to.",
                              G_TYPE_OBJECT,
                              G_PARAM_READWRITE);
-    obj_properties [PROP_ACCESS_BROKER] =
-        g_param_spec_object ("access-broker",
-                             "AccessBroker object",
-                             "TPM Access Broker for communication with TPM",
-                             TYPE_ACCESS_BROKER,
+    obj_properties [PROP_TPM2] =
+        g_param_spec_object ("tpm2",
+                             "Tpm2 object",
+                             "Object used to communicate with TPM2",
+                             TYPE_TPM2,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
     obj_properties [PROP_SESSION_LIST] =
         g_param_spec_object ("session-list",
@@ -1697,7 +1697,7 @@ connection_close_session_callback (gpointer data,
         break;
     case SESSION_ENTRY_SAVED_RM:
         g_debug ("%s: flushing.", __func__);
-        rc = access_broker_context_flush (resource_manager->access_broker,
+        rc = tpm2_context_flush (resource_manager->tpm2,
                                           handle);
         if (rc != TSS2_RC_SUCCESS) {
             g_warning ("%s: failed to flush context", __func__);
@@ -1737,15 +1737,15 @@ resource_manager_remove_connection (ResourceManager *resource_manager,
  * Create new ResourceManager object.
  */
 ResourceManager*
-resource_manager_new (AccessBroker    *broker,
+resource_manager_new (Tpm2    *tpm2,
                       SessionList     *session_list)
 {
-    if (broker == NULL)
-        g_error ("resource_manager_new passed NULL AccessBroker");
+    if (tpm2 == NULL)
+        g_error ("resource_manager_new passed NULL Tpm2");
     MessageQueue *queue = message_queue_new ();
     return RESOURCE_MANAGER (g_object_new (TYPE_RESOURCE_MANAGER,
                                            "queue-in",        queue,
-                                           "access-broker",   broker,
+                                           "tpm2", tpm2,
                                            "session-list",    session_list,
                                            NULL));
 }

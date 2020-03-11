@@ -177,15 +177,15 @@ init_thread_func_tcti_factory_fail (void **state)
 }
 
 TSS2_RC
-__wrap_access_broker_init_tpm (AccessBroker *broker)
+__wrap_tpm2_init_tpm (Tpm2 *tpm2)
 {
-    UNUSED_PARAM (broker);
+    UNUSED_PARAM (tpm2);
     printf ("ftw\n");
     return mock_type (TSS2_RC);
 }
 
 static void
-init_thread_func_broker_init_fail (void **state)
+init_thread_func_tpm2_init_fail (void **state)
 {
     UNUSED_PARAM (state);
     TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
@@ -195,22 +195,22 @@ init_thread_func_broker_init_fail (void **state)
     will_return (__wrap_random_seed_from_file, 0);
     will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
     will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_init_tpm, EX_UNAVAILABLE);
+    will_return (__wrap_tpm2_init_tpm, EX_UNAVAILABLE);
     assert_int_equal (init_thread_func (&data), EX_UNAVAILABLE);
 }
 
 gint
 __wrap_command_attrs_init_tpm (CommandAttrs *attrs,
-                               AccessBroker *broker)
+                               Tpm2 *tpm2)
 {
     UNUSED_PARAM (attrs);
-    UNUSED_PARAM (broker);
+    UNUSED_PARAM (tpm2);
     return mock_type (gint);
 }
 void
-__wrap_access_broker_flush_all_context (AccessBroker *broker)
+__wrap_tpm2_flush_all_context (Tpm2 *tpm2)
 {
-    UNUSED_PARAM (broker);
+    UNUSED_PARAM (tpm2);
     return;
 }
 
@@ -225,7 +225,7 @@ init_thread_func_cmdattrs_fail (void **state)
     will_return (__wrap_random_seed_from_file, 0);
     will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
     will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_init_tpm, TSS2_RC_SUCCESS);
     will_return (__wrap_command_attrs_init_tpm, EX_UNAVAILABLE);
     assert_int_equal (init_thread_func (&data), EX_UNAVAILABLE);
 }
@@ -248,7 +248,7 @@ init_thread_func_cmdsrc_fail (void **state)
     will_return (__wrap_random_seed_from_file, 0);
     will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
     will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_init_tpm, TSS2_RC_SUCCESS);
     will_return (__wrap_command_attrs_init_tpm, 0);
     will_return (__wrap_thread_start, 1);
     will_return (__wrap_g_main_loop_is_running, FALSE);
@@ -265,7 +265,7 @@ init_thread_func_resmgr_fail (void **state)
     will_return (__wrap_random_seed_from_file, 0);
     will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
     will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_init_tpm, TSS2_RC_SUCCESS);
     will_return (__wrap_command_attrs_init_tpm, 0);
     will_return (__wrap_thread_start, 0);
     will_return (__wrap_thread_start, 1);
@@ -283,7 +283,7 @@ init_thread_func_respsnk_fail (void **state)
     will_return (__wrap_random_seed_from_file, 0);
     will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
     will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_init_tpm, TSS2_RC_SUCCESS);
     will_return (__wrap_command_attrs_init_tpm, 0);
     will_return (__wrap_thread_start, 0);
     will_return (__wrap_thread_start, 0);
@@ -302,7 +302,7 @@ init_thread_func_success (void **state)
     will_return (__wrap_random_seed_from_file, 0);
     will_return (__wrap_Tss2_TctiLdr_Initialize, tcti_ctx);
     will_return (__wrap_Tss2_TctiLdr_Initialize, TSS2_RC_SUCCESS);
-    will_return (__wrap_access_broker_init_tpm, TSS2_RC_SUCCESS);
+    will_return (__wrap_tpm2_init_tpm, TSS2_RC_SUCCESS);
     will_return (__wrap_command_attrs_init_tpm, 0);
     will_return (__wrap_thread_start, 0);
     will_return (__wrap_thread_start, 0);
@@ -322,7 +322,7 @@ main (void)
                                 init_thread_func_setup),
         cmocka_unit_test_setup (init_thread_func_tcti_factory_fail,
                                 init_thread_func_setup),
-        cmocka_unit_test_setup (init_thread_func_broker_init_fail,
+        cmocka_unit_test_setup (init_thread_func_tpm2_init_fail,
                                 init_thread_func_setup),
         cmocka_unit_test_setup (init_thread_func_cmdattrs_fail,
                                 init_thread_func_setup),
