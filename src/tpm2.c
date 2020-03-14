@@ -8,6 +8,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <string.h>
+#include <tss2/tss2_rc.h>
 
 #include "tabrmd.h"
 
@@ -163,7 +164,7 @@ sapi_context_init (Tcti *tcti)
     rc = Tss2_Sys_Initialize (sapi_context, size, tcti_context, &abi_version);
     if (rc != TSS2_RC_SUCCESS) {
         g_free (sapi_context);
-        g_warning ("Failed to initialize SAPI context: 0x%x", rc);
+        RC_WARN ("Tss2_Sys_Initialize", rc);
         return NULL;
     }
     return sapi_context;
@@ -178,7 +179,7 @@ tpm2_send_tpm_startup (Tpm2 *tpm2)
 
     rc = Tss2_Sys_Startup (tpm2->sapi_context, TPM2_SU_CLEAR);
     if (rc != TSS2_RC_SUCCESS && rc != TPM2_RC_INITIALIZE)
-        g_warning ("Tss2_Sys_Startup returned unexpected RC: 0x%" PRIx32, rc);
+        RC_WARN ("Tss2_Sys_Startup", rc);
     else
         rc = TSS2_RC_SUCCESS;
 
@@ -265,8 +266,7 @@ tpm2_get_tpm_properties_fixed (TSS2_SYS_CONTEXT     *sapi_context,
                                  capability_data,
                                  NULL);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("Failed to GetCapability: TPM2_CAP_TPM_PROPERTIES, "
-                 "TPM2_PT_FIXED: 0x%x", rc);
+        RC_WARN ("Tss2_Sys_GetCapability", rc);
         return rc;
     }
     /* sanity check the property returned */
@@ -330,21 +330,6 @@ tpm2_get_max_response (Tpm2 *tpm2,
                                              TPM2_PT_MAX_RESPONSE_SIZE,
                                              value);
 }
-/* Send the parameter Tpm2Command to the TPM. Return the TSS2_RC. */
-static TSS2_RC
-tpm2_send_cmd (Tpm2 *tpm2,
-                        Tpm2Command  *command)
-{
-    TSS2_RC rc;
-
-    rc = tcti_transmit (tpm2->tcti,
-                        tpm2_command_get_size (command),
-                        tpm2_command_get_buffer (command));
-    if (rc != TSS2_RC_SUCCESS)
-        g_warning ("%s: Tpm2 failed to transmit Tpm2Command: 0x%"
-                   PRIx32, __func__, rc);
-    return rc;
-}
 /*
  * Get a response buffer from the TPM. Return the TSS2_RC through the
  * 'rc' parameter. Returns a buffer (that must be freed by the caller)
@@ -376,7 +361,6 @@ tpm2_get_response (Tpm2 *tpm2,
     *buffer_size = max_size;
     rc = tcti_receive (tpm2->tcti, buffer_size, *buffer, TSS2_TCTI_TIMEOUT_BLOCK);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("%s: tcti_receive failed with RC 0x%" PRIx32, __func__, rc);
         free (*buffer);
         return rc;
     }
@@ -412,7 +396,9 @@ tpm2_send_command (Tpm2  *tpm2,
     assert (rc != NULL);
 
     tpm2_lock (tpm2);
-    *rc = tpm2_send_cmd (tpm2, command);
+    *rc = tcti_transmit (tpm2->tcti,
+                         tpm2_command_get_size (command),
+                         tpm2_command_get_buffer (command));
     if (*rc != TSS2_RC_SUCCESS)
         goto unlock_out;
     *rc = tpm2_get_response (tpm2, &buffer, &buffer_size);
@@ -516,8 +502,7 @@ tpm2_get_trans_object_count (Tpm2 *tpm2,
                                  &capability_data,
                                  NULL);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("%s: Tss2_Sys_GetCapability failed with RC 0x%" PRIx32,
-                   __func__, rc);
+        RC_WARN ("Tss2_Sys_GetCapability", rc);
         goto out;
     }
     *count = capability_data.data.handles.count;
@@ -540,12 +525,8 @@ tpm2_context_load (Tpm2 *tpm2,
     sapi_context = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_ContextLoad (sapi_context, context, handle);
     tpm2_unlock (tpm2);
-    if (rc == TSS2_RC_SUCCESS) {
-        g_debug ("%s: successfully load context, got handle 0x%" PRIx32,
-                 __func__, *handle);
-    } else {
-        g_warning ("%s: failed to load context, TSS2_RC: 0x%" PRIx32,
-                   __func__, rc);
+    if (rc != TSS2_RC_SUCCESS) {
+        RC_WARN ("Tss2_Sys_ContextLoad", rc);
     }
 
     return rc;
@@ -571,7 +552,7 @@ tpm2_context_save (Tpm2 *tpm2,
     sapi_context = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("%s returned an error: 0x%" PRIx32, __func__, rc);
+        RC_WARN ("Tss2_Sys_ContextSave", rc);
     }
     tpm2_unlock (tpm2);
 
@@ -593,8 +574,7 @@ tpm2_context_flush (Tpm2 *tpm2,
     sapi_context = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_FlushContext (sapi_context, handle);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("Failed to flush context for handle 0x%08" PRIx32
-                   " RC: 0x%" PRIx32, handle, rc);
+        RC_WARN ("Tss2_Sys_FlushContext", rc);
     }
     tpm2_unlock (tpm2);
 
@@ -615,16 +595,13 @@ tpm2_context_saveflush (Tpm2 *tpm2,
     sapi_context = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("%s: Tss2_Sys_ContextSave failed to save context for "
-                   "handle: 0x%" PRIx32 " TSS2_RC: 0x%" PRIx32, __func__,
-                   handle, rc);
+        RC_WARN ("Tss2_Sys_ContextSave", rc);
         goto out;
     }
     g_debug ("tpm2_context_saveflush: handle 0x%" PRIx32, handle);
     rc = Tss2_Sys_FlushContext (sapi_context, handle);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning("%s: Tss2_Sys_FlushContext failed for handle: 0x%" PRIx32
-                  ", TSS2_RC: 0x%" PRIx32, __func__, handle, rc);
+        RC_WARN ("Tss2_Sys_FlushContext", rc);
     }
 out:
     tpm2_unlock (tpm2);
@@ -662,7 +639,7 @@ tpm2_flush_all_unlocked (Tpm2     *tpm2,
                                  &capability_data,
                                  NULL);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("Failed to get capability TPM2_CAP_HANDLES");
+        RC_WARN ("Tss2_Sys_GetCapability", rc);
         return rc;
     }
     g_debug ("%s: got %u handles", __func__, capability_data.data.handles.count);
@@ -672,8 +649,7 @@ tpm2_flush_all_unlocked (Tpm2     *tpm2,
                  handle);
         rc = Tss2_Sys_FlushContext (sapi_context, handle);
         if (rc != TSS2_RC_SUCCESS) {
-            g_warning ("Failed to flush context for handle 0x%08" PRIx32
-                       " RC: 0x%" PRIx32, handle, rc);
+            RC_WARN ("Tss2_Sys_FlushContext", rc);
         }
     }
 
@@ -728,7 +704,7 @@ tpm2_get_command_attrs (Tpm2 *tpm2,
                                  NULL);
     tpm2_unlock (tpm2);
     if (rc != TSS2_RC_SUCCESS) {
-        g_warning ("failed to get TPM command attributes: 0x%" PRIx32, rc);
+        RC_WARN ("Tss2_Sys_GetCapability", rc);
         return rc;
     }
 
