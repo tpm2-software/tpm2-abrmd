@@ -125,9 +125,16 @@ tcti_transmit (Tcti      *self,
                size_t     size,
                uint8_t   *command)
 {
-    return Tss2_Tcti_Transmit (self->tcti_context,
-                               size,
-                               command);
+    TSS2_RC rc;
+
+    rc = Tss2_Tcti_Transmit (self->tcti_context,
+                             size,
+                             command);
+    if (rc != TSS2_RC_SUCCESS) {
+        RC_WARN ("Tss2_Tcti_Transmit", rc);
+    }
+
+    return rc;
 }
 TSS2_RC
 tcti_receive (Tcti      *self,
@@ -135,8 +142,15 @@ tcti_receive (Tcti      *self,
               uint8_t   *response,
               int32_t    timeout)
 {
-    return Tss2_Tcti_Receive (self->tcti_context,
-                              size,
-                              response,
-                              timeout);
+    TSS2_RC rc;
+
+    rc = Tss2_Tcti_Receive (self->tcti_context,
+                            size,
+                            response,
+                            timeout);
+    if (rc != TSS2_RC_SUCCESS) {
+        RC_WARN ("Tss2_Tcti_Receive", rc);
+    }
+
+    return rc;
 }

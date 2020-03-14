@@ -8,6 +8,7 @@
 
 #include <glib.h>
 #include <gio/gio.h>
+#include <tss2/tss2_rc.h>
 #include <tss2/tss2_tpm2_types.h>
 
 #include "control-message.h"
@@ -47,6 +48,16 @@
 #define UTIL_BUF_MAX  8*UTIL_BUF_SIZE
 
 #define prop_str(val) val ? "set" : "clear"
+
+/*
+ * Print warning message for a given response code.
+ * Parameters:
+ *   cmd: string name of Tss2_* function that produced the RC
+ *   rc: response code from function 'cmd'
+ */
+#define RC_WARN(cmd, rc) \
+    g_warning ("[%s:%d] %s failed: %s (RC: 0x%" PRIx32 ")", \
+               __FILE__, __LINE__, cmd, Tss2_RC_Decode (rc), rc)
 
 typedef struct {
     char *key;

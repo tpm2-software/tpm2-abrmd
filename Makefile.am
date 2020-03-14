@@ -15,7 +15,7 @@ AM_CFLAGS = $(EXTRA_CFLAGS) \
     -I$(srcdir)/src -I$(srcdir)/src/include -I$(builddir)/src \
     $(GIO_CFLAGS) $(GLIB_CFLAGS) $(PTHREAD_CFLAGS) \
     $(TSS2_SYS_CFLAGS) $(TSS2_MU_CFLAGS) $(TSS2_TCTILDR_CFLAGS) \
-    $(CODE_COVERAGE_CFLAGS)
+    $(CODE_COVERAGE_CFLAGS) $(TSS2_RC_CFLAGS)
 AM_LDFLAGS = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LIBS)
 
 TESTS_UNIT = \
@@ -194,7 +194,7 @@ src/ipc-frontend-dbus.c : $(BUILT_SOURCES)
 # -Wno-unused-parameter for automatically-generated tabrmd-generated.c:
 src_libutil_la_CFLAGS  = $(AM_CFLAGS) -Wno-unused-parameter
 src_libutil_la_LIBADD  = $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
-    $(TSS2_SYS_LIBS) $(TSS2_MU_LIBS) $(TSS2_TCTILDR_LIBS)
+    $(TSS2_SYS_LIBS) $(TSS2_MU_LIBS) $(TSS2_TCTILDR_LIBS) $(TSS2_RC_LIBS)
 src_libutil_la_SOURCES = \
     src/tpm2.c \
     src/tpm2.h \
