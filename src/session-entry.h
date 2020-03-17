@@ -55,7 +55,6 @@ void             session_entry_set_context     (SessionEntry      *entry,
 SessionEntryStateEnum session_entry_get_state  (SessionEntry      *entry);
 void             session_entry_set_connection  (SessionEntry      *entry,
                                                 Connection        *connection);
-void session_entry_clear_connection (SessionEntry *entry);
 void             session_entry_set_state       (SessionEntry      *entry,
                                                 SessionEntryStateEnum state);
 gint session_entry_compare (gconstpointer a,

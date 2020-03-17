@@ -189,26 +189,6 @@ session_entry_get_connection (SessionEntry *entry)
     }
     return entry->connection;
 }
-#define SAVED_HANDLE_OFFSET (TPM_HEADER_SIZE + sizeof (UINT64))
-#define SAVED_HANDLE_END (SAVED_HANDLE_OFFSET + sizeof (TPMI_DH_CONTEXT))
-static TPM2_HANDLE
-get_handle (size_buf_t *size_buf)
-{
-    size_t offset = SAVED_HANDLE_OFFSET;
-    TSS2_RC rc;
-    TPM2_HANDLE handle;
-    g_assert (size_buf->size < SAVED_HANDLE_END);
-    rc = Tss2_MU_TPM2_HANDLE_Unmarshal (size_buf->buf,
-                                        size_buf->size,
-                                        &offset,
-                                        &handle);
-    if (rc != TSS2_RC_SUCCESS) {
-        g_debug ("%s: Failed to unmarshal handle from size_buf_t", __func__);
-        return 0;
-    }
-    g_debug ("%s: unmarshalled handle 0x08%" PRIx32, __func__, handle);
-    return handle;
-}
 /*
  * Accessor for the savedHandle member of the associated context.
  */
@@ -217,12 +197,6 @@ session_entry_get_handle (SessionEntry *entry)
 {
     g_assert_nonnull (entry);
     return entry->handle;
-}
-TPM2_HANDLE
-session_entry_get_context_client_handle (SessionEntry *entry)
-{
-    g_assert_nonnull (entry);
-    return get_handle (session_entry_get_context_client (entry));
 }
 /*
  * Simple accessor to the state of the SessionEntry.
@@ -279,11 +253,6 @@ session_entry_set_connection (SessionEntry *entry,
     g_object_ref (connection);
     g_clear_object (&entry->connection);
     entry->connection = connection;
-}
-void
-session_entry_clear_connection (SessionEntry *entry)
-{
-    g_clear_object (&entry->connection);
 }
 /*
  * This function is used with the g_list_find_custom function to find
