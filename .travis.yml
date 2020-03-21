@@ -80,6 +80,7 @@ install:
   - sha256sum ibmtpm1563.tar.gz | grep -q ^fc3a17f8315c1f47670764f2384943afc0d3ba1e9a0422dacb08d455733bd1e9
   - mkdir ibmtpm
   - tar axf ibmtpm1563.tar.gz -C ibmtpm
+  - patch -p0 < $TRAVIS_BUILD_DIR/.ci/enable-s390x.diff
   - $MAKE -C ibmtpm/src
   - popd # ${DEPS}
 
