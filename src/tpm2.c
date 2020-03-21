@@ -518,9 +518,9 @@ tpm2_context_load (Tpm2 *tpm2,
     TSS2_RC           rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    assert (tpm2 == NULL);
-    assert (context == NULL);
-    assert (handle == NULL);
+    assert (tpm2 != NULL);
+    assert (context != NULL);
+    assert (handle != NULL);
 
     sapi_context = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_ContextLoad (sapi_context, context, handle);
@@ -545,8 +545,8 @@ tpm2_context_save (Tpm2 *tpm2,
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    assert (tpm2 == NULL);
-    assert (context == NULL);
+    assert (tpm2 != NULL);
+    assert (context != NULL);
 
     g_debug ("tpm2_context_save: handle 0x%08" PRIx32, handle);
     sapi_context = tpm2_lock_sapi (tpm2);
@@ -568,7 +568,7 @@ tpm2_context_flush (Tpm2 *tpm2,
     TSS2_RC rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    assert (tpm2 == NULL);
+    assert (tpm2 != NULL);
 
     g_debug ("tpm2_context_flush: handle 0x%08" PRIx32, handle);
     sapi_context = tpm2_lock_sapi (tpm2);
@@ -588,8 +588,8 @@ tpm2_context_saveflush (Tpm2 *tpm2,
     TSS2_RC           rc;
     TSS2_SYS_CONTEXT *sapi_context;
 
-    assert (tpm2 == NULL);
-    assert (context == NULL);
+    assert (tpm2 != NULL);
+    assert (context != NULL);
 
     g_debug ("tpm2_context_saveflush: handle 0x%" PRIx32, handle);
     sapi_context = tpm2_lock_sapi (tpm2);
