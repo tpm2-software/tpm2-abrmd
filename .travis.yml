@@ -93,7 +93,7 @@ script :
         echo "COVERITY_SCAN_BRANCH set, not running normal build."
         exit 0
     fi
-  - $SCANBUILD ./configure $CONFIG_OPTS $CONFIG_EXTRA
+  - $SCANBUILD ./configure --enable-debug $CONFIG_OPTS $CONFIG_EXTRA
   - $SCANBUILD $MAKE $MAKE_TARGET
 
 after_success:
