@@ -198,10 +198,14 @@ read_data_teardown (void **state)
 static void
 create_socket_pair_success_test (void **state)
 {
-    int ret, client_fd, server_fd;
+    int ret, client_fd, server_fd, flags = 0;
     UNUSED_PARAM(state);
 
-    ret = create_socket_pair (&client_fd, &server_fd, O_CLOEXEC);
+#if !defined(__FreeBSD__)
+    flags = O_CLOEXEC;
+#endif
+
+    ret = create_socket_pair (&client_fd, &server_fd, flags);
     if (ret == -1)
         g_error ("create_pipe_pair failed: %s", strerror (errno));
     close (client_fd);

@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include <tss2/tss2_sys.h>
+#include <tpm2-header.h>
 
 #include "common.h"
 #include "test.h"

@@ -5,11 +5,15 @@
 #include <errno.h>
 #include <glib.h>
 #include <inttypes.h>
-#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#if defined(__FreeBSD__)
+#include <sys/poll.h>
+#else
+#include <poll.h>
+#endif
 
 #include <setjmp.h>
 #include <cmocka.h>
@@ -57,6 +61,12 @@ tcti_tabrmd_poll_fd_ready_pollpri (void **state)
  * This tests the tcti_tabrmd_poll function, ensuring that it returns the
  * expected response code for the POLLRDHUP event.
  */
+
+#if defined(__FreeBSD__)
+#ifndef POLLRDHUP
+#define POLLRDHUP 0x0
+#endif
+#endif
 static void
 tcti_tabrmd_poll_fd_ready_pollrdhup (void **state)
 {

@@ -6,7 +6,6 @@
 #include <glib.h>
 
 #include <errno.h>
-#include <error.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <stdbool.h>

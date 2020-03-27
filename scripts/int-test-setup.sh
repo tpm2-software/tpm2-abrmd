@@ -88,6 +88,15 @@ in
         ;;
 esac
 
+OS=$(uname)
+sock_tool="unknown"
+
+if [ "$OS" == "Linux" ]; then
+    sock_tool="ss -lntp4"
+elif [ "$OS" == "FreeBSD" ]; then
+    sock_tool="sockstat -l4"
+fi
+
 # Set up test environment and dependencies that are TCTI specific.
 case "${TABRMD_TCTI}"
 in
@@ -97,20 +106,20 @@ in
         # start an instance of the simulator for the test, have it use a random port
         SIM_LOG_FILE=${TEST_BIN}_simulator.log
         SIM_PID_FILE=${TEST_BIN}_simulator.pid
-        SIM_TMP_DIR=$(mktemp --directory --tmpdir=/tmp tpm_server_XXXXXX)
+        SIM_TMP_DIR=$(mktemp -d /tmp/tpm_server_XXXXXX)
         BACKOFF_FACTOR=2
         BACKOFF=1
         for i in $(seq 10); do
-            SIM_PORT_DATA=`shuf -i ${PORT_MIN}-${PORT_MAX} -n 1`
+            SIM_PORT_DATA=$(od -A n -N 2 -t u2 /dev/urandom | awk -v min=${PORT_MIN} -v max=${PORT_MAX} '{print ($1 % (max - min)) + min}')
             SIM_PORT_CMD=$((${SIM_PORT_DATA}+1))
             echo "Starting simulator on port ${SIM_PORT_DATA}"
             simulator_start ${SIM_BIN} ${SIM_PORT_DATA} ${SIM_LOG_FILE} ${SIM_PID_FILE} ${SIM_TMP_DIR}
             sleep 1 # give daemon time to bind to ports
             PID=$(cat ${SIM_PID_FILE})
             echo "simulator PID: ${PID}";
-            ss -lt4pn 2> /dev/null | grep "${PID}" | grep -q "${SIM_PORT_DATA}"
+            ${sock_tool} 2> /dev/null | grep "${PID}" | grep -q "${SIM_PORT_DATA}"
             ret_data=$?
-            ss -lt4pn 2> /dev/null | grep "${PID}" | grep -q "${SIM_PORT_CMD}"
+            ${sock_tool} 2> /dev/null | grep "${PID}" | grep -q "${SIM_PORT_CMD}"
             ret_cmd=$?
             if [ \( $ret_data -eq 0 \) -a \( $ret_cmd -eq 0 \) ]; then
                 echo "Simulator with PID ${PID} bound to port ${SIM_PORT_DATA} and " \
@@ -131,6 +140,9 @@ in
         TABRMD_NAME="com.intel.tss2.Tabrmd${SIM_PORT_DATA}"
         TABRMD_OPTS="${TABRMD_OPTS} --dbus-name=${TABRMD_NAME}"
         TABRMD_OPTS="${TABRMD_OPTS} --tcti=${TABRMD_TCTI}:port=${SIM_PORT_DATA}"
+        if [ `whoami` == "root" ]; then
+            TABRMD_OPTS="--allow-root ${TABRMD_OPTS}"
+        fi
         TABRMD_TEST_TCTI_CONF="${TABRMD_TEST_TCTI_CONF},bus_name=${TABRMD_NAME}"
         ;;
     "device")
@@ -153,6 +165,9 @@ if [ $? -ne 0 ]; then
     echo "failed to start tabrmd with name ${TABRMD_NAME}"
 fi
 
+sleep 1
+# List session bus names registered
+dbus-send --session --dest=org.freedesktop.DBus --type=method_call --print-reply /org/freedesktop/DBus org.freedesktop.DBus.ListNames
 # execute the test script and capture exit code
 env G_MESSAGES_DEBUG=all TABRMD_TEST_TCTI_CONF="${TABRMD_TEST_TCTI_CONF}" TABRMD_TEST_TCTI_RETRIES=10 $@
 ret_test=$?

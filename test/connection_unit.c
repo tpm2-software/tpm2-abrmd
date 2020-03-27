@@ -6,7 +6,6 @@
 #include <glib.h>
 
 #include <errno.h>
-#include <error.h>
 #include <gio/gunixinputstream.h>
 #include <gio/gunixoutputstream.h>
 #include <stdbool.h>
