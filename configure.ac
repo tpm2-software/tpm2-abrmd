@@ -50,6 +50,18 @@ AC_CHECK_PROG([GDBUS_CODEGEN], [gdbus-codegen], [gdbus-codegen])
 AS_IF([test ! -x "$(which $GDBUS_CODEGEN)"],
       [AC_MSG_ERROR([*** gdbus-codegen is required to build tpm2-abrmd])])
 
+# Check OS and set library and compile flags accordingly
+case "${host_os}" in
+    *bsd* | *BSD*)
+        HOSTOS='BSD'
+        ;;
+    *)
+        #Assume linux
+        HOSTOS='Linux'
+        ;;
+esac
+AC_SUBST([HOSTOS])
+
 AX_CODE_COVERAGE
 m4_ifdef([_AX_CODE_COVERAGE_RULES],
          [AM_CONDITIONAL(AUTOCONF_CODE_COVERAGE_2019_01_06, [true])],
@@ -173,9 +185,11 @@ AS_IF([test "x$enable_integration" = "xyes"],
          AS_IF([test "x$tpm_server" != "xyes"],
              [AC_MSG_ERROR([Integration tests enabled but tpm_server not found, try setting PATH])],
              [AC_MSG_NOTICE([Integration tests will be executed against the TPM2 simulator.])])
-         AC_CHECK_PROG([ss], [ss], [yes], [no])
+         AS_IF([test "$HOSTOS" = "Linux"],
+           [AC_CHECK_PROG(ss, [ss], [yes], [no])],
+           [AC_CHECK_PROG(ss, [sockstat], [yes], [no])])
          AS_IF([test "x$ss" != "xyes"],
-             [AC_MSG_ERROR([Integration tests require the ss executable to be installed.])])],
+             [AC_MSG_ERROR([Integration tests require the sockstat/ss executable to be installed.])])],
         [AC_MSG_NOTICE([Integration tests will be executed against the TPM device.])])])
 AM_CONDITIONAL([ENABLE_INTEGRATION],[test "x$enable_integration" = "xyes"])
 
