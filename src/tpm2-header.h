@@ -9,6 +9,12 @@
 #include <sys/types.h>
 #include <tss2/tss2_tcti.h>
 
+#if defined(__FreeBSD__)
+#include <sys/endian.h>
+#else
+#include <endian.h>
+#endif
+
 /* A convenience macro to get us the size of the TPM header. */
 #define TPM_HEADER_SIZE (UINT32)(sizeof (TPM2_ST) + sizeof (UINT32) + sizeof (TPM2_CC))
 
