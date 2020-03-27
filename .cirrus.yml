@@ -1,0 +1,28 @@
+task:
+  env:
+    CFLAGS: -I/usr/local/include
+    LDFLAGS: -L/usr/local/lib
+    LD_LIBRARY_PATH: /usr/local/lib
+    PKG_CONFIG_PATH: "/usr/local/lib/pkgconfig:/usr/local/libdata/pkgconfig"
+    ibmtpm_name: ibmtpm1563
+  freebsd_instance:
+    matrix:
+      image_family: freebsd-12-1-snap
+  install_script:
+    - pkg upgrade -y
+    - pkg install -y bash gmake coreutils libtool pkgconf autoconf autoconf-archive openssl libgcrypt
+    - pkg install -y automake glib expat dbus dbus-glib cmocka wget git gettext-runtime tpm2-tss
+    - wget --quiet --show-progress --progress=dot:giga "https://downloads.sourceforge.net/project/ibmswtpm2/$ibmtpm_name.tar.gz"
+    - shasum -a256 $ibmtpm_name.tar.gz | grep ^fc3a17f8315c1f47670764f2384943afc0d3ba1e9a0422dacb08d455733bd1e9
+    - mkdir -p $ibmtpm_name
+    - tar xvf $ibmtpm_name.tar.gz -C $ibmtpm_name && cd $ibmtpm_name/src
+    - sed -i '' -e 's/gcc/clang/g' makefile
+    - sed -i '' -e 's/-Wall //g' makefile
+    - sed -i '' -e 's/-Werror //g' makefile
+    - gmake -j && cp tpm_server /usr/bin/
+    - cd -
+    - rm -rf $ibmtpm_name $ibmtpm_name.tar.gz
+  script:
+    - ./bootstrap
+    - ./configure --enable-unit=yes --enable-integration=yes --disable-dependency-tracking
+    - gmake -j check || { cat test-suite.log; exit 1; }
