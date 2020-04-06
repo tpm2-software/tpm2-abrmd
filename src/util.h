@@ -8,6 +8,7 @@
 
 #include <glib.h>
 #include <gio/gio.h>
+#include <inttypes.h>
 #include <tss2/tss2_rc.h>
 #include <tss2/tss2_tpm2_types.h>
 
