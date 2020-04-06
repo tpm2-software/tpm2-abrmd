@@ -360,24 +360,7 @@ tpm2_command_get_handles_test (void **state)
     assert_int_equal (handles [0], HANDLE_FIRST);
     assert_int_equal (handles [1], HANDLE_SECOND);
 }
-static void
-tpm2_command_set_handles_test (void **state)
-{
-    test_data_t *data = (test_data_t*)*state;
-    gboolean ret;
-    TPM2_HANDLE handles_in [2] = {
-        TPM2_HT_TRANSIENT + 0x1,
-        TPM2_HT_TRANSIENT + 0x2,
-    };
-    TPM2_HANDLE handles_out [2] = { 0, 0 };
-    size_t handle_count = 2;
 
-    ret = tpm2_command_set_handles (data->command, handles_in, handle_count);
-    assert_true (ret == TRUE);
-    ret = tpm2_command_get_handles (data->command, handles_out, &handle_count);
-    assert_true (ret == TRUE);
-    assert_memory_equal (handles_in, handles_out, 2 * sizeof (TPM2_HANDLE));
-}
 /*
  * Get the handle at the first position in the handle area of the command.
  */
@@ -651,9 +634,6 @@ main (void)
                                          tpm2_command_setup_two_handles,
                                          tpm2_command_teardown),
         cmocka_unit_test_setup_teardown (tpm2_command_get_handles_test,
-                                         tpm2_command_setup_two_handles,
-                                         tpm2_command_teardown),
-        cmocka_unit_test_setup_teardown (tpm2_command_set_handles_test,
                                          tpm2_command_setup_two_handles,
                                          tpm2_command_teardown),
         cmocka_unit_test_setup_teardown (tpm2_command_get_handle_first_test,

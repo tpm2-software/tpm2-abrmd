@@ -60,9 +60,6 @@ gboolean              tpm2_command_get_handles     (Tpm2Command      *command,
 gboolean              tpm2_command_set_handle      (Tpm2Command      *command,
                                                     TPM2_HANDLE        handle,
                                                     guint8            handle_number);
-gboolean              tpm2_command_set_handles     (Tpm2Command      *command,
-                                                    TPM2_HANDLE        handles[],
-                                                    guint8            count);
 TSS2_RC                tpm2_command_get_flush_handle (Tpm2Command     *command,
                                                      TPM2_HANDLE      *handle);
 guint32               tpm2_command_get_size        (Tpm2Command      *command);
