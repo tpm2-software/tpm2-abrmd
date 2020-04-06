@@ -469,41 +469,6 @@ tpm2_command_get_handles (Tpm2Command *command,
     return TRUE;
 }
 /*
- * Set handles in the Tpm2Command buffer. The handles are passed in the
- * 'handles' parameter, the size of this array through the 'count'
- * parameter. Each invocation of this function sets all handles in the
- * Tpm2Command and so the size of the handles array (aka 'count') must be
- * the same as the number of handles in the command.
- */
-gboolean
-tpm2_command_set_handles (Tpm2Command *command,
-                          TPM2_HANDLE   handles[],
-                          guint8       count)
-{
-    guint8 real_count, i;
-    gboolean ret = TRUE;
-
-    if (command == NULL || handles == NULL) {
-        g_warning ("tpm2_command_get_handles passed NULL parameter");
-        return FALSE;
-    }
-    real_count = tpm2_command_get_handle_count (command);
-    if (real_count != count) {
-        g_warning ("tpm2_command_set_handles passed handle array with wrong "
-                   "number of handles");
-        return FALSE;
-    }
-
-    for (i = 0; i < real_count; ++i) {
-        ret = tpm2_command_set_handle (command, handles [i], i);
-        if (ret == FALSE) {
-            break;
-        }
-    }
-
-    return ret;
-}
-/*
  * This function is a work around. The handle in a command buffer for the
  * FlushContext command is not in the handle area and no handles are reported
  * in the attributes structure. This means that in order to cope with
