@@ -3,6 +3,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## 2.3.2-rc0
+### Added
+- Added cirrus CI specific config files to enable FreeBSD builds.
+### Changed
+- Changed test scripts to be more portable.
+- Changed include header paths specific to FreeBSD.
+
 ## 2.3.1 - 2020-01-10
 ### Fixed
 - Provide meaningful exit codes on initialization failures.
