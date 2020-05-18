@@ -3,7 +3,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-## 2.3.2-rc0
+## 2.3.2 - 2020-05-18
 ### Added
 - Added cirrus CI specific config files to enable FreeBSD builds.
 ### Changed
