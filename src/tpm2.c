@@ -591,14 +591,14 @@ tpm2_context_saveflush (Tpm2 *tpm2,
     assert (tpm2 != NULL);
     assert (context != NULL);
 
-    g_debug ("tpm2_context_saveflush: handle 0x%" PRIx32, handle);
+    g_debug ("tpm2_context_save: handle 0x%" PRIx32, handle);
     sapi_context = tpm2_lock_sapi (tpm2);
     rc = Tss2_Sys_ContextSave (sapi_context, handle, context);
     if (rc != TSS2_RC_SUCCESS) {
         RC_WARN ("Tss2_Sys_ContextSave", rc);
         goto out;
     }
-    g_debug ("tpm2_context_saveflush: handle 0x%" PRIx32, handle);
+    g_debug ("tpm2_context_flush: handle 0x%" PRIx32, handle);
     rc = Tss2_Sys_FlushContext (sapi_context, handle);
     if (rc != TSS2_RC_SUCCESS) {
         RC_WARN ("Tss2_Sys_FlushContext", rc);
