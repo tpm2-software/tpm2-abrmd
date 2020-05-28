@@ -286,6 +286,42 @@ resource_manager_flushsave_context_test (void **state)
     resource_manager_flushsave_context (entry, data->resource_manager);
     assert_int_equal (handle_map_entry_get_phandle (entry), 0);
 }
+
+static void
+resource_manager_flushsave_context_same_entries_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    HandleMapEntry *entry1, *entry2, *entry3;
+    HandleMap *map;
+    TPM2_HANDLE vhandle = TPM2_HR_TRANSIENT + 0x1,
+                phandle1 = TPM2_HR_TRANSIENT + 0x2,
+                phandle2 = TPM2_HR_TRANSIENT + 0x3;
+
+    /* Create two map entries for the same vhandle and diffrent phandle */
+    entry1 = handle_map_entry_new (phandle1, vhandle);
+    entry2 = handle_map_entry_new (phandle2, vhandle);
+    map = handle_map_new(TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
+
+    /* Insert the two mappings - currently this will acctually overwrite
+     * the first value with the second one instead of creating a new entry */
+    handle_map_insert(map, vhandle, entry1);
+    handle_map_insert(map, vhandle, entry2);
+
+    /* Call flushsave_context on the second entry */
+    will_return (__wrap_tpm2_context_saveflush, TSS2_RC_SUCCESS);
+    resource_manager_flushsave_context (entry2, data->resource_manager);
+
+    /* and check if the second is still valid */
+    entry3 = handle_map_vlookup(map, vhandle);
+    assert_int_equal (handle_map_entry_get_phandle (entry3), phandle1);
+
+    /* Cleanup */
+    handle_map_remove (map, vhandle);
+    g_object_unref (entry1);
+    g_object_unref (entry2);
+    g_object_unref (map);
+}
+
 /*
  * This test case pushes an error RC on to the mock stack for the
  * tpm2_context_flushsave function. The flushsave_context function
@@ -510,6 +546,9 @@ main (void)
                                          resource_manager_setup,
                                          resource_manager_teardown),
         cmocka_unit_test_setup_teardown (resource_manager_flushsave_context_test,
+                                         resource_manager_setup,
+                                         resource_manager_teardown),
+        cmocka_unit_test_setup_teardown (resource_manager_flushsave_context_same_entries_test,
                                          resource_manager_setup,
                                          resource_manager_teardown),
         cmocka_unit_test_setup_teardown (resource_manager_flushsave_context_fail_test,
