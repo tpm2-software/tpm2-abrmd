@@ -302,8 +302,7 @@ resource_manager_flushsave_context_same_entries_test (void **state)
     entry2 = handle_map_entry_new (phandle2, vhandle);
     map = handle_map_new(TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
 
-    /* Insert the two mappings - currently this will acctually overwrite
-     * the first value with the second one instead of creating a new entry */
+    /* Insert the two mappings */
     handle_map_insert(map, vhandle, entry1);
     handle_map_insert(map, vhandle, entry2);
 
@@ -311,7 +310,7 @@ resource_manager_flushsave_context_same_entries_test (void **state)
     will_return (__wrap_tpm2_context_saveflush, TSS2_RC_SUCCESS);
     resource_manager_flushsave_context (entry2, data->resource_manager);
 
-    /* and check if the second is still valid */
+    /* and check if the first is still valid */
     entry3 = handle_map_vlookup(map, vhandle);
     assert_int_equal (handle_map_entry_get_phandle (entry3), phandle1);
 
