@@ -203,10 +203,12 @@ handle_map_is_full (HandleMap *map)
  * it is removed or if the hash table is destroyed the object will be unref'd.
  * If a handle provided is 0 we do not insert the entry in the corresponding
  * map.
+ * If there is an entry with the given key already in the table we don't insert
+ * anything, because it would overwrite the original entry.
  */
 gboolean
 handle_map_insert (HandleMap      *map,
-                   TPM2_HANDLE      vhandle,
+                   TPM2_HANDLE     vhandle,
                    HandleMapEntry *entry)
 {
     g_debug ("%s: vhandle: 0x%" PRIx32, __func__, vhandle);
@@ -217,10 +219,19 @@ handle_map_insert (HandleMap      *map,
         return FALSE;
     }
     if (entry && vhandle != 0) {
-        g_object_ref (entry);
-        g_hash_table_insert (map->vhandle_to_entry_table,
-                             GINT_TO_POINTER (vhandle),
-                             entry);
+        TPM2_HANDLE *orig_key;
+        HandleMapEntry *orig_value;
+
+	/* Check if an entry for the key is already in already in the table */
+        if (!g_hash_table_lookup_extended (map->vhandle_to_entry_table,
+                                           GINT_TO_POINTER (vhandle),
+                                           (gpointer *) &orig_key,
+					   (gpointer *) &orig_value)) {
+            g_object_ref (entry);
+            g_hash_table_insert (map->vhandle_to_entry_table,
+                                 GINT_TO_POINTER (vhandle),
+                                 entry);
+	}
     }
     handle_map_unlock (map);
     return TRUE;
