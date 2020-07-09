@@ -10,7 +10,7 @@ task:
       image_family: freebsd-12-1-snap
   install_script:
     - pkg upgrade -y
-    - pkg install -y bash gmake coreutils libtool pkgconf autoconf autoconf-archive openssl libgcrypt
+    - pkg install -y bash gmake coreutils libtool pkgconf autoconf autoconf-archive openssl
     - pkg install -y automake glib expat dbus dbus-glib cmocka wget git gettext-runtime tpm2-tss
     - wget --quiet --show-progress --progress=dot:giga "https://downloads.sourceforge.net/project/ibmswtpm2/$ibmtpm_name.tar.gz"
     - shasum -a256 $ibmtpm_name.tar.gz | grep ^fc3a17f8315c1f47670764f2384943afc0d3ba1e9a0422dacb08d455733bd1e9
