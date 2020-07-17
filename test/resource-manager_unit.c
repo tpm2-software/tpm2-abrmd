@@ -358,7 +358,7 @@ resource_manager_virt_to_phys_test (void **state)
 
     /* create & populate HandleMap for transient handle */
     vhandle = tpm2_command_get_handle (data->command, 0);
-    entry = handle_map_entry_new (phandle, vhandle);
+    entry = handle_map_entry_new (0, vhandle);
     /* function under test, */
     rc = resource_manager_virt_to_phys (data->resource_manager,
                                         data->command,
@@ -400,7 +400,7 @@ resource_manager_load_handles_test(void **state)
         assert (FALSE);
     }
     for (i = 0; i < handle_count; ++i) {
-        entry = handle_map_entry_new (phandles [i], vhandles [i]);
+        entry = handle_map_entry_new (0, vhandles [i]);
         handle_map_insert (map, vhandles [i], entry);
         g_object_unref (entry);
     }

@@ -70,8 +70,15 @@ resource_manager_virt_to_phys (ResourceManager *resmgr,
     TSS2_RC       rc = TSS2_RC_SUCCESS;
 
     context = handle_map_entry_get_context (entry);
+    if (handle_map_entry_get_phandle(entry)) {
+        phandle = handle_map_entry_get_phandle(entry);
+        g_debug ("remembered phandle: 0x%" PRIx32, phandle);
+        tpm2_command_set_handle (command, phandle, handle_number);
+        return TSS2_RC_SUCCESS;
+    }
+
     rc = tpm2_context_load (resmgr->tpm2, context, &phandle);
-    g_debug ("phandle: 0x%" PRIx32, phandle);
+    g_debug ("loaded phandle: 0x%" PRIx32, phandle);
     if (rc == TSS2_RC_SUCCESS) {
         handle_map_entry_set_phandle (entry, phandle);
         tpm2_command_set_handle (command, phandle, handle_number);
@@ -361,6 +368,11 @@ resource_manager_flushsave_context (gpointer data_entry,
     g_debug ("%s: phandle: 0x%" PRIx32, __func__, phandle);
     switch (phandle >> TPM2_HR_SHIFT) {
     case TPM2_HT_TRANSIENT:
+        if (!handle_map_entry_get_phandle (entry)) {
+            g_debug ("phandle for vhandle 0x%" PRIx32 " was already flushed.",
+                handle_map_entry_get_vhandle (entry));
+            break;
+        }
         g_debug ("%s: handle is transient, saving context", __func__);
         context = handle_map_entry_get_context (entry);
         rc = tpm2_context_saveflush (resmgr->tpm2,
