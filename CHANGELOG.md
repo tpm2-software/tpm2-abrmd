@@ -3,7 +3,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-### next
+### 2.3.3-rc0 - 2020-08-10
 ### Fixed:
   - Fixed handle resource leak exhausting TPM resources.
 
