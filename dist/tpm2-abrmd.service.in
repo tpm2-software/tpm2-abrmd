@@ -9,7 +9,6 @@ ConditionPathExistsGlob=/dev/tpm*
 [Service]
 Type=dbus
 BusName=com.intel.tss2.Tabrmd
-StandardOutput=syslog
 ExecStart=@SBINDIR@/tpm2-abrmd
 User=tss
 
