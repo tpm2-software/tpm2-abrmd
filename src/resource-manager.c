@@ -222,7 +222,7 @@ resource_manager_load_session_from_handle (ResourceManager *resmgr,
     if (session_entry_state != SESSION_ENTRY_SAVED_RM) {
         g_warning ("%s: Handle in handle area references SessionEntry "
                    "for session in state \"%s\". Must be in state: "
-                   "SESSION_ENTRY_SAVED_RM for us manage it, ignorning.",
+                   "SESSION_ENTRY_SAVED_RM for us manage it, ignoring.",
                    __func__, session_entry_state_to_str (session_entry_state));
         goto out;
     }
