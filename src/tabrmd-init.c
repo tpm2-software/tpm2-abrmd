@@ -99,6 +99,12 @@ gmain_data_cleanup (gmain_data_t *data)
     if (data->loop != NULL) {
         main_loop_quit (data->loop);
     }
+    if (data->tpm2 != NULL) {
+        if (data->tpm2->sapi_context != NULL) {
+            g_free(data->tpm2->sapi_context);
+        }
+        g_clear_object (&data->tpm2);
+    }
 }
 /*
  * This function initializes and configures all of the long-lived objects
