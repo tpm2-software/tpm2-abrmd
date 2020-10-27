@@ -21,9 +21,8 @@ your distro provides are installed for these features.
 The following dependencies are required only if the test suite is being built
 and executed.
 * cmocka unit test framework
-* Microsoft / IBM Software TPM2 simulator version 974 as packaged by IBM
-for Linux:
-https://downloads.sourceforge.net/project/ibmswtpm2/ibmtpm974.tar
+* [swtpm](https://github.com/stefanberger/swtpm) or
+  [tpm_server](https://sourceforge.net/projects/ibmswtpm2/) TPM2 simulator
 * Alternately, run the test suite on a real TPM hardware, with a safety
 attention described below.
 
@@ -190,23 +189,16 @@ The next two subsections describe these two configurations:
 ### Run Integration Tests: `--enable-integration`
 If the configure script is passed the `--enable-integration` option then the
 test harness will execute the integration tests against the software TPM2
-simulator. The configure script will check for the existance of the software
-TPM2 simulator executable `tpm_server` on the PATH. An instance of the
-simulator will be created for each test executable to allow the parallel
-execution of test cases.
+simulator. The configure script will check for the existance of one of the
+software TPM2 simulator executables `swtpm` or `tpm_server` on the PATH. An
+instance of the simulator will be created for each test executable to allow the
+parallel execution of test cases.
 
 This is the recommended integration test configuration. It requires that you
 first download and compile the TPM2 software simulator as documented by the
-simulators maintainers. Once you have the `tpm_server` built, you must ensure
-that it is discoverable via the PATH environment variable when the
+simulators' maintainers. Once you have `swtpm` or `tpm_server` built, you must
+ensure that it is discoverable via the PATH environment variable when the
 `./configure` script is run.
-
-**NOTE**: The `--with-simulatorbin` option does not change the default for
-tpm2-abrmd, which is to use TPM hardware.
-To run tpm2-abrmd with the simulator, use:
-```
-$ sudo -u tss /usr/local/sbin/tpm2-abrmd --tcti=mssim
-```
 
 ### Run Integration Tests with hardware TPM2: `--enable-test-hwtpm`
 It's possible to run the integration tests against "real" TPM2 hardware, not

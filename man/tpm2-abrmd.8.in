@@ -91,19 +91,19 @@ This is equivalent to:
 .br
 .B tpm2-abrmd --tcti="libtss2-tcti-device.so.0:/dev/tpm0"
 .TP
-Have daemon use Microsoft/IBM TPM2 Simulator tcti library
-'libtss2-tcti-mssim.so.0'.
-This connects to a TPM2 simulator via a TCP mssim.
+Have daemon use swtpm TPM2 Simulator tcti library
+'libtss2-tcti-swtpm.so.0'.
+This connects to a TPM2 simulator via a TCP swtpm.
 .br
-.B tpm2-abrmd --tcti="mssim"
+.B tpm2-abrmd --tcti="swtpm"
 .br
-.B tpm2-abrmd --tcti="libtss2-tcti-mssim.so.0"
+.B tpm2-abrmd --tcti="libtss2-tcti-swtpm.so.0"
 .TP
-Have daemon use tcti library 'libtss2-tcti-mssim.so.0' and config string
+Have daemon use tcti library 'libtss2-tcti-swtpm.so.0' and config string
 'host=127.0.0.1,port=5555':
-.B tpm2-abrmd --tcti=mssim:host=127.0.0.1,port=5555"
+.B tpm2-abrmd --tcti=swtpm:host=127.0.0.1,port=5555"
 .br
-.B tpm2-abrmd --tcti="libtss2-tcti-mssim.so.0:host=127.0.0.1,port=5555"
+.B tpm2-abrmd --tcti="libtss2-tcti-swtpm.so.0:host=127.0.0.1,port=5555"
 .SH AUTHOR
 Philip Tricca <philip.b.tricca@intel.com>
 .SH "SEE ALSO"

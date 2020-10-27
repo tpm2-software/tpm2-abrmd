@@ -87,10 +87,7 @@ INT_LOG_FLAGS = --tabrmd-tcti=$(TABRMD_TCTI)
 if ENABLE_INTEGRATION
 noinst_LTLIBRARIES += $(libtest)
 TESTS += $(TESTS_INTEGRATION)
-if HWTPM
-TABRMD_TCTI = device
-else
-TABRMD_TCTI = mssim
+if !HWTPM
 TESTS += $(TESTS_INTEGRATION_NOHW)
 endif
 endif
