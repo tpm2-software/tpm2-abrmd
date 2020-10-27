@@ -181,10 +181,12 @@ AC_ARG_ENABLE([integration],
     [enable_integration=no])
 AS_IF([test "x$enable_integration" = "xyes"],
     [AS_IF([test "x$enable_test_hwtpm" = "xno"],
-        [AC_CHECK_PROG([tpm_server], [tpm_server], [yes], [no])
-         AS_IF([test "x$tpm_server" != "xyes"],
-             [AC_MSG_ERROR([Integration tests enabled but tpm_server not found, try setting PATH])],
-             [AC_MSG_NOTICE([Integration tests will be executed against the TPM2 simulator.])])
+        [AC_CHECK_PROG([swtpm], [swtpm], [yes], [no])
+         AC_CHECK_PROG([tpm_server], [tpm_server], [yes], [no])
+         AS_IF([test "$swtpm" = yes], [TABRMD_TCTI=swtpm],
+               [AS_IF([test "$tpm_server" = yes], [TABRMD_TCTI=mssim],
+                      [AC_MSG_ERROR([Integration tests require swtpm or tpm_server to be installed.])])])
+         AC_SUBST([TABRMD_TCTI])
          AS_IF([test "$HOSTOS" = "Linux"],
            [AC_CHECK_PROG(ss, [ss], [yes], [no])],
            [AC_CHECK_PROG(ss, [sockstat], [yes], [no])])

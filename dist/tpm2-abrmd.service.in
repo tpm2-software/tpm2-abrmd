@@ -3,7 +3,7 @@ Description=TPM2 Access Broker and Resource Management Daemon
 After=systemd-udev-settle.service
 Requires=systemd-udev-settle.service
 # This condition is needed when using the device TCTI. If the
-# TCP mssim is used then the condition should be commented out.
+# TCP swtpm or mssim is used then the condition should be commented out.
 ConditionPathExistsGlob=/dev/tpm*
 
 [Service]

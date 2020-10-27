@@ -26,14 +26,14 @@ print_usage ()
 {
     cat <<END
 Usage:
-    int-simulator-setup.sh --tabrmd-tcti=[mssim|device] TEST-SCRIPT
+    int-simulator-setup.sh --tabrmd-tcti=[swtpm|mssim|device] TEST-SCRIPT
         [TEST-SCRIPT-ARGUMENTS]
-The '--tabrmd-tcti' option defaults to 'mssim'.
+The '--tabrmd-tcti' option defaults to 'swtpm'.
 END
 }
 SIM_BIN=""
 TABRMD_BIN=""
-TABRMD_TCTI="mssim"
+TABRMD_TCTI="swtpm"
 while test $# -gt 0; do
     case $1 in
     --help) print_usage; exit $?;;
@@ -51,8 +51,7 @@ done
 TEST_BIN=$(realpath "$1")
 TEST_DIR=$(dirname "$1")
 TEST_NAME=$(basename "${TEST_BIN}")
-SIM_BIN=$(which tpm_server)
-TABRMD_BIN=$(which tpm2-abrmd)
+TABRMD_BIN=$(command -v tpm2-abrmd)
 
 # If run against the simulator we need min and max values when generating port
 # numbers. We select random port values to enable parallel test execution.
@@ -70,11 +69,11 @@ if [ ! -x "${TEST_BIN}" ]; then
 fi
 case "${TABRMD_TCTI}"
 in
+    "swtpm")
+        SIM_BIN="$(command -v swtpm)"
+        ;;
     "mssim")
-        if [ -z "${SIM_BIN}" ]; then
-            echo "mssim TCTI requires simulator binary / executable"
-            exit 1
-        fi
+        SIM_BIN="$(command -v tpm_server)"
         ;;
     "device")
         if [ `id -u` != "0" ]; then
@@ -88,6 +87,11 @@ in
         ;;
 esac
 
+if [ "$TABRMD_TCTI" != "device" ] && [ -z "$SIM_BIN" ]; then
+    echo "$TABRMD_TCTI TCTI requires simulator binary / executable"
+    exit 1
+fi
+
 OS=$(uname)
 sock_tool="unknown"
 
@@ -100,7 +104,7 @@ fi
 # Set up test environment and dependencies that are TCTI specific.
 case "${TABRMD_TCTI}"
 in
-    "mssim")
+    "swtpm"|"mssim")
         TABRMD_OPTS="--session"
         TABRMD_TEST_TCTI_CONF="bus_type=session"
         # start an instance of the simulator for the test, have it use a random port
@@ -186,7 +190,7 @@ rm -rf ${TABRMD_PID_FILE}
 case "${TABRMD_TCTI}"
 in
     # when testing against the simulator we must shut it down
-    "mssim")
+    "swtpm"|"mssim")
         # ignore exit code (it's always 143 AFAIK)
         daemon_stop ${SIM_PID_FILE}
         rm -rf ${SIM_TMP_DIR} ${SIM_PID_FILE}
