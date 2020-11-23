@@ -239,6 +239,7 @@ resource_manager_load_session_from_handle (ResourceManager *resmgr,
         rc = tpm2_response_get_code (response);
         if (rc != TSS2_RC_SUCCESS) {
             flush_session (resmgr, session_entry);
+            goto out;
         }
     }
     if (will_flush) {
