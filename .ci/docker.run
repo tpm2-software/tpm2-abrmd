@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: BSD-2
+
+set -exo pipefail
+
+$DOCKER_BUILD_DIR/.ci/get_deps.sh "$(dirname $DOCKER_BUILD_DIR)"
+
+pushd $DOCKER_BUILD_DIR
+
+SCANBUILD=""
+CONFIG_OPTS="--enable-unit --enable-integration --disable-silent-rules"
+
+if [ -d build ]; then
+  rm -rf build
+fi
+
+./bootstrap
+
+mkdir build
+pushd build
+
+if [ -z "$MAKE_TARGET" ]; then
+  if [[ -z "$CC" || "$CC" == gcc* ]]; then
+    SCANBUILD=""
+    MAKE_TARGET="distcheck"
+  else
+    SCANBUILD="scan-build --status-bugs"
+    CFLAGS="-D_REENTRANT"
+    CONFIG_EXTRA="--disable-defaultflags"
+    MAKE_TARGET="check"
+  fi
+fi
+
+$SCANBUILD ../configure --enable-debug $CONFIG_OPTS $CONFIG_EXTRA
+$SCANBUILD make -j$(nproc) $MAKE_TARGET
+
+popd
+popd
+
+exit 0
