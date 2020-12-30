@@ -1,4 +1,4 @@
-[![Linux Build Status](https://travis-ci.org/tpm2-software/tpm2-abrmd.svg?branch=master)](https://travis-ci.org/tpm2-software/tpm2-abrmd)
+![Linux Build Status](https://github.com/tpm2-software/tpm2-abrmd/workflows/Linux%20Build%20Status/badge.svg)
 [![FreeBSD Build Status](https://api.cirrus-ci.com/github/tpm2-software/tpm2-abrmd.svg?branch=master)](https://cirrus-ci.com/github/tpm2-software/tpm2-abrmd)
 [![Coverity Scan](https://img.shields.io/coverity/scan/3997.svg)](https://scan.coverity.com/projects/01org-tpm2-abrmd)
 [![codecov](https://codecov.io/gh/tpm2-software/tpm2-abrmd/branch/master/graph/badge.svg)](https://codecov.io/gh/tpm2-software/tpm2-abrmd)
