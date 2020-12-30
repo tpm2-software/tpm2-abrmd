@@ -10,7 +10,7 @@ extraction:
     - tar xf master.tar.gz
     - cd tpm2-tss-master
     - ./bootstrap
-    - ./configure --prefix="$LGTM_WORKSPACE/installdir/usr" --disable-doxygen-doc --disable-esapi --disable-fapi
+    - ./configure --prefix="$LGTM_WORKSPACE/installdir/usr" --disable-doxygen-doc --disable-esys --disable-fapi
     - make install
     - export PKG_CONFIG_PATH="$LGTM_WORKSPACE/installdir/usr/lib/pkgconfig:$PKG_CONFIG_PATH"
     - export LD_LIBRARY_PATH="$LGTM_WORKSPACE/installdir/usr/lib:$LD_LIBRARY_PATH"
