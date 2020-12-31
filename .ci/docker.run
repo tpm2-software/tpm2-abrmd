@@ -31,8 +31,19 @@ if [ -z "$MAKE_TARGET" ]; then
   fi
 fi
 
+if [[ "$ENABLE_COVERAGE" == "true" ]]; then
+  CFLAGS="-D_REENTRANT"
+  CONFIG_EXTRA="--disable-defaultflags --enable-code-coverage --enable-debug"
+fi
+
+export CFLAGS
+
 $SCANBUILD ../configure --enable-debug $CONFIG_OPTS $CONFIG_EXTRA
 $SCANBUILD make -j$(nproc) $MAKE_TARGET
+
+if [[ "$ENABLE_COVERAGE" == "true" ]]; then
+    bash <(curl -s https://codecov.io/bash)
+fi
 
 popd
 popd

@@ -82,3 +82,20 @@ jobs:
       - name: failure
         if: ${{ failure() }}
         run: cat build/test-suite.log || true
+  coverage-test:
+    runs-on: ubuntu-latest
+    if: "!contains(github.ref, 'coverity_scan')"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Launch Container
+        env:
+          ENABLE_COVERAGE: true
+          DOCKER_IMAGE: ubuntu-18.04
+          TPM2TSS_BRANCH: master
+          MAKE_TARGET: check
+          CC: gcc
+        run: ./.ci/ci-runner.sh
+      - name: failure
+        if: ${{ failure() }}
+        run: cat build/test-suite.log || true
