@@ -8,7 +8,7 @@ $DOCKER_BUILD_DIR/.ci/get_deps.sh "$(dirname $DOCKER_BUILD_DIR)"
 pushd $DOCKER_BUILD_DIR
 
 SCANBUILD=""
-CONFIG_OPTS="--enable-unit --enable-integration --disable-silent-rules"
+CONFIG_OPTS="${CONFIG_OPTS:--enable-unit --enable-integration --disable-silent-rules}"
 
 if [ -d build ]; then
   rm -rf build
