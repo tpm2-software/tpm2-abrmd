@@ -22,9 +22,16 @@ jobs:
       - name: failure
         if: ${{ failure() }}
         run: cat build/test-suite.log || true
-  arm64v8:
+  multi-arch:
     runs-on: ubuntu-latest
     if: "!contains(github.ref, 'coverity_scan')"
+    strategy:
+      matrix:
+        ARCH: [
+          "ubuntu-20.04.arm32v7",
+          "ubuntu-20.04.arm64v8",
+          "fedora-32.ppc64le"
+        ]
     steps:
       - name: Setup QEMU
         run: |
@@ -34,50 +41,10 @@ jobs:
         uses: actions/checkout@v2
       - name: Launch Container
         env:
-          DOCKER_IMAGE: ubuntu-20.04.arm64v8
+          DOCKER_IMAGE: ${{ matrix.ARCH }}
           TPM2TSS_BRANCH: master
           CC: gcc
-          MAKE_TARGET: distcheck
-        run: ./.ci/ci-runner.sh
-      - name: failure
-        if: ${{ failure() }}
-        run: cat build/test-suite.log || true
-  arm32v7:
-    runs-on: ubuntu-latest
-    if: "!contains(github.ref, 'coverity_scan')"
-    steps:
-      - name: Setup QEMU
-        run: |
-          sudo apt-get install qemu binfmt-support qemu-user-static
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-      - name: Check out repository
-        uses: actions/checkout@v2
-      - name: Launch Container
-        env:
-          DOCKER_IMAGE: ubuntu-20.04.arm32v7
-          TPM2TSS_BRANCH: master
-          CC: gcc
-          MAKE_TARGET: distcheck
-        run: ./.ci/ci-runner.sh
-      - name: failure
-        if: ${{ failure() }}
-        run: cat build/test-suite.log || true
-  ppc64le:
-    runs-on: ubuntu-latest
-    if: "!contains(github.ref, 'coverity_scan')"
-    steps:
-      - name: Setup QEMU
-        run: |
-          sudo apt-get install qemu binfmt-support qemu-user-static
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-      - name: Check out repository
-        uses: actions/checkout@v2
-      - name: Launch Container
-        env:
-          DOCKER_IMAGE: fedora-32.ppc64le
-          TPM2TSS_BRANCH: master
-          CC: gcc
-          MAKE_TARGET: distcheck
+          MAKE_TARGET: check
         run: ./.ci/ci-runner.sh
       - name: failure
         if: ${{ failure() }}
