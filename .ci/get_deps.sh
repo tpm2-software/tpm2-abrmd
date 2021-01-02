@@ -15,7 +15,7 @@ if [ ! -d tpm2-tss ]; then
   git clone --depth=1 -b "${TPM2TSS_BRANCH}" "https://github.com/tpm2-software/tpm2-tss.git"
   pushd tpm2-tss
   ./bootstrap
-  ./configure --enable-debug
+  ./configure --enable-debug --disable-esys --disable-esapi --disable-fapi
   make -j$(nproc)
   make install
   popd
