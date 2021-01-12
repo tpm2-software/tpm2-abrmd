@@ -239,25 +239,7 @@ session_list_remove (SessionList   *list,
     list->session_entry_list = g_list_remove (list->session_entry_list, entry);
     g_object_unref (entry);
 }
-/*
- * Get last entry in list and remove it from the list.
- */
-SessionEntry*
-session_list_remove_last (SessionList *list)
-{
-    GList       *list_entry;
-    SessionEntry *entry_data;
 
-    list_entry = g_list_last (list->session_entry_list);
-    if (list_entry == NULL) {
-        return NULL;
-    }
-    entry_data = SESSION_ENTRY (list_entry->data);
-    list->session_entry_list = g_list_remove_link (list->session_entry_list,
-                                                     list_entry);
-
-    return entry_data;
-}
 /*
  * This is a lookup function to find an entry in the SessionList given
  * handle. This function increases the reference count on the
