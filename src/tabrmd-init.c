@@ -99,6 +99,8 @@ gmain_data_cleanup (gmain_data_t *data)
     if (data->loop != NULL) {
         main_loop_quit (data->loop);
     }
+
+    tabrmd_options_free(&data->options);
 }
 /*
  * This function initializes and configures all of the long-lived objects
