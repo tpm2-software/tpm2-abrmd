@@ -71,6 +71,12 @@ TESTS_INTEGRATION = \
 
 TESTS_INTEGRATION_NOHW = test/integration/tcti-connect-multiple.int
 
+if ENABLE_ASAN
+ASAN_EXTRA_ENV := \
+    G_SLICE=always \
+    ASAN_OPTIONS=fast_unwind_on_malloc=0:malloc_context_size=30
+endif
+
 # empty init for these since they're manipulated by conditionals
 TESTS =
 noinst_LTLIBRARIES =
@@ -78,11 +84,12 @@ XFAIL_TESTS = \
     test/integration/start-auth-session.int
 TEST_EXTENSIONS = .int
 AM_TESTS_ENVIRONMENT = \
+    $(ASAN_EXTRA_ENV) \
     TEST_FUNC_LIB=$(srcdir)/scripts/int-test-funcs.sh \
     PATH=./src:$(PATH) \
     dbus-run-session
 INT_LOG_COMPILER = $(srcdir)/scripts/int-test-setup.sh
-INT_LOG_FLAGS = --tabrmd-tcti=$(TABRMD_TCTI)
+INT_LOG_FLAGS = --tabrmd-tcti=$(TABRMD_TCTI) $(ASAN_INT_LOG_FLAGS)
 
 if ENABLE_INTEGRATION
 noinst_LTLIBRARIES += $(libtest)
