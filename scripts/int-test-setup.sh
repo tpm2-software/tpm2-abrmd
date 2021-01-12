@@ -82,7 +82,7 @@ in
         fi
         ;;
     *)
-        echo "Invalid TABRMD_TCTI, see --help."
+        echo "Invalid TABRMD_TCTI, got: \"${TABRMD_TCTI}\" see --help."
         exit 1
         ;;
 esac
