@@ -227,6 +227,22 @@ AS_IF([test "x$enable_defaultflags" = "xyes"],
       ADD_LINK_FLAG([-Wl,-z,relro])
       ])
 
+AC_ARG_ENABLE([asan],
+              [AS_HELP_STRING([--enable-asan],
+                              [Configure an ASAN enabled build.])],
+              [enable_asan=$enableval],
+              [enable_asan=no])
+AS_IF([test "x$enable_asan" = "xyes"],
+      [
+      # preprocessor / compiler / linker flags
+      #   these macros are defined in m4/flags.m4
+      AS_IF([test "x$enable_debug" = "xno"],
+            [ADD_COMPILER_FLAG([-g])])
+      ADD_COMPILER_FLAG([-O0])
+      ADD_COMPILER_FLAG([-fsanitize=address])
+      ADD_COMPILER_FLAG([-fno-omit-frame-pointer])
+      ADD_LINK_FLAG([-fsanitize=address])
+      ])
 AC_SUBST([PATH])
 
 AC_OUTPUT
