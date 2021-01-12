@@ -15,10 +15,10 @@
     .max_connections = TABRMD_CONNECTIONS_MAX_DEFAULT, \
     .max_transients = TABRMD_TRANSIENT_MAX_DEFAULT, \
     .max_sessions = TABRMD_SESSIONS_MAX_DEFAULT, \
-    .dbus_name = TABRMD_DBUS_NAME_DEFAULT, \
-    .prng_seed_file = TABRMD_ENTROPY_SRC_DEFAULT, \
+    .dbus_name = NULL, \
+    .prng_seed_file = NULL, \
     .allow_root = FALSE, \
-    .tcti_conf = TABRMD_TCTI_CONF_DEFAULT, \
+    .tcti_conf = NULL, \
 }
 
 typedef struct tabrmd_options {
@@ -28,7 +28,7 @@ typedef struct tabrmd_options {
     guint           max_transients;
     guint           max_sessions;
     gchar          *dbus_name;
-    const gchar    *prng_seed_file;
+    gchar          *prng_seed_file;
     gboolean        allow_root;
     gchar          *tcti_conf;
 } tabrmd_options_t;
@@ -37,5 +37,8 @@ gboolean
 parse_opts (gint argc,
             gchar *argv[],
             tabrmd_options_t *options);
+
+void
+tabrmd_options_free(tabrmd_options_t *opts);
 
 #endif /* TABRMD_OPTIONS_H */

@@ -16,6 +16,12 @@
 #define G_OPTION_FLAG_NONE 0
 #endif
 
+#define SET_STR_IF_NULL(var, value) \
+    do { \
+        var = var == NULL ? g_strdup(value) : var; \
+        g_assert(var); \
+    } while(0)
+
 /*
  * This is a GOptionArgFunc callback invoked from the GOption processor from
  * the parse_opts function below. It will be called when the daemon is
@@ -36,6 +42,22 @@ show_version (const gchar  *option_name,
     g_print ("tpm2-abrmd version %s\n", VERSION);
     exit (0);
 }
+
+/**
+ * Frees internal memory associated with a tabrmd_options_t struct.
+ * @param opts
+ *  The options to free, note it doesn't free opts itself.
+ */
+void
+tabrmd_options_free(tabrmd_options_t *opts)
+{
+    g_assert(opts);
+
+    g_clear_pointer(&opts->dbus_name, g_free);
+    g_clear_pointer(&opts->prng_seed_file, g_free);
+    g_clear_pointer(&opts->tcti_conf, g_free);
+}
+
 /**
  * This function parses the parameter argument vector and populates the
  * parameter 'options' structure with data needed to configure the tabrmd.
@@ -51,7 +73,7 @@ parse_opts (gint argc,
             gchar *argv[],
             tabrmd_options_t *options)
 {
-    gchar *logger_name = "stdout";
+    gchar *logger_name = NULL;
     GOptionContext *ctx;
     GError *err = NULL;
     gboolean session_bus = FALSE;
@@ -105,33 +127,52 @@ parse_opts (gint argc,
         return FALSE;
     }
     g_option_context_free (ctx);
+
+    /*
+     * Set unset STRING options to defaults, we do this so we can free allocated
+     * string options with gfree, having a mix of const and allocated ptr's
+     * causes leaks
+     */
+    SET_STR_IF_NULL(options->dbus_name, TABRMD_DBUS_NAME_DEFAULT);
+    SET_STR_IF_NULL(options->prng_seed_file, TABRMD_ENTROPY_SRC_DEFAULT);
+    SET_STR_IF_NULL(options->tcti_conf, TABRMD_TCTI_CONF_DEFAULT);
+    SET_STR_IF_NULL(logger_name, "stdout");
+
     /* select the bus type, default to G_BUS_TYPE_SESSION */
     options->bus = session_bus ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
-    if (set_logger (logger_name) == -1) {
+    gint ret = set_logger (logger_name);
+    if (ret == -1) {
         g_critical ("Unknown logger: %s, try --help\n", logger_name);
-        return FALSE;
+        g_free(logger_name);
+        goto error;
     }
+    g_free(logger_name);
+
     if (options->max_connections < 1 ||
         options->max_connections > TABRMD_CONNECTION_MAX)
     {
         g_critical ("maximum number of connections must be between 1 "
                     "and %d", TABRMD_CONNECTION_MAX);
-        return FALSE;
+        goto error;
     }
     if (options->max_sessions < 1 ||
         options->max_sessions > TABRMD_SESSIONS_MAX_DEFAULT)
     {
         g_critical ("max-sessions must be between 1 and %d",
                     TABRMD_SESSIONS_MAX_DEFAULT);
-        return FALSE;
+        goto error;
     }
     if (options->max_transients < 1 ||
         options->max_transients > TABRMD_TRANSIENT_MAX)
     {
         g_critical ("max-trans-obj parameter must be between 1 and %d",
                     TABRMD_TRANSIENT_MAX);
-        return FALSE;
+        goto error;
     }
     g_warning ("tcti_conf after: \"%s\"", options->tcti_conf);
     return TRUE;
+
+error:
+    tabrmd_options_free(options);
+    return FALSE;
 }

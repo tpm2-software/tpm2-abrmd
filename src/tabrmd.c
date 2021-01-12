@@ -43,7 +43,8 @@ main (int argc, char *argv[])
     }
     if (geteuid() == 0 && ! gmain_data.options.allow_root) {
         g_print ("Refusing to run as root. Pass --allow-root if you know what you are doing.\n");
-        return 1;
+        ret = 1;
+        goto out;
     }
 
     g_mutex_init (&gmain_data.init_mutex);
@@ -63,6 +64,7 @@ main (int argc, char *argv[])
     if (ret == 0 && gmain_data.ipc_disconnected) {
         ret = EX_IOERR;
     }
+out:
     gmain_data_cleanup (&gmain_data);
     return ret;
 }
