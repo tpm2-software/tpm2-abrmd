@@ -19,7 +19,7 @@
 typedef struct gmain_data {
     tabrmd_options_t        options;
     GMainLoop              *loop;
-    Tpm2           *tpm2;
+    Tpm2                   *tpm2;
     ResourceManager        *resource_manager;
     CommandSource          *command_source;
     Random                 *random;
