@@ -243,6 +243,8 @@ AS_IF([test "x$enable_asan" = "xyes"],
       ADD_COMPILER_FLAG([-fno-omit-frame-pointer])
       ADD_LINK_FLAG([-fsanitize=address])
       ])
+AM_CONDITIONAL([ENABLE_ASAN],[test "x$enable_asan" = "xyes"])
+
 AC_SUBST([PATH])
 
 AC_OUTPUT
