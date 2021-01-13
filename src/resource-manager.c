@@ -1167,7 +1167,6 @@ create_context_mapping_transient (ResourceManager  *resmgr,
     handle_map_insert (handle_map, vhandle, handle_entry);
     g_object_unref (handle_map);
     tpm2_response_set_handle (response, vhandle);
-    g_object_ref (handle_entry);
 }
 /*
  * This function after a Tpm2Command is sent to the TPM and:
