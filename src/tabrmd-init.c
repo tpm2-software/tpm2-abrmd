@@ -249,6 +249,7 @@ init_thread_func (gpointer user_data)
     return GINT_TO_POINTER (0);
 
 err_out:
+    g_mutex_unlock (&data->init_mutex);
     g_debug ("%s: calling gmain_data_cleanup", __func__);
     gmain_data_cleanup (data);
     return GINT_TO_POINTER (ret);
