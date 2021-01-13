@@ -41,6 +41,27 @@ test_setup (void **state)
     return 0;
 }
 
+static TSS2_TCTI_CONTEXT *
+tcti_ctx_from_state (void **state) {
+    assert_non_null (*state);
+    return (TSS2_TCTI_CONTEXT *)(*state);
+}
+
+static int test_setup_tcti (void **state)
+{
+    test_setup (state);
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
+    *state = tcti_ctx;
+    return 0;
+}
+
+static int test_teardown_tcti (void **state)
+{
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_ctx_from_state (state);
+    free (tcti_ctx);
+    return 0;
+}
+
 void
 __wrap_g_main_loop_quit (GMainLoop *loop)
 {
@@ -188,7 +209,7 @@ static void
 init_thread_func_tpm2_init_fail (void **state)
 {
     UNUSED_PARAM (state);
-    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_ctx_from_state (state);
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -218,7 +239,7 @@ static void
 init_thread_func_cmdattrs_fail (void **state)
 {
     UNUSED_PARAM (state);
-    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_ctx_from_state (state);
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -241,7 +262,7 @@ static void
 init_thread_func_cmdsrc_fail (void **state)
 {
     UNUSED_PARAM (state);
-    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_ctx_from_state (state);
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -258,7 +279,7 @@ static void
 init_thread_func_resmgr_fail (void **state)
 {
     UNUSED_PARAM (state);
-    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_ctx_from_state (state);
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -276,7 +297,7 @@ static void
 init_thread_func_respsnk_fail (void **state)
 {
     UNUSED_PARAM (state);
-    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_ctx_from_state (state);
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -295,7 +316,7 @@ static void
 init_thread_func_success (void **state)
 {
     UNUSED_PARAM (state);
-    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_mock_init_full ();
+    TSS2_TCTI_CONTEXT *tcti_ctx = tcti_ctx_from_state (state);
 
     will_return (__wrap_g_unix_signal_add, 1);
     will_return (__wrap_g_unix_signal_add, 1);
@@ -322,18 +343,19 @@ main (void)
                                 init_thread_func_setup),
         cmocka_unit_test_setup (init_thread_func_tcti_factory_fail,
                                 init_thread_func_setup),
-        cmocka_unit_test_setup (init_thread_func_tpm2_init_fail,
-                                init_thread_func_setup),
-        cmocka_unit_test_setup (init_thread_func_cmdattrs_fail,
-                                init_thread_func_setup),
-        cmocka_unit_test_setup (init_thread_func_cmdsrc_fail,
-                                init_thread_func_setup),
-        cmocka_unit_test_setup (init_thread_func_resmgr_fail,
-                                init_thread_func_setup),
-        cmocka_unit_test_setup (init_thread_func_respsnk_fail,
-                                init_thread_func_setup),
-        cmocka_unit_test_setup (init_thread_func_success,
-                                init_thread_func_setup),
+
+        cmocka_unit_test_setup_teardown (init_thread_func_tpm2_init_fail,
+                                test_setup_tcti, test_teardown_tcti),
+        cmocka_unit_test_setup_teardown (init_thread_func_cmdattrs_fail,
+                                test_setup_tcti, test_teardown_tcti),
+        cmocka_unit_test_setup_teardown (init_thread_func_cmdsrc_fail,
+                                test_setup_tcti, test_teardown_tcti),
+        cmocka_unit_test_setup_teardown (init_thread_func_resmgr_fail,
+                                test_setup_tcti, test_teardown_tcti),
+        cmocka_unit_test_setup_teardown (init_thread_func_respsnk_fail,
+                                test_setup_tcti, test_teardown_tcti),
+        cmocka_unit_test_setup_teardown (init_thread_func_success,
+                                test_setup_tcti, test_teardown_tcti),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
 }
