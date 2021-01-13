@@ -222,7 +222,7 @@ handle_map_insert (HandleMap      *map,
         TPM2_HANDLE *orig_key;
         HandleMapEntry *orig_value;
 
-	/* Check if an entry for the key is already in already in the table */
+	/* Check if an entry for the key is already in the table */
         if (!g_hash_table_lookup_extended (map->vhandle_to_entry_table,
                                            GINT_TO_POINTER (vhandle),
                                            (gpointer *) &orig_key,
