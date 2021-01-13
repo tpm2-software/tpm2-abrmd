@@ -70,6 +70,7 @@ command_attrs_teardown (void **state)
     test_data_t *data = *state;
 
     g_object_unref (data->command_attrs);
+    g_object_unref (data->tpm2);
     free (data);
     return 0;
 }
