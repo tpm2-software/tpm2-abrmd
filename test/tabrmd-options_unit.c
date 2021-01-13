@@ -44,7 +44,7 @@ __wrap_g_option_context_add_main_entries (
                 *(guint*)entries [i].arg_data = mock_type (guint);
             }
             if (strcmp (long_name, "tcti") == 0) {
-                *(char**)entries [i].arg_data = mock_type (char*);
+                *(char**)entries [i].arg_data = g_strdup (mock_type (char*));
             }
         }
     }
@@ -185,6 +185,7 @@ tcti_conf_parse_opts_success (void **state)
     will_return (__wrap_g_option_context_parse, TRUE);
     will_return (__wrap_set_logger, 0);
     assert_true (parse_opts (argc, argv, &options));
+    tabrmd_options_free (&options);
 }
 
 int
