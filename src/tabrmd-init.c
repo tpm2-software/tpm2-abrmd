@@ -99,6 +99,9 @@ gmain_data_cleanup (gmain_data_t *data)
     if (data->loop != NULL) {
         main_loop_quit (data->loop);
     }
+    if (data->tpm2) {
+        g_clear_object (&data->tpm2);
+    }
 
     tabrmd_options_free(&data->options);
 }
@@ -208,7 +211,7 @@ init_thread_func (gpointer user_data)
     g_clear_object (&session_list);
     data->response_sink = response_sink_new ();
     g_object_unref (command_attrs);
-    g_object_unref (data->tpm2);
+    g_clear_object (&data->tpm2);
     /*
      * Wire up the TPM command processing pipeline. TPM command buffers
      * flow from the CommandSource, to the Tab then finally back to the
