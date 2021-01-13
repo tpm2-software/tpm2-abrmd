@@ -267,6 +267,7 @@ session_list_claim_abandoned_test (void **state)
     conn = test_connection_new (CLAIM_CONNECTION_ID_1);
     ret = session_list_claim (data->session_list, entry, conn);
     assert_true (ret);
+    g_clear_object (&entry);
 }
 
 static void
@@ -287,6 +288,7 @@ session_list_claim_saved_test (void **state)
     ret = session_list_claim (data->session_list, entry, conn);
     assert_true (ret);
     assert_true (session_entry_get_state (entry) == SESSION_ENTRY_LOADED);
+    g_clear_object (&entry);
 }
 
 static void
@@ -302,6 +304,7 @@ session_list_claim_fail_test (void **state)
 
     ret = session_list_claim (data->session_list, entry, conn);
     assert_false (ret);
+    g_clear_object (&entry);
 }
 
 gint
