@@ -285,6 +285,7 @@ resource_manager_flushsave_context_test (void **state)
     will_return (__wrap_tpm2_context_saveflush, TSS2_RC_SUCCESS);
     resource_manager_flushsave_context (entry, data->resource_manager);
     assert_int_equal (handle_map_entry_get_phandle (entry), 0);
+    g_object_unref (entry);
 }
 
 static void
@@ -297,12 +298,12 @@ resource_manager_flushsave_context_same_entries_test (void **state)
                 phandle1 = TPM2_HR_TRANSIENT + 0x2,
                 phandle2 = TPM2_HR_TRANSIENT + 0x3;
 
-    /* Create two map entries for the same vhandle and diffrent phandle */
+    /* Create two map entries for the same vhandle and different phandle */
     entry1 = handle_map_entry_new (phandle1, vhandle);
     entry2 = handle_map_entry_new (phandle2, vhandle);
     map = handle_map_new(TPM2_HT_TRANSIENT, MAX_ENTRIES_DEFAULT);
 
-    /* Insert the two mappings */
+    /* Insert the two mappings, which bumps the ref count */
     handle_map_insert(map, vhandle, entry1);
     handle_map_insert(map, vhandle, entry2);
 
@@ -318,6 +319,7 @@ resource_manager_flushsave_context_same_entries_test (void **state)
     handle_map_remove (map, vhandle);
     g_object_unref (entry1);
     g_object_unref (entry2);
+    g_object_unref (entry3);
     g_object_unref (map);
 }
 
@@ -340,6 +342,7 @@ resource_manager_flushsave_context_fail_test (void **state)
     will_return (__wrap_tpm2_context_saveflush, TPM2_RC_INITIALIZE);
     resource_manager_flushsave_context (entry, data->resource_manager);
     assert_int_equal (handle_map_entry_get_phandle (entry), phandle);
+    g_object_unref (entry);
 }
 /*
  */
