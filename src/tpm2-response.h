@@ -11,6 +11,7 @@
 
 #include "connection.h"
 #include "session-entry.h"
+#include "tpm2-header.h"
 
 G_BEGIN_DECLS
 
@@ -59,5 +60,9 @@ void                tpm2_response_set_handle    (Tpm2Response    *response,
                                                  TPM2_HANDLE       handle);
 
 G_END_DECLS
+
+void
+response_buffer_set_rc(uint8_t buffer[TPM_HEADER_SIZE],
+                       TSS2_RC rc);
 
 #endif /* TPM2_RESPONSE_H */

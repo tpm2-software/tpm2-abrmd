@@ -196,6 +196,15 @@ tpm2_response_new (Connection     *connection,
                                        "connection", connection,
                                        NULL));
 }
+
+void
+response_buffer_set_rc(uint8_t buffer[TPM_HEADER_SIZE],
+                       TSS2_RC rc) {
+    TPM_RESPONSE_TAG (buffer)  = htobe16 (TPM2_ST_NO_SESSIONS);
+    TPM_RESPONSE_SIZE (buffer) = htobe32 (TPM_RESPONSE_HEADER_SIZE);
+    TPM_RESPONSE_CODE (buffer) = htobe32 (rc);
+}
+
 /**
  * This is a convenience wrapper that is used to create an error response
  * where all we need is a header with the RC set to something specific.
@@ -213,9 +222,7 @@ tpm2_response_new_rc (Connection *connection,
                    TPM_RESPONSE_HEADER_SIZE, errno, strerror (errno));
         return NULL;
     }
-    TPM_RESPONSE_TAG (buffer)  = htobe16 (TPM2_ST_NO_SESSIONS);
-    TPM_RESPONSE_SIZE (buffer) = htobe32 (TPM_RESPONSE_HEADER_SIZE);
-    TPM_RESPONSE_CODE (buffer) = htobe32 (rc);
+    response_buffer_set_rc (buffer, rc);
     return tpm2_response_new (connection, buffer, be32toh (TPM_RESPONSE_SIZE (buffer)), (TPMA_CC){ 0 });
 }
 /*

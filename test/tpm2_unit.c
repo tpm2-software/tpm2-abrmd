@@ -423,8 +423,11 @@ tpm2_send_command_success (void **state)
     test_data_t *data = (test_data_t*)*state;
     TSS2_RC rc;
     Connection *connection;
-    uint8_t buf [1] = { 0 };
+    uint8_t buf [TPM_RESPONSE_HEADER_SIZE] = { 0 };
     size_t size = sizeof (buf);
+
+    /* initialize a response buffer with RC success */
+    response_buffer_set_rc (buf, TSS2_RC_SUCCESS);
 
     will_return (tcti_mock_transmit, TSS2_RC_SUCCESS);
     will_return (tcti_mock_receive, buf);
