@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <tss2/tss2_tctildr.h>
+
 #include "tabrmd-defaults.h"
 #include "test-options.h"
 #include "context-util.h"
@@ -26,11 +28,12 @@ main ()
     TSS2_TCTI_CONTEXT *tcti_context[TCTI_COUNT_MAX] = { NULL };
     uint8_t            tcti_count = TABRMD_CONNECTIONS_MAX_DEFAULT, i;
     test_opts_t test_opts = TEST_OPTS_DEFAULT_INIT;
+    int ret = 1;
 
     if (tcti_count > TCTI_COUNT_MAX) {
         printf ("Cannot create more than %" PRIx8 " connections\n",
                 TCTI_COUNT_MAX);
-        exit (1);
+        return 1;
     }
 
     get_test_opts_from_env (&test_opts);
@@ -41,12 +44,23 @@ main ()
         if (tcti_context [i] == NULL) {
             if (i == TABRMD_CONNECTIONS_MAX_DEFAULT - 1) {
                 g_info ("Failed to initialize TCTI after default connection max, success");
-                exit (1);
+                goto out;
             } else {
                 g_warning ("failed to initialize TCTI connection number %" PRIu8
                            " with tabrmd", i);
-                exit (2);
+                ret = 2;
+                goto out;
             }
         }
     }
+
+    ret = 0;
+
+out:
+    tcti_count = i;
+    for (i=0; i < tcti_count; i++) {
+        tcti_free_from_opts (&test_opts, &tcti_context [i]);
+    }
+
+    return ret;
 }
