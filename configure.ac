@@ -68,12 +68,6 @@ m4_ifdef([_AX_CODE_COVERAGE_RULES],
          [AM_CONDITIONAL(AUTOCONF_CODE_COVERAGE_2019_01_06, [false])])
 AX_ADD_AM_MACRO_STATIC([])
 
-# disable helgrind and drd, they hate GAsyncQueue
-AX_VALGRIND_DFLT([sgcheck], [off])
-AX_VALGRIND_DFLT([helgrind], [off])
-AX_VALGRIND_DFLT([drd], [off])
-AX_VALGRIND_CHECK
-
 # allow
 AC_ARG_ENABLE([dlclose],
   [AS_HELP_STRING([--disable-dlclose],

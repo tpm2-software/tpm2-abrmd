@@ -65,7 +65,7 @@ session_entry_teardown (void **state)
  * This is a test for memory management / reference counting. The setup
  * function does exactly that so when we get the Tpm2Command object we just
  * check to be sure it's a GObject and then we unref it. This test will
- * probably only fail when run under valgrind if the reference counting is
+ * probably only fail when run under ASAN if the reference counting is
  * off.
  */
 static void

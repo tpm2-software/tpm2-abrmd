@@ -186,10 +186,6 @@ else # AUTOCONF_CODE_COVERAGE_2019_01_06
 @CODE_COVERAGE_RULES@
 endif # AUTOCONF_CODE_COVERAGE_2019_01_06
 
-@VALGRIND_CHECK_RULES@
-VALGRIND_G_DEBUG = fatal-criticals,gc-friendly
-VALGRIND_memcheck_FLAGS = --leak-check=full --show-leak-kinds=definite,indirect --track-origins=yes --error-exitcode=1
-
 # This is a hack required to ensure that BUILT_SOURCES are generated before
 # the file that requires them.
 src/ipc-frontend-dbus.c : $(BUILT_SOURCES)
