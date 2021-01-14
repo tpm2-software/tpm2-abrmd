@@ -41,7 +41,7 @@ AC_SEARCH_LIBS([dlopen], [dl dld], [], [
 PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GOBJECT], [gobject-2.0])
-PKG_CHECK_MODULES([TSS2_SYS],[tss2-sys >= 2.0.0])
+PKG_CHECK_MODULES([TSS2_SYS],[tss2-sys >= 2.4.0])
 PKG_CHECK_MODULES([TSS2_MU],[tss2-mu])
 PKG_CHECK_MODULES([TSS2_TCTILDR],[tss2-tctildr])
 PKG_CHECK_MODULES([TSS2_RC],[tss2-rc])
