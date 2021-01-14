@@ -128,8 +128,6 @@ void
 tcti_free_from_opts (test_opts_t *options,
                      TSS2_TCTI_CONTEXT **tcti_context)
 {
-    TSS2_RC rc;
-
     if (options->tcti_filename != NULL) {
         Tss2_TctiLdr_Finalize (tcti_context);
     } else {
