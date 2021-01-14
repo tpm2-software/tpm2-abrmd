@@ -7,6 +7,7 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 ### Added
   - configure option --enable-asan which will cause the build to produce
     ASAN enabled binaries.
+  - CI runs with clang enable asan for tests.
 
 ### Fixed
   - Numerous memory leaks.
