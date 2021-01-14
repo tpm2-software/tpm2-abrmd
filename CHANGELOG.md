@@ -15,6 +15,9 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
   - StandardOutput=syslog removed from systemd service file as syslog is
     deprecated since systemd version 246.
 
+### Removed
+  - valgrind configure options.
+
 ### 2.3.3 - 2020-08-10
 ### Fixed:
   - Fixed handle resource leak exhausting TPM resources.
