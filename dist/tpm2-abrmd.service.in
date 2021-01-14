@@ -4,7 +4,6 @@ Description=TPM2 Access Broker and Resource Management Daemon
 # TCP mssim is used then the settings should be commented out.
 After=dev-tpm0.device
 Requires=dev-tpm0.device
-ConditionPathExistsGlob=/dev/tpm*
 
 [Service]
 Type=dbus
