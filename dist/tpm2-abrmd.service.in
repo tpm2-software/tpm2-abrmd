@@ -1,7 +1,5 @@
 [Unit]
 Description=TPM2 Access Broker and Resource Management Daemon
-After=systemd-udev-settle.service
-Requires=systemd-udev-settle.service
 # This condition is needed when using the device TCTI. If the
 # TCP swtpm or mssim is used then the condition should be commented out.
 ConditionPathExistsGlob=/dev/tpm*
@@ -10,6 +8,14 @@ ConditionPathExistsGlob=/dev/tpm*
 Type=dbus
 BusName=com.intel.tss2.Tabrmd
 ExecStart=@SBINDIR@/tpm2-abrmd
+# There is a chance that the service could start before udev gets a chance
+# to change FS permisions, or a system could be missing the udev rules.
+# This would cause the device node to be inaccessible to the service,
+# causing it to fail to establish the TCTI.
+# Run commands before the service starts while root, to change the fs
+# permissions of /dev/tpm0 change this if using a different TPM for abrmd.
+ExecStartPre=@CHMOD@ 0660 /dev/tpm0
+ExecStartPre=@CHOWN@ tss /dev/tpm0
 User=tss
 
 [Install]

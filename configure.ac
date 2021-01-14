@@ -19,6 +19,11 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AX_RECURSIVE_EVAL([$sbindir], [SBINDIR])
 AC_SUBST([SBINDIR])
 
+AC_PATH_PROG([CHMOD], [chmod])
+AC_SUBST([CHMOD])
+AC_PATH_PROG([CHOWN], [chown])
+AC_SUBST([CHOWN])
+
 AC_CONFIG_FILES([Makefile dist/tss2-tcti-tabrmd.pc dist/tpm2-abrmd.service dist/tpm2-abrmd.preset])
 
 # propagate configure arguments to distcheck
