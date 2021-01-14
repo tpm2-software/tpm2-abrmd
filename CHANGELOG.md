@@ -4,10 +4,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
 ### next
+### Added
+  - configure option --enable-asan which will cause the build to produce
+    ASAN enabled binaries.
+
+### Fixed
+  - Numerous memory leaks.
+
 ### Changed
   - StandardOutput=syslog removed from systemd service file as syslog is
     deprecated since systemd version 246.
-
 
 ### 2.3.3 - 2020-08-10
 ### Fixed:
