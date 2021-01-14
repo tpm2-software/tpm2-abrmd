@@ -26,7 +26,7 @@ if [ -z "$MAKE_TARGET" ]; then
   else
     SCANBUILD="scan-build --status-bugs"
     CFLAGS="-D_REENTRANT"
-    CONFIG_EXTRA="--disable-defaultflags"
+    CONFIG_EXTRA="--disable-defaultflags --enable-debug --enable-asan"
     MAKE_TARGET="check"
   fi
 fi
