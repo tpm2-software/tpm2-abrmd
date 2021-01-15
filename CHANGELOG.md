@@ -9,10 +9,12 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
     ASAN enabled binaries.
   - CI runs with clang enable asan for tests.
   - Service start depends on systemd device unit: dev-tpm0.device.
+  - Testing support with swtpm.
 
 ### Fixed
   - Numerous memory leaks.
   - udev settle service deprecation warnings.
+  - StandardOutput=syslog deprecation warnings.
 
 ### Changed
   - StandardOutput=syslog removed from systemd service file as syslog is
