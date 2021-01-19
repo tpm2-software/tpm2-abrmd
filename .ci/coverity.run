@@ -3,6 +3,9 @@
 
 set -eo pipefail
 
+# Override project to the old project name becuase coverity didn't understand the rename from
+# 01org/tpm2-abrmd to tpm2-software/tpm2-abrmd
+export PROJECT='01org/tpm2-abrmd'
 echo "PROJECT=$PROJECT"
 
 if [ -z "$COVERITY_SCAN_TOKEN" ]; then
@@ -75,33 +78,35 @@ AUTHOR_EMAIL="$(git log -1 $HEAD --pretty="%aE")"
 VERSION="$(git rev-parse HEAD)"
 echo "Name: $AUTHOR" >> README
 echo "Email: $AUTHOR_EMAIL" >> README
-echo "Project: tpm2-pkcs11" >> README
+echo "Project: $PROJECT" >> README
 echo "Build-Version: $VERSION" >> README
 echo "Description: $REPO_SLUG $REPO_BRANCH" >> README
-echo "Submitted-by: tpm2-pkcs11 CI" >> README
+echo "Submitted-by: $PROJECT CI" >> README
 echo "---README---"
 cat README
 echo "---EOF---"
 
-rm -f tpm2-pkcs11-scan.tgz
-tar -czf tpm2-pkcs11-scan.tgz README cov-int
+SCAN_FILE="$(basename $PROJECT)-scan.tgz"
+
+rm -f "$SCAN_FILE"
+tar -czf "$SCAN_FILE" README cov-int
 
 rm -rf README cov-int
 
 # upload the results
 echo "Testing for scan results..."
-scan_file=$(stat --printf='%n' tpm2-*-scan.tgz)
+stat "$SCAN_FILE"
 
 echo "Submitting data to Coverity"
 curl --form token="$COVERITY_SCAN_TOKEN" \
   --form email="$COVERITY_SUBMISSION_EMAIL" \
   --form project="$PROJECT" \
-  --form file=@"$scan_file" \
+  --form file=@"$SCAN_FILE" \
   --form version="$VERSION" \
   --form description="$REPO_SLUG $REPO_BRANCH" \
   "https://scan.coverity.com/builds?project=$PROJECT"
 
-rm -rf tpm2-*-scan.tgz
+rm -rf $SCAN_FILE
 
 popd
 
