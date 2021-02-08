@@ -3,7 +3,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-### 2.4.0-rc0 - 2021-01-31
+### 2.4.0 - 2021-02-08
 ### Added
   - configure option --enable-asan which will cause the build to produce
     ASAN enabled binaries.
