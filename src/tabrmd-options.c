@@ -118,7 +118,7 @@ parse_opts (gint argc,
         { NULL, '\0', 0, 0, NULL, NULL, NULL },
     };
 
-    g_warning ("tcti_conf before: \"%s\"", options->tcti_conf);
+    g_debug ("tcti_conf before: \"%s\"", options->tcti_conf);
 
     ctx = g_option_context_new (" - TPM2 software stack Access Broker Daemon (tabrmd)");
     g_option_context_add_main_entries (ctx, entries, NULL);
@@ -169,7 +169,7 @@ parse_opts (gint argc,
                     TABRMD_TRANSIENT_MAX);
         goto error;
     }
-    g_warning ("tcti_conf after: \"%s\"", options->tcti_conf);
+    g_debug ("tcti_conf after: \"%s\"", options->tcti_conf);
     return TRUE;
 
 error:
