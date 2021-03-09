@@ -175,7 +175,8 @@ AC_ARG_ENABLE([integration],
     [enable_integration=no])
 AS_IF([test "x$enable_integration" = "xyes"],
     [AS_IF([test "x$enable_test_hwtpm" = "xno"],
-        [AC_CHECK_PROG([swtpm], [swtpm], [yes], [no])
+	[PATH_PROG([DBUS_RUN_SESSION], [dbus-run-session])
+         AC_CHECK_PROG([swtpm], [swtpm], [yes], [no])
          AC_CHECK_PROG([tpm_server], [tpm_server], [yes], [no])
          AS_IF([test "$swtpm" = yes], [TABRMD_TCTI=swtpm],
                [AS_IF([test "$tpm_server" = yes], [TABRMD_TCTI=mssim],
