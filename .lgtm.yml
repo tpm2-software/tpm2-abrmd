@@ -3,6 +3,7 @@ extraction:
     prepare:
       packages:
       - autoconf-archive
+      - acl
     after_prepare:
     - cd "$LGTM_WORKSPACE"
     - mkdir installdir
