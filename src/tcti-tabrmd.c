@@ -558,10 +558,25 @@ tcti_tabrmd_connect (TSS2_TCTI_CONTEXT *context)
     }
     gint num_handles = g_unix_fd_list_get_length (fd_list);
     if (num_handles != 1) {
-        g_critical ("CreateConnection expected to return 1 handles, received %d",
-                    num_handles);
-        rc = TSS2_TCTI_RC_GENERAL_FAILURE;
-        goto out;
+        g_debug ("CreateConnection expected to return 1 handles, received %d",
+                 num_handles);
+        if (num_handles == 2) {
+			/* On some platform, eg. MS Windows WSL the
+			 * g_dbus_proxy_call_with_unix_fd_list_sync() function behaves
+			 * differently than on native Linux host and returns two fd handles
+			 * instead of one. Need to take care of the extra one
+			 * and close in manually here so it won't leak.
+			 */
+            gint fd = g_unix_fd_list_get (fd_list, 1, &error);
+            if (fd != -1) {
+                g_debug ("Closing extra handle %d", fd);
+                close(fd);
+            }
+        } else {
+            g_critical ("CreateConnection handles received %d", num_handles);
+            rc = TSS2_TCTI_RC_GENERAL_FAILURE;
+            goto out;
+        }
     }
     gint fd = g_unix_fd_list_get (fd_list, 0, &error);
     if (fd == -1) {
