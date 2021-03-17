@@ -442,7 +442,7 @@ tcti_tabrmd_call_create_connection_sync_fdlist (TctiTabrmd     *proxy,
     GVariant *_ret;
     _ret = g_dbus_proxy_call_with_unix_fd_list_sync (G_DBUS_PROXY (proxy),
         "CreateConnection",
-        g_variant_new ("()"),
+        NULL,
         G_DBUS_CALL_FLAGS_NONE,
         -1,
         NULL,
