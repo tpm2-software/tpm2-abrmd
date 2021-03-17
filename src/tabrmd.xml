@@ -3,7 +3,6 @@
 <node>
     <interface name='com.intel.tss2.TctiTabrmd'>
         <method name='CreateConnection'>
-            <arg type='ah' name='fds' direction='out'/>
             <arg type='t'  name='id'  direction='out'/>
         </method>
         <method name='Cancel'>

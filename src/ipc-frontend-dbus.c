@@ -199,28 +199,6 @@ ipc_frontend_dbus_new (GBusType           bus_type,
 }
 /* TabrmdSkeleton signal handlers */
 /*
- * This is a utility function that builds an array of handles as a
- * GVariant object. The handles that make up the array are passed in
- * as a GUnixFDList.
- */
-static GVariant*
-handle_array_variant_from_fdlist (GUnixFDList *fdlist)
-{
-    GVariant *tuple;
-    GVariantBuilder *builder;
-    gint i = 0;
-
-    /* build array of handles as GVariant */
-    builder = g_variant_builder_new (G_VARIANT_TYPE ("ah"));
-    for (i = 0; i < g_unix_fd_list_get_length (fdlist); ++i)
-        g_variant_builder_add (builder, "h", i);
-    /* create tuple variant from builder */
-    tuple = g_variant_new ("ah", builder);
-    g_variant_builder_unref (builder);
-
-    return tuple;
-}
-/*
  * Give this function a dbus proxy and invocation object from a method
  * invocation and it will get the PID of the process associated with the
  * invocation. If an error occurs this function returns false.
@@ -345,7 +323,7 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
     Connection *connection = NULL;
     gint client_fd = 0, ret = 0;
     GIOStream *iostream;
-    GVariant *response_variants[2], *response_tuple;
+    GVariant *response, *response_tuple;
     GUnixFDList *fd_list = NULL;
     guint64 id = 0, id_pid_mix = 0;
     gboolean id_ret = FALSE;
@@ -392,10 +370,8 @@ on_handle_create_connection (TctiTabrmd            *skeleton,
              client_fd, id_pid_mix);
     /* prepare tuple variant for response message */
     fd_list = g_unix_fd_list_new_from_array (&client_fd, 1);
-    response_variants[0] = handle_array_variant_from_fdlist (fd_list);
-    /* return the random id to client, *not* xor'd with PID */
-    response_variants[1] = g_variant_new_uint64 (id);
-    response_tuple = g_variant_new_tuple (response_variants, 2);
+    response = g_variant_new_uint64 (id);
+    response_tuple = g_variant_new_tuple (&response, 1);
     /*
      * Issue the callback to notify subscribers that a new connection has
      * been created.

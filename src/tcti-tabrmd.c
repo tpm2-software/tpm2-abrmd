@@ -434,7 +434,6 @@ init_tcti_data (TSS2_TCTI_CONTEXT *context)
 
 static gboolean
 tcti_tabrmd_call_create_connection_sync_fdlist (TctiTabrmd     *proxy,
-                                                GVariant      **out_fds,
                                                 guint64        *out_id,
                                                 GUnixFDList   **out_fd_list,
                                                 GCancellable   *cancellable,
@@ -453,7 +452,7 @@ tcti_tabrmd_call_create_connection_sync_fdlist (TctiTabrmd     *proxy,
     if (_ret == NULL) {
         goto _out;
     }
-    g_variant_get (_ret, "(@aht)", out_fds, out_id);
+    g_variant_get (_ret, "(t)", out_id);
     g_variant_unref (_ret);
 _out:
     return _ret != NULL;
@@ -533,14 +532,12 @@ tcti_tabrmd_connect (TSS2_TCTI_CONTEXT *context)
     GError *error = NULL;
     GSocket *sock = NULL;
     GUnixFDList *fd_list = NULL;
-    GVariant *fds_variant = NULL;
     gboolean call_ret;
     guint64 id;
     TSS2_RC rc = TSS2_RC_SUCCESS;
 
     call_ret = tcti_tabrmd_call_create_connection_sync_fdlist (
         TSS2_TCTI_TABRMD_PROXY (context),
-        &fds_variant,
         &id,
         &fd_list,
         NULL,
@@ -575,7 +572,6 @@ tcti_tabrmd_connect (TSS2_TCTI_CONTEXT *context)
         g_socket_connection_factory_create_connection (sock);
     TSS2_TCTI_TABRMD_ID (context) = id;
 out:
-    g_clear_pointer (&fds_variant, g_variant_unref);
     g_clear_error (&error);
     g_clear_object (&sock);
     g_clear_object (&fd_list);
