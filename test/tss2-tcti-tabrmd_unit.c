@@ -382,7 +382,7 @@ __wrap_g_dbus_proxy_call_with_unix_fd_list_sync (
     GCancellable *cancellable,
     GError **error)
 {
-    GVariant *variant_array[2] = { 0 }, *variant_tuple;
+    GVariant *variant_array[1] = { 0 }, *variant_tuple;
     gint client_fd;
     guint64 id;
     UNUSED_PARAM(proxy);
@@ -391,19 +391,15 @@ __wrap_g_dbus_proxy_call_with_unix_fd_list_sync (
     UNUSED_PARAM(flags);
     UNUSED_PARAM(timeout_msec);
     UNUSED_PARAM(fd_list);
+    UNUSED_PARAM(out_fd_list);
     UNUSED_PARAM(cancellable);
     UNUSED_PARAM(error);
 
     client_fd = mock_type (gint);
     id = mock_type (guint64);
-
     *out_fd_list = g_unix_fd_list_new_from_array (&client_fd, 1);
-    variant_array[0] = g_variant_new_fixed_array (G_VARIANT_TYPE ("h"),
-                                                  &client_fd,
-                                                  1,
-                                                  sizeof (gint32));
-    variant_array[1] = g_variant_new_uint64 (id);
-    variant_tuple = g_variant_new_tuple (variant_array, 2);
+    variant_array[0] = g_variant_new_uint64 (id);
+    variant_tuple = g_variant_new_tuple (variant_array, 1);
 
     return variant_tuple;
 }
