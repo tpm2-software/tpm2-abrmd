@@ -24,6 +24,8 @@ AC_CONFIG_FILES([Makefile dist/tss2-tcti-tabrmd.pc dist/tpm2-abrmd.service dist/
 # propagate configure arguments to distcheck
 AC_SUBST([DISTCHECK_CONFIGURE_FLAGS],[$ac_configure_args])
 
+gl_LD_VERSION_SCRIPT
+
 AX_PTHREAD([], [AC_MSG_ERROR([requires pthread])])
 AC_ARG_ENABLE([unit],
               [AS_HELP_STRING([--enable-unit],
