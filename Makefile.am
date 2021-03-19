@@ -281,8 +281,14 @@ src_libtss2_tcti_tabrmd_la_LIBADD = $(GIO_LIBS) $(GLIB_LIBS) $(TSS2_MU_LIBS) \
 if !ENABLE_ASAN
 UNDEFINED_SYMS := -Wl,--no-undefined
 endif
-src_libtss2_tcti_tabrmd_la_LDFLAGS = -fPIC $(UNDEFINED_SYMS) -Wl,-z,nodelete -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
 src_libtss2_tcti_tabrmd_la_SOURCES = src/tcti-tabrmd.c src/tcti-tabrmd-priv.h $(srcdir)/src/tcti-tabrmd.map
+src_libtss2_tcti_tabrmd_la_LDFLAGS = -fPIC $(UNDEFINED_SYMS) -Wl,-z,nodelete
+if HAVE_LD_VERSION_SCRIPT
+src_libtss2_tcti_tabrmd_la_LDFLAGS +=  -Wl,--version-script=$(srcdir)/src/tcti-tabrmd.map
+endif # HAVE_LD_VERSION_SCRIPT
+
+# Bump so version after changing the dbus CreateConnection definition
+src_libtss2_tcti_tabrmd_la_LDFLAGS += -version-info 1:0:0
 
 src_tpm2_abrmd_LDADD   = $(GIO_LIBS) $(GLIB_LIBS) $(PTHREAD_LIBS) \
     $(TSS2_SYS_LIBS) $(TSS2_TCTILDR_LIBS) $(libutil)
