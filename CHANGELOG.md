@@ -5,9 +5,11 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
 ### next
 ### Fixed
-  - Fixed superflous warning messages about tcti status.
+  - superflous warning messages about tcti status.
     - `WARNING **: 11:00:56.205: tcti_conf before: "(null)"`
     - `WARNING **: 11:00:56.205: tcti_conf after: "mssim"`
+  - GCC 11 build error: error: argument 2 of `__atomic_load’ discards ‘volatile’ qualifier`
+
 
 ### 2.4.0 - 2021-02-08
 ### Added
