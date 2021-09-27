@@ -187,7 +187,7 @@ tcti_tabrmd_read (TSS2_TCTI_TABRMD_CONTEXT *ctx,
                   size_t size,
                   int32_t timeout)
 {
-    GError *error;
+    GError *error = NULL;
     ssize_t num_read;
     int ret;
 
