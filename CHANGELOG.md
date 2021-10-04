@@ -9,6 +9,7 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
     - `WARNING **: 11:00:56.205: tcti_conf before: "(null)"`
     - `WARNING **: 11:00:56.205: tcti_conf after: "mssim"`
   - GCC 11 build error: error: argument 2 of `__atomic_load’ discards ‘volatile’ qualifier`
+  - Initialize gerror pointer variable to NULL to fix use of unitialized memory and segfault.
 
 
 ### 2.4.0 - 2021-02-08
