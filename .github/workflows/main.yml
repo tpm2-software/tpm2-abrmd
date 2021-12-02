@@ -18,7 +18,7 @@ jobs:
           DOCKER_IMAGE: "${{ matrix.DOCKER_IMAGE }}"
           TPM2TSS_BRANCH: "${{ matrix.TPM2TSS_BRANCH }}"
           CC: "${{ matrix.CC }}"
-        run: ./.ci/ci-runner.sh
+        run: ./.ci/ci.sh
       - name: failure
         if: ${{ failure() }}
         run: find -name test-suite.log | xargs cat || true
@@ -46,7 +46,7 @@ jobs:
           TPM2TSS_BRANCH: master
           CC: gcc
           MAKE_TARGET: check
-        run: ./.ci/ci-runner.sh
+        run: ./.ci/ci.sh
       - name: failure
         if: ${{ failure() }}
         run: find -name test-suite.log | xargs cat || true
@@ -63,7 +63,7 @@ jobs:
           TPM2TSS_BRANCH: master
           MAKE_TARGET: check
           CC: gcc
-        run: ./.ci/ci-runner.sh
+        run: ./.ci/ci.sh
       - name: failure
         if: ${{ failure() }}
         run: find -name test-suite.log | xargs cat || true
@@ -84,7 +84,7 @@ jobs:
           CC: gcc
           COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
           COVERITY_SUBMISSION_EMAIL: william.c.roberts@intel.com
-        run: ./.ci/ci-runner.sh
+        run: ./.ci/ci.sh
   whitespace-check:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && !contains(github.ref, 'coverity_scan')
