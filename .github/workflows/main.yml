@@ -18,6 +18,7 @@ jobs:
           DOCKER_IMAGE: "${{ matrix.DOCKER_IMAGE }}"
           TPM2TSS_BRANCH: "${{ matrix.TPM2TSS_BRANCH }}"
           CC: "${{ matrix.CC }}"
+          GIT_FULL_CLONE: true
         run: ./.ci/ci.sh
       - name: failure
         if: ${{ failure() }}
