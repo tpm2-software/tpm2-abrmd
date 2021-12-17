@@ -69,6 +69,8 @@ test_thread_run (void *data)
         g_debug ("test_thread_run after sleep");
     }
     pthread_cleanup_pop (0);
+
+    return NULL;
 }
 /*
  * This function is invoked as part of canceling ('thread_cancel') the Thread.
