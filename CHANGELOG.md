@@ -12,6 +12,8 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
   - Initialize gerror pointer variable to NULL to fix use of unitialized memory and segfault.
   - Updated missing defaults in manpage.
 
+### Removed
+  - Dependency on 'which' utility in configure.ac.
 
 ### 2.4.0 - 2021-02-08
 ### Added

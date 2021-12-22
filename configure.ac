@@ -47,7 +47,7 @@ PKG_CHECK_MODULES([TSS2_TCTILDR],[tss2-tctildr])
 PKG_CHECK_MODULES([TSS2_RC],[tss2-rc])
 AC_ARG_VAR([GDBUS_CODEGEN],[The gdbus-codegen executable.])
 AC_CHECK_PROG([GDBUS_CODEGEN], [gdbus-codegen], [gdbus-codegen])
-AS_IF([test ! -x "$(which $GDBUS_CODEGEN)"],
+AS_IF([test x"$GDBUS_CODEGEN" != x"gdbus-codegen"],
       [AC_MSG_ERROR([*** gdbus-codegen is required to build tpm2-abrmd])])
 
 # Check OS and set library and compile flags accordingly
