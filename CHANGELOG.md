@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
 ### next
+### Added
+  - Contributor Covenant Code of Conduct.
+
 ### Fixed
   - superflous warning messages about tcti status.
     - `WARNING **: 11:00:56.205: tcti_conf before: "(null)"`
@@ -11,9 +14,11 @@ The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
   - GCC 11 build error: error: argument 2 of `__atomic_load’ discards ‘volatile’ qualifier`
   - Initialize gerror pointer variable to NULL to fix use of unitialized memory and segfault.
   - Updated missing defaults in manpage.
+  - Port CI to composite actions in tpm2-software/ci.
 
 ### Removed
   - Dependency on 'which' utility in configure.ac.
+  - ubuntu-16.04 from CI.
 
 ### 2.4.0 - 2021-02-08
 ### Added
