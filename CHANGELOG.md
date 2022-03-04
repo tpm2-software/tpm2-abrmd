@@ -3,7 +3,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-### next
+### 2.4.1 - 2022-03-04
 ### Added
   - Contributor Covenant Code of Conduct.
 
