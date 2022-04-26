@@ -2,9 +2,12 @@
 All non security bugs should be filed on the Issues tracker:
 https://github.com/01org/tpm2-abrmd/issues
 
-Security sensitive bugs should be emailed to a maintainer directly, or to Intel
-via the guidelines here:
-https://security-center.intel.com/VulnerabilityHandlingGuidelines.aspx
+Security sensitive bugs or questions should be emailed to *all* maintainers
+listed in the [MAINTAINERS](MAINTAINERS) file directly so consensus on the
+issue and the appropriate resolution can be reached. Alternatively you may
+contact Intel by following the instructions
+[here](https://security-center.intel.com/VulnerabilityHandlingGuidelines.aspx)
+and they will assist you.
 
 # Guideline for submitting changes:
 All changes to the source code must follow the coding standard used in the
