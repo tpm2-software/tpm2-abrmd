@@ -7,7 +7,7 @@ task:
     ibmtpm_name: ibmtpm1563
   freebsd_instance:
     matrix:
-      image_family: freebsd-12-3
+      image_family: freebsd-13-1
   install_script:
     - pkg upgrade -y
     - pkg install -y bash gmake coreutils libtool pkgconf autoconf autoconf-archive openssl
