@@ -67,7 +67,8 @@ TESTS_INTEGRATION = \
     test/integration/not-enough-handles-for-command.int \
     test/integration/password-authorization.int \
     test/integration/tpm2-command-flush-no-handle.int \
-    test/integration/util-buf-max-upper-bound.int
+    test/integration/util-buf-max-upper-bound.int \
+    test/integration/get-capability-with-session.int
 
 TESTS_INTEGRATION_NOHW = test/integration/tcti-connect-multiple.int
 
@@ -526,6 +527,10 @@ test_integration_tpm2_command_flush_no_handle_int_SOURCES = \
 test_integration_util_buf_max_upper_bound_int_LDADD = $(TEST_INT_LIBS)
 test_integration_util_buf_max_upper_bound_int_SOURCES = \
     test/integration/main.c test/integration/util-buf-max-upper-bound.int.c
+
+test_integration_get_capability_with_session_int_LDADD = $(TEST_INT_LIBS)
+test_integration_get_capability_with_session_int_SOURCES = \
+    test/integration/main.c test/integration/get-capability-with-session.int.c
 
 if WITH_SEPOLICY
 

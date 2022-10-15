@@ -1121,8 +1121,10 @@ command_special_processing (ResourceManager *resmgr,
         response = resource_manager_load_context (resmgr, command);
         break;
     case TPM2_CC_GetCapability:
-        g_debug ("processing TPM2_CC_GetCapability");
-        response = get_cap_gen_response (resmgr, command);
+        if (!tpm2_command_has_auths(command)) {
+            g_debug ("processing TPM2_CC_GetCapability");
+            response = get_cap_gen_response (resmgr, command);
+        }
         break;
     default:
         break;
