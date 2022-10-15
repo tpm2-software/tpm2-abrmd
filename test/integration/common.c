@@ -448,6 +448,48 @@ start_auth_session (TSS2_SYS_CONTEXT      *sapi_context,
 
     return rc;
 }
+
+TSS2_RC
+start_auth_session_hmac (TSS2_SYS_CONTEXT      *sapi_context,
+			 TPMI_SH_AUTH_SESSION  *session_handle)
+{
+    TSS2_RC rc;
+    TPM2B_NONCE nonce_caller = {
+        .size   = TPM2_SHA256_DIGEST_SIZE,
+        .buffer = {
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef,
+            0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef
+        }
+    };
+    TPM2B_NONCE nonce_tpm = {
+        .size   = TPM2_SHA256_DIGEST_SIZE,
+        .buffer = { 0 }
+    };
+    TPM2B_ENCRYPTED_SECRET encrypted_salt = TPM2B_ENCRYPTED_SECRET_ZERO_INIT;
+    TPMT_SYM_DEF           symmetric      = { .algorithm = TPM2_ALG_NULL };
+
+    g_debug ("StartAuthSession for TPM_SE_HMAC (HMAC session)");
+    rc = Tss2_Sys_StartAuthSession (sapi_context,
+                                    TPM2_RH_NULL,     /* tpmKey */
+                                    TPM2_RH_NULL,     /* bind */
+                                    0,               /* cmdAuthsArray */
+                                    &nonce_caller,   /* nonceCaller */
+                                    &encrypted_salt, /* encryptedSalt */
+                                    TPM2_SE_HMAC,   /* sessionType */
+                                    &symmetric,      /* symmetric */
+                                    TPM2_ALG_SHA256,  /* authHash */
+                                    session_handle,  /* sessionHandle */
+                                    &nonce_tpm,      /* nonceTPM */
+                                    0                /* rspAuthsArray */
+                                    );
+    if (rc != TSS2_RC_SUCCESS)
+        g_warning ("Tss2_Sys_StartAuthSession failed: 0x%" PRIx32, rc);
+
+    return rc;
+}
+
 /*
  * This function dumps the fields of the TPMS_CONTEXT structure. The one
  * encrypted field (contextBlob) is dumped as an address.

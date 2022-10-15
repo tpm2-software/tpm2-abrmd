@@ -80,6 +80,12 @@ start_auth_session (
     TPMI_SH_AUTH_SESSION  *session_handle
     );
 
+TSS2_RC
+start_auth_session_hmac (
+    TSS2_SYS_CONTEXT      *sapi_context,
+    TPMI_SH_AUTH_SESSION  *session_handle
+    );
+
 void
 prettyprint_context (
     TPMS_CONTEXT *context
