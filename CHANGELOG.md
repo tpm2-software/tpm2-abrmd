@@ -3,6 +3,20 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+### 3.0.0 - 2022-11-28
+
+### Fixed
+  - A bug in special command processing in TPM2_GetCapability when an
+    audit session is in use cuased tpm2-abrmd to abort.
+
+### Added
+  - New SELinux interfaces for communication with keylime
+
+### Changed
+  - DBUS permissions in tpm2-abrmd.conf to match the in-kernel RM, ie
+    /dev/tpmrm0, permissions. Now users MUST be in the tss group to
+    send to tpm2-abrmd over DBUS.
+
 ### 2.4.1 - 2022-03-04
 ### Added
   - Contributor Covenant Code of Conduct.
