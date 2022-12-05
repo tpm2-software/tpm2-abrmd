@@ -3,7 +3,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-### 3.0.0-rc0 - 2022-11-28
+### 3.0.0 - 2022-12-05
 
 ### Fixed
   - A bug in special command processing in TPM2_GetCapability when an
