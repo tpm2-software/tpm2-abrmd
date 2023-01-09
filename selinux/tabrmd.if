@@ -29,7 +29,7 @@ interface(`tabrmd_create_unix_stream_sockets',`
 ##      </summary>
 ## </param>
 #
-interface(`tabr,d_dbus_chat',`
+interface(`tabrmd_dbus_chat',`
         gen_require(`
                 type tabrmd_t;
                 class dbus send_msg;
