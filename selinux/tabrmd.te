@@ -9,7 +9,7 @@ gen_tunable(`tabrmd_connect_all_unreserved', false)
 
 type tabrmd_t;
 type tabrmd_exec_t;
-init_daemon_domain(tabrmd_t, tabrmd_exec_t)
+init_nnp_daemon_domain(tabrmd_t, tabrmd_exec_t)
 
 allow tabrmd_t self:unix_dgram_socket { create_socket_perms };
 
