@@ -16,7 +16,7 @@
 #define TABRMD_ENTROPY_SRC_DEFAULT "/dev/urandom"
 #define TABRMD_SESSIONS_MAX_DEFAULT 4
 #define TABRMD_SESSIONS_MAX 64
-#define TABRMD_TCTI_CONF_DEFAULT "device:/dev/tpm0"
+#define TABRMD_TCTI_CONF_DEFAULT ((!access("/dev/tcm0", F_OK)) ? ("device:/dev/tcm0") : ("device:/dev/tpm0"))
 #define TABRMD_TRANSIENT_MAX_DEFAULT 27
 #define TABRMD_TRANSIENT_MAX 100
 
