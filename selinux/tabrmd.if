@@ -2,7 +2,7 @@
 
 ########################################
 ## <summary>
-##      Create and use a unix stream socket
+##      Create a tabrmd unix stream socket
 ## </summary>
 ## <param name="domain">
 ##      <summary>
@@ -20,7 +20,8 @@ interface(`tabrmd_create_unix_stream_sockets',`
 
 ########################################
 ## <summary>
-##      Use a unix stream socket
+##      Read and write to
+##      tabrmd unix stream sockets
 ## </summary>
 ## <param name="domain">
 ##      <summary>
