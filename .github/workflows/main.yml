@@ -7,7 +7,11 @@ jobs:
     if: "!contains(github.ref, 'coverity_scan')"
     strategy:
       matrix:
-        DOCKER_IMAGE: [ "ubuntu-22.04", "ubuntu-24.04", "fedora-32", "opensuse-leap" ]
+        DOCKER_IMAGE:
+          - "ubuntu-22.04-dev"
+          - "ubuntu-26.04-dev"
+          - "fedora-44-dev"
+          - "opensuse-leap-dev"
         TPM2TSS_BRANCH: ["master"]
         CC: ["gcc", "clang"]
     steps:
@@ -31,9 +35,9 @@ jobs:
     strategy:
       matrix:
         ARCH: [
-          "ubuntu-20.04.arm32v7",
-          "ubuntu-20.04.arm64v8",
-          "fedora-32.ppc64le"
+          "ubuntu-26.04.arm32v7",
+          "ubuntu-26.04.arm64v8",
+          "fedora-44.ppc64le"
         ]
     steps:
       - name: Setup QEMU
@@ -64,7 +68,7 @@ jobs:
         with:
           PROJECT_NAME: ${{ github.event.repository.name }}
           ENABLE_COVERAGE: true
-          DOCKER_IMAGE: ubuntu-24.04
+          DOCKER_IMAGE: ubuntu-26.04-dev
           TPM2TSS_BRANCH: master
           MAKE_TARGET: check
           CC: gcc
@@ -87,7 +91,7 @@ jobs:
           TPM2TOOLS_BRANCH: "5.8"
           REPO_BRANCH: ${{ github.ref }}
           REPO_NAME: ${{ github.repository }}
-          DOCKER_IMAGE: ubuntu-24.04
+          DOCKER_IMAGE: ubuntu-26.04-dev
           CC: gcc
           COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
           COVERITY_SUBMISSION_EMAIL: william.c.roberts@intel.com
