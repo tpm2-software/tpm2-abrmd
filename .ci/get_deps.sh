@@ -4,7 +4,6 @@
 set -exo pipefail
 
 pushd "$1"
-TSS_VERSION="4.2.0"
 
 if [ -z "$TPM2TSS_BRANCH" ]; then
     echo "TPM2TSS_BRANCH is unset, please specify TPM2TSS_BRANCH"
@@ -19,7 +18,7 @@ if [ ! -d tpm2-tss ]; then
 	else
 		echo "Doing deep clone of tss"
 	fi
-  git clone $git_extra_flags -b "${TSS_VERSION}" "https://github.com/tpm2-software/tpm2-tss.git"
+  git clone $git_extra_flags -b "${TPM2TSS_BRANCH}" "https://github.com/tpm2-software/tpm2-tss.git"
   pushd tpm2-tss
   ./bootstrap
   ./configure --enable-debug --disable-esys --disable-esapi --disable-fapi

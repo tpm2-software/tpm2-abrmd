@@ -25,9 +25,9 @@ jobs:
             export ASSUME_ALWAYS_YES=yes
             pkg bootstrap -f
             pkg update -f
-            pkg install -y bash gmake coreutils libtool pkgconf autoconf \
-              autoconf-archive openssl automake glib expat dbus dbus-glib \
-              cmocka wget git gettext-runtime swtpm tpm2-tss
+            pkg install -y autoconf autoconf-archive automake bash cmocka \
+              coreutils curl dbus dbus-glib expat gettext-runtime git glib \
+              gmake json-c libtool libuuid openssl pkgconf swtpm wget
             sync
           run: |
             set -eux
@@ -38,7 +38,10 @@ jobs:
             export CPPFLAGS="$CFLAGS"
             export LDFLAGS="-L/usr/local/lib"
             export LD_LIBRARY_PATH="/usr/local/lib"
+            export TPM2TSS_BRANCH=master
+            export MAKE=gmake
             git config --global --add safe.directory '*'
+            ./.ci/get_deps.sh "$(pwd)"
             ./bootstrap
             ./configure --enable-unit=yes --enable-integration=yes --disable-dependency-tracking
             gmake -j"$(sysctl -n hw.ncpu)" V=1 check || {
