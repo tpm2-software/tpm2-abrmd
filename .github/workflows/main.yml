@@ -83,8 +83,8 @@ jobs:
         with:
           PROJECT_NAME: ${{ github.event.repository.name }}
           ENABLE_COVERITY: true
-          TPM2TSS_BRANCH: "3.0.x"
-          TPM2TOOLS_BRANCH: "4.0"
+          TPM2TSS_BRANCH: "4.2.0"
+          TPM2TOOLS_BRANCH: "5.8"
           REPO_BRANCH: ${{ github.ref }}
           REPO_NAME: ${{ github.repository }}
           DOCKER_IMAGE: ubuntu-24.04
