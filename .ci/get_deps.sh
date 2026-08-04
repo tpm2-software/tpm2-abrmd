@@ -22,8 +22,10 @@ if [ ! -d tpm2-tss ]; then
   pushd tpm2-tss
   ./bootstrap
   ./configure --enable-debug --disable-esys --disable-esapi --disable-fapi
-  make -j$(nproc)
-  make install
+  MAKE="${MAKE:-make}"
+  NPROC=$(nproc 2>/dev/null || sysctl -n hw.ncpu)
+  "${MAKE}" -j"${NPROC}"
+  "${MAKE}" install
   popd
 else
   echo "tpm2-tss already installed, skipping..."
