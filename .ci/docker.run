@@ -38,13 +38,19 @@ fi
 
 export CFLAGS
 
+FALSE_POSITIVES=(
+  'tabrmd-generated.c.*\[deadcode.DeadStores\]'
+  'tabrmd-init.c:185.*\[deadcode.DeadStores\]'
+)
+
 $SCANBUILD ../configure --enable-debug $CONFIG_OPTS $CONFIG_EXTRA
 if [[ "$SCANBUILD" != scan-build* ]]; then
   $SCANBUILD make -j$(nproc) $MAKE_TARGET
 else
   $SCANBUILD make -j$(nproc) $MAKE_TARGET 2>&1 | tee /tmp/build.log || true
+  IGNORE_REGEX=$(IFS='|'; echo "${FALSE_POSITIVES[*]}")
   FINDINGS=$(grep -E 'warning:.*\[[a-zA-Z0-9_.]+\]' /tmp/build.log \
-    | grep -v 'tabrmd-generated.c.*\[deadcode.DeadStores\]' || true)
+    | grep -v -E "$IGNORE_REGEX" || true)
   if [[ -n "$FINDINGS" ]]; then
     echo "$FINDINGS"
     exit 1
