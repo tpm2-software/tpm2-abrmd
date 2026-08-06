@@ -417,7 +417,7 @@ test_tpm2_unit_SOURCES = test/tpm2_unit.c
 
 test_random_unit_CFLAGS = $(UNIT_CFLAGS)
 test_random_unit_LDADD = $(UNIT_LIBS)
-test_random_unit_LDFLAGS = -Wl,--wrap=open,--wrap=read,--wrap=close
+test_random_unit_LDFLAGS = -Wl,--wrap=open,--wrap=open64,--wrap=read,--wrap=close
 test_random_unit_SOURCES = test/random_unit.c
 
 test_session_entry_unit_CFLAGS = $(UNIT_CFLAGS)

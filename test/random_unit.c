@@ -4,10 +4,12 @@
  * All rights reserved.
  */
 #include <glib.h>
+#include <fcntl.h>
 #include <stdlib.h>
 
 #include <setjmp.h>
 #include <string.h>
+#include <stdarg.h>
 #include <cmocka.h>
 
 #include "util.h"
@@ -42,20 +44,46 @@ random_teardown (void **state)
     return 0;
 }
 /* wrap function for the 'open' system call */
-int __real_open (const char *path, int flags, int mode);
+int __real_open (const char *path, int flags, ...);
 int
 __wrap_open(const char *pathname,
             int         flags,
-            mode_t      mode)
+            ...)
 {
     /*
      * Mock calls to 'open' only for operations on the default entropy
      * source used by the Random object (ENTROPY_SRC).
      */
     if (strcmp (pathname, ENTROPY_SRC)) {
+        va_list args;
+        int mode = 0;
+
+        va_start (args, flags);
+        if (flags & O_CREAT)
+            mode = va_arg (args, int);
+        va_end (args);
         return __real_open (pathname, flags, mode);
     }
     return mock_type (int);
+}
+/*
+ * On 32-bit platforms with _FILE_OFFSET_BITS=64 (e.g. arm32v7), open()
+ * is redirected to open64() at compile time, so we must wrap that too.
+ * Delegate to __wrap_open so both share the same cmocka mock queue.
+ */
+int
+__wrap_open64(const char *pathname,
+              int         flags,
+              ...)
+{
+    va_list args;
+    int mode = 0;
+
+    va_start (args, flags);
+    if (flags & O_CREAT)
+        mode = va_arg (args, int);
+    va_end (args);
+    return __wrap_open (pathname, flags, mode);
 }
 /* wrap function for the 'read' system call */
 ssize_t
