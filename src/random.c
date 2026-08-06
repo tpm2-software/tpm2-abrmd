@@ -127,7 +127,6 @@ random_get_bytes (Random    *random,
     uint8_t rand[sizeof (long int)] = { 0, };
 
     g_assert_nonnull (random);
-    assert (random->rand_state);
     for (i = 0; i < count; ++i) {
         *(&rand[0]) = nrand48 (random->rand_state);
         memcpy (&dest[i], &rand[0], sizeof (uint8_t));
