@@ -269,7 +269,7 @@ command_source_on_io_ready_success_test (void **state)
     GIOStream   *iostream;
     HandleMap   *handle_map;
     Connection *connection;
-    Tpm2Command *command_out;
+    Tpm2Command *command_out = NULL;
     gint client_fd;
     guint8 data_in [] = { 0x80, 0x01, 0x0,  0x0,  0x0,  0x17,
                           0x0,  0x0,  0x01, 0x7a, 0x0,  0x0,
@@ -311,11 +311,11 @@ static void
 command_source_on_io_ready_eof_test (void **state)
 {
     struct source_test_data *data = (struct source_test_data*)*state;
-    source_data_t *source_data;
+    source_data_t *source_data = NULL;
     GIOStream   *iostream;
     HandleMap   *handle_map;
     Connection *connection;
-    ControlMessage *msg;
+    ControlMessage *msg = NULL;
     gint client_fd, hash_table_size;
     gboolean ret;
 
