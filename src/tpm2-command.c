@@ -682,12 +682,47 @@ tpm2_command_foreach_auth (Tpm2Command *command,
         return FALSE;
     }
 
-    for (offset =  AUTH_AREA_FIRST_OFFSET (command);
-         offset <  AUTH_AREA_END_OFFSET (command);
-         offset = AUTH_AUTH_BUF_END_OFFSET   (command, offset))
-    {
+    offset = AUTH_AREA_FIRST_OFFSET (command);
+    while (offset < AUTH_AREA_END_OFFSET (command)) {
         size_t offset_tmp = offset;
+
+        /*
+         * nonceSize and authSize are attacker-controlled UINT16 fields
+         * read straight from the command buffer, and computing where
+         * the NEXT auth entry begins requires adding them to the
+         * running offset. The loop condition above only checks the
+         * auth area's declared start/end against buffer_size once,
+         * before the loop starts -- it does not protect these
+         * per-entry reads. Validate each field's own offset against
+         * buffer_size before it is read, so a crafted command
+         * declaring an oversized nonceSize/authSize is rejected here
+         * instead of causing an out-of-bounds read below.
+         */
+        if (AUTH_NONCE_SIZE_END_OFFSET (offset) > command->buffer_size) {
+            g_warning ("%s: auth nonce size field overruns command buffer",
+                       __func__);
+            return FALSE;
+        }
+        if (AUTH_NONCE_BUF_END_OFFSET (command, offset) > command->buffer_size) {
+            g_warning ("%s: auth nonce overruns command buffer", __func__);
+            return FALSE;
+        }
+        if (AUTH_SESSION_ATTRS_END_OFFSET (command, offset) > command->buffer_size) {
+            g_warning ("%s: auth session attributes overrun command buffer",
+                       __func__);
+            return FALSE;
+        }
+        if (AUTH_AUTH_SIZE_END_OFFSET (command, offset) > command->buffer_size) {
+            g_warning ("%s: auth size field overruns command buffer", __func__);
+            return FALSE;
+        }
+        if (AUTH_AUTH_BUF_END_OFFSET (command, offset) > command->buffer_size) {
+            g_warning ("%s: auth value overruns command buffer", __func__);
+            return FALSE;
+        }
+
         callback (&offset_tmp, user_data);
+        offset = AUTH_AUTH_BUF_END_OFFSET (command, offset);
     }
 
     return TRUE;
