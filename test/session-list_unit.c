@@ -270,6 +270,11 @@ session_list_claim_abandoned_test (void **state)
     g_clear_object (&entry);
 }
 
+/*
+ * A SessionEntry saved BY THE CLIENT (SESSION_ENTRY_SAVED_CLIENT, not
+ * abandoned) may only be reclaimed by the *same* connection that saved
+ * it -- this is the documented contract of session_list_claim().
+ */
 static void
 session_list_claim_saved_test (void **state)
 {
@@ -283,11 +288,40 @@ session_list_claim_saved_test (void **state)
     session_list_insert (data->session_list, entry);
     session_entry_set_state (entry, SESSION_ENTRY_SAVED_CLIENT);
 
-    /* claim abandoned handle from different connection */
-    conn = test_connection_new (CLAIM_CONNECTION_ID_1);
+    /* the same connection that saved it may reclaim it */
     ret = session_list_claim (data->session_list, entry, conn);
     assert_true (ret);
     assert_true (session_entry_get_state (entry) == SESSION_ENTRY_LOADED);
+    g_clear_object (&conn);
+    g_clear_object (&entry);
+}
+
+/*
+ * A different connection than the one that saved a (non-abandoned)
+ * SessionEntry must *not* be able to claim it -- regression test for a
+ * cross-client session hijack: session_list_claim() previously allowed
+ * any connection to claim any SessionEntry present in session_entry_list,
+ * without checking it was actually claimed by its original owner.
+ */
+static void
+session_list_claim_saved_wrong_connection_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    Connection *conn_owner = NULL, *conn_other = NULL;
+    SessionEntry *entry = NULL;
+    gboolean ret;
+
+    conn_owner = test_connection_new (CLAIM_CONNECTION_ID_0);
+    entry = session_entry_new (conn_owner, CLAIM_HANDLE);
+    session_list_insert (data->session_list, entry);
+    session_entry_set_state (entry, SESSION_ENTRY_SAVED_CLIENT);
+
+    conn_other = test_connection_new (CLAIM_CONNECTION_ID_1);
+    ret = session_list_claim (data->session_list, entry, conn_other);
+    assert_false (ret);
+    assert_true (session_entry_get_state (entry) == SESSION_ENTRY_SAVED_CLIENT);
+    g_clear_object (&conn_owner);
+    g_clear_object (&conn_other);
     g_clear_object (&entry);
 }
 
@@ -339,6 +373,9 @@ main (void)
                                          session_list_setup,
                                          session_list_teardown),
         cmocka_unit_test_setup_teardown (session_list_claim_saved_test,
+                                         session_list_setup,
+                                         session_list_teardown),
+        cmocka_unit_test_setup_teardown (session_list_claim_saved_wrong_connection_test,
                                          session_list_setup,
                                          session_list_teardown),
         cmocka_unit_test_setup_teardown (session_list_claim_fail_test,
