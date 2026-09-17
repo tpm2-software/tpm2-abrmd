@@ -510,6 +510,48 @@ tpm2_command_foreach_auth_test (void **state)
                                tpm2_command_foreach_auth_callback,
                                &callback_state);
 }
+/*
+ * tpm2_command_foreach_auth validates the auth area's declared start/end
+ * against buffer_size before the loop, but its per-iteration increment
+ * expression (AUTH_AUTH_BUF_END_OFFSET) reads nonceSize and authSize
+ * fields -- both attacker-controlled UINT16 values from the raw command
+ * buffer -- and uses them to compute where the NEXT field lives, without
+ * checking those intermediate offsets against buffer_size. This test
+ * sends a command declaring a tiny (6-byte) auth area but an oversized
+ * nonceSize, which previously caused the code computing the next offset
+ * to read ~64KB past the actual buffer (a heap-buffer-overflow read,
+ * confirmed via AddressSanitizer, that crashed the daemon with SIGSEGV).
+ * The function must now reject this and return FALSE instead.
+ */
+static void
+noop_auth_callback (gpointer authorization, gpointer user_data)
+{
+    (void)authorization;
+    (void)user_data;
+}
+static void
+tpm2_command_foreach_auth_oversized_nonce_test (void **state)
+{
+    (void)state;
+    const uint8_t template[20] = {
+        0x80, 0x02,             /* tag: TPM2_ST_SESSIONS */
+        0x00, 0x00, 0x00, 0x14, /* command size: 20 */
+        0x00, 0x00, 0x01, 0x37, /* command code (arbitrary) */
+        0x00, 0x00, 0x00, 0x06, /* declared auth area size: 6 bytes */
+        0x40, 0x00, 0x00, 0x09, /* auth handle (arbitrary) */
+        0xff, 0xff,             /* nonceSize: 65535 -- the poison */
+    };
+    uint8_t *buf = g_malloc (sizeof (template));
+    memcpy (buf, template, sizeof (template));
+
+    Tpm2Command *cmd = tpm2_command_new (NULL, buf, sizeof (template), 0);
+    assert_non_null (cmd);
+
+    gboolean ret = tpm2_command_foreach_auth (cmd, noop_auth_callback, NULL);
+    assert_false (ret);
+
+    g_object_unref (cmd);
+}
 static void
 tpm2_command_flush_context_handle_test (void **state)
 {
@@ -660,6 +702,7 @@ main (void)
         cmocka_unit_test_setup_teardown (tpm2_command_foreach_auth_test,
                                          tpm2_command_setup_with_auths,
                                          tpm2_command_teardown),
+        cmocka_unit_test (tpm2_command_foreach_auth_oversized_nonce_test),
         cmocka_unit_test_setup_teardown (tpm2_command_flush_context_handle_test,
                                          tpm2_command_setup_flush_context_no_handle,
                                          tpm2_command_teardown),
