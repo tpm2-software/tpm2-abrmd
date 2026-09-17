@@ -612,7 +612,15 @@ resource_manager_load_context (ResourceManager *resmgr,
     if (rc != TSS2_RC_SUCCESS) {
         g_warning ("%s: Failed to unmarshal TPMS_CONTEXT from Tpm2Command, "
                    "rc: 0x%" PRIx32, __func__, rc);
-        /* Generate Tpm2Response with "appropriate" RC */
+        /*
+         * tpms_context (and so tpms_context.savedHandle) may not be fully
+         * populated at this point -- do not use it. Returning NULL here
+         * means this command isn't handled specially by the RM; it's
+         * forwarded to the real TPM as-is (see command_special_processing's
+         * NULL-response handling), which will independently validate and
+         * reject the malformed context itself.
+         */
+        return NULL;
     }
     switch (tpms_context.savedHandle >> TPM2_HR_SHIFT) {
     case TPM2_HT_HMAC_SESSION:
