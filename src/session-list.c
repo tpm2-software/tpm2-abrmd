@@ -448,6 +448,16 @@ session_list_claim (SessionList *list,
     link = g_list_find (list->session_entry_list, entry);
     if (link != NULL) {
         g_assert (link->data == entry);
+        /*
+         * A non-abandoned SessionEntry may only be claimed by the
+         * connection that originally saved it -- otherwise any connection
+         * could seize ownership of any other connection's live session.
+         */
+        if (session_entry_compare_on_connection (entry, connection) != 0) {
+            g_warning ("%s: Connection attempted to claim SessionEntry it "
+                       "does not own", __func__);
+            return FALSE;
+        }
         g_debug ("%s: SessionEntry found in SessionList", __func__);
         session_entry_set_state (entry, SESSION_ENTRY_LOADED);
         session_entry_set_connection (entry, connection);
