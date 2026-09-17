@@ -353,5 +353,15 @@ session_entry_compare_on_context_client (SessionEntry *entry,
 
     g_assert (size <= SIZE_BUF_MAX);
     size_buf = session_entry_get_context_client (entry);
+    /*
+     * A short / mismatched 'size' must never be treated as a match: with
+     * 'size' == 0 in particular, memcmp() would return 0 (equal)
+     * unconditionally regardless of 'buf', letting a caller "match" an
+     * arbitrary entry it knows nothing about. Only compare when the
+     * caller-supplied buffer is exactly as long as the stored context.
+     */
+    if (size != size_buf->size) {
+        return -1;
+    }
     return memcmp (size_buf->buf, buf, size);
 }

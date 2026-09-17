@@ -5,6 +5,7 @@
  */
 #include <glib.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <setjmp.h>
 #include <cmocka.h>
@@ -107,6 +108,52 @@ session_entry_get_handle_test (void **state)
     handle = session_entry_get_handle (data->session_entry);
     assert_int_equal (handle, TEST_HANDLE);
 }
+/*
+ * Regression test: memcmp() with a length of 0 always returns 0 (equal)
+ * regardless of the pointers involved. session_entry_compare_on_context_client
+ * previously relied on memcmp() alone, so a caller-supplied size of 0 would
+ * be reported as a match against ANY entry's stored context_client -- e.g.
+ * a client sending a zero-length ContextLoad blob could be matched to a
+ * session it knows nothing about. Now a size mismatch (size == 0 included)
+ * must return non-zero (no match).
+ */
+static void
+session_entry_compare_on_context_client_size_zero_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    size_buf_t *stored;
+    uint8_t attacker_buf[1] = { 0 };
+    gint ret;
+
+    stored = session_entry_get_context_client (data->session_entry);
+    stored->size = 8;
+    memset (stored->buf, 0x42, 8);
+
+    ret = session_entry_compare_on_context_client (data->session_entry,
+                                                   attacker_buf, 0);
+    assert_true (ret != 0);
+}
+/*
+ * Sanity check that a correctly-sized, matching buffer still compares
+ * equal, so the fix above doesn't break the legitimate match case.
+ */
+static void
+session_entry_compare_on_context_client_match_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    size_buf_t *stored;
+    uint8_t matching_buf[8];
+    gint ret;
+
+    stored = session_entry_get_context_client (data->session_entry);
+    stored->size = 8;
+    memset (stored->buf, 0x42, 8);
+    memset (matching_buf, 0x42, 8);
+
+    ret = session_entry_compare_on_context_client (data->session_entry,
+                                                   matching_buf, 8);
+    assert_int_equal (ret, 0);
+}
 
 gint
 main (void)
@@ -122,6 +169,12 @@ main (void)
                                          session_entry_setup,
                                          session_entry_teardown),
         cmocka_unit_test_setup_teardown (session_entry_get_handle_test,
+                                         session_entry_setup,
+                                         session_entry_teardown),
+        cmocka_unit_test_setup_teardown (session_entry_compare_on_context_client_size_zero_test,
+                                         session_entry_setup,
+                                         session_entry_teardown),
+        cmocka_unit_test_setup_teardown (session_entry_compare_on_context_client_match_test,
                                          session_entry_setup,
                                          session_entry_teardown),
     };
