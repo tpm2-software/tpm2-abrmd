@@ -534,6 +534,38 @@ resource_manager_getcap_gap_max_test (void **state)
     /* verify property was modified by the RM */
     assert_int_equal (cap_data.data.tpmProperties.tpmProperty [0].value, UINT32_MAX);
 }
+/*
+ * resource_manager_load_context() is not declared in resource-manager.h
+ * (internal-but-not-static), so it needs a local prototype for whitebox
+ * testing here.
+ */
+Tpm2Response* resource_manager_load_context (ResourceManager *resmgr,
+                                             Tpm2Command *command);
+/*
+ * Regression test: a TPM2_ContextLoad command too short to contain a
+ * marshaled TPMS_CONTEXT must not have its (partially-populated / garbage)
+ * savedHandle field used to decide whether to virtualize the load --
+ * resource_manager_load_context previously fell through to that switch
+ * statement even when Tss2_MU_TPMS_CONTEXT_Unmarshal failed. It must now
+ * return NULL, deferring entirely to the real TPM to reject the malformed
+ * command on its own.
+ */
+static void
+resource_manager_load_context_malformed_test (void **state)
+{
+    test_data_t *data = (test_data_t*)*state;
+    Tpm2Response *response;
+    guint8 *buffer;
+
+    /* header only -- far too short for a marshaled TPMS_CONTEXT */
+    buffer = calloc (1, TPM_HEADER_SIZE);
+    data->command = tpm2_command_new (data->connection, buffer, TPM_HEADER_SIZE,
+                                      (TPMA_CC){ 0, });
+
+    response = resource_manager_load_context (data->resource_manager, data->command);
+
+    assert_null (response);
+}
 int
 main (void)
 {
@@ -564,6 +596,9 @@ main (void)
                                          resource_manager_teardown),
         cmocka_unit_test_setup_teardown (resource_manager_getcap_gap_max_test,
                                          resource_manager_setup_getcap,
+                                         resource_manager_teardown),
+        cmocka_unit_test_setup_teardown (resource_manager_load_context_malformed_test,
+                                         resource_manager_setup,
                                          resource_manager_teardown),
     };
     return cmocka_run_group_tests (tests, NULL, NULL);
