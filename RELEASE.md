@@ -2,9 +2,9 @@
 This document describes the general process that maintainers must follow when making a release of the `tabrmd`.
 
 # Milestones
-All releases should have a milestone used to track the release. If the release version is not known, as covered in [Version Numbers](#Version Numbers),
+All releases should have a milestone used to track the release. If the release version is not known, as covered in [Version Numbers](#version-numbers),
 then an "x" may be used for the unknown number, or the generic term "next" may be used. The description field of the milestone will be used to record
-the CHANGELOG for that release. See [CHANGELOG Update](#CHANGELOG Update) for details.
+the CHANGELOG for that release. See [CHANGELOG Update](#changelog-update) for details.
 
 # Version Numbers
 Our releases will follow the semantic versioning scheme.
@@ -30,7 +30,7 @@ We append an incremental digit `X` in case more than one release candidate is ne
 
 # Static Analysis
 Before a release is made the `coverity_scan` branch must be updated to the point in git history where the release will be made from.
-This branch must be pushed to github which will cause the travis-ci infrastructure to run an automated coverity scan.
+This branch must be pushed to GitHub, which will cause the GitHub Actions infrastructure to run an automated Coverity scan.
 The results of this scan must be dispositioned by the maintainers before the release is made.
 
 # CHANGELOG Update
@@ -38,7 +38,7 @@ Before tagging the repository with the release version, the maintainer MUST upda
 from the corresponding release milestone and update any missing version string details in the CHANGELOG and milestone entry.
 
 # Git Tags
-When a release is made a tag is created in the git repo identifying the release by the [version string](#Version String).
+When a release is made a tag is created in the git repo identifying the release by the [version string](#version-string).
 The tag should be pushed to upstream git repo as the last step in the release process.
 **NOTE** tags for release candidates will be deleted from the git repository after a release with the corresponding version number has been made.
 **NOTE** release (not release candidate) tags should be considered immutable.
@@ -56,12 +56,12 @@ To make a release tarball use the `distcheck` make target.
 This target includes a number of sanity checks that are extremely helpful.
 For more information on `automake` and release tarballs see: https://www.gnu.org/software/automake/manual/html_node/Dist.html#Dist
 
-## Hosting Releases on Github
-Github automagically generates a page in their UI that maps git tags to 'releases' (even if the tag isn't for a release).
+## Hosting Releases on GitHub
+GitHub automagically generates a page in their UI that maps git tags to 'releases' (even if the tag isn't for a release).
 Additionally they support hosting release tarballs through this same interface.
-The release tarball created in the previous step must be posted to github using the release interface.
+The release tarball created in the previous step must be posted to GitHub using the release interface.
 Additionally this tarball must be accompanied by a detached GPG signature.
-The Debian wiki has an excellent description of how to post a signed release to Github here: https://wiki.debian.org/Creating%20signed%20GitHub%20releases
+The Debian wiki has an excellent description of how to post a signed release to GitHub here: https://wiki.debian.org/Creating%20signed%20GitHub%20releases
 **NOTE** release candidates must be taken down after a release with the corresponding version number is available.
 
 ## Signing Release Tarballs
@@ -79,8 +79,8 @@ The GPG keys used to sign a release tag and the associated tarball must be the s
 Additionally they must:
 * belong to a project maintainer
 * be discoverable using a public GPG key server
-* be associated with the maintainers github account (https://help.github.com/articles/adding-a-new-gpg-key-to-your-github-account/)
+* be associated with the maintainers GitHub account (https://help.github.com/articles/adding-a-new-gpg-key-to-your-github-account/)
 
 # Announcements
-Release candidates and proper releases should be announced on the 01.org TPM2 mailing list: https://lists.linuxfoundation.org/mailman/listinfo/tpm2.
-This announcement should be accompanied by a link to the release page on Github as well as a link to the CHANGELOG.md accompanying the release.
+Release candidates and proper releases should be announced on the TPM2 mailing list: https://lists.linuxfoundation.org/mailman/listinfo/tpm2.
+This announcement should be accompanied by a link to the release page on GitHub as well as a link to the CHANGELOG.md accompanying the release.
