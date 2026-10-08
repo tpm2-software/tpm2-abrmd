@@ -40,9 +40,15 @@ Check out the man page TSS2-TCTI-TABRMD(7) and TSS2_TCTI_TABRMD_INIT(3).
 The current implementations are mostly equivalent with a few differences.
 Both provide isolation between objects & sessions created by different
 connections which is the core functionality required by applications. The
-reason we have both is that the in-kernel RM was added in version 4.12 and
-we have TPM2 users in environments with kernels going back to the
-3.x series. So the user space RM will be around to support those users.
+reason we have both is that the in-kernel RM was added to Linux in version
+4.12 and we have TPM2 users in environments with Linux kernels going back to
+the 3.x series. Other operating systems, such as FreeBSD, do not provide an
+in-kernel RM. So the user space RM will be around to support those users.
+
+Further, the in-kernel RM does not support session ungapping, i.e., if a
+saved session exceeds the TPM dependent maximum context gap, then loading
+fails. Instead, `tpm2-abrmd` automatically re-saves active sessions to avoid
+the `TPM2_RC_CONTEXT_GAP` failure.
 
 # Related Specifications
 * [TPM2 Software Stack Access Broker and Resource Manager](https://trustedcomputinggroup.org/wp-content/uploads/TSS-TAB-and-Resource-Manager-ver1.0-rev16_Public_Review.pdf)
