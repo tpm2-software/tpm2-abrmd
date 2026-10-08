@@ -12,7 +12,7 @@ fi
 
 # Install tpm2-tss
 if [ ! -d tpm2-tss ]; then
-  if [ -z "$GIT_FULL_CLONE" ]; then
+  if [ -z "$GIT_FULL_CLONE" ] && [ "$TPM2TSS_BRANCH" != master ]; then
 		echo "Doing shallow clone of tss"
 		git_extra_flags="--depth=1"
 	else
