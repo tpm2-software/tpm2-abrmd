@@ -5,6 +5,7 @@ AC_INIT([tpm2-abrmd],
         [],
         [https://github.com/tpm2-software/tpm2-abrmd])
 AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_AUX_DIR([.])
 AX_IS_RELEASE(dash-version)
 AX_CHECK_ENABLE_DEBUG([info])
 AC_PROG_CC
