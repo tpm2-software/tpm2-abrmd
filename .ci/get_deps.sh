@@ -21,7 +21,14 @@ if [ ! -d tpm2-tss ]; then
   git clone $git_extra_flags -b "${TPM2TSS_BRANCH}" "https://github.com/tpm2-software/tpm2-tss.git"
   pushd tpm2-tss
   ./bootstrap
-  ./configure --enable-debug --disable-esys --disable-esapi --disable-fapi
+  ./configure --enable-debug \
+      --enable-doxygen-doc=no \
+      --enable-tcti-libtpms=no \
+      --enable-tcti-mssim=no \
+      --enable-tcti-swtpm=yes \
+      --enable-esys=no \
+      --enable-fapi=no \
+      --enable-policy=no
   MAKE="${MAKE:-make}"
   NPROC=$(nproc 2>/dev/null || sysctl -n hw.ncpu)
   "${MAKE}" -j"${NPROC}"
