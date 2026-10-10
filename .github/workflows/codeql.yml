@@ -24,35 +24,61 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Packages
         run: |
           sudo apt-get update
-          sudo apt-get install --yes autoconf-archive acl
+          sudo apt -y install \
+            autoconf-archive \
+            libcmocka0 \
+            libcmocka-dev \
+            procps \
+            iproute2 \
+            build-essential \
+            git \
+            pkg-config \
+            gcc \
+            libtool \
+            automake \
+            libssl-dev \
+            uthash-dev \
+            autoconf \
+            doxygen \
+            libjson-c-dev \
+            libini-config-dev \
+            libcurl4-openssl-dev \
+            uuid-dev \
+            libltdl-dev \
+            libusb-1.0-0-dev \
+            libftdi-dev
 
       - name: After Prepare
         run: |
+           export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
+           export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/libdata/pkgconfig"
+           export CFLAGS="-I/usr/local/include -I/usr/local/openssl/include"
+           export CPPFLAGS="$CFLAGS"
+           export LDFLAGS="-L/usr/local/lib"
+           export LD_LIBRARY_PATH="/usr/local/lib"
+           export TPM2TSS_BRANCH=master
+           .ci/get_deps.sh "$(pwd)"
+
           cd "$RUNNER_TEMP"
           mkdir installdir
-          git clone https://github.com/tpm2-software/tpm2-tss.git
-          cd tpm2-tss
-          ./bootstrap
-          ./configure --prefix="$RUNNER_TEMP/installdir/usr" --disable-doxygen-doc --disable-esys --disable-fapi
-          make install
           export PKG_CONFIG_PATH="$RUNNER_TEMP/installdir/usr/lib/pkgconfig:$PKG_CONFIG_PATH" && echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
           export LD_LIBRARY_PATH="$RUNNER_TEMP/installdir/usr/lib:$LD_LIBRARY_PATH" && echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           queries: +security-and-quality
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+        uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
