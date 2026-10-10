@@ -55,17 +55,17 @@ jobs:
 
       - name: After Prepare
         run: |
-           export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
-           export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/libdata/pkgconfig"
-           export CFLAGS="-I/usr/local/include -I/usr/local/openssl/include"
-           export CPPFLAGS="$CFLAGS"
-           export LDFLAGS="-L/usr/local/lib"
-           export LD_LIBRARY_PATH="/usr/local/lib"
-           export TPM2TSS_BRANCH=master
-           .ci/get_deps.sh "$(pwd)"
-
-          cd "$RUNNER_TEMP"
           mkdir installdir
+          export DESTDIR="$RUNNER_TEMP"/installdir
+          export PATH="$DEST_DIR/usr/local/bin:$DEST_DIR/usr/local/sbin:$PATH"
+          export PKG_CONFIG_PATH="$DEST_DIR/usr/local/lib/pkgconfig:$DEST_DIR/usr/local/libdata/pkgconfig"
+          export CFLAGS="-I$DEST_DIR/usr/local/include -I$DEST_DIR/usr/local/openssl/include"
+          export CPPFLAGS="$CFLAGS"
+          export LDFLAGS="-L$DEST_DIR/usr/local/lib"
+          export LD_LIBRARY_PATH="$DEST_DIR/usr/local/lib"
+          export TPM2TSS_BRANCH=master
+          .ci/get_deps.sh "$(pwd)"
+
           export PKG_CONFIG_PATH="$RUNNER_TEMP/installdir/usr/lib/pkgconfig:$PKG_CONFIG_PATH" && echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
           export LD_LIBRARY_PATH="$RUNNER_TEMP/installdir/usr/lib:$LD_LIBRARY_PATH" && echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
