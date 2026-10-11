@@ -3,6 +3,28 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
+## 3.1.0 - 2026-10-11
+
+### Security
+  - several fixes to address GHSA-v78x-j5fh-w6pr
+
+### Fixed
+  - Simplify TSS version discovery in the build
+  - Typo in the SELinux interface file
+  - scan-build warnings and API compatibility for arm32 in the test suite
+
+### Added
+  - FreeBSD support
+  - SELinux policy calls `init_nnp_daemon_domain` to enable systemd hardening
+  - SELinux `tabrmd_rw_unix_stream_sockets` interface
+  - SELinux file context entry for `/usr/bin/tpm2-abrmd`
+
+### Changed
+  - Makefile.am: Removed use of deprecated `ACLOCAL_AMFLAGS`
+  - bootstrap: Set `AC_CONFIG_AUX_DIR` to source root
+  - CI: general updates to github CI, moved FreeBSD CI from Cirrus to github
+  - Replace old LGTM workflow with CodeQL
+
 ### 3.0.0 - 2022-12-05
 
 ### Fixed
