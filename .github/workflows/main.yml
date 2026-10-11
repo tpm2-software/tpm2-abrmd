@@ -16,7 +16,7 @@ jobs:
         CC: ["gcc", "clang"]
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Launch Action
         uses:
           tpm2-software/ci/runCI@main
@@ -43,7 +43,7 @@ jobs:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v4
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Launch Action
         uses:
           tpm2-software/ci/runCI@main
@@ -61,7 +61,7 @@ jobs:
     if: "!contains(github.ref, 'coverity_scan')"
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Launch Action
         uses:
           tpm2-software/ci/runCI@main
@@ -80,7 +80,7 @@ jobs:
     if: contains(github.ref, 'coverity_scan') && github.event_name == 'push'
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Launch Action
         uses:
           tpm2-software/ci/coverityScan@main
@@ -100,7 +100,7 @@ jobs:
     if: github.event_name == 'pull_request' && !contains(github.ref, 'coverity_scan')
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Perform Whitespace Check
         env:
           BASE_REF: ${{ github.base_ref }}
