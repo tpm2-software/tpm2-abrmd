@@ -20,6 +20,7 @@
 #include "tabrmd-init.h"
 #include "tabrmd-options.h"
 #include "tabrmd.h"
+#include "tss2_common.h"
 #include "util.h"
 
 /*
@@ -45,6 +46,35 @@ signal_handler (gpointer user_data)
     main_loop_quit ((GMainLoop*)user_data);
 
     return G_SOURCE_CONTINUE;
+}
+
+/*
+ * This function attempts to initialize the configured device nodes in sequence
+ * and returns once successful, otherwise it continues to try until the end of
+ * the traversal.
+ */
+static gint
+tss2_tctildr_init(const gmain_data_t *data, TSS2_TCTI_CONTEXT **tcti_ctx)
+{
+    gint rc = TSS2_RC_SUCCESS, i = 0;
+    const char *delim = ";";
+    gchar **conf_list = NULL;
+
+    conf_list = g_strsplit(data->options.tcti_conf, delim, -1);
+    for (; conf_list[i] != NULL; i++) {
+        rc = Tss2_TctiLdr_Initialize(conf_list[i], tcti_ctx);
+        if (rc != TSS2_RC_SUCCESS || *tcti_ctx == NULL) {
+            g_critical("%s: failed to create TCTI with conf \"%s\", got RC: 0x%x",
+                       __func__, data->options.tcti_conf, rc);
+            rc = EX_IOERR;
+            continue;
+        }
+        break;
+    }
+
+    g_strfreev(conf_list);
+    conf_list = NULL;
+    return rc;
 }
 
 /*
@@ -170,13 +200,9 @@ init_thread_func (gpointer user_data)
     ipc_frontend_connect (data->ipc_frontend,
                           &data->init_mutex);
 
-    rc = Tss2_TctiLdr_Initialize (data->options.tcti_conf, &tcti_ctx);
-    if (rc != TSS2_RC_SUCCESS || tcti_ctx == NULL) {
-        g_critical ("%s: failed to create TCTI with conf \"%s\", got RC: 0x%x",
-                    __func__, data->options.tcti_conf, rc);
-        ret = EX_IOERR;
+    rc = tss2_tctildr_init(data, &tcti_ctx);
+    if (rc != TSS2_RC_SUCCESS)
         goto err_out;
-    }
     tcti = tcti_new (tcti_ctx);
     data->tpm2 = tpm2_new (tcti);
     g_clear_object (&tcti);
