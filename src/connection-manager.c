@@ -46,14 +46,11 @@ connection_manager_set_property (GObject        *object,
     ConnectionManager *mgr = CONNECTION_MANAGER (object);
 
     g_debug ("%s", __func__);
-    switch (property_id) {
-    case PROP_MAX_CONNECTIONS:
+    if (property_id == PROP_MAX_CONNECTIONS) {
         mgr->max_connections = g_value_get_uint (value);
         g_debug ("  max_connections: %u", mgr->max_connections);
-        break;
-    default:
+    } else {
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
     }
 }
 /*
@@ -68,13 +65,10 @@ connection_manager_get_property (GObject     *object,
     ConnectionManager *mgr = CONNECTION_MANAGER (object);
 
     g_debug (__func__);
-    switch (property_id) {
-    case PROP_MAX_CONNECTIONS:
+    if (property_id == PROP_MAX_CONNECTIONS) {
         g_value_set_uint (value, mgr->max_connections);
-        break;
-    default:
+    } else {
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
     }
 }
 
