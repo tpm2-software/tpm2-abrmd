@@ -73,8 +73,6 @@ command_attrs_init_tpm (CommandAttrs *attrs,
     return 0;
 }
 
-/* TPM2_CC is in the lower 15 bits of the TPMA_CC */
-#define TPM2_CC_FROM_TPMA_CC(attrs) (attrs & 0x7fff)
 TPMA_CC
 command_attrs_from_cc (CommandAttrs *attrs,
                        TPM2_CC        command_code)
@@ -82,7 +80,8 @@ command_attrs_from_cc (CommandAttrs *attrs,
     unsigned int i;
 
     for (i = 0; i < attrs->count; ++i)
-        if (TPM2_CC_FROM_TPMA_CC (attrs->command_attrs[i]) == command_code)
+        if (((attrs->command_attrs[i] & TPMA_CC_COMMANDINDEX_MASK)
+             >> TPMA_CC_COMMANDINDEX_SHIFT) == command_code)
             return attrs->command_attrs[i];
 
     return (TPMA_CC) { 0 };}
