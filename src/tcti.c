@@ -30,13 +30,10 @@ tcti_set_property (GObject        *object,
     Tcti *self = TCTI (object);
 
     g_debug ("%s", __func__);
-    switch (property_id) {
-    case PROP_CONTEXT:
+    if (property_id == PROP_CONTEXT) {
         self->tcti_context = (TSS2_TCTI_CONTEXT*)g_value_get_pointer (value);
-        break;
-    default:
+    } else {
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
     }
 }
 /*
@@ -50,13 +47,10 @@ tcti_get_property (GObject     *object,
 {
     Tcti *self = TCTI (object);
 
-    switch (property_id) {
-    case PROP_CONTEXT:
+    if (property_id == PROP_CONTEXT) {
         g_value_set_pointer (value, self->tcti_context);
-        break;
-    default:
+    } else {
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
     }
 }
 

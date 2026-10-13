@@ -367,12 +367,11 @@ resource_manager_flushsave_context (gpointer data_entry,
         g_error ("%s: passed NULL parameter", __func__);
     phandle = handle_map_entry_get_phandle (entry);
     g_debug ("%s: phandle: 0x%" PRIx32, __func__, phandle);
-    switch (phandle >> TPM2_HR_SHIFT) {
-    case TPM2_HT_TRANSIENT:
+    if ((phandle >> TPM2_HR_SHIFT) == TPM2_HT_TRANSIENT) {
         if (!handle_map_entry_get_phandle (entry)) {
             g_debug ("phandle for vhandle 0x%" PRIx32 " was already flushed.",
                 handle_map_entry_get_vhandle (entry));
-            break;
+            return;
         }
         g_debug ("%s: handle is transient, saving context", __func__);
         context = handle_map_entry_get_context (entry);
@@ -386,9 +385,6 @@ resource_manager_flushsave_context (gpointer data_entry,
                        "handle: 0x%" PRIx32 " rc: 0x%" PRIx32,
                        __func__, phandle, rc);
         }
-        break;
-    default:
-        break;
     }
 }
 /*
@@ -769,14 +765,11 @@ remove_entry_from_handle_map (gpointer data_entry,
 
     handle_type = handle >> TPM2_HR_SHIFT;
     g_debug ("remove_entry_from_handle_map");
-    switch (handle_type) {
-    case TPM2_HT_TRANSIENT:
+    if (handle_type == TPM2_HT_TRANSIENT) {
         g_debug ("%s: entry is transient, removing from map", __func__);
         handle_map_remove (map, handle);
-        break;
-    default:
+    } else {
         g_debug ("%s: entry not transient, leaving entry alone", __func__);
-        break;
     }
 }
 /*
@@ -1001,28 +994,21 @@ get_cap_post_process (Tpm2Response *resp)
         return rc;
     }
     g_debug ("%s: capability 0x%" PRIx32, __func__, cap_data.capability);
-    switch (cap_data.capability) {
-    case TPM2_CAP_TPM_PROPERTIES:
+    if (cap_data.capability == TPM2_CAP_TPM_PROPERTIES) {
         for (i = 0; i < cap_data.data.tpmProperties.count; ++i) {
             g_debug ("%s: property 0x%" PRIx32 ", value 0x%" PRIx32,
                      __func__,
                      cap_data.data.tpmProperties.tpmProperty [i].property,
                      cap_data.data.tpmProperties.tpmProperty [i].value);
-            switch (cap_data.data.tpmProperties.tpmProperty [i].property) {
-            case TPM2_PT_CONTEXT_GAP_MAX:
+            if (cap_data.data.tpmProperties.tpmProperty [i].property
+                == TPM2_PT_CONTEXT_GAP_MAX) {
                 g_debug ("%s: changing TPM2_PT_CONTEXT_GAP_MAX, from 0x%"
                          PRIx32 " to UINT32_MAX: 0x%" PRIx32, __func__,
                          cap_data.data.tpmProperties.tpmProperty [i].value,
                          UINT32_MAX);
                 cap_data.data.tpmProperties.tpmProperty [i].value = UINT32_MAX;
-                break;
-            default:
-                break;
             }
         }
-        break;
-    default:
-        break;
     }
     offset = TPM_HEADER_SIZE + sizeof (TPMI_YES_NO);
     rc = Tss2_MU_TPMS_CAPABILITY_DATA_Marshal (&cap_data,
@@ -1062,11 +1048,9 @@ get_cap_gen_response (ResourceManager *resmgr,
     g_debug ("processing TPM2_CC_GetCapability with cap: 0x%" PRIx32
              " prop: 0x%" PRIx32 " prop_count: 0x%" PRIx32,
              cap, prop, prop_count);
-    switch (cap) {
-    case TPM2_CAP_HANDLES:
+    if (cap == TPM2_CAP_HANDLES) {
         handle_type = prop >> TPM2_HR_SHIFT;
-        switch (handle_type) {
-        case TPM2_HT_TRANSIENT:
+        if (handle_type == TPM2_HT_TRANSIENT) {
             g_debug ("%s: TPM2_CAP_HANDLES && TPM2_HT_TRANSIENT", __func__);
             connection = tpm2_command_get_connection (command);
             map = connection_get_trans_map (connection);
@@ -1077,16 +1061,12 @@ get_cap_gen_response (ResourceManager *resmgr,
                                           resp_buf,
                                           CAP_RESP_SIZE (&cap_data),
                                           tpm2_command_get_attributes (command));
-            break;
-        default:
+        } else {
             g_debug ("%s: TPM2_CAP_HANDLES not virtualized for handle type: "
                      "0x%" PRIx32, __func__, handle_type);
-            break;
         }
-        break;
-    default:
+    } else {
         g_debug ("%s: cap 0x%" PRIx32 " not handled", __func__, cap);
-        break;
     }
 
     if (response == NULL) {

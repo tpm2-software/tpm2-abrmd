@@ -61,14 +61,11 @@ response_sink_set_property (GObject        *object,
     ResponseSink *self = RESPONSE_SINK (object);
 
     g_debug ("response_sink_set_property");
-    switch (property_id) {
-    case PROP_IN_QUEUE:
+    if (property_id == PROP_IN_QUEUE) {
         g_debug ("  setting PROP_IN_QUEUE");
         self->in_queue = g_value_get_object (value);
-        break;
-    default:
+    } else {
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
     }
 }
 /**
@@ -82,13 +79,10 @@ response_sink_get_property (GObject     *object,
 {
     ResponseSink *self = RESPONSE_SINK (object);
 
-    switch (property_id) {
-    case PROP_IN_QUEUE:
+    if (property_id == PROP_IN_QUEUE) {
         g_value_set_object (value, self->in_queue);
-        break;
-    default:
+    } else {
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
     }
 }
 /**

@@ -201,14 +201,11 @@ tpm2_lock (Tpm2 *tpm2)
 
     error = pthread_mutex_lock (&tpm2->sapi_mutex);
     if (error != 0) {
-        switch (error) {
-        case EINVAL:
+        if (error == EINVAL) {
             g_error ("Tpm2: attempted to lock uninitialized mutex");
-            break;
-        default:
+        } else {
             g_error ("Tpm2: unknown error attempting to lock SAPI "
                      "mutex: 0x%x", error);
-            break;
         }
     }
 }
@@ -228,14 +225,11 @@ tpm2_unlock (Tpm2 *tpm2)
 
     error= pthread_mutex_unlock (&tpm2->sapi_mutex);
     if (error != 0) {
-        switch (error) {
-        case EINVAL:
+        if (error == EINVAL) {
             g_error ("Tpm2: attempted to unlock uninitialized mutex");
-            break;
-        default:
+        } else {
             g_error ("Tpm2: unknown error attempting to unlock SAPI "
                      "mutex: 0x%x", error);
-            break;
         }
     }
 }
