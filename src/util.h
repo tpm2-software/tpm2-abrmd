@@ -67,17 +67,6 @@ typedef struct {
 
 typedef TSS2_RC (*KeyValueFunc) (const key_value_t* key_value,
                                  gpointer user_data);
-/*
-#define TPM2_CC_FROM_TPMA_CC(attrs) (attrs.val & 0x0000ffff)
-#define TPMA_CC_RESERVED(attrs)    (attrs.val & 0x003f0000)
-#define TPMA_CC_NV(attrs)          (attrs.val & 0x00400000)
-#define TPMA_CC_EXTENSIVE(attrs)   (attrs.val & 0x00800000)
-#define TPMA_CC_FLUSHED(attrs)     (attrs.val & 0x01000000)
-#define TPMA_CC_CHANDLES(attrs)    (attrs.val & 0x02000000)
-#define TPMA_CC_RHANDLES(attrs)    (attrs.val & 0x10000000)
-#define TPMA_CC_V(attrs)           (attrs.val & 0x20000000)
-#define TPMA_CC_RES(attrs)         (attrs.val & 0xc0000000)
-*/
 
 ssize_t     write_all                       (GOutputStream    *ostream,
                                              const uint8_t    *buf,
