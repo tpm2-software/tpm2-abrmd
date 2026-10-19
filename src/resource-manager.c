@@ -162,25 +162,19 @@ handle_rc (ResourceManager *resmgr,
         .resmgr = resmgr,
         .ret = TRUE,
     };
-    gboolean ret;
 
     g_debug ("%s: handling  RC 0x%" PRIx32, __func__, rc);
-    switch (rc) {
-    case TPM2_RC_CONTEXT_GAP:
+    if (rc == TPM2_RC_CONTEXT_GAP) {
         g_debug ("%s: handling TPM2_RC_CONTEXT_GAP", __func__);
         session_list_foreach (resmgr->session_list,
                               regap_session_callback,
                               &data);
-        ret = data.ret;
-        break;
-    default:
+        return data.ret;
+    } else {
         g_debug ("%s: Unable to recover gracefully from RC 0x%" PRIx32,
                  __func__, rc);
-        ret = TRUE;
-        break;
+        return TRUE;
     }
-
-    return ret;
 }/*
  * This is a somewhat generic function used to load session contexts into
  * the TPM2 device. The ResourceManager uses this function when loading
