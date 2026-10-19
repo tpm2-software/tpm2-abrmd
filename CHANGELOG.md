@@ -3,7 +3,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a CHANGELOG](http://keepachangelog.com/)
 
-## 3.1.0 - 2026-10-11
+## 3.1.0 - 2026-10-19
 
 ### Security
   - several fixes to address GHSA-v78x-j5fh-w6pr
