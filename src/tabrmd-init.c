@@ -137,6 +137,15 @@ init_thread_func (gpointer user_data)
 
     g_info ("init_thread_func start");
     g_mutex_lock (&data->init_mutex);
+
+    rc = Tss2_TctiLdr_Initialize (data->options.tcti_conf, &tcti_ctx);
+    if (rc != TSS2_RC_SUCCESS || tcti_ctx == NULL) {
+        g_critical ("%s: failed to create TCTI with conf \"%s\", got RC: 0x%x",
+                    __func__, data->options.tcti_conf, rc);
+        ret = EX_IOERR;
+        goto err_out;
+    }
+
     /* Setup program signals */
     if (g_unix_signal_add(SIGINT, signal_handler, data->loop) <= 0 ||
         g_unix_signal_add(SIGTERM, signal_handler, data->loop) <= 0)
@@ -170,13 +179,6 @@ init_thread_func (gpointer user_data)
     ipc_frontend_connect (data->ipc_frontend,
                           &data->init_mutex);
 
-    rc = Tss2_TctiLdr_Initialize (data->options.tcti_conf, &tcti_ctx);
-    if (rc != TSS2_RC_SUCCESS || tcti_ctx == NULL) {
-        g_critical ("%s: failed to create TCTI with conf \"%s\", got RC: 0x%x",
-                    __func__, data->options.tcti_conf, rc);
-        ret = EX_IOERR;
-        goto err_out;
-    }
     tcti = tcti_new (tcti_ctx);
     data->tpm2 = tpm2_new (tcti);
     g_clear_object (&tcti);
