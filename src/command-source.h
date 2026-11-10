@@ -32,6 +32,13 @@ typedef struct _CommandSource {
     CommandAttrs      *command_attrs;
     GMainContext      *main_context;
     GMainLoop         *main_loop;
+    /*
+     * GHashTable is not thread safe. The map is modified by the thread that
+     * emits the ConnectionManager 'new-connection' signal (insert) and by
+     * the CommandSource GMainLoop thread (remove). All access must be done
+     * with map_mutex held.
+     */
+    GMutex             map_mutex;
     GHashTable        *istream_to_source_data_map;
     Sink              *sink;
 } CommandSource;

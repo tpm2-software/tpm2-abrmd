@@ -78,6 +78,7 @@ source_data_free (gpointer data)
 static void
 command_source_init (CommandSource *source)
 {
+    g_mutex_init (&source->map_mutex);
     source->main_context = g_main_context_new ();
     source->main_loop = g_main_loop_new (source->main_context, FALSE);
     /*
@@ -226,7 +227,10 @@ fail_out:
      * (returning FALSE).
      */
     g_debug ("%s: removing GCancellable", __func__);
-    g_hash_table_remove (data->self->istream_to_source_data_map, istream);
+    CommandSource *self = data->self;
+    g_mutex_lock (&self->map_mutex);
+    g_hash_table_remove (self->istream_to_source_data_map, istream);
+    g_mutex_unlock (&self->map_mutex);
     return G_SOURCE_REMOVE;
 }
 /*
@@ -256,8 +260,6 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
     data->cancellable = g_cancellable_new ();
     data->source = g_pollable_input_stream_create_source (istream,
                                                           data->cancellable);
-    /* we ignore the ID returned since we keep a reference to the source around */
-    g_source_attach (data->source, self->main_context);
     data->self = self;
     g_source_set_callback (data->source,
                            G_SOURCE_FUNC (command_source_on_input_ready),
@@ -267,8 +269,19 @@ command_source_on_new_connection (ConnectionManager   *connection_manager,
      * To stop watching this socket for G_IO_IN condition use this GHashTable
      * to look up the GCancellable object. The hash table takes ownership of
      * the reference to the istream and the source_data_t pointer.
+     * This function runs in the thread that emitted the 'new-connection'
+     * signal, not in the GMainLoop thread, so the map must be locked.
+     *
+     * The data must be fully initialized and in the map *before* the source
+     * is attached: once attached the GMainLoop thread may dispatch
+     * command_source_on_input_ready at any time, and that function removes
+     * the entry from the map when the client goes away.
      */
+    g_mutex_lock (&self->map_mutex);
     g_hash_table_insert (self->istream_to_source_data_map, istream, data);
+    g_mutex_unlock (&self->map_mutex);
+    /* we ignore the ID returned since we keep a reference to the source around */
+    g_source_attach (data->source, self->main_context);
 
     return 0;
 }
@@ -303,12 +316,14 @@ command_source_dispose (GObject *object) {
     g_clear_object (&self->connection_manager);
     g_clear_object (&self->command_attrs);
     /* cancel all outstanding G_IO_IN condition GSources and destroy them */
+    g_mutex_lock (&self->map_mutex);
     if (self->istream_to_source_data_map != NULL) {
         g_hash_table_foreach (self->istream_to_source_data_map,
                               command_source_source_cancel,
                               NULL);
     }
     g_clear_pointer (&self->istream_to_source_data_map, g_hash_table_unref);
+    g_mutex_unlock (&self->map_mutex);
     if (self->main_loop != NULL && g_main_loop_is_running (self->main_loop)) {
         g_main_loop_quit (self->main_loop);
     }
@@ -324,6 +339,9 @@ command_source_dispose (GObject *object) {
 static void
 command_source_finalize (GObject  *object)
 {
+    CommandSource *self = COMMAND_SOURCE (object);
+
+    g_mutex_clear (&self->map_mutex);
     G_OBJECT_CLASS (command_source_parent_class)->finalize (object);
 }
 /*
